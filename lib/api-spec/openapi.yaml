@@ -1,22 +1,37 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: DisciplineOS API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: missions
+    description: Mission management
+  - name: sessions
+    description: Focus session management
+  - name: proofs
+    description: Proof submission and verification
+  - name: rewards
+    description: Reward economy
+  - name: analytics
+    description: Analytics and statistics
+  - name: admin
+    description: Admin operations
+  - name: extension
+    description: Chrome extension sync endpoints
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +39,715 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout user
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # MISSIONS
+  /missions:
+    get:
+      operationId: getMissions
+      tags: [missions]
+      summary: Get user missions
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, active, completed, rejected, archived]
+        - name: date
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of missions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Mission"
+    post:
+      operationId: createMission
+      tags: [missions]
+      summary: Create a new mission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMissionRequest"
+      responses:
+        "201":
+          description: Mission created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Mission"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /missions/{missionId}:
+    get:
+      operationId: getMission
+      tags: [missions]
+      summary: Get a mission by ID
+      parameters:
+        - name: missionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Mission details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Mission"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateMission
+      tags: [missions]
+      summary: Update a mission
+      parameters:
+        - name: missionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMissionRequest"
+      responses:
+        "200":
+          description: Mission updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Mission"
+    delete:
+      operationId: deleteMission
+      tags: [missions]
+      summary: Archive a mission
+      parameters:
+        - name: missionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Mission archived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # FOCUS SESSIONS
+  /sessions:
+    get:
+      operationId: getSessions
+      tags: [sessions]
+      summary: Get user sessions
+      parameters:
+        - name: missionId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FocusSession"
+
+  /sessions/active:
+    get:
+      operationId: getActiveSession
+      tags: [sessions]
+      summary: Get currently active session
+      responses:
+        "200":
+          description: Active session or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveSessionResponse"
+
+  /sessions/start:
+    post:
+      operationId: startSession
+      tags: [sessions]
+      summary: Start a focus session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartSessionRequest"
+      responses:
+        "201":
+          description: Session started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSession"
+        "400":
+          description: Validation error or active session exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sessions/{sessionId}/pause:
+    post:
+      operationId: pauseSession
+      tags: [sessions]
+      summary: Pause an active session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session paused
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSession"
+
+  /sessions/{sessionId}/resume:
+    post:
+      operationId: resumeSession
+      tags: [sessions]
+      summary: Resume a paused session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session resumed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSession"
+
+  /sessions/{sessionId}/stop:
+    post:
+      operationId: stopSession
+      tags: [sessions]
+      summary: Stop/abandon a session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StopSessionRequest"
+      responses:
+        "200":
+          description: Session stopped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSession"
+
+  /sessions/{sessionId}/heartbeat:
+    post:
+      operationId: sessionHeartbeat
+      tags: [sessions]
+      summary: Send session heartbeat
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Heartbeat recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # PROOFS
+  /proofs:
+    post:
+      operationId: submitProof
+      tags: [proofs]
+      summary: Submit proof for a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitProofRequest"
+      responses:
+        "201":
+          description: Proof submitted and AI verdict triggered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProofSubmission"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /proofs/{submissionId}:
+    get:
+      operationId: getProof
+      tags: [proofs]
+      summary: Get proof submission details
+      parameters:
+        - name: submissionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Proof submission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProofSubmission"
+
+  /proofs/{submissionId}/followup:
+    post:
+      operationId: answerFollowup
+      tags: [proofs]
+      summary: Answer AI follow-up questions
+      parameters:
+        - name: submissionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FollowupAnswerRequest"
+      responses:
+        "200":
+          description: Follow-up answered, final verdict triggered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProofSubmission"
+
+  # REWARDS
+  /rewards/balance:
+    get:
+      operationId: getRewardBalance
+      tags: [rewards]
+      summary: Get user reward balance and stats
+      responses:
+        "200":
+          description: Reward balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RewardBalance"
+
+  /rewards/history:
+    get:
+      operationId: getRewardHistory
+      tags: [rewards]
+      summary: Get reward transaction history
+      responses:
+        "200":
+          description: Reward history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RewardTransaction"
+
+  /rewards/shop:
+    get:
+      operationId: getShopItems
+      tags: [rewards]
+      summary: Get shop items
+      responses:
+        "200":
+          description: Shop items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShopItem"
+
+  /rewards/shop/{itemId}/redeem:
+    post:
+      operationId: redeemShopItem
+      tags: [rewards]
+      summary: Redeem a shop item
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Item redeemed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedeemResponse"
+        "400":
+          description: Insufficient coins or item not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ANALYTICS
+  /analytics/dashboard:
+    get:
+      operationId: getDashboardStats
+      tags: [analytics]
+      summary: Get dashboard summary statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /analytics/daily:
+    get:
+      operationId: getDailyAnalytics
+      tags: [analytics]
+      summary: Get daily analytics
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Daily analytics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DailyAnalytics"
+
+  # BLOCKING CONFIG
+  /settings/blocking:
+    get:
+      operationId: getBlockingConfig
+      tags: [extension]
+      summary: Get blocked domains config
+      responses:
+        "200":
+          description: Blocking configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockingConfig"
+    put:
+      operationId: updateBlockingConfig
+      tags: [extension]
+      summary: Update blocked domains
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBlockingConfigRequest"
+      responses:
+        "200":
+          description: Config updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockingConfig"
+
+  /extension/sync:
+    get:
+      operationId: getExtensionSync
+      tags: [extension]
+      summary: Get extension sync data (active session + blocked domains)
+      responses:
+        "200":
+          description: Sync data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExtensionSyncData"
+
+  /extension/blocked-attempt:
+    post:
+      operationId: recordBlockedAttempt
+      tags: [extension]
+      summary: Record a blocked site attempt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlockedAttemptRequest"
+      responses:
+        "200":
+          description: Attempt recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ADMIN
+  /admin/users:
+    get:
+      operationId: adminGetUsers
+      tags: [admin]
+      summary: Admin - list all users
+      responses:
+        "200":
+          description: User list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUser"
+
+  /admin/users/{userId}:
+    put:
+      operationId: adminUpdateUser
+      tags: [admin]
+      summary: Admin - update user role or status
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateUserRequest"
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
+  /admin/reviews:
+    get:
+      operationId: adminGetFlaggedProofs
+      tags: [admin]
+      summary: Admin - get flagged proof submissions
+      responses:
+        "200":
+          description: Flagged submissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProofSubmission"
+
+  /admin/reviews/{submissionId}:
+    post:
+      operationId: adminReviewProof
+      tags: [admin]
+      summary: Admin - manually review a proof submission
+      parameters:
+        - name: submissionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminReviewRequest"
+      responses:
+        "200":
+          description: Review completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProofSubmission"
+
+  /admin/audit-log:
+    get:
+      operationId: getAuditLog
+      tags: [admin]
+      summary: Admin - get audit log
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditLogEntry"
+
+  /admin/shop:
+    post:
+      operationId: adminCreateShopItem
+      tags: [admin]
+      summary: Admin - create shop item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateShopItemRequest"
+      responses:
+        "201":
+          description: Shop item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShopItem"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +758,729 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: ["string", "null"]
+      required:
+        - error
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        username:
+          type: string
+          minLength: 2
+      required:
+        - email
+        - password
+        - username
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserProfile"
+      required:
+        - token
+        - user
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        username:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+        coinBalance:
+          type: integer
+        level:
+          type: integer
+        xp:
+          type: integer
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        trustScore:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - username
+        - role
+        - coinBalance
+        - level
+        - xp
+        - currentStreak
+        - longestStreak
+        - trustScore
+        - createdAt
+
+    Mission:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        category:
+          type: string
+        targetDurationMinutes:
+          type: integer
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        impactLevel:
+          type: integer
+          minimum: 1
+          maximum: 10
+        dueDate:
+          type: ["string", "null"]
+        purpose:
+          type: ["string", "null"]
+        requiredProofTypes:
+          type: array
+          items:
+            type: string
+            enum: [image, screenshot, file, link, text]
+        status:
+          type: string
+          enum: [draft, active, completed, rejected, archived]
+        rewardPotential:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - title
+        - category
+        - targetDurationMinutes
+        - priority
+        - impactLevel
+        - requiredProofTypes
+        - status
+        - rewardPotential
+        - createdAt
+        - updatedAt
+
+    CreateMissionRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 3
+          maxLength: 200
+        description:
+          type: ["string", "null"]
+        category:
+          type: string
+        targetDurationMinutes:
+          type: integer
+          minimum: 5
+          maximum: 480
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        impactLevel:
+          type: integer
+          minimum: 1
+          maximum: 10
+        dueDate:
+          type: ["string", "null"]
+        purpose:
+          type: ["string", "null"]
+        requiredProofTypes:
+          type: array
+          items:
+            type: string
+            enum: [image, screenshot, file, link, text]
+      required:
+        - title
+        - category
+        - targetDurationMinutes
+        - priority
+        - impactLevel
+        - requiredProofTypes
+
+    UpdateMissionRequest:
+      type: object
+      properties:
+        title:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        targetDurationMinutes:
+          type: ["integer", "null"]
+        priority:
+          type: ["string", "null"]
+        impactLevel:
+          type: ["integer", "null"]
+        dueDate:
+          type: ["string", "null"]
+        purpose:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+
+    FocusSession:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        missionId:
+          type: string
+        status:
+          type: string
+          enum: [active, paused, completed, abandoned, low_confidence]
+        strictnessMode:
+          type: string
+          enum: [normal, strict, extreme]
+        startedAt:
+          type: string
+          format: date-time
+        pausedAt:
+          type: ["string", "null"]
+        endedAt:
+          type: ["string", "null"]
+        totalPausedSeconds:
+          type: integer
+        elapsedSeconds:
+          type: integer
+        pauseCount:
+          type: integer
+        blockedAttemptCount:
+          type: integer
+        heartbeatCount:
+          type: integer
+        extensionConnected:
+          type: boolean
+        mission:
+          $ref: "#/components/schemas/Mission"
+      required:
+        - id
+        - userId
+        - missionId
+        - status
+        - strictnessMode
+        - startedAt
+        - totalPausedSeconds
+        - elapsedSeconds
+        - pauseCount
+        - blockedAttemptCount
+        - heartbeatCount
+        - extensionConnected
+        - mission
+
+    ActiveSessionResponse:
+      type: object
+      properties:
+        session:
+          $ref: "#/components/schemas/FocusSession"
+        hasActive:
+          type: boolean
+      required:
+        - hasActive
+
+    StartSessionRequest:
+      type: object
+      properties:
+        missionId:
+          type: string
+        strictnessMode:
+          type: string
+          enum: [normal, strict, extreme]
+      required:
+        - missionId
+        - strictnessMode
+
+    StopSessionRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          enum: [completed, abandoned, emergency]
+      required:
+        - reason
+
+    ProofSubmission:
+      type: object
+      properties:
+        id:
+          type: string
+        sessionId:
+          type: string
+        missionId:
+          type: string
+        userId:
+          type: string
+        status:
+          type: string
+          enum: [pending, reviewing, approved, partial, rejected, flagged, followup_needed]
+        textSummary:
+          type: ["string", "null"]
+        links:
+          type: array
+          items:
+            type: string
+        fileUrls:
+          type: array
+          items:
+            type: string
+        aiConfidenceScore:
+          type: ["number", "null"]
+        aiVerdict:
+          type: ["string", "null"]
+        aiExplanation:
+          type: ["string", "null"]
+        aiRubric:
+          $ref: "#/components/schemas/AiRubric"
+        followupQuestions:
+          type: ["string", "null"]
+        rewardMultiplier:
+          type: ["number", "null"]
+        coinsAwarded:
+          type: ["integer", "null"]
+        manualReviewNote:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - sessionId
+        - missionId
+        - userId
+        - status
+        - links
+        - fileUrls
+        - createdAt
+        - updatedAt
+
+    AiRubric:
+      type: object
+      properties:
+        relevanceScore:
+          type: ["number", "null"]
+        qualityScore:
+          type: ["number", "null"]
+        plausibilityScore:
+          type: ["number", "null"]
+        specificityScore:
+          type: ["number", "null"]
+      nullable: true
+
+    SubmitProofRequest:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        textSummary:
+          type: ["string", "null"]
+        links:
+          type: array
+          items:
+            type: string
+        fileUrls:
+          type: array
+          items:
+            type: string
+      required:
+        - sessionId
+
+    FollowupAnswerRequest:
+      type: object
+      properties:
+        answers:
+          type: string
+          minLength: 20
+      required:
+        - answers
+
+    RewardBalance:
+      type: object
+      properties:
+        coinBalance:
+          type: integer
+        level:
+          type: integer
+        xp:
+          type: integer
+        xpToNextLevel:
+          type: integer
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        totalCoinsEarned:
+          type: integer
+        totalMissionsCompleted:
+          type: integer
+      required:
+        - coinBalance
+        - level
+        - xp
+        - xpToNextLevel
+        - currentStreak
+        - longestStreak
+        - totalCoinsEarned
+        - totalMissionsCompleted
+
+    RewardTransaction:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        type:
+          type: string
+          enum: [earned, spent, bonus, penalty, admin_grant, admin_revoke]
+        amount:
+          type: integer
+        reason:
+          type: string
+        missionId:
+          type: ["string", "null"]
+        proofId:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - type
+        - amount
+        - reason
+        - createdAt
+
+    ShopItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        cost:
+          type: integer
+        category:
+          type: string
+        isAvailable:
+          type: boolean
+        icon:
+          type: string
+      required:
+        - id
+        - name
+        - description
+        - cost
+        - category
+        - isAvailable
+        - icon
+
+    RedeemResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        newBalance:
+          type: integer
+        item:
+          $ref: "#/components/schemas/ShopItem"
+      required:
+        - success
+        - newBalance
+        - item
+
+    DashboardStats:
+      type: object
+      properties:
+        todayMissions:
+          type: integer
+        todayCompleted:
+          type: integer
+        todayFocusMinutes:
+          type: integer
+        weeklyMissions:
+          type: integer
+        weeklyCompleted:
+          type: integer
+        weeklyFocusMinutes:
+          type: integer
+        currentStreak:
+          type: integer
+        coinBalance:
+          type: integer
+        level:
+          type: integer
+        activeSession:
+          $ref: "#/components/schemas/FocusSession"
+        recentMissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Mission"
+        pendingProofs:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProofSubmission"
+      required:
+        - todayMissions
+        - todayCompleted
+        - todayFocusMinutes
+        - weeklyMissions
+        - weeklyCompleted
+        - weeklyFocusMinutes
+        - currentStreak
+        - coinBalance
+        - level
+        - recentMissions
+        - pendingProofs
+
+    DailyAnalytics:
+      type: object
+      properties:
+        date:
+          type: string
+        focusMinutes:
+          type: integer
+        missionsCompleted:
+          type: integer
+        coinsEarned:
+          type: integer
+        streakDay:
+          type: boolean
+      required:
+        - date
+        - focusMinutes
+        - missionsCompleted
+        - coinsEarned
+        - streakDay
+
+    BlockingConfig:
+      type: object
+      properties:
+        blockedDomains:
+          type: array
+          items:
+            type: string
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - blockedDomains
+        - updatedAt
+
+    UpdateBlockingConfigRequest:
+      type: object
+      properties:
+        blockedDomains:
+          type: array
+          items:
+            type: string
+      required:
+        - blockedDomains
+
+    ExtensionSyncData:
+      type: object
+      properties:
+        hasActiveSession:
+          type: boolean
+        sessionId:
+          type: ["string", "null"]
+        missionTitle:
+          type: ["string", "null"]
+        strictnessMode:
+          type: ["string", "null"]
+        blockedDomains:
+          type: array
+          items:
+            type: string
+        sessionStartedAt:
+          type: ["string", "null"]
+      required:
+        - hasActiveSession
+        - blockedDomains
+
+    BlockedAttemptRequest:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        domain:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - sessionId
+        - domain
+
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        username:
+          type: string
+        role:
+          type: string
+        coinBalance:
+          type: integer
+        level:
+          type: integer
+        currentStreak:
+          type: integer
+        trustScore:
+          type: number
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        lastActiveAt:
+          type: ["string", "null"]
+      required:
+        - id
+        - email
+        - username
+        - role
+        - coinBalance
+        - level
+        - currentStreak
+        - trustScore
+        - isActive
+        - createdAt
+
+    AdminUpdateUserRequest:
+      type: object
+      properties:
+        role:
+          type: ["string", "null"]
+        isActive:
+          type: ["boolean", "null"]
+        coinAdjustment:
+          type: ["integer", "null"]
+        note:
+          type: ["string", "null"]
+
+    AdminReviewRequest:
+      type: object
+      properties:
+        verdict:
+          type: string
+          enum: [approved, partial, rejected]
+        note:
+          type: string
+        rewardMultiplier:
+          type: number
+          minimum: 0
+          maximum: 1.5
+      required:
+        - verdict
+        - note
+        - rewardMultiplier
+
+    AuditLogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        actorId:
+          type: ["string", "null"]
+        actorRole:
+          type: string
+        action:
+          type: string
+        targetId:
+          type: ["string", "null"]
+        targetType:
+          type: ["string", "null"]
+        details:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - actorRole
+        - action
+        - createdAt
+
+    CreateShopItemRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        cost:
+          type: integer
+        category:
+          type: string
+        icon:
+          type: string
+      required:
+        - name
+        - description
+        - cost
+        - category
+        - icon

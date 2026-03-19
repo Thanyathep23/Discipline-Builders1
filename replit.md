@@ -1,8 +1,15 @@
-# Workspace
+# DisciplineOS
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+**DisciplineOS** — A dark, premium gamified discipline mobile app (Expo) with a full-stack backend (Express + PostgreSQL). Users create missions, run focus sessions tracked by a live timer, submit proof of work to an AI judge (GPT-4o-mini), earn coins computed server-side only, and redeem items from a shop.
+
+Key design mandates:
+- Rewards computed **server-side only** (never client-side)
+- **Real AI proof verification** (GPT-4o-mini, no auto-approve)
+- **Extension sync** real data
+- Data isolated per user (userId checks on all DB queries)
+- Admin has full **audit log**
 
 ## Stack
 
@@ -12,9 +19,24 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **TypeScript version**: 5.9
 - **API framework**: Express 5
 - **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
+- **Validation**: Zod, `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
+- **Mobile**: Expo + React Native (web preview at port 18115)
+- **AI**: OpenAI GPT-4o-mini (proof judge)
+
+## Artifacts
+
+- `artifacts/api-server` — Express API on port 8080, mounted at `/api`
+- `artifacts/mobile` — Expo React Native app on port 18115
+
+## Design System
+
+- Dark theme: bg `#0A0A0F`, card `#12121A`
+- Accent purple: `#7C5CFC`
+- Gold coins: `#F5C842`
+- Green active: `#00E676`
+- Fonts: Inter (400/500/600/700)
 
 ## Structure
 

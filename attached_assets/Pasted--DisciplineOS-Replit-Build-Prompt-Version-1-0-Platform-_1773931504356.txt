@@ -1,0 +1,1249 @@
+# DisciplineOS — Replit Build Prompt
+Version: 1.0 | Platform: Replit | Stack: Next.js + React + TypeScript + Tailwind + Supabase + Chrome Extension (Manifest V3) + OpenAI API
+
+Build a production-minded MVP called **DisciplineOS**: a gamified self-discipline platform that combines daily mission planning, focus mode, website blocking, time tracking, proof-based task completion, AI verification, and a reward economy. The product should feel like a **dark premium command center** with a **serious discipline tone** and a **light RPG reward layer**.
+
+This is **not** a generic to-do app. The core product promise is:
+- help users decide what matters today,
+- make distraction harder during focus time,
+- verify whether work was actually done,
+- reward meaningful progress fairly,
+- and discourage low-effort completion or cheating.
+
+Prioritize a **working end-to-end MVP** over visual over-engineering. Avoid fake demo logic. Build real flows with real persistence.
+
+---
+
+## 🎯 PROJECT OVERVIEW
+
+Create a multi-user web app plus a Chrome extension.
+
+### Main user flow
+1. User signs up / signs in.
+2. User creates daily missions with duration, priority, purpose, and proof requirements.
+3. User starts a focus session for a mission.
+4. Web app enters focus mode and paired browser extension blocks configured distracting websites during the active session.
+5. User finishes the session and submits proof:
+   - image / screenshot
+   - text summary
+   - file upload
+   - external link
+6. AI Judge reviews the proof and either:
+   - approves and grants reward,
+   - partially approves with reduced reward,
+   - rejects and asks follow-up questions,
+   - or flags the submission for manual admin review.
+7. User sees coins, streaks, level progress, penalties, and daily/weekly analytics.
+8. Admin can manage users, shop items, flagged submissions, and system rules.
+
+### Product principles
+- No reward should be granted from timer completion alone.
+- Important work should pay more than trivial work.
+- Weak proof should get low reward or no reward.
+- Repeated attempts to bypass focus mode should create penalties.
+- Sleep and recovery should matter, but in v1 sleep is manual entry.
+- Streaks matter, but never more than actual work quality.
+
+---
+
+## 🏗️ ARCHITECTURE & STRUCTURE
+
+Use a single Replit repository with a Next.js app and an extension folder.
+
+### Recommended folder structure
+
+/
+  app/
+    (marketing)/
+    (auth)/
+      login/page.tsx
+      signup/page.tsx
+    dashboard/
+      page.tsx
+    missions/
+      page.tsx
+      new/page.tsx
+      [missionId]/page.tsx
+    focus/
+      page.tsx
+      active/[sessionId]/page.tsx
+    proofs/
+      [submissionId]/page.tsx
+    rewards/
+      page.tsx
+      shop/page.tsx
+      inventory/page.tsx
+    analytics/
+      page.tsx
+    sleep/
+      page.tsx
+    settings/
+      page.tsx
+      blocking/page.tsx
+      strictness/page.tsx
+      account/page.tsx
+    admin/
+      page.tsx
+      users/page.tsx
+      reviews/page.tsx
+      shop/page.tsx
+      rules/page.tsx
+    api/
+      ai/
+        judge/route.ts
+        followup/route.ts
+      extension/
+        sync/route.ts
+        heartbeat/route.ts
+        auth/route.ts
+      rewards/
+        preview/route.ts
+      webhooks/
+        route.ts
+  components/
+    layout/
+    ui/
+    dashboard/
+    missions/
+    focus/
+    proofs/
+    rewards/
+    analytics/
+    admin/
+  lib/
+    auth/
+    supabase/
+    ai/
+    scoring/
+    antiCheat/
+    validation/
+    extension/
+    analytics/
+    constants/
+    utils/
+  types/
+  public/
+  extension/
+    manifest.json
+    background.ts
+    rules.ts
+    blocked.html
+    blocked.ts
+    popup.html
+    popup.ts
+    options.html
+    options.ts
+    content.ts
+  supabase/
+    migrations/
+    seed.sql
+    policies.sql
+  scripts/
+  tests/
+
+### App architecture
+- Use Next.js App Router.
+- Use TypeScript everywhere.
+- Use Tailwind for styling.
+- Use Supabase for Auth, Postgres, Storage, and Row Level Security.
+- Use server-side routes / server actions for all privileged operations.
+- Never trust client-side completion, reward, or proof verdict logic.
+
+### State management
+- Use server state as source of truth.
+- Use lightweight client state only for UI state, timers, filters, and modals.
+- Prefer React context or Zustand only where necessary.
+- Do not create a complex global store unless truly needed.
+
+### Data flow
+1. User action in UI
+2. Zod validation
+3. Server route / server action
+4. Supabase read/write with RLS
+5. AI judge route for proof evaluation
+6. Reward engine computes result server-side
+7. Persist audit logs
+8. Revalidate UI
+
+### Extension flow
+- Extension must authenticate to the web app using a short-lived token exchange.
+- During active focus sessions, extension receives blocking rules for the logged-in user.
+- When user opens blocked sites, extension:
+  - blocks navigation or redirects to local blocked page,
+  - shows reason and active mission,
+  - records blocked attempt,
+  - syncs attempt to backend when online.
+- If extension is offline, queue events locally and sync later.
+
+---
+
+## 🔐 AUTHENTICATION & SECURITY
+
+### Auth method
+- Use Supabase Auth with email + password for MVP.
+- Support password reset.
+- Require verified session for all user actions.
+- Admin area must be protected by role-based authorization.
+
+### Roles
+- `user`
+- `admin`
+- `system`
+
+Notes:
+- `system` is not a human login role. It represents server-side AI judge / reward engine actions.
+- Admin pages must never rely on hidden UI alone. Enforce authorization server-side and in DB policies.
+
+### Protected routes
+- `/dashboard`
+- `/missions/**`
+- `/focus/**`
+- `/proofs/**`
+- `/rewards/**`
+- `/analytics`
+- `/sleep`
+- `/settings/**`
+- `/admin/**` (admin only)
+
+### Security rules
+- Never expose Supabase service role key to client.
+- All reward calculations happen server-side only.
+- All AI verdict persistence happens server-side only.
+- File uploads must use signed upload flow and restricted buckets.
+- Validate MIME type, file size, and extension on upload.
+- Sanitize all free text fields before storage and rendering.
+- Escape user-generated content in UI.
+- Use Zod validation on every form and API route.
+- Rate limit:
+  - auth attempts
+  - proof submissions
+  - AI judge requests
+  - extension heartbeat / sync endpoints
+- Use server timestamps, not client timestamps, for sensitive logs.
+- Maintain audit logs for:
+  - reward grants
+  - reward reversals
+  - proof verdicts
+  - admin actions
+  - strictness rule changes
+- Prevent replay or duplicate proof submissions for the same session if already finalized.
+- Prevent direct client manipulation of:
+  - mission completion status
+  - coin balance
+  - streak counters
+  - penalty counters
+  - admin flags
+
+### Anti-cheat / fraud prevention
+- Do not auto-approve based only on elapsed time.
+- Track session heartbeats from web app and extension where applicable.
+- Mark sessions as low-confidence if:
+  - no proof submitted,
+  - proof text is too short or generic,
+  - uploaded content appears unrelated,
+  - link is invalid or inaccessible,
+  - session had many blocked-site attempts,
+  - extension was disconnected during a strict focus block.
+- Maintain `trust_score` per user that adjusts follow-up strictness over time.
+- Repeated suspicious behavior should increase manual review likelihood.
+
+---
+
+## 📦 CORE FEATURES
+
+### Feature 1: Daily Mission Planner
+**Description:** Users create missions for the day with required context so the system can judge value, not just duration.
+
+**Fields:**
+- title
+- description
+- category
+- target_duration_minutes
+- priority (low, medium, high, critical)
+- impact_level
+- due_date
+- purpose / why it matters
+- required_proof_types
+- optional links / notes
+
+**Business rules:**
+- A mission can be drafted, active, completed, rejected, or archived.
+- Mission priority and impact influence reward potential.
+- User cannot mark a mission as fully completed without proof if proof is required.
+- Missions can be recurring later, but recurrence is out of scope for MVP unless simple daily repeat is trivial.
+
+**Edge cases:**
+- empty or vague mission title
+- impossible duration
+- overlapping mission schedule
+- user starts focus without selecting mission
+
+---
+
+### Feature 2: Focus Mode
+**Description:** User starts a focused work session linked to a mission.
+
+**Requirements:**
+- show active mission
+- countdown / elapsed timer
+- pause / resume with limits
+- show blocked websites list
+- show current strictness mode
+- distraction warning log
+- emergency stop with confirmation and penalty explanation
+
+**Business rules:**
+- session belongs to one mission only
+- strict mode allows fewer pauses and stronger penalties
+- session outcome should include:
+  - completed
+  - abandoned
+  - interrupted
+  - low-confidence
+- completing a timer does not equal proof approval
+
+**Edge cases:**
+- tab refresh
+- page close / reopen
+- lost internet
+- extension not installed
+- extension disconnected mid-session
+
+---
+
+### Feature 3: Website Blocking via Chrome Extension
+**Description:** Block distracting websites during active focus sessions.
+
+**Requirements:**
+- Chrome Extension Manifest V3
+- user-configurable blocked domains
+- default suggested list: youtube.com, facebook.com, x.com, instagram.com, tiktok.com
+- per-user sync from backend
+- redirect blocked attempts to a blocked screen
+- blocked screen shows:
+  - active mission title
+  - session timer status
+  - motivational but strict message
+  - return-to-focus action
+- sync blocked attempt count and timestamps
+
+**Business rules:**
+- only active during focus sessions unless user enables a schedule-based block later
+- browser blocking is limited to Chrome/Chromium in MVP
+- blocked attempt count feeds penalty engine
+
+**Edge cases:**
+- incognito not enabled
+- extension disabled
+- user edits domain list during active session
+- multiple Chrome profiles
+- offline event queue
+
+---
+
+### Feature 4: Smart Time Tracker
+**Description:** Users can track how time is spent, beyond only work missions.
+
+**Trackable states:**
+- focused work
+- break
+- study
+- exercise
+- sleep
+- admin / misc
+- planning
+
+**Requirements:**
+- daily timeline view
+- total minutes by category
+- mission-linked sessions and non-mission sessions
+- analytics card for planned vs actual
+
+**Business rules:**
+- one active timer at a time
+- overlapping active sessions are not allowed
+- category totals drive analytics, not reward by default
+- reward only comes from approved mission completion and sleep bonus rules
+
+**Edge cases:**
+- user forgets to stop timer
+- timer spans midnight
+- manual edits after the fact
+- timezone change
+
+---
+
+### Feature 5: Proof Upload + AI Verification
+**Description:** User submits proof that work was truly done.
+
+**Accepted proof in MVP:**
+- image
+- screenshot
+- file upload
+- external link
+- text summary
+- AI follow-up answers
+
+**Submission flow:**
+- user selects linked session / mission
+- uploads files or paste links
+- writes summary:
+  - what was done
+  - what outcome was produced
+  - what remains next
+- user submits
+- AI Judge reviews
+- if low confidence, AI asks follow-up questions before final verdict
+
+**AI Judge responsibilities:**
+- assess relevance of proof to mission
+- assess whether claimed duration seems plausible
+- assess whether outcome quality is weak / adequate / strong
+- detect vague or generic submission text
+- assign confidence score
+- recommend reward multiplier
+- return approval / partial approval / rejection / manual review
+
+**Business rules:**
+- proof review must be explainable
+- store structured rubric scores
+- do not store only a freeform LLM paragraph
+- final reward is computed server-side from structured scores
+
+**Edge cases:**
+- user uploads unrelated image
+- broken link
+- text summary copied/pasted generic nonsense
+- duplicate file reused across missions
+- AI confidence too low
+- AI output invalid JSON
+
+---
+
+### Feature 6: Strict AI Reward Engine
+**Description:** Reward meaningful work fairly and strictly.
+
+**Reward inputs:**
+- mission priority
+- mission impact
+- target duration
+- actual session duration
+- proof quality
+- proof confidence
+- blocked attempt count
+- strictness mode
+- user trust score
+- streak bonus
+- sleep bonus (if applicable)
+
+**Reward philosophy:**
+- important work > trivial work
+- strong proof > weak proof
+- real output > passive time
+- consistency matters, but cannot override low quality
+- bypass attempts reduce reward or add penalties
+
+**Suggested reward formula:**
+- base_reward = mission_value_score × duration_weight
+- quality_multiplier = 0.0 to 1.5
+- confidence_multiplier = 0.0 to 1.2
+- strictness_adjustment = mode-based
+- streak_bonus = capped additive bonus
+- penalty_deduction = blocked attempts / abandonment / suspicious behavior
+- final_reward = max(0, rounded result)
+
+**Also support:**
+- XP / level progression
+- penalties
+- reward transaction history
+- manual admin reward reversal with audit log
+
+---
+
+### Feature 7: Reward / Coin / Shop / Inventory Lite
+**Description:** Users earn coins and spend them on aspirational virtual rewards.
+
+**MVP requirements:**
+- coin wallet
+- shop items
+- item rarity
+- item categories
+- inventory page
+- purchase confirmation
+- insufficient balance state
+
+**Example item categories:**
+- dream cars
+- dream rooms
+- lifestyle items
+- trophies
+- skins / cosmetic badges
+- symbolic future goals
+
+**Business rules:**
+- purely virtual items in MVP
+- no real money / no gambling mechanics
+- purchases create immutable transaction log
+- items can be visible in profile / inventory
+
+---
+
+### Feature 8: Sleep & Recovery
+**Description:** Reward sustainable discipline, not burnout.
+
+**MVP scope:**
+- manual sleep log only
+- bedtime
+- wake time
+- total sleep hours
+- subjective sleep quality
+- optional note
+
+**Business rules:**
+- sleep bonus is supportive, not dominant
+- bonus for hitting target duration and bedtime consistency
+- sleep alone should not out-earn meaningful work
+- use user-configured targets
+
+**Edge cases:**
+- sleep across midnight
+- user edits sleep retroactively
+- unrealistic sleep entries
+
+---
+
+### Feature 9: Dashboard & Analytics Lite
+**Description:** Show whether the user is actually living according to plan.
+
+**Dashboard cards:**
+- today’s missions
+- active streak
+- current level
+- current coins
+- time focused today
+- blocked attempts today
+- pending proof reviews
+- sleep score last night
+- weekly consistency trend
+
+**Analytics views:**
+- planned vs completed
+- approved vs rejected proof
+- coins earned by category
+- top distraction domains
+- focus hours by day
+- sleep consistency trend
+
+---
+
+### Feature 10: Admin Console
+**Description:** Give admins control over rules and flagged cases.
+
+**Admin capabilities:**
+- view users
+- search users
+- suspend / unsuspend users
+- view flagged submissions
+- review AI verdicts
+- adjust shop items
+- manage system defaults
+- inspect audit logs
+- change strictness configuration templates
+
+**Business rules:**
+- admin actions must be logged
+- admins cannot impersonate users silently
+- highly sensitive actions require confirmation
+
+---
+
+## 🗄️ DATABASE SCHEMA
+
+Use Supabase Postgres. Create normalized tables with indexes and RLS.
+
+### 1. profiles
+- id uuid pk references auth.users(id)
+- email text
+- display_name text
+- avatar_url text null
+- role text check in ('user','admin')
+- strictness_mode text check in ('strict','balanced','custom')
+- trust_score numeric default 0.5
+- target_sleep_hours numeric default 8
+- target_bedtime time null
+- timezone text default 'Asia/Bangkok'
+- is_suspended boolean default false
+- created_at timestamptz default now()
+- updated_at timestamptz default now()
+
+### 2. missions
+- id uuid pk
+- user_id uuid not null
+- title text not null
+- description text null
+- category text not null
+- status text check in ('draft','scheduled','active','awaiting_proof','under_review','approved','partially_approved','rejected','archived')
+- priority text check in ('low','medium','high','critical')
+- impact_level integer check between 1 and 5
+- target_duration_minutes integer
+- purpose text null
+- due_at timestamptz null
+- proof_required boolean default true
+- proof_requirements jsonb
+- created_at timestamptz default now()
+- updated_at timestamptz default now()
+
+Indexes:
+- (user_id, created_at desc)
+- (user_id, status)
+- (user_id, due_at)
+
+### 3. mission_schedules
+- id uuid pk
+- mission_id uuid not null
+- user_id uuid not null
+- scheduled_start timestamptz
+- scheduled_end timestamptz
+- created_at timestamptz default now()
+
+### 4. focus_sessions
+- id uuid pk
+- mission_id uuid not null
+- user_id uuid not null
+- status text check in ('active','paused','completed','abandoned','interrupted','low_confidence')
+- started_at timestamptz not null
+- ended_at timestamptz null
+- total_active_seconds integer default 0
+- total_pause_seconds integer default 0
+- pause_count integer default 0
+- strictness_mode text not null
+- extension_connected boolean default false
+- blocked_attempt_count integer default 0
+- heartbeat_count integer default 0
+- suspicious_flags jsonb default '[]'::jsonb
+- created_at timestamptz default now()
+- updated_at timestamptz default now()
+
+Indexes:
+- (user_id, started_at desc)
+- (mission_id)
+- (user_id, status)
+
+### 5. session_heartbeats
+- id uuid pk
+- session_id uuid not null
+- user_id uuid not null
+- source text check in ('web','extension')
+- received_at timestamptz default now()
+- meta jsonb default '{}'::jsonb
+
+### 6. blocked_domains
+- id uuid pk
+- user_id uuid not null
+- domain text not null
+- is_active boolean default true
+- created_at timestamptz default now()
+
+Unique:
+- (user_id, domain)
+
+### 7. blocked_attempts
+- id uuid pk
+- user_id uuid not null
+- session_id uuid null
+- domain text not null
+- blocked_at timestamptz default now()
+- source text default 'extension'
+- meta jsonb default '{}'::jsonb
+
+Indexes:
+- (user_id, blocked_at desc)
+- (session_id)
+
+### 8. time_entries
+- id uuid pk
+- user_id uuid not null
+- mission_id uuid null
+- category text not null
+- started_at timestamptz not null
+- ended_at timestamptz null
+- duration_seconds integer default 0
+- source text check in ('manual','focus_session','sleep_log')
+- created_at timestamptz default now()
+
+### 9. proof_submissions
+- id uuid pk
+- user_id uuid not null
+- mission_id uuid not null
+- session_id uuid null
+- status text check in ('submitted','followup_required','under_review','approved','partially_approved','rejected','manual_review')
+- summary text
+- result_notes text null
+- link_url text null
+- submitted_at timestamptz default now()
+- finalized_at timestamptz null
+- ai_confidence numeric null
+- proof_quality_score numeric null
+- relevance_score numeric null
+- followup_count integer default 0
+- duplicate_hash text null
+- created_at timestamptz default now()
+- updated_at timestamptz default now()
+
+Indexes:
+- (user_id, submitted_at desc)
+- (mission_id)
+- (status)
+
+### 10. proof_files
+- id uuid pk
+- submission_id uuid not null
+- user_id uuid not null
+- storage_path text not null
+- file_name text
+- mime_type text
+- file_size_bytes integer
+- sha256 text null
+- created_at timestamptz default now()
+
+### 11. proof_followups
+- id uuid pk
+- submission_id uuid not null
+- user_id uuid not null
+- question text not null
+- answer text null
+- asked_at timestamptz default now()
+- answered_at timestamptz null
+
+### 12. ai_reviews
+- id uuid pk
+- submission_id uuid not null
+- user_id uuid not null
+- model_name text not null
+- verdict text check in ('approved','partial','rejected','manual_review','followup_required')
+- confidence_score numeric
+- quality_score numeric
+- relevance_score numeric
+- duration_plausibility_score numeric
+- explanation text
+- structured_result jsonb not null
+- created_at timestamptz default now()
+
+### 13. reward_transactions
+- id uuid pk
+- user_id uuid not null
+- mission_id uuid null
+- submission_id uuid null
+- type text check in ('earn','penalty','bonus','purchase','reversal','admin_adjustment')
+- amount integer not null
+- balance_after integer not null
+- reason text not null
+- meta jsonb default '{}'::jsonb
+- created_at timestamptz default now()
+
+Indexes:
+- (user_id, created_at desc)
+
+### 14. wallets
+- user_id uuid pk
+- coin_balance integer default 0
+- xp integer default 0
+- level integer default 1
+- updated_at timestamptz default now()
+
+### 15. shop_items
+- id uuid pk
+- name text not null
+- description text null
+- category text not null
+- rarity text check in ('common','rare','epic','legendary')
+- price integer not null
+- image_url text null
+- is_active boolean default true
+- created_at timestamptz default now()
+
+### 16. inventory_items
+- id uuid pk
+- user_id uuid not null
+- shop_item_id uuid not null
+- purchased_at timestamptz default now()
+
+Unique:
+- optionally allow duplicates false for unique collectibles
+- otherwise support multiple quantities later
+
+### 17. sleep_logs
+- id uuid pk
+- user_id uuid not null
+- sleep_start timestamptz not null
+- sleep_end timestamptz not null
+- duration_minutes integer not null
+- quality_rating integer check between 1 and 5
+- note text null
+- bonus_awarded boolean default false
+- created_at timestamptz default now()
+
+### 18. streaks
+- user_id uuid pk
+- current_streak integer default 0
+- best_streak integer default 0
+- last_qualified_date date null
+- updated_at timestamptz default now()
+
+### 19. penalties
+- id uuid pk
+- user_id uuid not null
+- session_id uuid null
+- kind text check in ('blocked_attempts','abandonment','suspicious_proof','manual_admin')
+- amount integer not null
+- reason text not null
+- created_at timestamptz default now()
+
+### 20. strictness_profiles
+- id uuid pk
+- scope text check in ('system','user')
+- user_id uuid null
+- mode text check in ('strict','balanced','custom')
+- config jsonb not null
+- is_active boolean default true
+- created_at timestamptz default now()
+
+### 21. audit_logs
+- id uuid pk
+- actor_user_id uuid null
+- actor_role text not null
+- action text not null
+- target_type text not null
+- target_id uuid null
+- details jsonb default '{}'::jsonb
+- created_at timestamptz default now()
+
+---
+
+## 🔒 ROW LEVEL SECURITY (RLS) RULES
+
+Enable RLS on all user-data tables.
+
+### General rule
+Users can only read and write their own records unless role = admin.
+
+### Example policy intent
+- `profiles`: user can read/update own profile, admin can read all
+- `missions`: user owns own missions
+- `focus_sessions`: user owns own sessions
+- `blocked_domains`: user owns own domain rules
+- `blocked_attempts`: user can read own attempts, system insert via server
+- `proof_submissions`: user owns own submissions
+- `proof_files`: user owns own files
+- `reward_transactions`: user can read own ledger only
+- `wallets`: user can read own wallet; write only via server logic
+- `sleep_logs`: user owns own logs
+- `audit_logs`: only admin can read; user cannot tamper
+
+### Critical rule
+Do **not** allow direct client updates to:
+- wallet balances
+- admin flags
+- AI review rows
+- final proof verdict rows
+- audit logs
+
+Use server-side service-role operations only for these sensitive writes.
+
+---
+
+## 🎨 UI/UX SPECIFICATIONS
+
+### Visual style
+- Dark premium
+- Military command center
+- Serious, sharp, disciplined
+- Reward/shop layer adds subtle RPG excitement
+
+### Color direction
+- Background: near-black / graphite
+- Panels: charcoal / gunmetal
+- Accent: electric cyan or tactical green
+- Danger: muted red
+- Success: disciplined green
+- Gold only for reward/high-value states
+
+### Component style
+- clean grid layout
+- strong hierarchy
+- dense but readable dashboard cards
+- premium shadows and borders
+- avoid childish game UI
+
+### Key screens
+- Login / Signup
+- Dashboard
+- Today’s Missions
+- Mission Detail
+- Focus Session
+- Proof Submission
+- AI Review Result
+- Rewards Shop
+- Inventory
+- Sleep Log
+- Analytics
+- Settings
+- Admin Console
+
+### UX rules
+- Mobile-first for daily flow:
+  - create mission
+  - start focus
+  - upload proof
+  - view rewards
+- Desktop-friendly for:
+  - analytics
+  - admin
+  - detailed reviews
+- Provide skeleton loading states.
+- Provide strong empty states:
+  - no missions today
+  - no blocked domains
+  - no proof pending
+  - empty inventory
+- Provide clear error states with retry actions.
+- Use confirmation dialogs for destructive actions.
+- Show “strictness mode” visibly in focus flow.
+
+---
+
+## ⚙️ TECHNICAL REQUIREMENTS
+
+### Runtime / framework
+- Use Next.js on Replit
+- TypeScript strict mode
+- Tailwind CSS
+- Supabase client + server integration
+- OpenAI SDK for judge flow
+- Zod for validation
+
+### Recommended dependencies
+- next
+- react
+- react-dom
+- typescript
+- tailwindcss
+- @supabase/supabase-js
+- @supabase/ssr
+- openai
+- zod
+- react-hook-form
+- @hookform/resolvers
+- zustand (only if needed)
+- date-fns
+- lucide-react
+- recharts
+- clsx
+- uuid
+
+### Environment variables
+- NEXT_PUBLIC_APP_URL
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY
+- OPENAI_API_KEY
+- EXTENSION_SHARED_SECRET
+- EXTENSION_ID (optional for stricter extension pairing)
+- AI_JUDGE_MODEL
+- AI_FOLLOWUP_MODEL
+
+### Performance goals
+- initial dashboard load < 3s on normal broadband
+- avoid unnecessary refetches
+- paginate admin reviews
+- compress uploaded images where appropriate
+- use signed URLs, not fully public storage, for sensitive proof
+
+### Accessibility
+- keyboard-accessible navigation
+- semantic form labels
+- visible focus states
+- sufficient contrast
+- no important meaning by color alone
+
+---
+
+## 🤖 AI JUDGE SPECIFICATION
+
+Implement the AI Judge as a structured evaluator, not a chat assistant.
+
+### AI Judge inputs
+- mission title
+- mission description
+- mission priority
+- mission impact
+- target duration
+- session metrics
+- blocked attempt count
+- user strictness mode
+- proof summary
+- proof file metadata
+- extracted file context if available
+- link URL if provided
+- prior follow-up answers
+- user trust score
+
+### AI Judge outputs (strict JSON)
+Return only structured JSON with fields like:
+- verdict
+- confidence_score
+- quality_score
+- relevance_score
+- duration_plausibility_score
+- needs_followup
+- followup_questions[]
+- reward_multiplier
+- penalty_recommendation
+- flags[]
+- explanation_short
+- explanation_detailed
+
+### AI Judge behavior
+- Be strict but fair.
+- Do not reward effort claims without evidence.
+- Reward concrete outputs, specific summaries, and aligned proof.
+- Penalize vagueness, generic summaries, or irrelevant uploads.
+- If uncertain, ask follow-up questions instead of approving blindly.
+- Escalate to stronger model or manual review when confidence is too low.
+- Never produce the final coin balance directly; only scoring inputs and recommendation.
+
+### Model routing
+- Use a lighter model for first-pass review.
+- Use a stronger model only when:
+  - confidence is low,
+  - proof is ambiguous,
+  - user disputes the verdict,
+  - evidence is complex.
+
+---
+
+## 🧠 SCORING & GAME LOGIC
+
+### Mission value scoring
+Create server-side scoring helpers.
+
+Suggested factors:
+- priority weight
+- impact weight
+- duration weight
+- proof quality
+- proof confidence
+- strictness modifier
+- trust score modifier
+- streak bonus
+- sleep bonus
+- penalty deductions
+
+### Strictness modes
+**Strict**
+- fewer allowed pauses
+- harsher penalty for blocked attempts
+- higher proof threshold
+- higher reward ceiling for strong proof
+
+**Balanced**
+- default mode
+- moderate proof threshold
+- moderate penalties
+
+**Custom**
+- user-adjustable within safe limits
+- cannot reduce all friction to zero
+
+### Penalty logic
+- blocked attempt spikes
+- abandoning sessions repeatedly
+- suspicious duplicate proofs
+- repeated low-effort submissions
+- bypass-like behavior
+
+### Streak logic
+A streak should increment only when a meaningful day criterion is met, such as:
+- at least one approved mission above minimum quality threshold
+or
+- configurable daily discipline score passes threshold
+
+Do not increment streak from trivial activity alone.
+
+---
+
+## 🛡️ ERROR HANDLING
+
+Handle these clearly:
+
+### Network errors
+- show retry UI
+- do not lose draft proof text
+- queue extension sync when offline
+
+### Validation errors
+- field-level messages
+- prevent invalid durations, dates, file types, URLs
+
+### AI errors
+- fallback status: `manual_review` or `retry_pending`
+- never silently grant reward if judge fails
+- log invalid AI outputs
+
+### Upload errors
+- show exact reason
+- keep submission draft intact
+- allow retry without rewriting everything
+
+### Auth errors
+- expired session redirect to login
+- safe post-login return flow
+
+### Permission errors
+- return 403 UI for admin-only routes
+- avoid leaking protected data
+
+### Not found
+- useful 404 pages for mission, proof, shop item, admin entities
+
+---
+
+## 🔗 CHROME EXTENSION REQUIREMENTS
+
+Build a working Manifest V3 extension in `/extension`.
+
+### Required files
+- manifest.json
+- background.ts
+- blocked.html
+- blocked.ts
+- popup.html
+- popup.ts
+- options.html
+- options.ts
+- content.ts
+- rules.ts
+
+### Extension capabilities
+- fetch current active focus state
+- fetch blocked domains
+- block or redirect blocked URLs during active sessions
+- log blocked attempts
+- show current mission in popup
+- show connection/auth status
+- allow manual reconnect
+- persist pending events if offline
+
+### Important constraints
+- Do not claim OS-level app blocking.
+- Do not claim iPhone/Android full app blocking.
+- Make browser-blocking flow explicit and honest.
+
+---
+
+## 🚫 CONSTRAINTS & OUT OF SCOPE
+
+Do not build these in v1:
+- OS-level app blocking
+- native Android app blocker
+- iOS Screen Time integration
+- full video proof analysis
+- screen recording review
+- social graph
+- leaderboard
+- deep in-game world
+- multiplayer trading economy
+- real-money purchases
+- overly complex recurrence engine
+
+Avoid these anti-patterns:
+- client-side reward computation
+- trust-only completion with no proof
+- fake placeholder analytics with hardcoded values
+- public proof files by default
+- messy role checks in UI only
+- giant monolithic components
+- overuse of custom CSS when Tailwind utilities suffice
+
+---
+
+## ✅ ACCEPTANCE CRITERIA
+
+The build is complete only if all of the following work:
+
+### Auth & Roles
+- user can sign up, sign in, sign out
+- admin routes are protected
+- normal users cannot access admin data
+
+### Missions
+- user can create, edit, archive missions
+- mission status updates correctly
+- daily missions display properly
+
+### Focus
+- user can start a focus session from a mission
+- only one active focus session at a time
+- pauses, resumes, and completion work
+- blocked attempt counts are recorded
+
+### Extension
+- extension can connect to authenticated user
+- blocked domains sync correctly
+- blocked site redirect works during active focus session
+- blocked attempts sync back to backend
+
+### Proof & AI Judge
+- user can submit proof with text + file and/or link
+- AI returns structured review
+- follow-up questions work
+- final verdict persists correctly
+- reward is not granted without valid review
+
+### Rewards
+- approved proof creates reward transaction
+- rejected proof creates no reward
+- penalties can reduce net reward
+- shop purchase deducts coins correctly
+- inventory updates correctly
+
+### Sleep
+- user can log sleep
+- sleep bonus works within defined cap
+- sleep does not overpower work rewards
+
+### Analytics
+- dashboard shows real user data
+- weekly analytics are persisted and derived from actual records
+- planned vs completed and blocked attempts are visible
+
+### Security
+- RLS prevents cross-user access
+- service-role-only writes are respected for sensitive data
+- file uploads are restricted and validated
+- audit logs exist for sensitive actions
+
+### Quality
+- no critical TypeScript errors
+- no broken protected routes
+- no hardcoded fake balances or verdicts
+- code is split into reusable components and server utilities
+
+---
+
+## 🧪 IMPLEMENTATION NOTES
+
+- Seed a small set of default shop items for demo/testing.
+- Seed default blocked domains for new users.
+- Create a default strictness profile for strict, balanced, and custom baseline.
+- Include a lightweight onboarding flow:
+  - create first mission
+  - connect extension
+  - set blocked domains
+  - start first focus session
+  - submit first proof
+- Add a demo admin account only through seed/dev setup, never hardcoded in client code.
+- Use audit logs for every reward-affecting action.
+- Prefer robust MVP quality over feature breadth.
+
+Now build the app and extension with real database persistence, secure server-side logic, and clean UI. Do not leave key flows as placeholders.
