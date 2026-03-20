@@ -38,6 +38,70 @@ const CAT_LABELS: Record<string, string> = {
   recovery_reset:   "Recovery & Reset",
 };
 
+const RARITY_COLORS: Record<string, string> = {
+  normal: "transparent",
+  rare: "#7E57C2",
+  breakthrough: "#F5C842",
+};
+
+function RarityBadge({ rarity }: { rarity: string }) {
+  if (!rarity || rarity === "normal") return null;
+  const color = RARITY_COLORS[rarity] ?? "#9E9E9E";
+  const label = rarity === "breakthrough" ? "★ BREAKTHROUGH" : "◆ RARE";
+  return (
+    <View style={[rarityStyles.badge, { borderColor: color + "80", backgroundColor: color + "18" }]}>
+      <Text style={[rarityStyles.text, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
+const rarityStyles = StyleSheet.create({
+  badge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
+  text:  { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 0.8 },
+});
+
+function ChainBadge({ chainName, chainStep, chainTotalSteps, bonusCoins }: {
+  chainName: string | null;
+  chainStep: number | null;
+  chainTotalSteps: number | null;
+  bonusCoins: number | null;
+}) {
+  if (!chainName) return null;
+  const step = (chainStep ?? 0) + 1;
+  const total = chainTotalSteps ?? 1;
+  return (
+    <View style={chainStyles.container}>
+      <Ionicons name="link" size={12} color="#4FC3F7" />
+      <Text style={chainStyles.name} numberOfLines={1}>{chainName}</Text>
+      <View style={chainStyles.stepPills}>
+        {Array.from({ length: total }).map((_, idx) => (
+          <View
+            key={idx}
+            style={[chainStyles.pill, idx < step ? chainStyles.pillDone : chainStyles.pillPending]}
+          />
+        ))}
+      </View>
+      {bonusCoins && bonusCoins > 0 && (
+        <Text style={chainStyles.bonus}>+{bonusCoins}c</Text>
+      )}
+    </View>
+  );
+}
+
+const chainStyles = StyleSheet.create({
+  container: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: "#4FC3F718", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4,
+    borderWidth: 1, borderColor: "#4FC3F730", marginTop: 2,
+  },
+  name: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: "#4FC3F7", flex: 1 },
+  stepPills: { flexDirection: "row", gap: 3 },
+  pill: { width: 8, height: 4, borderRadius: 2 },
+  pillDone: { backgroundColor: "#4FC3F7" },
+  pillPending: { backgroundColor: "#4FC3F740" },
+  bonus: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.gold },
+});
+
 function DifficultyDot({ color }: { color: string }) {
   const c = DIFF_COLORS[color] ?? "#9E9E9E";
   return (
@@ -382,15 +446,24 @@ function AiMissionCard({ mission: m, onRespond, isPending }: { mission: any; onR
       <Pressable onPress={() => setExpanded(!expanded)}>
         <View style={styles.aiCardHeader}>
           <View style={{ flex: 1, gap: 6 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <DifficultyDot color={m.difficultyColor} />
               {m.isStretch && (
                 <View style={styles.stretchChip}>
                   <Text style={styles.stretchText}>STRETCH TIER</Text>
                 </View>
               )}
+              <RarityBadge rarity={m.rarity} />
             </View>
-            <Text style={styles.aiCardTitle}>{m.title}</Text>
+            <Text style={[styles.aiCardTitle, m.rarity === "breakthrough" && { color: Colors.gold }]}>{m.title}</Text>
+            {m.chainName && (
+              <ChainBadge
+                chainName={m.chainName}
+                chainStep={m.chainStep}
+                chainTotalSteps={m.chainTotalSteps}
+                bonusCoins={m.chainCompletionBonus}
+              />
+            )}
             <View style={styles.aiMeta}>
               <MetaItem icon="time-outline" text={`${m.estimatedDurationMinutes}min`} />
               <MetaItem icon={(SKILL_ICONS[m.relatedSkill] ?? "star") as any} text={m.relatedSkill} color={Colors.cyan} />

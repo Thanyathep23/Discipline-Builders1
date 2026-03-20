@@ -1,5 +1,7 @@
 import type { LifeProfile } from "@workspace/db";
 import OpenAI from "openai";
+import type { ChallengeProfile } from "./adaptive-challenge.js";
+import { applyDifficultyDelta } from "./adaptive-challenge.js";
 
 export interface GeneratedAiMission {
   title: string;
@@ -14,6 +16,7 @@ export interface GeneratedAiMission {
   isStretch: boolean;
   proofDifficultyTier: string;
   reviewRubricSummary: string;
+  rarity?: "normal" | "rare" | "breakthrough";
 }
 
 const MISSION_POOL: Record<string, GeneratedAiMission[]> = {
@@ -267,6 +270,28 @@ const ARC_THEME_TO_SKILL: Record<string, string> = {
   genesis: "discipline",
 };
 
+function applyChallengeTuning(
+  missions: GeneratedAiMission[],
+  challenge?: ChallengeProfile | null,
+): GeneratedAiMission[] {
+  if (!challenge) return missions;
+
+  return missions.map((m, idx) => {
+    const durMin = Math.max(10, Math.round(m.estimatedDurationMinutes * challenge.durationMultiplier));
+    const rarity: GeneratedAiMission["rarity"] =
+      idx === 0 && challenge.rarityTrigger !== "none" ? challenge.rarityTrigger : "normal";
+    const bonusDelta =
+      rarity === "breakthrough" ? 25 :
+      rarity === "rare" ? 12 : 0;
+    return {
+      ...m,
+      estimatedDurationMinutes: durMin,
+      rarity,
+      suggestedRewardBonus: m.suggestedRewardBonus + bonusDelta,
+    };
+  });
+}
+
 function detectWeakSkills(improvementAreas: string[], mainGoal: string, arcTheme?: string): string[] {
   const goal = mainGoal?.toLowerCase() ?? "";
   const areas = [...improvementAreas];
@@ -287,6 +312,7 @@ export function generateMissionsFromProfile(
   count = 5,
   skillLevels?: Record<string, number>,
   currentArc?: { name: string; theme: string } | null,
+  challengeProfile?: ChallengeProfile | null,
 ): GeneratedAiMission[] {
   const improvementAreas: string[] = JSON.parse(profile.improvementAreas ?? "[]");
   const hoursPerDay = profile.availableHoursPerDay ?? 2;
@@ -298,7 +324,10 @@ export function generateMissionsFromProfile(
   for (const skill of weakSkills) {
     const templates = MISSION_POOL[skill] ?? [];
     const avgLevel = skillLevels?.[skill] ?? 1;
-    const targetDiff = getDifficultyForLevel(avgLevel + 1);
+    const baseDiff = getDifficultyForLevel(avgLevel + 1);
+    const targetDiff = challengeProfile
+      ? applyDifficultyDelta(baseDiff, challengeProfile.targetDifficultyDelta)
+      : baseDiff;
     for (const t of templates) {
       pool.push({ ...t, difficultyColor: targetDiff });
     }
@@ -309,7 +338,8 @@ export function generateMissionsFromProfile(
   }
 
   const shuffled = pool.sort(() => Math.random() - 0.5).slice(0, count);
-  return shuffled.map((m) => adjustForStrictness(adjustForTime(m, hoursPerDay), strictness));
+  const missions = shuffled.map((m) => adjustForStrictness(adjustForTime(m, hoursPerDay), strictness));
+  return applyChallengeTuning(missions, challengeProfile);
 }
 
 let openaiClient: OpenAI | null = null;
@@ -327,10 +357,11 @@ export async function generateMissionsWithAI(
   skillLevels: Record<string, number>,
   count = 5,
   currentArc?: { name: string; theme: string } | null,
+  challengeProfile?: ChallengeProfile | null,
 ): Promise<GeneratedAiMission[]> {
   const client = getOpenAI();
   if (!client) {
-    return generateMissionsFromProfile(profile, count, skillLevels, currentArc);
+    return generateMissionsFromProfile(profile, count, skillLevels, currentArc, challengeProfile);
   }
 
   try {
@@ -345,6 +376,11 @@ export async function generateMissionsWithAI(
 
     const arcLine = currentArc
       ? `- Current arc: ${currentArc.name} (theme: ${currentArc.theme}) — missions should reinforce this arc's growth area`
+      : "";
+
+    const challengeLine = challengeProfile
+      ? `- Adaptive challenge state: completion rate ${Math.round(challengeProfile.recentCompletionRate * 100)}%, avg proof quality ${Math.round(challengeProfile.avgProofQuality * 100)}%, streak ${challengeProfile.recentStreak} days
+- Challenge instruction: ${challengeProfile.isOverloaded ? "SOFTEN DIFFICULTY — player is overloaded, generate shorter achievable missions" : challengeProfile.targetDifficultyDelta > 0 ? "PUSH DIFFICULTY UP — player is performing well, increase challenge" : challengeProfile.targetDifficultyDelta < 0 ? "REDUCE DIFFICULTY — player is struggling, make missions more achievable" : "MAINTAIN current challenge level"}`
       : "";
 
     const prompt = `You are the Game Master of DisciplineOS, a real-life RPG where daily actions become character progression.
@@ -362,6 +398,7 @@ PLAYER PROFILE:
 - Focus areas: ${profile.improvementAreas ?? "[]"}
 - Constraints: ${profile.lifeConstraints ?? "none"}
 ${arcLine}
+${challengeLine}
 
 SKILL STATE:
 - Weakest skills (prioritize these): ${weakSkills || "all at level 1"}
@@ -369,7 +406,7 @@ SKILL STATE:
 
 CALIBRATION RULES (follow precisely):
 1. Target the player's WEAKEST skills first, biased toward the current arc's theme skill
-2. Set difficulty one tier ABOVE the skill's current level:
+2. Set difficulty one tier ABOVE the skill's current level (adjust based on challenge instruction above):
    - Lv1-5 → green difficulty, Lv6-15 → blue, Lv16-30 → purple, Lv31-50 → gold, Lv51+ → red
 3. Duration must fit within available hours (max ${Math.round((profile.availableHoursPerDay ?? 2) * 60)}min/day total)
 4. Make missions feel specific to THIS player's goal — reference their actual context
@@ -402,10 +439,10 @@ Return ONLY valid JSON with key "missions" containing exactly ${count} objects. 
 
     const raw = JSON.parse(resp.choices[0].message.content ?? "{}");
     const missions: GeneratedAiMission[] = Array.isArray(raw) ? raw : (raw.missions ?? []);
-    if (missions.length > 0) return missions.slice(0, count);
+    if (missions.length > 0) return applyChallengeTuning(missions.slice(0, count), challengeProfile);
   } catch {
     // fall through to rule-based
   }
 
-  return generateMissionsFromProfile(profile, count, skillLevels, currentArc);
+  return generateMissionsFromProfile(profile, count, skillLevels, currentArc, challengeProfile);
 }

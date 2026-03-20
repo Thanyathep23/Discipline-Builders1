@@ -10,7 +10,7 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
-import { useDashboard } from "@/hooks/useApi";
+import { useDashboard, useActiveChain } from "@/hooks/useApi";
 
 function StatCard({ label, value, icon, color, delay }: any) {
   return (
@@ -39,10 +39,63 @@ function PriorityBadge({ priority }: { priority: string }) {
   );
 }
 
+function ActiveChainCard({ chain }: { chain: any }) {
+  const step = (chain.currentStep ?? 0) + 1;
+  const total = chain.totalSteps ?? 1;
+  const pct = Math.min(step / total, 1);
+  return (
+    <Animated.View entering={FadeInDown.delay(160).springify()} style={chainCardStyles.card}>
+      <View style={chainCardStyles.header}>
+        <View style={chainCardStyles.iconBox}>
+          <Ionicons name="link" size={16} color="#4FC3F7" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={chainCardStyles.label}>QUEST CHAIN</Text>
+          <Text style={chainCardStyles.name}>{chain.chainName}</Text>
+        </View>
+        <View style={chainCardStyles.bonusChip}>
+          <Ionicons name="flash" size={10} color={Colors.gold} />
+          <Text style={chainCardStyles.bonusText}>+{chain.completionBonusCoins}c</Text>
+        </View>
+      </View>
+      <View style={chainCardStyles.progress}>
+        <View style={[chainCardStyles.progressBar, { width: `${Math.round(pct * 100)}%` as any }]} />
+      </View>
+      <Text style={chainCardStyles.stepText}>Step {step} of {total}</Text>
+    </Animated.View>
+  );
+}
+
+const chainCardStyles = StyleSheet.create({
+  card: {
+    backgroundColor: "#4FC3F710", borderRadius: 16, padding: 14,
+    borderWidth: 1, borderColor: "#4FC3F730", gap: 10,
+  },
+  header: { flexDirection: "row", alignItems: "center", gap: 10 },
+  iconBox: {
+    width: 34, height: 34, borderRadius: 9,
+    backgroundColor: "#4FC3F720", alignItems: "center", justifyContent: "center",
+  },
+  label: { fontFamily: "Inter_700Bold", fontSize: 9, color: "#4FC3F7", letterSpacing: 1.2, marginBottom: 2 },
+  name: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
+  bonusChip: {
+    flexDirection: "row", alignItems: "center", gap: 3,
+    backgroundColor: Colors.goldDim, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3,
+    borderWidth: 1, borderColor: Colors.gold + "30",
+  },
+  bonusText: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.gold },
+  progress: {
+    height: 4, backgroundColor: "#4FC3F730", borderRadius: 2, overflow: "hidden",
+  },
+  progressBar: { height: 4, backgroundColor: "#4FC3F7", borderRadius: 2 },
+  stepText: { fontFamily: "Inter_400Regular", fontSize: 11, color: "#4FC3F7" },
+});
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { data, isLoading, refetch, isRefetching } = useDashboard();
+  const { data: chainData } = useActiveChain();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
@@ -109,6 +162,11 @@ export default function HomeScreen() {
               <Text style={styles.arcBannerSub} numberOfLines={1}>{data.currentArc.subtitle}</Text>
             </View>
           </Animated.View>
+        )}
+
+        {/* Active Quest Chain */}
+        {chainData?.chain && chainData.chain.status === "active" && (
+          <ActiveChainCard chain={chainData.chain} />
         )}
 
         {/* Quick Actions */}

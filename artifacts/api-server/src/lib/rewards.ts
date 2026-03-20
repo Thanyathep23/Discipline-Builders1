@@ -80,6 +80,19 @@ export function computeRewardCoins(input: RewardInput): { coins: number; xp: num
   return { coins, xp, multiplier: Math.round(multiplier * 100) / 100 };
 }
 
+export function computeRarityBonus(rarity: string | null | undefined): number {
+  if (rarity === "breakthrough") return 50;
+  if (rarity === "rare") return 20;
+  return 0;
+}
+
+export function computeAdaptiveDifficultyBonus(difficultyColor: string | null | undefined): number {
+  const bonuses: Record<string, number> = {
+    gray: 0, green: 0, blue: 5, purple: 12, gold: 20, red: 30,
+  };
+  return bonuses[difficultyColor ?? "green"] ?? 0;
+}
+
 export async function grantReward(
   userId: string,
   coins: number,

@@ -29,6 +29,10 @@ export const aiMissionsTable = pgTable("ai_missions", {
   status:                  aiMissionStatusEnum("status").notNull().default("pending"),
   acceptedMissionId:       text("accepted_mission_id"),
   generatedBy:             text("generated_by").notNull().default("rule_based"),
+  rarity:                  text("rarity").notNull().default("normal"),
+  chainId:                 text("chain_id"),
+  chainStep:               integer("chain_step"),
+  adaptiveDifficultyScore: integer("adaptive_difficulty_score"),
   createdAt:               timestamp("created_at").notNull().defaultNow(),
   updatedAt:               timestamp("updated_at").notNull().defaultNow(),
 });

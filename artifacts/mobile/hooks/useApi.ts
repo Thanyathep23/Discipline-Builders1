@@ -360,3 +360,13 @@ export function useStreaks() {
     refetchOnWindowFocus: true,
   });
 }
+
+export function useActiveChain() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["active-chain"],
+    queryFn: () => request<any>("/ai-missions/chains/active"),
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+  });
+}

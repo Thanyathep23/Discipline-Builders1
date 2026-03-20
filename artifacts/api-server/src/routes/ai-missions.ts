@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, lifeProfilesTable, aiMissionsTable, aiMissionVariantsTable, missionAcceptanceEventsTable, missionProofRequirementsTable, missionsTable, userSkillsTable } from "@workspace/db";
+import { db, lifeProfilesTable, aiMissionsTable, aiMissionVariantsTable, missionAcceptanceEventsTable, missionProofRequirementsTable, missionsTable, userSkillsTable, userQuestChainsTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { generateMissionsWithAI } from "../lib/mission-generator.js";
 import { resolveArcWithEvidenceGating } from "../lib/arc-resolver.js";
@@ -14,6 +14,15 @@ import {
   getMakeEasierNote,
   getMakeHarderNote,
 } from "../lib/gameMaster.js";
+import { computeAdaptiveChallenge } from "../lib/adaptive-challenge.js";
+import {
+  getActiveChain,
+  selectChainForUser,
+  createChain,
+  getChainStepMission,
+  getChainById,
+  advanceChainStep,
+} from "../lib/quest-chains.js";
 
 const router = Router();
 
@@ -89,32 +98,88 @@ router.post("/generate", requireAuth, async (req: any, res) => {
       arcXpSnapshot,
     );
 
-    const generated = await generateMissionsWithAI(profile ?? {}, skillLevels, count, currentArc);
+    const [challengeProfile, activeChain] = await Promise.all([
+      computeAdaptiveChallenge(userId),
+      getActiveChain(userId),
+    ]);
+
+    const sortedByLevel = Object.entries(skillLevels).sort((a, b) => a[1] - b[1]);
+    const weakSkillIds = sortedByLevel.slice(0, 2).map(([k]) => k);
+
+    const chainCandidate = selectChainForUser(weakSkillIds, activeChain);
+    let newChain: typeof userQuestChainsTable.$inferSelect | null = null;
+    if (chainCandidate && count >= 3) {
+      newChain = await createChain(userId, chainCandidate.id, randomUUID());
+    }
+    const effectiveChain = newChain ?? activeChain;
+
+    const generated = await generateMissionsWithAI(profile ?? {}, skillLevels, count, currentArc, challengeProfile);
 
     const now = new Date();
     const expiryAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
 
     const inserted: any[] = [];
-    for (const m of generated) {
+    const chainDef = effectiveChain ? getChainById(effectiveChain.chainId) : null;
+    let chainStepOffset = effectiveChain?.currentStep ?? 0;
+
+    for (let i = 0; i < generated.length; i++) {
+      const m = generated[i];
       const id = randomUUID();
+
+      let chainId: string | null = null;
+      let chainStep: number | null = null;
+      let chainTitle = m.title;
+      let chainDesc = m.description;
+      let chainReason = m.reason;
+      let chainProofTier = m.proofDifficultyTier;
+      let chainRubric = m.reviewRubricSummary;
+      let chainDuration = m.estimatedDurationMinutes;
+      let chainDiffColor = m.difficultyColor;
+      let chainRewardBonus = m.suggestedRewardBonus;
+      let chainCategory = m.missionCategory;
+      let chainIsStretch = m.isStretch;
+
+      if (effectiveChain && chainDef) {
+        const stepIdx = chainStepOffset + i;
+        const chainStep_ = getChainStepMission(chainDef, stepIdx);
+        if (chainStep_ && stepIdx < chainDef.totalSteps) {
+          chainId = effectiveChain.id;
+          chainStep = chainStep_.step;
+          chainTitle = chainStep_.title;
+          chainDesc = chainStep_.description;
+          chainReason = chainStep_.reason;
+          chainProofTier = chainStep_.proofDifficultyTier;
+          chainRubric = chainStep_.reviewRubricSummary;
+          chainDuration = chainStep_.estimatedDurationMinutes;
+          chainDiffColor = chainStep_.difficultyColor;
+          chainRewardBonus = chainStep_.suggestedRewardBonus;
+          chainCategory = chainStep_.missionCategory;
+          chainIsStretch = chainStep_.isStretch;
+        }
+      }
+
       const [row] = await db
         .insert(aiMissionsTable)
         .values({
           id,
           userId,
-          title: m.title,
-          description: m.description,
-          reason: m.reason,
+          title: chainTitle,
+          description: chainDesc,
+          reason: chainReason,
           relatedSkill: m.relatedSkill,
-          difficultyColor: m.difficultyColor as any,
-          estimatedDurationMinutes: m.estimatedDurationMinutes,
+          difficultyColor: chainDiffColor as any,
+          estimatedDurationMinutes: chainDuration,
           recommendedProofTypes: JSON.stringify(m.recommendedProofTypes),
-          suggestedRewardBonus: m.suggestedRewardBonus,
-          missionCategory: m.missionCategory as any,
-          isStretch: m.isStretch,
+          suggestedRewardBonus: chainRewardBonus,
+          missionCategory: chainCategory as any,
+          isStretch: chainIsStretch,
           expiryAt,
           status: "pending",
           generatedBy: "ai",
+          rarity: m.rarity ?? "normal",
+          chainId,
+          chainStep,
+          adaptiveDifficultyScore: challengeProfile.adaptiveDifficultyScore,
         })
         .returning();
 
@@ -123,28 +188,70 @@ router.post("/generate", requireAuth, async (req: any, res) => {
         missionId: id,
         acceptedProofTypes: JSON.stringify(m.recommendedProofTypes),
         minimumProofCount: 1,
-        proofDifficultyTier: m.proofDifficultyTier,
-        fraudRiskLevel: m.isStretch ? "medium" : "low",
-        reviewRubricSummary: m.reviewRubricSummary,
+        proofDifficultyTier: chainProofTier,
+        fraudRiskLevel: chainIsStretch ? "medium" : "low",
+        reviewRubricSummary: chainRubric,
       });
 
-      const easierVariant = makeVariant(id, "easier", m);
-      const harderVariant = makeVariant(id, "harder", m);
+      const easierVariant = makeVariant(id, "easier", { ...m, title: chainTitle, description: chainDesc, difficultyColor: chainDiffColor, estimatedDurationMinutes: chainDuration });
+      const harderVariant = makeVariant(id, "harder", { ...m, title: chainTitle, description: chainDesc, difficultyColor: chainDiffColor, estimatedDurationMinutes: chainDuration });
       await db.insert(aiMissionVariantsTable).values([easierVariant, harderVariant]);
 
-      inserted.push({ ...row, proofRequirements: { ...m }, variants: [easierVariant, harderVariant] });
+      inserted.push({
+        ...row,
+        proofRequirements: { ...m, proofDifficultyTier: chainProofTier, reviewRubricSummary: chainRubric },
+        variants: [easierVariant, harderVariant],
+        chainName: effectiveChain?.chainName ?? null,
+        chainTotalSteps: effectiveChain?.totalSteps ?? null,
+        chainCompletionBonus: effectiveChain?.completionBonusCoins ?? null,
+      });
     }
 
-    // Detect weak skills from skill levels
-    const sortedByLevel = Object.entries(skillLevels).sort((a, b) => a[1] - b[1]);
-    const weakSkillIds = sortedByLevel.slice(0, 2).map(([k]) => k);
     const profileForBriefing = profile ? {
       mainGoal: profile.mainGoal ?? undefined,
       strictnessPreference: profile.strictnessPreference ?? undefined,
     } : undefined;
     const gmNote = getMissionBriefing(count, weakSkillIds, profileForBriefing);
 
-    return res.json({ missions: inserted, gmNote });
+    return res.json({
+      missions: inserted,
+      gmNote,
+      challengeProfile: {
+        recentCompletionRate: challengeProfile.recentCompletionRate,
+        avgProofQuality: challengeProfile.avgProofQuality,
+        recentStreak: challengeProfile.recentStreak,
+        isOverloaded: challengeProfile.isOverloaded,
+        adaptiveDifficultyScore: challengeProfile.adaptiveDifficultyScore,
+        rarityTrigger: challengeProfile.rarityTrigger,
+      },
+      activeChain: effectiveChain ? {
+        id: effectiveChain.id,
+        chainName: effectiveChain.chainName,
+        relatedSkill: effectiveChain.relatedSkill,
+        currentStep: effectiveChain.currentStep,
+        totalSteps: effectiveChain.totalSteps,
+        completionBonusCoins: effectiveChain.completionBonusCoins,
+        status: effectiveChain.status,
+      } : null,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/chains/active", requireAuth, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const chain = await getActiveChain(userId);
+    if (!chain) return res.json({ chain: null });
+    const def = getChainById(chain.chainId);
+    return res.json({
+      chain: {
+        ...chain,
+        steps: def?.steps ?? [],
+        theme: def?.theme ?? null,
+      },
+    });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
@@ -211,7 +318,9 @@ router.post("/:missionId/respond", requireAuth, async (req: any, res) => {
         .where(eq(missionProofRequirementsTable.missionId, missionId))
         .limit(1);
       const proofTypes = proofReqs[0]?.acceptedProofTypes ?? '["text"]';
-      const rewardPotential = 50 + mission.suggestedRewardBonus;
+
+      const rarityBonusCoins = mission.rarity === "breakthrough" ? 50 : mission.rarity === "rare" ? 20 : 0;
+      const rewardPotential = 50 + mission.suggestedRewardBonus + rarityBonusCoins;
 
       const [newMission] = await db
         .insert(missionsTable)
@@ -222,8 +331,8 @@ router.post("/:missionId/respond", requireAuth, async (req: any, res) => {
           description: mission.description,
           category: mission.relatedSkill.charAt(0).toUpperCase() + mission.relatedSkill.slice(1),
           targetDurationMinutes: mission.estimatedDurationMinutes,
-          priority: mission.isStretch ? "high" : "medium",
-          impactLevel: mission.isStretch ? 8 : 6,
+          priority: mission.isStretch || mission.rarity === "breakthrough" ? "high" : "medium",
+          impactLevel: mission.rarity === "breakthrough" ? 9 : mission.isStretch ? 8 : 6,
           purpose: mission.reason,
           requiredProofTypes: proofTypes,
           status: "active",
@@ -232,6 +341,10 @@ router.post("/:missionId/respond", requireAuth, async (req: any, res) => {
           aiMissionId: missionId,
           relatedSkill: mission.relatedSkill,
           difficultyColor: mission.difficultyColor,
+          rarity: mission.rarity ?? "normal",
+          chainId: mission.chainId ?? null,
+          chainStep: mission.chainStep ?? null,
+          rarityBonusCoins,
         })
         .returning();
 
@@ -241,7 +354,16 @@ router.post("/:missionId/respond", requireAuth, async (req: any, res) => {
         .where(eq(aiMissionsTable.id, missionId));
 
       const gmNote = getAcceptNote(mission);
-      return res.json({ status: "accepted", mission: newMission, gmNote });
+      return res.json({
+        status: "accepted",
+        mission: newMission,
+        gmNote,
+        chainInfo: mission.chainId ? {
+          chainId: mission.chainId,
+          chainStep: mission.chainStep,
+          rarity: mission.rarity,
+        } : null,
+      });
     }
 
     if (action === "rejected") {

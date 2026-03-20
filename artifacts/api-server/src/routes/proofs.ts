@@ -4,7 +4,8 @@ import { eq, and, count, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, generateId } from "../lib/auth.js";
 import { judgeProof } from "../lib/ai-judge.js";
-import { computeRewardCoins, grantReward, updateStreak, applySystemPenalty } from "../lib/rewards.js";
+import { computeRewardCoins, grantReward, updateStreak, applySystemPenalty, computeRarityBonus, computeAdaptiveDifficultyBonus } from "../lib/rewards.js";
+import { advanceChainStep } from "../lib/quest-chains.js";
 import { grantSessionSkillXp } from "../lib/skill-engine.js";
 import { auditLogTable } from "@workspace/db";
 import { awardBadge, awardTitle } from "./inventory.js";
@@ -152,6 +153,34 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
         }
         if (Number(aiCompletedCount) >= 1) {
           await awardTitle(userId, "title-grind-architect");
+        }
+
+        // Rarity bonus coins (in addition to base reward)
+        const rarityBonus = computeRarityBonus(mission.rarity);
+        const difficultyBonus = computeAdaptiveDifficultyBonus(mission.difficultyColor);
+        const rarityTotalBonus = rarityBonus + difficultyBonus;
+        if (rarityTotalBonus > 0) {
+          await grantReward(
+            userId,
+            rarityTotalBonus,
+            Math.round(rarityTotalBonus * 0.5),
+            `${mission.rarity ?? "normal"} mission bonus: ${mission.title}`,
+            { missionId: mission.id },
+          );
+        }
+
+        // Chain step advancement — advance and grant completion bonus if chain is done
+        if (mission.chainId) {
+          const chainResult = await advanceChainStep(mission.chainId, userId);
+          if (chainResult?.completed && chainResult.bonusCoins > 0) {
+            await grantReward(
+              userId,
+              chainResult.bonusCoins,
+              Math.round(chainResult.bonusCoins * 0.75),
+              `Quest chain completed: ${chainResult.chainName}`,
+              { missionId: mission.id },
+            );
+          }
         }
       }
     }

@@ -24,6 +24,11 @@ export const missionsTable = pgTable("missions", {
   aiMissionId:           text("ai_mission_id"),
   relatedSkill:          text("related_skill"),
   difficultyColor:       text("difficulty_color"),
+  rarity:                text("rarity").notNull().default("normal"),
+  chainId:               text("chain_id"),
+  chainStep:             integer("chain_step"),
+  rarityBonusCoins:      integer("rarity_bonus_coins").notNull().default(0),
+  chainBonusCoins:       integer("chain_bonus_coins").notNull().default(0),
   createdAt:             timestamp("created_at").notNull().defaultNow(),
   updatedAt:             timestamp("updated_at").notNull().defaultNow(),
 });

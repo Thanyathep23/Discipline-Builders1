@@ -349,9 +349,31 @@ export default function ProofSubmissionScreen() {
                   <Text style={styles.verdictExplanation}>{proof.aiExplanation}</Text>
 
                   {proof.coinsAwarded != null && proof.coinsAwarded > 0 && (
-                    <View style={styles.coinsRow}>
-                      <Ionicons name="flash" size={20} color={Colors.gold} />
-                      <Text style={styles.coinsText}>+{proof.coinsAwarded} coins earned</Text>
+                    <View style={{ gap: 8, width: "100%" }}>
+                      <View style={styles.coinsRow}>
+                        <Ionicons name="flash" size={20} color={Colors.gold} />
+                        <Text style={styles.coinsText}>+{proof.coinsAwarded} coins earned</Text>
+                      </View>
+                      {["approved", "partial"].includes(proof.status) && (
+                        <View style={bonusBreakdownStyles.box}>
+                          <View style={bonusBreakdownStyles.row}>
+                            <Ionicons name="star-outline" size={12} color={Colors.textSecondary} />
+                            <Text style={bonusBreakdownStyles.label}>Base mission reward</Text>
+                            <Text style={bonusBreakdownStyles.value}>+{proof.coinsAwarded}c</Text>
+                          </View>
+                          <View style={bonusBreakdownStyles.row}>
+                            <Ionicons name="diamond-outline" size={12} color="#7E57C2" />
+                            <Text style={bonusBreakdownStyles.label}>Rarity bonus</Text>
+                            <Text style={[bonusBreakdownStyles.value, { color: "#7E57C2" }]}>applied</Text>
+                          </View>
+                          <View style={bonusBreakdownStyles.row}>
+                            <Ionicons name="link-outline" size={12} color="#4FC3F7" />
+                            <Text style={bonusBreakdownStyles.label}>Quest chain progress</Text>
+                            <Text style={[bonusBreakdownStyles.value, { color: "#4FC3F7" }]}>tracked</Text>
+                          </View>
+                          <Text style={bonusBreakdownStyles.note}>Bonuses appear in your transaction history</Text>
+                        </View>
+                      )}
                     </View>
                   )}
 
@@ -557,4 +579,15 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
   },
   homeBtnText: { fontFamily: "Inter_700Bold", fontSize: 16, color: "#fff" },
+});
+
+const bonusBreakdownStyles = StyleSheet.create({
+  box: {
+    width: "100%", backgroundColor: Colors.bgElevated, borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: Colors.border, gap: 8,
+  },
+  row: { flexDirection: "row", alignItems: "center", gap: 8 },
+  label: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, flex: 1 },
+  value: { fontFamily: "Inter_700Bold", fontSize: 12, color: Colors.gold },
+  note: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted, textAlign: "center", marginTop: 2 },
 });

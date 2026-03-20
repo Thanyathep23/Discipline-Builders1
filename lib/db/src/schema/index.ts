@@ -16,3 +16,4 @@ export * from "./life-profiles";
 export * from "./skills";
 export * from "./ai-missions";
 export * from "./inventory";
+export * from "./chains";
