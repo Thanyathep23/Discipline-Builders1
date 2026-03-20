@@ -1,0 +1,86 @@
+H. BACKEND / SECURITY RULES
+==================================================
+
+- All skill updates must happen server-side
+- All AI mission generation persistence must happen server-side
+- All proof requirement persistence must happen server-side
+- Users can only access their own profile/skills/missions/inventory unless admin
+- Do not trust client-provided skill XP or rewards
+- Keep reward calculation server-side only
+- Keep proof verdict finalization server-side only
+- Add ownership checks for all new routes
+- Return JSON from all API routes
+- Add minimal validation for all new inputs
+- Avoid introducing insecure sensitive data handling
+
+==================================================
+I. FALLBACK STRATEGY
+==================================================
+
+If OpenAI is unavailable:
+- profile interpretation should still work with rule-based defaults
+- AI mission generation should still work with template + rules
+- proof requirement generation should still work from mission type + difficulty
+- do not block the product
+
+The product must remain usable without an API key.
+
+==================================================
+J. IMPLEMENTATION ORDER
+==================================================
+
+Implement in this exact order:
+
+1. Add schema/models for life profile, skills, AI missions, proof requirements, badges/titles
+2. Add backend services for:
+   - layered onboarding/profile save/load
+   - skill calculation and XP events
+   - AI mission generation with fallback
+   - proof requirement generation
+3. Add API routes
+4. Add Mission Board UI
+5. Add Skill Summary UI
+6. Add Inventory Lite UI
+7. Wire AI-generated mission acceptance into existing mission flow
+8. Ensure accepted AI mission becomes a real mission in the existing task system
+9. Ensure AI-issued missions get bonus reward handling
+10. Run end-to-end tests
+
+==================================================
+K. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+- User can complete Quick Start and continue later
+- User profile answers are saved and editable
+- The app creates and shows 6 core life skills
+- Skill levels/ranks are visible in UI
+- AI-generated missions appear in Mission Board
+- User can accept/reject/not-now AI missions
+- Accepted AI mission enters the real mission/task flow
+- AI-generated mission has default proof requirements
+- User can view proof requirements before starting
+- Approved completion of AI missions can grant bonus reward and/or badge/title
+- Inventory Lite shows earned badges/titles/assets
+- All new routes respect ownership and return JSON
+- Existing core loop remains working
+- No unrelated feature refactor is introduced
+
+==================================================
+L. DELIVERABLE FORMAT
+==================================================
+
+At the end, report:
+1. What already existed and was reused
+2. What new schema/models were added
+3. What routes/services were added
+4. What UI screens/components were added
+5. What fallback logic was used when AI key is missing
+6. End-to-end test results
+7. Any remaining TODOs for the next phase
+
+Important:
+Do not restart the codebase.
+Do not rewrite the whole architecture.
+Extend the current system carefully and preserve the existing working core loop.

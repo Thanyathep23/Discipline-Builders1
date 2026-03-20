@@ -1,12 +1,13 @@
 import { Router } from "express";
-import { db, proofSubmissionsTable, focusSessionsTable, missionsTable, usersTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, proofSubmissionsTable, focusSessionsTable, missionsTable, usersTable, aiMissionsTable } from "@workspace/db";
+import { eq, and, count } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, generateId } from "../lib/auth.js";
 import { judgeProof } from "../lib/ai-judge.js";
 import { computeRewardCoins, grantReward, updateStreak, applySystemPenalty } from "../lib/rewards.js";
 import { grantSessionSkillXp } from "../lib/skill-engine.js";
 import { auditLogTable } from "@workspace/db";
+import { awardBadge, awardTitle } from "./inventory.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -104,6 +105,38 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
       // Update mission to completed
       await db.update(missionsTable).set({ status: "completed", updatedAt: new Date() })
         .where(eq(missionsTable.id, mission.id));
+
+      // AI mission bonus reward
+      if (mission.source === "ai_generated" && mission.aiMissionId) {
+        const [aiMission] = await db
+          .select()
+          .from(aiMissionsTable)
+          .where(eq(aiMissionsTable.id, mission.aiMissionId))
+          .limit(1);
+
+        if (aiMission && aiMission.suggestedRewardBonus > 0) {
+          await grantReward(
+            userId,
+            aiMission.suggestedRewardBonus,
+            Math.round(aiMission.suggestedRewardBonus * 0.5),
+            `AI Mission bonus: ${mission.title}`,
+            { missionId: mission.id, aiMissionId: aiMission.id },
+          );
+        }
+
+        // Award AI champion badge after 5 completed AI missions
+        const [{ value: aiCompletedCount }] = await db
+          .select({ value: count() })
+          .from(missionsTable)
+          .where(and(eq(missionsTable.userId, userId), eq(missionsTable.source, "ai_generated"), eq(missionsTable.status, "completed")));
+
+        if (Number(aiCompletedCount) >= 5) {
+          await awardBadge(userId, "badge-ai-champion");
+        }
+        if (Number(aiCompletedCount) >= 1) {
+          await awardTitle(userId, "title-grind-architect");
+        }
+      }
     }
   }
 

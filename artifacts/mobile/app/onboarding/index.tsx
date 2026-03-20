@@ -1,14 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet, TextInput,
-  Platform, Animated,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Colors } from "@/constants/colors";
-import { useSaveLifeProfile } from "@/hooks/useApi";
+import { useSaveLifeProfile, useLifeProfile } from "@/hooks/useApi";
 
 const IMPROVEMENT_AREAS = [
   { id: "focus",      label: "Focus",      icon: "eye-outline" },
@@ -20,46 +20,74 @@ const IMPROVEMENT_AREAS = [
 ];
 
 const WORK_OPTIONS = [
-  { id: "working_full",  label: "Working Full-Time",  icon: "briefcase-outline" },
-  { id: "working_part",  label: "Working Part-Time",  icon: "time-outline" },
-  { id: "studying",      label: "Studying",           icon: "school-outline" },
-  { id: "building",      label: "Building / Freelance", icon: "construct-outline" },
-  { id: "transitioning", label: "Between Things",     icon: "swap-horizontal-outline" },
+  { id: "working_full",  label: "Working Full-Time",     icon: "briefcase-outline" },
+  { id: "working_part",  label: "Working Part-Time",     icon: "time-outline" },
+  { id: "studying",      label: "Studying",              icon: "school-outline" },
+  { id: "building",      label: "Building / Freelance",  icon: "construct-outline" },
+  { id: "transitioning", label: "Between Things",        icon: "swap-horizontal-outline" },
 ];
 
 const STRICTNESS_OPTIONS = [
-  { id: "easy",    label: "Easy",    subtitle: "Encouragement, lower proof bar",   icon: "sunny-outline",   color: Colors.green },
+  { id: "easy",    label: "Easy",    subtitle: "Encouragement, lower proof bar",   icon: "sunny-outline",        color: Colors.green },
   { id: "normal",  label: "Normal",  subtitle: "Balanced challenge and fairness",  icon: "partly-sunny-outline", color: Colors.accent },
-  { id: "strict",  label: "Strict",  subtitle: "High standards, tough but fair",   icon: "thunderstorm-outline",  color: Colors.amber },
-  { id: "extreme", label: "Extreme", subtitle: "No mercy. Results or punishment",  icon: "flame-outline",   color: Colors.crimson },
+  { id: "strict",  label: "Strict",  subtitle: "High standards, tough but fair",   icon: "thunderstorm-outline", color: Colors.amber },
+  { id: "extreme", label: "Extreme", subtitle: "No mercy. Results or punishment",  icon: "flame-outline",        color: Colors.crimson },
 ];
 
 const HOURS_OPTIONS = [1, 2, 3, 4, 6, 8];
 
 const STEPS = [
-  { key: "goal",        title: "What's your main goal right now?",       why: "This shapes every mission the AI generates for you." },
-  { key: "problem",     title: "What's the biggest obstacle you face?",  why: "The AI Game Master needs to know what's holding you back." },
-  { key: "status",      title: "What's your current situation?",         why: "Your schedule determines how your missions are scoped." },
-  { key: "hours",       title: "How many hours per day can you commit?", why: "Honest time allocation prevents burnout and builds momentum." },
-  { key: "areas",       title: "Which skills do you want to upgrade?",   why: "These map to your character's skill tree." },
-  { key: "strictness",  title: "How strict should your Game Master be?", why: "Strictness affects proof requirements and penalties." },
+  { key: "goal",       title: "What's your main goal right now?",       why: "This shapes every mission the AI generates for you." },
+  { key: "problem",    title: "What's the biggest obstacle you face?",  why: "The AI Game Master needs to know what's holding you back." },
+  { key: "status",     title: "What's your current situation?",         why: "Your schedule determines how your missions are scoped." },
+  { key: "hours",      title: "How many hours per day can you commit?", why: "Honest time allocation prevents burnout and builds momentum." },
+  { key: "areas",      title: "Which skills do you want to upgrade?",   why: "These map to your character's skill tree." },
+  { key: "strictness", title: "How strict should your Game Master be?", why: "Strictness affects proof requirements and penalties." },
 ];
+
+type FormState = {
+  mainGoal: string;
+  mainProblem: string;
+  workStudyStatus: string;
+  availableHoursPerDay: number;
+  improvementAreas: string[];
+  strictnessPreference: string;
+};
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     mainGoal: "",
     mainProblem: "",
     workStudyStatus: "",
     availableHoursPerDay: 2,
-    improvementAreas: [] as string[],
+    improvementAreas: [],
     strictnessPreference: "normal",
   });
+  const [initialized, setInitialized] = useState(false);
+  const { data: existingProfile } = useLifeProfile();
   const { mutateAsync: saveProfile, isPending } = useSaveLifeProfile();
 
+  useEffect(() => {
+    if (!initialized && existingProfile?.exists && existingProfile?.profile) {
+      const p = existingProfile.profile;
+      setForm({
+        mainGoal:             p.mainGoal ?? "",
+        mainProblem:          p.mainProblem ?? "",
+        workStudyStatus:      p.workStudyStatus ?? "",
+        availableHoursPerDay: p.availableHoursPerDay ?? 2,
+        improvementAreas:     Array.isArray(p.improvementAreas) ? p.improvementAreas : [],
+        strictnessPreference: p.strictnessPreference ?? "normal",
+      });
+      setInitialized(true);
+    } else if (!initialized && existingProfile !== undefined) {
+      setInitialized(true);
+    }
+  }, [existingProfile, initialized]);
+
   const currentStep = STEPS[step];
-  const progress = (step / STEPS.length) * 100;
+  const progress = ((step + 1) / STEPS.length) * 100;
 
   function toggleArea(id: string) {
     Haptics.selectionAsync();
@@ -84,10 +112,28 @@ export default function OnboardingScreen() {
   async function handleNext() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (step < STEPS.length - 1) {
+      await savePartial(false);
       setStep((s) => s + 1);
     } else {
       await handleFinish();
     }
+  }
+
+  async function savePartial(done: boolean) {
+    try {
+      await saveProfile({
+        ...form,
+        quickStartDone: done,
+        onboardingStage: done ? "quick_start" : "not_started",
+      });
+    } catch {
+    }
+  }
+
+  async function handleSaveLater() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await savePartial(false);
+    router.replace("/(tabs)");
   }
 
   async function handleFinish() {
@@ -97,10 +143,9 @@ export default function OnboardingScreen() {
         quickStartDone: true,
         onboardingStage: "quick_start",
       });
-      router.replace("/(tabs)");
-    } catch (e) {
-      router.replace("/(tabs)");
+    } catch {
     }
+    router.replace("/(tabs)");
   }
 
   return (
@@ -109,10 +154,21 @@ export default function OnboardingScreen() {
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${progress}%` }]} />
         </View>
-        <Text style={styles.stepLabel}>{step + 1} of {STEPS.length}</Text>
+        <View style={styles.headerMeta}>
+          <Text style={styles.stepLabel}>{step + 1} of {STEPS.length}</Text>
+          {step > 0 && (
+            <Pressable onPress={handleSaveLater} style={styles.laterBtn}>
+              <Text style={styles.laterBtnText}>Continue later</Text>
+            </Pressable>
+          )}
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>{currentStep.title}</Text>
         <View style={styles.whyBox}>
           <Ionicons name="information-circle-outline" size={14} color={Colors.accent} />
@@ -218,8 +274,14 @@ export default function OnboardingScreen() {
           onPress={handleNext}
           disabled={!canAdvance() || isPending}
         >
-          <Text style={styles.nextBtnText}>{step === STEPS.length - 1 ? (isPending ? "Saving..." : "Begin Game") : "Continue"}</Text>
-          <Ionicons name={step === STEPS.length - 1 ? "game-controller-outline" : "arrow-forward"} size={18} color={Colors.bg} />
+          <Text style={styles.nextBtnText}>
+            {step === STEPS.length - 1 ? (isPending ? "Saving..." : "Begin Game") : "Continue"}
+          </Text>
+          <Ionicons
+            name={step === STEPS.length - 1 ? "game-controller-outline" : "arrow-forward"}
+            size={18}
+            color={Colors.bg}
+          />
         </Pressable>
       </View>
     </View>
@@ -227,67 +289,48 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  header: { paddingHorizontal: 24, gap: 8, marginBottom: 8 },
-  progressBar: { height: 4, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden" },
-  progressFill: { height: "100%", backgroundColor: Colors.accent, borderRadius: 2 },
-  stepLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, textAlign: "right" },
-  scroll: { paddingHorizontal: 24, paddingBottom: 40, gap: 24, paddingTop: 16 },
-  title: { fontFamily: "Inter_700Bold", fontSize: 26, color: Colors.textPrimary, lineHeight: 34 },
-  whyBox: { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: Colors.accentGlow, padding: 12, borderRadius: 12 },
-  why: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textAccent, flex: 1 },
-  textInput: {
+  container:             { flex: 1, backgroundColor: Colors.bg },
+  header:                { paddingHorizontal: 24, gap: 8, marginBottom: 8 },
+  progressBar:           { height: 4, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden" },
+  progressFill:          { height: "100%", backgroundColor: Colors.accent, borderRadius: 2 },
+  headerMeta:            { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  stepLabel:             { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
+  laterBtn:              { paddingVertical: 4, paddingHorizontal: 8 },
+  laterBtnText:          { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, textDecorationLine: "underline" },
+  scroll:                { paddingHorizontal: 24, paddingBottom: 40, gap: 24, paddingTop: 16 },
+  title:                 { fontFamily: "Inter_700Bold", fontSize: 26, color: Colors.textPrimary, lineHeight: 34 },
+  whyBox:                { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: Colors.accentGlow, padding: 12, borderRadius: 12 },
+  why:                   { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textAccent, flex: 1 },
+  textInput:             {
     backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, borderRadius: 16,
     padding: 16, fontFamily: "Inter_400Regular", fontSize: 16, color: Colors.textPrimary,
     minHeight: 120, textAlignVertical: "top",
   },
-  optionGrid: { gap: 12 },
-  optionCard: {
-    flexDirection: "row", alignItems: "center", gap: 14, padding: 16,
-    backgroundColor: Colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: Colors.border,
-  },
-  optionCardSelected: { borderColor: Colors.accent, backgroundColor: Colors.accentGlow },
-  optionLabel: { fontFamily: "Inter_500Medium", fontSize: 15, color: Colors.textSecondary },
-  optionLabelSelected: { color: Colors.accent },
-  hoursGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  hourCard: {
-    width: "30%", aspectRatio: 1.2, alignItems: "center", justifyContent: "center",
-    backgroundColor: Colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, gap: 4,
-  },
-  hourCardSelected: { borderColor: Colors.accent, backgroundColor: Colors.accentGlow },
-  hourNumber: { fontFamily: "Inter_700Bold", fontSize: 28, color: Colors.textSecondary },
-  hourNumberSelected: { color: Colors.accent },
-  hourLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
-  areaGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  areaCard: {
-    width: "47%", alignItems: "center", justifyContent: "center", gap: 8,
-    padding: 16, backgroundColor: Colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: Colors.border,
-  },
-  areaCardSelected: { borderColor: Colors.accent, backgroundColor: Colors.accentGlow },
-  areaLabel: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.textSecondary },
-  areaLabelSelected: { color: Colors.accent },
-  areaCheck: {
-    position: "absolute", top: 8, right: 8, backgroundColor: Colors.accentGlow, borderRadius: 10, padding: 2,
-  },
-  strictnessGrid: { gap: 12 },
-  strictCard: {
-    padding: 16, backgroundColor: Colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, gap: 6,
-  },
-  strictHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
-  strictLabel: { fontFamily: "Inter_700Bold", fontSize: 16 },
-  strictSubtitle: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
-  footer: {
-    flexDirection: "row", paddingHorizontal: 24, paddingTop: 16, gap: 12,
-    borderTopWidth: 1, borderTopColor: Colors.border,
-  },
-  backBtn: {
-    width: 48, height: 52, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1,
-    borderColor: Colors.border, alignItems: "center", justifyContent: "center",
-  },
-  nextBtn: {
-    flex: 1, height: 52, borderRadius: 14, backgroundColor: Colors.accent,
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-  },
-  nextBtnDisabled: { opacity: 0.4 },
-  nextBtnText: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.bg },
+  optionGrid:            { gap: 12 },
+  optionCard:            { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, backgroundColor: Colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: Colors.border },
+  optionCardSelected:    { borderColor: Colors.accent, backgroundColor: Colors.accentGlow },
+  optionLabel:           { fontFamily: "Inter_500Medium", fontSize: 15, color: Colors.textSecondary },
+  optionLabelSelected:   { color: Colors.accent },
+  hoursGrid:             { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  hourCard:              { width: "30%", aspectRatio: 1.2, alignItems: "center", justifyContent: "center", backgroundColor: Colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, gap: 4 },
+  hourCardSelected:      { borderColor: Colors.accent, backgroundColor: Colors.accentGlow },
+  hourNumber:            { fontFamily: "Inter_700Bold", fontSize: 28, color: Colors.textSecondary },
+  hourNumberSelected:    { color: Colors.accent },
+  hourLabel:             { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
+  areaGrid:              { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  areaCard:              { width: "47%", alignItems: "center", justifyContent: "center", gap: 8, padding: 16, backgroundColor: Colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: Colors.border },
+  areaCardSelected:      { borderColor: Colors.accent, backgroundColor: Colors.accentGlow },
+  areaLabel:             { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.textSecondary },
+  areaLabelSelected:     { color: Colors.accent },
+  areaCheck:             { position: "absolute", top: 8, right: 8, backgroundColor: Colors.accentGlow, borderRadius: 10, padding: 2 },
+  strictnessGrid:        { gap: 12 },
+  strictCard:            { padding: 16, backgroundColor: Colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, gap: 6 },
+  strictHeader:          { flexDirection: "row", alignItems: "center", gap: 10 },
+  strictLabel:           { fontFamily: "Inter_700Bold", fontSize: 16 },
+  strictSubtitle:        { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
+  footer:                { flexDirection: "row", paddingHorizontal: 24, paddingTop: 16, gap: 12, borderTopWidth: 1, borderTopColor: Colors.border },
+  backBtn:               { width: 48, height: 52, borderRadius: 14, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, alignItems: "center", justifyContent: "center" },
+  nextBtn:               { flex: 1, height: 52, borderRadius: 14, backgroundColor: Colors.accent, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  nextBtnDisabled:       { opacity: 0.4 },
+  nextBtnText:           { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.bg },
 });

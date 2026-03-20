@@ -414,6 +414,18 @@ function AiMissionCard({ mission: m, onRespond, isPending }: { mission: any; onR
               <Ionicons name="navigate-outline" size={14} color={Colors.accent} />
               <Text style={styles.reasonText}>{m.reason}</Text>
             </View>
+            {m.recommendedProofTypes && (
+              <View style={styles.proofRow}>
+                <Ionicons name="shield-checkmark-outline" size={13} color={Colors.textSecondary} />
+                <Text style={styles.proofLabel}>Proof required: </Text>
+                <Text style={styles.proofTypes}>
+                  {(() => {
+                    try { return JSON.parse(m.recommendedProofTypes).join(", "); }
+                    catch { return m.recommendedProofTypes; }
+                  })()}
+                </Text>
+              </View>
+            )}
           </View>
         )}
       </Pressable>
@@ -512,6 +524,9 @@ const styles = StyleSheet.create({
   aiCardDesc:         { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
   reasonBox:          { flexDirection: "row", gap: 8, backgroundColor: Colors.accentGlow, borderRadius: 10, padding: 10 },
   reasonText:         { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textAccent, flex: 1, lineHeight: 18 },
+  proofRow:           { flexDirection: "row", alignItems: "center", gap: 6 },
+  proofLabel:         { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
+  proofTypes:         { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textSecondary },
   aiActions:          { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   actionAccept:       { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: Colors.green, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, flex: 1 },
   actionAcceptText:   { fontFamily: "Inter_700Bold", fontSize: 13, color: "#fff" },
