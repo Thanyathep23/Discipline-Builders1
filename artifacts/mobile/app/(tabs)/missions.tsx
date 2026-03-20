@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import {
   useMissions, useStartSession, useActiveSession,
@@ -68,7 +68,9 @@ export default function MissionsScreen() {
   const insets = useSafeAreaInsets();
   const [boardTab, setBoardTab] = useState<(typeof BOARD_TABS)[number]>("mine");
   const [missionTab, setMissionTab] = useState<(typeof MISSION_TABS)[number]>("active");
-  const [whyModal, setWhyModal] = useState<{ visible: boolean; title: string; reason: string; skill: string } | null>(null);
+  const [whyModal, setWhyModal] = useState<{ visible: boolean; title: string; reason: string; skill: string; gmNote?: string } | null>(null);
+  const [gmBriefing, setGmBriefing] = useState<string | null>(null);
+  const [gmResponse, setGmResponse] = useState<string | null>(null);
 
   const { data: missions, isLoading: missionsLoading, refetch: refetchMissions, isRefetching: refetchingMissions } = useMissions(missionTab);
   const { data: aiData, isLoading: aiLoading, refetch: refetchAi, isRefetching: refetchingAi } = useAiMissions("pending");
@@ -96,7 +98,11 @@ export default function MissionsScreen() {
   async function handleGenerate() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      await generateAiMissions.mutateAsync(5);
+      const result = await generateAiMissions.mutateAsync(5);
+      if (result?.gmNote) {
+        setGmBriefing(result.gmNote);
+        setTimeout(() => setGmBriefing(null), 8000);
+      }
     } catch (err: any) {
       console.error(err);
     }
@@ -105,13 +111,28 @@ export default function MissionsScreen() {
   async function handleRespond(missionId: string, action: string, m?: any) {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (action === "ask_why" && m) {
-      setWhyModal({ visible: true, title: m.title, reason: m.reason, skill: m.relatedSkill });
+      try {
+        const result = await respondToAiMission.mutateAsync({ missionId, action });
+        setWhyModal({
+          visible: true,
+          title: m.title,
+          reason: m.reason,
+          skill: m.relatedSkill,
+          gmNote: result?.gmNote,
+        });
+      } catch {
+        setWhyModal({ visible: true, title: m.title, reason: m.reason, skill: m.relatedSkill });
+      }
       return;
     }
     try {
       const result = await respondToAiMission.mutateAsync({ missionId, action });
-      if (action === "accepted" && result.mission) {
+      if (action === "accepted") {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      if (result?.gmNote) {
+        setGmResponse(result.gmNote);
+        setTimeout(() => setGmResponse(null), 5000);
       }
     } catch (err: any) {
       console.error(err);
@@ -271,14 +292,27 @@ export default function MissionsScreen() {
           contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
           refreshControl={<RefreshControl refreshing={!!refetchingAi} onRefresh={refetchAi} tintColor={Colors.accent} />}
         >
+          {gmBriefing && (
+            <Animated.View entering={FadeIn.duration(300)} style={styles.gmBriefing}>
+              <Ionicons name="person" size={14} color={Colors.accent} />
+              <Text style={styles.gmBriefingText}>{gmBriefing}</Text>
+            </Animated.View>
+          )}
+
+          {gmResponse && (
+            <Animated.View entering={FadeIn.duration(300)} style={styles.gmResponse}>
+              <Text style={styles.gmResponseText}>{gmResponse}</Text>
+            </Animated.View>
+          )}
+
           {aiLoading ? (
             <ActivityIndicator color={Colors.accent} style={{ marginTop: 60 }} />
           ) : aiMissions.length === 0 ? (
             <View style={styles.emptyBox}>
               <Ionicons name="flash-outline" size={48} color={Colors.textMuted} />
-              <Text style={styles.emptyTitle}>No AI missions yet</Text>
+              <Text style={styles.emptyTitle}>No directives issued</Text>
               <Text style={styles.emptyText}>
-                Tap the generate button to receive personalized missions based on your skills and profile.
+                Generate missions calibrated to your current skill levels and goals.
               </Text>
               <Pressable style={styles.emptyBtn} onPress={handleGenerate}>
                 {generateAiMissions.isPending
@@ -306,17 +340,21 @@ export default function MissionsScreen() {
           <Pressable style={styles.modalOverlay} onPress={() => setWhyModal(null)}>
             <View style={styles.whyModal}>
               <View style={styles.whyHeader}>
-                <Ionicons name="information-circle" size={22} color={Colors.accent} />
-                <Text style={styles.whyTitle}>Why this matters</Text>
+                <Ionicons name="person" size={18} color={Colors.accent} />
+                <Text style={styles.whyTitle}>Game Master Briefing</Text>
               </View>
               <Text style={styles.whyMissionTitle}>{whyModal.title}</Text>
-              <Text style={styles.whyReason}>{whyModal.reason}</Text>
+              {whyModal.gmNote && (
+                <View style={styles.gmNoteBox}>
+                  <Text style={styles.gmNoteText}>{whyModal.gmNote}</Text>
+                </View>
+              )}
               <View style={styles.whySkillRow}>
                 <Ionicons name={(SKILL_ICONS[whyModal.skill] ?? "star") as any} size={14} color={Colors.cyan} />
-                <Text style={styles.whySkillText}>Related skill: {whyModal.skill}</Text>
+                <Text style={styles.whySkillText}>Skill track: {whyModal.skill}</Text>
               </View>
               <Pressable style={styles.whyClose} onPress={() => setWhyModal(null)}>
-                <Text style={styles.whyCloseText}>Got it</Text>
+                <Text style={styles.whyCloseText}>Understood</Text>
               </Pressable>
             </View>
           </Pressable>
@@ -348,7 +386,7 @@ function AiMissionCard({ mission: m, onRespond, isPending }: { mission: any; onR
               <DifficultyDot color={m.difficultyColor} />
               {m.isStretch && (
                 <View style={styles.stretchChip}>
-                  <Text style={styles.stretchText}>STRETCH</Text>
+                  <Text style={styles.stretchText}>STRETCH TIER</Text>
                 </View>
               )}
             </View>
@@ -373,7 +411,7 @@ function AiMissionCard({ mission: m, onRespond, isPending }: { mission: any; onR
           <View style={styles.aiCardExpanded}>
             <Text style={styles.aiCardDesc}>{m.description}</Text>
             <View style={styles.reasonBox}>
-              <Ionicons name="information-circle-outline" size={14} color={Colors.accent} />
+              <Ionicons name="navigate-outline" size={14} color={Colors.accent} />
               <Text style={styles.reasonText}>{m.reason}</Text>
             </View>
           </View>
@@ -394,7 +432,7 @@ function AiMissionCard({ mission: m, onRespond, isPending }: { mission: any; onR
           onPress={() => onRespond("not_now")}
           disabled={isPending}
         >
-          <Text style={styles.actionBtnText}>Not Now</Text>
+          <Text style={styles.actionBtnText}>Later</Text>
         </Pressable>
         <Pressable
           style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.8 }]}
@@ -480,13 +518,18 @@ const styles = StyleSheet.create({
   actionBtn:          { alignItems: "center", justifyContent: "center", backgroundColor: Colors.bgElevated, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 1, borderColor: Colors.border },
   actionBtnText:      { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textSecondary },
   modalOverlay:       { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", alignItems: "center", padding: 24 },
-  whyModal:           { backgroundColor: Colors.bgCard, borderRadius: 24, padding: 24, width: "100%", gap: 12, borderWidth: 1, borderColor: Colors.border },
+  whyModal:           { backgroundColor: Colors.bgCard, borderRadius: 20, padding: 24, width: "100%", gap: 14, borderWidth: 1, borderColor: Colors.border },
   whyHeader:          { flexDirection: "row", alignItems: "center", gap: 8 },
-  whyTitle:           { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.textPrimary },
-  whyMissionTitle:    { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textAccent },
-  whyReason:          { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
+  whyTitle:           { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.textPrimary },
+  whyMissionTitle:    { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textSecondary },
+  gmBriefing:         { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: Colors.accentGlow, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: Colors.accent + "40" },
+  gmBriefingText:     { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textAccent, flex: 1, lineHeight: 18 },
+  gmResponse:         { backgroundColor: Colors.bgCard, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: Colors.border },
+  gmResponseText:     { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, fontStyle: "italic" },
+  gmNoteBox:          { backgroundColor: Colors.accentGlow, borderRadius: 10, padding: 12 },
+  gmNoteText:         { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textAccent, lineHeight: 20 },
   whySkillRow:        { flexDirection: "row", alignItems: "center", gap: 6 },
-  whySkillText:       { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.cyan },
-  whyClose:           { backgroundColor: Colors.accent, borderRadius: 12, paddingVertical: 12, alignItems: "center", marginTop: 4 },
+  whySkillText:       { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
+  whyClose:           { backgroundColor: Colors.accent, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
   whyCloseText:       { fontFamily: "Inter_700Bold", fontSize: 14, color: "#fff" },
 });

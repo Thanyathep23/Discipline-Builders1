@@ -4,6 +4,15 @@ import { eq, and, desc } from "drizzle-orm";
 import { generateMissionsWithAI } from "../lib/mission-generator.js";
 import { requireAuth } from "../lib/auth.js";
 import { randomUUID } from "crypto";
+import {
+  getMissionBriefing,
+  getAcceptNote,
+  getRejectNote,
+  getNotNowNote,
+  getAskWhyNote,
+  getMakeEasierNote,
+  getMakeHarderNote,
+} from "../lib/gameMaster.js";
 
 const router = Router();
 
@@ -13,27 +22,27 @@ function makeVariant(
   original: any,
 ): any {
   const factor = variantType === "easier" ? 0.65 : 1.4;
-  const colorMap: Record<string, string> = { gray: "gray", green: "gray", blue: "green", purple: "blue", gold: "purple", red: "gold" };
-  const hardMap: Record<string, string> = { gray: "green", green: "blue", blue: "purple", purple: "gold", gold: "red", red: "red" };
+  const colorDown: Record<string, string> = { gray: "gray", green: "gray", blue: "green", purple: "blue", gold: "purple", red: "gold" };
+  const colorUp:   Record<string, string> = { gray: "green", green: "blue", blue: "purple", purple: "gold", gold: "red", red: "red" };
   const newColor = variantType === "easier"
-    ? (colorMap[original.difficultyColor] ?? "gray")
-    : (hardMap[original.difficultyColor] ?? "red");
+    ? (colorDown[original.difficultyColor] ?? "gray")
+    : (colorUp[original.difficultyColor] ?? "red");
 
   return {
     id: randomUUID(),
     originalMissionId: originalId,
     variantType,
     title: variantType === "easier"
-      ? `${original.title} (Lite)`
-      : `${original.title} (Extended)`,
+      ? `${original.title} — Scaled Down`
+      : `${original.title} — Extended`,
     description: variantType === "easier"
-      ? `Shortened version: ${original.description}`
-      : `Harder version: ${original.description} Push beyond the baseline.`,
+      ? `Reduced scope: ${original.description}`
+      : `Full depth: ${original.description} Push beyond the standard output.`,
     difficultyColor: newColor,
     estimatedDurationMinutes: Math.max(10, Math.round(original.estimatedDurationMinutes * factor)),
     reason: variantType === "easier"
-      ? "Scaled down to match your current energy or capacity."
-      : "Scaled up to push your limits and earn higher rewards.",
+      ? "Adjusted to match your current capacity. Some execution beats none."
+      : "Escalated to stretch your current ceiling. Higher output, higher reward.",
   };
 }
 
@@ -99,7 +108,7 @@ router.post("/generate", requireAuth, async (req: any, res) => {
         id: randomUUID(),
         missionId: id,
         acceptedProofTypes: JSON.stringify(m.recommendedProofTypes),
-        minimumProofCount: m.recommendedProofTypes.length > 1 ? 1 : 1,
+        minimumProofCount: 1,
         proofDifficultyTier: m.proofDifficultyTier,
         fraudRiskLevel: m.isStretch ? "medium" : "low",
         reviewRubricSummary: m.reviewRubricSummary,
@@ -112,7 +121,12 @@ router.post("/generate", requireAuth, async (req: any, res) => {
       inserted.push({ ...row, proofRequirements: { ...m }, variants: [easierVariant, harderVariant] });
     }
 
-    return res.json({ missions: inserted });
+    // Detect weak skills from skill levels
+    const sortedByLevel = Object.entries(skillLevels).sort((a, b) => a[1] - b[1]);
+    const weakSkillIds = sortedByLevel.slice(0, 2).map(([k]) => k);
+    const gmNote = getMissionBriefing(count, weakSkillIds, profile ?? undefined);
+
+    return res.json({ missions: inserted, gmNote });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
@@ -173,13 +187,12 @@ router.post("/:missionId/respond", requireAuth, async (req: any, res) => {
     });
 
     if (action === "accepted") {
-      const proofReq = await db
+      const proofReqs = await db
         .select()
         .from(missionProofRequirementsTable)
         .where(eq(missionProofRequirementsTable.missionId, missionId))
         .limit(1);
-      const proofTypes = proofReq[0]?.acceptedProofTypes ?? '["text"]';
-
+      const proofTypes = proofReqs[0]?.acceptedProofTypes ?? '["text"]';
       const rewardPotential = 50 + mission.suggestedRewardBonus;
 
       const [newMission] = await db
@@ -209,7 +222,8 @@ router.post("/:missionId/respond", requireAuth, async (req: any, res) => {
         .set({ status: "accepted", acceptedMissionId: newMission.id, updatedAt: new Date() })
         .where(eq(aiMissionsTable.id, missionId));
 
-      return res.json({ status: "accepted", mission: newMission });
+      const gmNote = getAcceptNote(mission);
+      return res.json({ status: "accepted", mission: newMission, gmNote });
     }
 
     if (action === "rejected") {
@@ -217,7 +231,8 @@ router.post("/:missionId/respond", requireAuth, async (req: any, res) => {
         .update(aiMissionsTable)
         .set({ status: "rejected", updatedAt: new Date() })
         .where(eq(aiMissionsTable.id, missionId));
-      return res.json({ status: "rejected" });
+      const gmNote = getRejectNote(mission);
+      return res.json({ status: "rejected", gmNote });
     }
 
     if (action === "not_now") {
@@ -225,7 +240,8 @@ router.post("/:missionId/respond", requireAuth, async (req: any, res) => {
         .update(aiMissionsTable)
         .set({ status: "not_now", updatedAt: new Date() })
         .where(eq(aiMissionsTable.id, missionId));
-      return res.json({ status: "not_now" });
+      const gmNote = getNotNowNote(mission);
+      return res.json({ status: "not_now", gmNote });
     }
 
     if (action === "make_easier" || action === "make_harder") {
@@ -240,15 +256,22 @@ router.post("/:missionId/respond", requireAuth, async (req: any, res) => {
           ),
         )
         .limit(1);
-      return res.json({ status: action, variant: variant ?? null });
+
+      const gmNote = variantType === "easier"
+        ? getMakeEasierNote(variant ?? { difficultyColor: "gray", estimatedDurationMinutes: 20 })
+        : getMakeHarderNote(variant ?? { difficultyColor: "blue", estimatedDurationMinutes: 60 });
+
+      return res.json({ status: action, variant: variant ?? null, gmNote });
     }
 
     if (action === "ask_why") {
+      const gmNote = getAskWhyNote(mission);
       return res.json({
         status: "ask_why",
         reason: mission.reason,
         relatedSkill: mission.relatedSkill,
         missionCategory: mission.missionCategory,
+        gmNote,
       });
     }
 

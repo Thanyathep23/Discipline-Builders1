@@ -323,41 +323,54 @@ export async function generateMissionsWithAI(
       .map(([k, v]) => `${k}: Level ${v}`)
       .join(", ");
 
-    const prompt = `You are DisciplineOS, an elite personal development AI.
+    const weakSkills = Object.entries(skillLevels)
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, 3)
+      .map(([k, v]) => `${k} (Lv${v})`).join(", ");
 
-Generate ${count} personalized missions for this user:
+    const prompt = `You are the Game Master of DisciplineOS, a real-life RPG where daily actions become character progression.
 
-Profile:
+Your role: design personalized missions that feel earned and specific, not generic.
+Voice: precise, direct, mentorship tone. Not motivational-poster. Not harsh.
+
+Generate exactly ${count} missions for this player.
+
+PLAYER PROFILE:
 - Main goal: ${profile.mainGoal ?? "improve my life"}
-- Main problem: ${profile.mainProblem ?? "staying consistent"}
-- Available hours/day: ${profile.availableHoursPerDay ?? 2}
-- Strictness: ${profile.strictnessPreference ?? "normal"}
-- Improvement areas: ${profile.improvementAreas ?? "[]"}
-- Current skills: ${skillSummary || "all at level 1"}
-- Life constraints: ${profile.lifeConstraints ?? "none specified"}
+- Core problem: ${profile.mainProblem ?? "staying consistent"}
+- Available time: ${profile.availableHoursPerDay ?? 2}h/day
+- Training mode: ${profile.strictnessPreference ?? "normal"}
+- Focus areas: ${profile.improvementAreas ?? "[]"}
+- Constraints: ${profile.lifeConstraints ?? "none"}
 
-Rules:
-1. Focus on weak skills (lower levels)
-2. Make missions challenging but realistic
-3. Push slightly beyond current baseline
-4. Feel personal not generic
-5. Include trading missions if trading level is relevant
-6. Proof requirements must be proportional to difficulty
+SKILL STATE:
+- Weakest skills (prioritize these): ${weakSkills || "all at level 1"}
+- Full skill map: ${skillSummary || "all at level 1"}
 
-Return ONLY valid JSON array with ${count} missions. Each mission:
+CALIBRATION RULES (follow precisely):
+1. Target the player's WEAKEST skills first
+2. Set difficulty one tier ABOVE the skill's current level:
+   - Lv1-5 → green difficulty, Lv6-15 → blue, Lv16-30 → purple, Lv31-50 → gold, Lv51+ → red
+3. Duration must fit within available hours (max ${Math.round((profile.availableHoursPerDay ?? 2) * 60)}min/day total)
+4. Make missions feel specific to THIS player's goal — reference their actual context
+5. Proof requirements must match difficulty: basic (simple text) → expert (screenshots + detailed output)
+6. isStretch=true only for the hardest 1-2 missions in the set
+7. reason must explain WHY this mission connects to their specific goal, not a generic benefit
+
+Return ONLY valid JSON with key "missions" containing exactly ${count} objects. Each:
 {
-  "title": string,
-  "description": string,
-  "reason": string,
+  "title": string (specific, not generic),
+  "description": string (exactly what to do, step-level clarity),
+  "reason": string (personal to their goal, 1-2 sentences),
   "relatedSkill": "focus"|"discipline"|"sleep"|"fitness"|"learning"|"trading",
   "difficultyColor": "gray"|"green"|"blue"|"purple"|"gold"|"red",
   "estimatedDurationMinutes": number,
-  "recommendedProofTypes": string[],
+  "recommendedProofTypes": array of "text"|"image"|"screenshot"|"file",
   "suggestedRewardBonus": number (10-50),
   "missionCategory": "daily_discipline"|"skill_growth"|"trading_practice"|"recovery_reset",
   "isStretch": boolean,
   "proofDifficultyTier": "basic"|"standard"|"rich"|"expert",
-  "reviewRubricSummary": string
+  "reviewRubricSummary": string (exact criteria the AI judge will use)
 }`;
 
     const resp = await client.chat.completions.create({

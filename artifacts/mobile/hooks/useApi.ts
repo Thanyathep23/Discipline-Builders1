@@ -329,3 +329,13 @@ export function useActivateTitle() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["inventory", "titles"] }),
   });
 }
+
+export function useStreaks() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["streaks"],
+    queryFn: () => request<any>("/streaks"),
+    staleTime: 60000,
+    refetchOnWindowFocus: true,
+  });
+}

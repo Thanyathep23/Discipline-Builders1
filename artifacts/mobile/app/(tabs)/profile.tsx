@@ -11,7 +11,7 @@ import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
 import {
   useRewardBalance, useDailyAnalytics, useSkills,
-  useLifeProfile, useInventoryBadges, useInventoryTitles,
+  useLifeProfile, useInventoryBadges, useInventoryTitles, useStreaks,
 } from "@/hooks/useApi";
 
 const SKILL_ICONS: Record<string, string> = {
@@ -37,6 +37,7 @@ export default function ProfileScreen() {
   const { data: profileData } = useLifeProfile();
   const { data: badgesData } = useInventoryBadges();
   const { data: titlesData } = useInventoryTitles();
+  const { data: streakData } = useStreaks();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
@@ -101,6 +102,27 @@ export default function ProfileScreen() {
             <Text style={styles.trustValue}>{((user?.trustScore ?? 1) * 100).toFixed(0)}%</Text>
           </View>
         </Animated.View>
+
+        {streakData && (
+          <Animated.View entering={FadeInDown.delay(40).springify()} style={styles.streakCard}>
+            <View style={styles.streakLeft}>
+              <View style={styles.streakCountRow}>
+                <Text style={styles.streakCount}>{streakData.currentStreak}</Text>
+                <Text style={styles.streakUnit}>day{streakData.currentStreak !== 1 ? "s" : ""}</Text>
+              </View>
+              <Text style={styles.streakLabel}>
+                {streakData.activeToday ? "Active today" : streakData.lastActiveDaysAgo === 1 ? "Last active yesterday" : streakData.lastActiveDaysAgo != null ? `Last active ${streakData.lastActiveDaysAgo}d ago` : "No activity yet"}
+              </Text>
+            </View>
+            <View style={styles.streakDivider} />
+            <View style={styles.streakRight}>
+              <Text style={styles.streakGm}>{streakData.gmNote}</Text>
+              {streakData.longestStreak > 0 && (
+                <Text style={styles.streakBest}>Best: {streakData.longestStreak} days</Text>
+              )}
+            </View>
+          </Animated.View>
+        )}
 
         {!hasProfile && (
           <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.onboardBanner}>
@@ -382,6 +404,16 @@ const styles = StyleSheet.create({
   chartStats:       { flexDirection: "row", gap: 16 },
   chartStat:        { flexDirection: "row", alignItems: "center", gap: 6 },
   chartStatText:    { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
+  streakCard:       { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", gap: 14, alignItems: "center" },
+  streakLeft:       { alignItems: "center", minWidth: 70, gap: 2 },
+  streakCountRow:   { flexDirection: "row", alignItems: "baseline", gap: 3 },
+  streakCount:      { fontFamily: "Inter_700Bold", fontSize: 34, color: Colors.textPrimary, lineHeight: 40 },
+  streakUnit:       { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.textSecondary },
+  streakLabel:      { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, textAlign: "center" },
+  streakDivider:    { width: 1, height: 44, backgroundColor: Colors.border },
+  streakRight:      { flex: 1, gap: 5 },
+  streakGm:         { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18, fontStyle: "italic" },
+  streakBest:       { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
   menuList:         { backgroundColor: Colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, overflow: "hidden" },
   menuItem:         { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
   menuIcon:         { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.bgElevated, alignItems: "center", justifyContent: "center" },
