@@ -2,45 +2,72 @@
 
 ## Overview
 
-**DisciplineOS** — A dark, premium Life RPG mobile app (Expo) with a full-stack backend (Express + PostgreSQL). Real life actions upgrade a real character. Users create missions, run focus sessions, submit proof to an AI judge, earn coins/XP, and level up a skill tree that reflects their actual behavior.
+**DisciplineOS** — A dark, premium Life RPG mobile app (Expo) with a full-stack backend (Express + PostgreSQL). Real life actions upgrade a real character. Users create missions, run focus sessions, submit proof to an AI judge, earn coins/XP, and level up a skill tree that reflects actual behavior.
 
-Core loop: login → create mission → start focus session → stop → submit proof → AI judge → coins/XP reward → wallet → skill XP
+Core loop: login → create/accept mission → start focus session → stop → submit proof → AI judge → coins/XP reward → wallet → skill XP → rank progression
 
 Key design mandates:
 - Rewards computed **server-side only** (never client-side)
 - **Real AI proof verification** (GPT-4o-mini or rule-based fallback)
-- **Life RPG layer**: skills, life profile, AI mission generation
+- **Life RPG layer**: skills, rank ladder, AI mission generation, inventory
 - Data isolated per user (userId checks on all DB queries)
 - Admin has full **audit log**
+- Skills never level up from button presses — only from approved behavior evidence
 
-## Life RPG Features (Phase 1)
+## Life RPG Features (Phase 2)
 
-### Skill System
-6 skills tied to real behavior: Focus, Discipline, Learning, Health, Finance, Creativity
-- XP granted automatically on proof submission (based on session duration, category, verdict)
-- Each skill has level/XP with scaling requirements
-- Skill → mission category mapping in `lib/db/src/schema/skills.ts`
+### Skill System (B)
+6 skills: **Focus, Discipline, Sleep, Fitness, Learning, Trading**
+- XP granted from approved proofs, session quality, consistency
+- Rank ladder: Gray (Lv1-5) → Green (6-15) → Blue (16-30) → Purple (31-50) → Gold (51-75) → Red (76-100)
+- Each skill tracks: level, XP, rank, current trend (rising/stable/falling), confidence score
+- XP events logged to `skill_xp_events` table for full history
+- Category → skill mapping in `lib/db/src/schema/skills.ts`
+- Confidence score decreases if no recent activity (decays after 7/14 days)
 
-### AI Life Profile (Onboarding)
-3-layer profile: Quick Start (6 questions), Standard (8, optional), Deep (optional)
-- Stored in `life_profiles` table
-- Drives AI mission personalization
+### AI Mission Generator (C)
+- Dual source: `user_created` + `ai_generated` missions
+- AI generates missions based on: profile, skill levels, weak skills, time, strictness, goals, constraints
+- OpenAI GPT-4o-mini integration with strong rule-based fallback
+- Mission types: Daily Discipline, Skill Growth, Trading Practice, Recovery/Reset
+- Difficulty colors: gray → green → blue → purple → gold → red
+- User actions: Accept, Reject, Not Now, Make Easier, Make Harder, Ask Why
+- Accepted AI missions auto-create a real mission in the missions table
+- Variants (easier/harder) generated automatically for each AI mission
 
-### AI Mission Board
-- Generates personalized missions from life profile
-- Template-based with goal/area detection
-- User can accept missions (creates real missions in DB)
+### Proof Requirement Engine (D)
+- Each AI mission generates proof requirements at creation time
+- Stored in `mission_proof_requirements` table
+- Proof difficulty tiers: basic, standard, rich, expert
+- Fraud risk levels: low, medium, high
+- Review rubric summary per mission
+- Alternate proof requests supported via `alternate_proof_requests` table
 
-### Routes
+### Inventory / Assets (E)
+- 10 default badges: Focus Initiate, 7-Day Discipline, Trading Apprentice, Recovery Rebuilder, Command Room, Proof Master, Sleep Guardian, Fitness Warrior, Learning Engine, AI Mission Champion
+- 7 default titles: Initiate, Focus Operator, Iron Discipline, Market Student, Grind Architect, Recovery Mode, Command Operator
+- Rarity tiers: common, uncommon, rare, epic, legendary
+- Active title display on profile card
+- `milestone_unlocks` table for key progression events
+- Award via `awardBadge()` and `awardTitle()` helper functions in inventory route
+
+### UI Screens (F)
+- **Mission Board** — tabbed: My Missions + AI Generated with full action row
+- **Skill Tree** — rank badges, trend arrows, confidence bars, XP event history on tap
+- **Profile/Character** — arc display, top strengths, weak zones, inventory preview
+- **Rewards + Inventory** — tabs: Overview, Inventory (badges/titles), Shop, History
+
+## Routes
+
 - `GET/POST /api/profile` — life profile
-- `GET /api/skills` + `/api/skills/summary` — skill tree
-- `POST /api/ai-missions/generate` — AI mission generation
-
-### Mobile Screens
-- `/onboarding` — multi-step wizard (Quick Start)
-- `/skills` — skill tree with XP bars and level titles
-- `/ai-missions` — AI Mission Board with accept flow
-- Profile tab updated with skills widget, life profile summary
+- `GET /api/skills` + `/api/skills/summary` + `/api/skills/events` — skill tree
+- `POST /api/ai-missions/generate` — generate AI missions
+- `GET /api/ai-missions` — list pending/all AI missions
+- `GET /api/ai-missions/:id` — mission detail + proof reqs + variants
+- `POST /api/ai-missions/:id/respond` — accept/reject/not_now/make_easier/make_harder/ask_why
+- `GET /api/inventory/badges` — all badges + earned status
+- `GET /api/inventory/titles` — all titles + earned status + active
+- `POST /api/inventory/titles/:id/activate` — activate a title
 
 ## Stack
 
@@ -51,15 +78,22 @@ Key design mandates:
 - **API framework**: Express 5
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod, `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 - **Mobile**: Expo + React Native (web preview at port 18115)
-- **AI**: OpenAI GPT-4o-mini (proof judge)
+- **AI**: OpenAI GPT-4o-mini (proof judge + mission generator, both with rule-based fallbacks)
 
 ## Artifacts
 
 - `artifacts/api-server` — Express API on port 8080, mounted at `/api`
 - `artifacts/mobile` — Expo React Native app on port 18115
+
+## Database Tables (29 total)
+
+Core: users, missions, focus_sessions, proof_submissions, reward_transactions, audit_log, penalties
+Skills: user_skills, skill_xp_events
+AI Missions: ai_missions, ai_mission_variants, mission_acceptance_events, mission_proof_requirements, proof_requirement_templates, alternate_proof_requests
+Inventory: badges, user_badges, titles, user_titles, milestone_unlocks
+Settings: blocking_config, blocked_attempts, strictness_profiles, sleep_logs, time_entries, session_heartbeats, life_profiles, shop_items, user_inventory
 
 ## Design System
 
@@ -68,82 +102,46 @@ Key design mandates:
 - Gold coins: `#F5C842`
 - Green active: `#00E676`
 - Fonts: Inter (400/500/600/700)
+- Difficulty/Rank colors: Gray #9E9E9E, Green #4CAF50, Blue #2196F3, Purple #9C27B0, Gold #F5C842, Red #F44336
 
 ## Structure
 
 ```text
 artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
+├── artifacts/
+│   ├── api-server/         # Express API server
+│   └── mobile/             # Expo React Native app
+├── lib/
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
 │   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+│       └── src/schema/     # All table definitions
+├── scripts/                # Utility scripts
+├── pnpm-workspace.yaml
+├── tsconfig.base.json
+├── tsconfig.json
+└── package.json
 ```
+
+## Key Files
+
+- `lib/db/src/schema/skills.ts` — SKILL_IDS, RANK_LADDER, SKILL_META, CATEGORY_SKILL_MAP
+- `lib/db/src/schema/ai-missions.ts` — AI mission + proof requirement tables
+- `lib/db/src/schema/inventory.ts` — badges, titles, milestones
+- `artifacts/api-server/src/lib/skill-engine.ts` — XP granting, rank calc, trend, confidence
+- `artifacts/api-server/src/lib/mission-generator.ts` — rule-based + AI mission generation
+- `artifacts/api-server/src/routes/ai-missions.ts` — full AI mission CRUD + respond flow
+- `artifacts/api-server/src/routes/inventory.ts` — badges/titles/milestones + awardBadge/awardTitle helpers
+- `artifacts/mobile/app/(tabs)/missions.tsx` — Mission Board with AI tab
+- `artifacts/mobile/app/(tabs)/rewards.tsx` — Rewards + Inventory tab
+- `artifacts/mobile/app/(tabs)/profile.tsx` — Character summary
+- `artifacts/mobile/app/skills/index.tsx` — Skill tree with rank/trend/confidence
 
 ## TypeScript & Composite Projects
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references.
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
-
-## Root Scripts
-
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
-
-## Packages
-
-### `artifacts/api-server` (`@workspace/api-server`)
-
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
-
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
-
-### `lib/db` (`@workspace/db`)
-
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+- **Always typecheck from the root** — run `pnpm run typecheck`
+- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck
+- Production migrations: `pnpm --filter @workspace/db run push`

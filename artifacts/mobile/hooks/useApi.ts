@@ -257,10 +257,75 @@ export function useSkills() {
   });
 }
 
+export function useSkillEvents(skillId?: string, days = 7) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["skill-events", skillId, days],
+    queryFn: () =>
+      request<any>(`/skills/events?days=${days}${skillId ? `&skillId=${skillId}` : ""}`),
+    staleTime: 30000,
+  });
+}
+
+export function useAiMissions(status?: string) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["ai-missions", status],
+    queryFn: () => request<any>(`/ai-missions${status ? `?status=${status}` : ""}`),
+    staleTime: 15000,
+  });
+}
+
 export function useGenerateAiMissions() {
   const { request } = useApiClient();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (count?: number) =>
       request<any>("/ai-missions/generate", { method: "POST", body: JSON.stringify({ count: count ?? 5 }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ai-missions"] }),
+  });
+}
+
+export function useRespondToAiMission() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ missionId, action, notes }: { missionId: string; action: string; notes?: string }) =>
+      request<any>(`/ai-missions/${missionId}/respond`, {
+        method: "POST",
+        body: JSON.stringify({ action, notes }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ai-missions"] });
+      queryClient.invalidateQueries({ queryKey: ["missions"] });
+    },
+  });
+}
+
+export function useInventoryBadges() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["inventory", "badges"],
+    queryFn: () => request<any>("/inventory/badges"),
+    staleTime: 30000,
+  });
+}
+
+export function useInventoryTitles() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["inventory", "titles"],
+    queryFn: () => request<any>("/inventory/titles"),
+    staleTime: 30000,
+  });
+}
+
+export function useActivateTitle() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (titleId: string) =>
+      request<any>(`/inventory/titles/${titleId}/activate`, { method: "POST" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["inventory", "titles"] }),
   });
 }

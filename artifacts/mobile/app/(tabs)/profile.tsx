@@ -9,11 +9,23 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
-import { useRewardBalance, useDailyAnalytics, useSkills, useLifeProfile } from "@/hooks/useApi";
+import {
+  useRewardBalance, useDailyAnalytics, useSkills,
+  useLifeProfile, useInventoryBadges, useInventoryTitles,
+} from "@/hooks/useApi";
 
 const SKILL_ICONS: Record<string, string> = {
   focus: "eye-outline", discipline: "shield-outline", learning: "book-outline",
-  health: "heart-outline", finance: "cash-outline", creativity: "color-palette-outline",
+  sleep: "moon-outline", fitness: "barbell-outline", trading: "trending-up-outline",
+};
+
+const RANK_COLORS: Record<string, string> = {
+  Gray:   "#9E9E9E",
+  Green:  "#4CAF50",
+  Blue:   "#2196F3",
+  Purple: "#9C27B0",
+  Gold:   "#F5C842",
+  Red:    "#F44336",
 };
 
 export default function ProfileScreen() {
@@ -23,6 +35,8 @@ export default function ProfileScreen() {
   const { data: analytics } = useDailyAnalytics(7);
   const { data: skillsData } = useSkills();
   const { data: profileData } = useLifeProfile();
+  const { data: badgesData } = useInventoryBadges();
+  const { data: titlesData } = useInventoryTitles();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
@@ -32,8 +46,16 @@ export default function ProfileScreen() {
 
   const skills = skillsData?.skills ?? [];
   const topSkill = skillsData?.topSkill;
+  const weakSkills = skillsData?.weakSkills ?? [];
   const hasProfile = profileData?.exists && profileData?.profile?.quickStartDone;
   const profile = profileData?.profile;
+
+  const earnedBadges = (badgesData?.badges ?? []).filter((b: any) => b.earned);
+  const activeTitle = (titlesData?.titles ?? []).find((t: any) => t.isActive);
+
+  const sortedByLevel = [...skills].sort((a, b) => b.level - a.level);
+  const topStrengths = sortedByLevel.slice(0, 2);
+  const weakZones = sortedByLevel.slice(-2).reverse();
 
   async function handleLogout() {
     Alert.alert("Sign Out", "Are you sure?", [
@@ -51,17 +73,26 @@ export default function ProfileScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}>
+
         <Animated.View entering={FadeInDown.springify()} style={styles.profileCard}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{user?.username?.[0]?.toUpperCase() ?? "?"}</Text>
           </View>
-          <View style={{ gap: 4, flex: 1 }}>
+          <View style={{ gap: 5, flex: 1 }}>
             <Text style={styles.username}>{user?.username}</Text>
+            {activeTitle && (
+              <View style={styles.activeTitleBadge}>
+                <Ionicons name="ribbon" size={11} color={Colors.gold} />
+                <Text style={styles.activeTitleText}>{activeTitle.name}</Text>
+              </View>
+            )}
             <Text style={styles.email}>{user?.email}</Text>
             {topSkill && (
               <View style={styles.topSkillBadge}>
-                <Ionicons name={SKILL_ICONS[topSkill.skillId] as any ?? "star"} size={11} color={Colors.gold} />
-                <Text style={styles.topSkillText}>Top: {topSkill.meta?.label} Lv{topSkill.level}</Text>
+                <Ionicons name={(SKILL_ICONS[topSkill.skillId] ?? "star") as any} size={11} color={Colors.gold} />
+                <Text style={styles.topSkillText}>
+                  Top: {topSkill.meta?.label} — {topSkill.rank} Lv{topSkill.level}
+                </Text>
               </View>
             )}
           </View>
@@ -75,7 +106,9 @@ export default function ProfileScreen() {
           <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.onboardBanner}>
             <View style={{ flex: 1, gap: 4 }}>
               <Text style={styles.onboardTitle}>Build Your Life Profile</Text>
-              <Text style={styles.onboardText}>Set up your profile so the AI Game Master can generate personalized missions.</Text>
+              <Text style={styles.onboardText}>
+                Set up your profile so AI missions can be personalized to your goals.
+              </Text>
             </View>
             <Pressable
               style={styles.onboardBtn}
@@ -87,33 +120,54 @@ export default function ProfileScreen() {
           </Animated.View>
         )}
 
-        {hasProfile && profile && (
-          <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.profileSummary}>
-            <Text style={styles.sectionTitle}>Life Profile</Text>
-            <Text style={styles.profileGoal} numberOfLines={2}>{profile.mainGoal}</Text>
-            <View style={styles.profileTags}>
-              {JSON.parse(profile.improvementAreas ?? "[]").map((area: string) => (
-                <View key={area} style={styles.areaTag}>
-                  <Ionicons name={SKILL_ICONS[area] as any ?? "star-outline"} size={12} color={Colors.accent} />
-                  <Text style={styles.areaTagText}>{area.charAt(0).toUpperCase() + area.slice(1)}</Text>
-                </View>
-              ))}
-            </View>
-            <Pressable style={styles.editProfileBtn} onPress={() => router.push("/onboarding")}>
-              <Ionicons name="create-outline" size={14} color={Colors.textSecondary} />
-              <Text style={styles.editProfileText}>Edit Profile</Text>
-            </Pressable>
-          </Animated.View>
-        )}
-
         {skills.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(100).springify()}>
+          <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.characterCard}>
             <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>Character Skills</Text>
+              <Text style={styles.sectionTitle}>Character Summary</Text>
               <Pressable onPress={() => { Haptics.selectionAsync(); router.push("/skills"); }}>
-                <Text style={styles.seeAllText}>View Full Tree</Text>
+                <Text style={styles.seeAllText}>Full Tree</Text>
               </Pressable>
             </View>
+
+            {hasProfile && profile?.mainGoal && (
+              <View style={styles.arcBox}>
+                <Ionicons name="navigate" size={14} color={Colors.accent} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.arcLabel}>Current Arc</Text>
+                  <Text style={styles.arcValue} numberOfLines={2}>{profile.mainGoal}</Text>
+                </View>
+              </View>
+            )}
+
+            <View style={styles.strengthsRow}>
+              <View style={styles.strengthsCol}>
+                <Text style={styles.strengthsLabel}>Top Strengths</Text>
+                {topStrengths.map((s: any) => {
+                  const rankColor = RANK_COLORS[s.rank] ?? "#9E9E9E";
+                  return (
+                    <View key={s.skillId} style={styles.strengthItem}>
+                      <Ionicons name={(SKILL_ICONS[s.skillId] ?? "star") as any} size={13} color={s.meta.color} />
+                      <Text style={styles.strengthText}>{s.meta.label}</Text>
+                      <View style={[styles.rankMini, { backgroundColor: rankColor + "18" }]}>
+                        <Text style={[styles.rankMiniText, { color: rankColor }]}>{s.rank}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+              <View style={styles.strengthsDivider} />
+              <View style={styles.strengthsCol}>
+                <Text style={[styles.strengthsLabel, { color: Colors.amber }]}>Weak Zones</Text>
+                {weakZones.map((s: any) => (
+                  <View key={s.skillId} style={styles.strengthItem}>
+                    <Ionicons name={(SKILL_ICONS[s.skillId] ?? "star") as any} size={13} color={Colors.amber} />
+                    <Text style={[styles.strengthText, { color: Colors.amber }]}>{s.meta.label}</Text>
+                    <Text style={styles.levelMini}>Lv{s.level}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
             <View style={styles.skillGrid}>
               {skills.slice(0, 6).map((skill: any) => (
                 <Pressable
@@ -122,7 +176,7 @@ export default function ProfileScreen() {
                   onPress={() => { Haptics.selectionAsync(); router.push("/skills"); }}
                 >
                   <View style={[styles.skillIcon, { backgroundColor: `${skill.meta.color}18` }]}>
-                    <Ionicons name={skill.meta.icon as any} size={18} color={skill.meta.color} />
+                    <Ionicons name={(SKILL_ICONS[skill.skillId] ?? "star") as any} size={17} color={skill.meta.color} />
                   </View>
                   <Text style={styles.skillLabel}>{skill.meta.label}</Text>
                   <View style={styles.skillXpBar}>
@@ -135,7 +189,70 @@ export default function ProfileScreen() {
           </Animated.View>
         )}
 
-        <Animated.View entering={FadeInDown.delay(150).springify()}>
+        {earnedBadges.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(120).springify()} style={styles.inventoryCard}>
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionTitle}>Inventory</Text>
+              <Pressable onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/rewards"); }}>
+                <Text style={styles.seeAllText}>View All</Text>
+              </Pressable>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                {earnedBadges.slice(0, 8).map((b: any) => (
+                  <View key={b.id} style={styles.badgeMini}>
+                    <View style={styles.badgeMiniIcon}>
+                      <Ionicons name={(b.icon ?? "ribbon") as any} size={18} color={Colors.gold} />
+                    </View>
+                    <Text style={styles.badgeMiniName} numberOfLines={1}>{b.name}</Text>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </Animated.View>
+        )}
+
+        {hasProfile && profile && (
+          <Animated.View entering={FadeInDown.delay(140).springify()} style={styles.profileSummary}>
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionTitle}>Life Profile</Text>
+              <Pressable style={styles.editProfileBtn} onPress={() => router.push("/onboarding")}>
+                <Ionicons name="create-outline" size={14} color={Colors.textSecondary} />
+                <Text style={styles.editProfileText}>Edit</Text>
+              </Pressable>
+            </View>
+            {profile.mainProblem && (
+              <View style={styles.problemBox}>
+                <Ionicons name="alert-circle-outline" size={14} color={Colors.amber} />
+                <Text style={styles.problemText} numberOfLines={2}>{profile.mainProblem}</Text>
+              </View>
+            )}
+            <View style={styles.profileTags}>
+              {JSON.parse(profile.improvementAreas ?? "[]").map((area: string) => (
+                <View key={area} style={styles.areaTag}>
+                  <Ionicons name={(SKILL_ICONS[area] ?? "star-outline") as any} size={12} color={Colors.accent} />
+                  <Text style={styles.areaTagText}>{area.charAt(0).toUpperCase() + area.slice(1)}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={styles.profileMeta}>
+              {profile.availableHoursPerDay && (
+                <View style={styles.profileMetaItem}>
+                  <Ionicons name="time-outline" size={13} color={Colors.textMuted} />
+                  <Text style={styles.profileMetaText}>{profile.availableHoursPerDay}h/day available</Text>
+                </View>
+              )}
+              {profile.strictnessPreference && (
+                <View style={styles.profileMetaItem}>
+                  <Ionicons name="shield-outline" size={13} color={Colors.textMuted} />
+                  <Text style={styles.profileMetaText}>{profile.strictnessPreference} mode</Text>
+                </View>
+              )}
+            </View>
+          </Animated.View>
+        )}
+
+        <Animated.View entering={FadeInDown.delay(160).springify()}>
           <Text style={styles.sectionTitle}>7-Day Focus</Text>
           <View style={styles.chartCard}>
             <View style={styles.chart}>
@@ -144,7 +261,9 @@ export default function ProfileScreen() {
                   <View style={styles.barBg}>
                     <View style={[styles.barFill, { height: `${Math.round((d.focusMinutes / maxFocus) * 100)}%` }]} />
                   </View>
-                  <Text style={styles.barLabel}>{new Date(d.date).toLocaleDateString("en", { weekday: "narrow" })}</Text>
+                  <Text style={styles.barLabel}>
+                    {new Date(d.date).toLocaleDateString("en", { weekday: "narrow" })}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -166,8 +285,9 @@ export default function ProfileScreen() {
         <Animated.View entering={FadeInDown.delay(200).springify()}>
           <Text style={styles.sectionTitle}>Quick Access</Text>
           <View style={styles.menuList}>
-            <MenuItem icon="sparkles-outline" label="AI Mission Board" onPress={() => router.push("/ai-missions")} accent />
+            <MenuItem icon="sparkles-outline" label="AI Mission Board" onPress={() => router.push("/(tabs)/missions")} accent />
             <MenuItem icon="stats-chart-outline" label="Skill Tree" onPress={() => router.push("/skills")} />
+            <MenuItem icon="ribbon-outline" label="Inventory & Badges" onPress={() => router.push("/(tabs)/rewards")} />
             <MenuItem icon="ban-outline" label="Website Blocking" onPress={() => router.push("/settings/blocking")} />
             {user?.role === "admin" && (
               <MenuItem icon="shield-outline" label="Admin Panel" onPress={() => router.push("/admin")} accent />
@@ -196,82 +316,74 @@ function MenuItem({ icon, label, onPress, accent, danger }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  scroll: { paddingHorizontal: 20, gap: 24 },
-  profileCard: {
-    backgroundColor: Colors.bgCard, borderRadius: 20, padding: 20,
-    flexDirection: "row", alignItems: "center", gap: 16,
-    borderWidth: 1, borderColor: Colors.border,
-  },
-  avatar: {
-    width: 60, height: 60, borderRadius: 18, backgroundColor: Colors.accentGlow,
-    borderWidth: 2, borderColor: Colors.accent, alignItems: "center", justifyContent: "center",
-  },
-  avatarText: { fontFamily: "Inter_700Bold", fontSize: 24, color: Colors.accent },
-  username: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.textPrimary },
-  email: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
-  topSkillBadge: {
-    flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start",
-    backgroundColor: Colors.goldDim, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
-  },
-  topSkillText: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.gold, letterSpacing: 0.5 },
-  trustScore: {
-    alignItems: "center", backgroundColor: Colors.bgElevated,
-    padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
-  },
-  trustLabel: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1 },
-  trustValue: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.green },
-  onboardBanner: {
-    flexDirection: "row", alignItems: "center", gap: 16, padding: 18,
-    backgroundColor: Colors.accentGlow, borderRadius: 18, borderWidth: 1, borderColor: Colors.accent,
-  },
-  onboardTitle: { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.textPrimary },
-  onboardText: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
-  onboardBtn: {
-    flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.accent,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
-  },
-  onboardBtnText: { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.bg },
-  profileSummary: {
-    backgroundColor: Colors.bgCard, borderRadius: 18, padding: 18,
-    borderWidth: 1, borderColor: Colors.border, gap: 10,
-  },
-  profileGoal: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.textPrimary, lineHeight: 22 },
-  profileTags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  areaTag: {
-    flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.accentGlow,
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
-  },
-  areaTagText: { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.accent },
-  editProfileBtn: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" },
-  editProfileText: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
-  sectionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 17, color: Colors.textPrimary, marginBottom: 12 },
-  seeAllText: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.accent },
-  skillGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  skillCard: {
-    width: "31%", backgroundColor: Colors.bgCard, borderRadius: 14, padding: 12,
-    borderWidth: 1, borderColor: Colors.border, alignItems: "center", gap: 6,
-  },
-  skillIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  skillLabel: { fontFamily: "Inter_500Medium", fontSize: 11, color: Colors.textSecondary, textAlign: "center" },
-  skillXpBar: { width: "100%", height: 4, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden" },
-  skillXpFill: { height: "100%", borderRadius: 2 },
-  skillLvl: { fontFamily: "Inter_700Bold", fontSize: 12, color: Colors.textAccent },
-  chartCard: { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Colors.border, gap: 12 },
-  chart: { flexDirection: "row", alignItems: "flex-end", gap: 8, height: 80 },
-  barCol: { flex: 1, alignItems: "center", gap: 6, height: "100%" },
-  barBg: { flex: 1, width: "100%", backgroundColor: Colors.border, borderRadius: 4, overflow: "hidden", justifyContent: "flex-end" },
-  barFill: { width: "100%", backgroundColor: Colors.accent, borderRadius: 4 },
-  barLabel: { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textMuted },
-  chartStats: { flexDirection: "row", gap: 16 },
-  chartStat: { flexDirection: "row", alignItems: "center", gap: 6 },
-  chartStatText: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
-  menuList: { backgroundColor: Colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, overflow: "hidden" },
-  menuItem: {
-    flexDirection: "row", alignItems: "center", gap: 14, padding: 16,
-    borderBottomWidth: 1, borderBottomColor: Colors.borderLight,
-  },
-  menuIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.bgElevated, alignItems: "center", justifyContent: "center" },
-  menuLabel: { flex: 1, fontFamily: "Inter_500Medium", fontSize: 15, color: Colors.textPrimary },
+  container:        { flex: 1, backgroundColor: Colors.bg },
+  scroll:           { paddingHorizontal: 20, gap: 20 },
+  profileCard:      { backgroundColor: Colors.bgCard, borderRadius: 20, padding: 20, flexDirection: "row", alignItems: "center", gap: 16, borderWidth: 1, borderColor: Colors.border },
+  avatar:           { width: 60, height: 60, borderRadius: 18, backgroundColor: Colors.accentGlow, borderWidth: 2, borderColor: Colors.accent, alignItems: "center", justifyContent: "center" },
+  avatarText:       { fontFamily: "Inter_700Bold", fontSize: 24, color: Colors.accent },
+  username:         { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.textPrimary },
+  email:            { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
+  activeTitleBadge: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", backgroundColor: Colors.goldDim, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  activeTitleText:  { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.gold },
+  topSkillBadge:    { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", backgroundColor: Colors.goldDim, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  topSkillText:     { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.gold },
+  trustScore:       { alignItems: "center", backgroundColor: Colors.bgElevated, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.border },
+  trustLabel:       { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1 },
+  trustValue:       { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.green },
+  onboardBanner:    { flexDirection: "row", alignItems: "center", gap: 16, padding: 18, backgroundColor: Colors.accentGlow, borderRadius: 18, borderWidth: 1, borderColor: Colors.accent },
+  onboardTitle:     { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.textPrimary },
+  onboardText:      { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
+  onboardBtn:       { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.accent, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  onboardBtnText:   { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.bg },
+  characterCard:    { backgroundColor: Colors.bgCard, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: Colors.border, gap: 14 },
+  arcBox:           { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: Colors.accentGlow, borderRadius: 10, padding: 10 },
+  arcLabel:         { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.textAccent, textTransform: "uppercase", letterSpacing: 0.8 },
+  arcValue:         { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textPrimary, lineHeight: 18 },
+  strengthsRow:     { flexDirection: "row", gap: 12 },
+  strengthsCol:     { flex: 1, gap: 8 },
+  strengthsDivider: { width: 1, backgroundColor: Colors.border },
+  strengthsLabel:   { fontFamily: "Inter_700Bold", fontSize: 11, color: Colors.textSecondary, textTransform: "uppercase", letterSpacing: 0.8 },
+  strengthItem:     { flexDirection: "row", alignItems: "center", gap: 6 },
+  strengthText:     { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.textPrimary, flex: 1 },
+  rankMini:         { paddingHorizontal: 5, paddingVertical: 2, borderRadius: 5 },
+  rankMiniText:     { fontFamily: "Inter_700Bold", fontSize: 9 },
+  levelMini:        { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
+  skillGrid:        { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  skillCard:        { width: "31%", backgroundColor: Colors.bgElevated, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: Colors.border, alignItems: "center", gap: 5 },
+  skillIcon:        { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  skillLabel:       { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textSecondary, textAlign: "center" },
+  skillXpBar:       { width: "100%", height: 3, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden" },
+  skillXpFill:      { height: "100%", borderRadius: 2 },
+  skillLvl:         { fontFamily: "Inter_700Bold", fontSize: 11, color: Colors.textAccent },
+  inventoryCard:    { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border, gap: 10 },
+  badgeMini:        { alignItems: "center", gap: 4, width: 60 },
+  badgeMiniIcon:    { width: 44, height: 44, borderRadius: 12, backgroundColor: Colors.goldDim, alignItems: "center", justifyContent: "center" },
+  badgeMiniName:    { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted, textAlign: "center" },
+  profileSummary:   { backgroundColor: Colors.bgCard, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: Colors.border, gap: 10 },
+  problemBox:       { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: Colors.amber + "12", borderRadius: 10, padding: 8 },
+  problemText:      { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.amber, flex: 1 },
+  profileTags:      { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  areaTag:          { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.accentGlow, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  areaTagText:      { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.accent },
+  profileMeta:      { flexDirection: "row", gap: 16, flexWrap: "wrap" },
+  profileMetaItem:  { flexDirection: "row", alignItems: "center", gap: 5 },
+  profileMetaText:  { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
+  editProfileBtn:   { flexDirection: "row", alignItems: "center", gap: 4 },
+  editProfileText:  { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
+  sectionRow:       { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  sectionTitle:     { fontFamily: "Inter_700Bold", fontSize: 17, color: Colors.textPrimary },
+  seeAllText:       { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.accent },
+  chartCard:        { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Colors.border, gap: 12 },
+  chart:            { flexDirection: "row", alignItems: "flex-end", gap: 8, height: 80 },
+  barCol:           { flex: 1, alignItems: "center", gap: 6, height: "100%" },
+  barBg:            { flex: 1, width: "100%", backgroundColor: Colors.border, borderRadius: 4, overflow: "hidden", justifyContent: "flex-end" },
+  barFill:          { width: "100%", backgroundColor: Colors.accent, borderRadius: 4 },
+  barLabel:         { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textMuted },
+  chartStats:       { flexDirection: "row", gap: 16 },
+  chartStat:        { flexDirection: "row", alignItems: "center", gap: 6 },
+  chartStatText:    { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
+  menuList:         { backgroundColor: Colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, overflow: "hidden" },
+  menuItem:         { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
+  menuIcon:         { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.bgElevated, alignItems: "center", justifyContent: "center" },
+  menuLabel:        { flex: 1, fontFamily: "Inter_500Medium", fontSize: 15, color: Colors.textPrimary },
 });

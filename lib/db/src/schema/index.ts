@@ -14,3 +14,5 @@ export * from "./blocked-attempts";
 export * from "./time-entries";
 export * from "./life-profiles";
 export * from "./skills";
+export * from "./ai-missions";
+export * from "./inventory";

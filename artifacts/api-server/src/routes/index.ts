@@ -15,6 +15,7 @@ import timeEntriesRouter from "./time-entries.js";
 import profileRouter from "./profile.js";
 import skillsRouter from "./skills.js";
 import aiMissionsRouter from "./ai-missions.js";
+import inventoryRouter from "./inventory.js";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use("/time-entries", timeEntriesRouter);
 router.use("/profile", profileRouter);
 router.use("/skills", skillsRouter);
 router.use("/ai-missions", aiMissionsRouter);
+router.use("/inventory", inventoryRouter);
 
 export default router;

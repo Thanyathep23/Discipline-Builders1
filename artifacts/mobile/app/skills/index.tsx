@@ -1,30 +1,74 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, ScrollView, Pressable, StyleSheet, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
-import { useSkills } from "@/hooks/useApi";
+import { useSkills, useSkillEvents } from "@/hooks/useApi";
 
-const LEVEL_TITLES: Record<number, string> = {
-  1: "Novice", 2: "Apprentice", 3: "Practitioner", 4: "Adept", 5: "Expert",
-  6: "Master", 7: "Elite", 8: "Champion", 9: "Legend", 10: "Transcendent",
+const RANK_COLORS: Record<string, string> = {
+  Gray:   "#9E9E9E",
+  Green:  "#4CAF50",
+  Blue:   "#2196F3",
+  Purple: "#9C27B0",
+  Gold:   "#F5C842",
+  Red:    "#F44336",
 };
 
-function getLevelTitle(level: number): string {
-  return LEVEL_TITLES[Math.min(level, 10)] ?? "Legend";
+const SKILL_ICONS: Record<string, string> = {
+  focus: "eye", discipline: "shield", sleep: "moon",
+  fitness: "barbell", learning: "book", trading: "trending-up",
+};
+
+function TrendIcon({ trend }: { trend: string }) {
+  if (trend === "rising")  return <Ionicons name="trending-up"   size={13} color="#4CAF50" />;
+  if (trend === "falling") return <Ionicons name="trending-down" size={13} color="#F44336" />;
+  return <Ionicons name="remove" size={13} color={Colors.textMuted} />;
 }
+
+function ConfidenceBar({ score }: { score: number }) {
+  const pct = Math.round(score * 100);
+  const color = pct >= 70 ? "#4CAF50" : pct >= 40 ? "#FFB300" : "#F44336";
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+      <View style={{ flex: 1, height: 3, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden" }}>
+        <View style={{ width: `${pct}%`, height: "100%", backgroundColor: color, borderRadius: 2 }} />
+      </View>
+      <Text style={{ fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted }}>{pct}%</Text>
+    </View>
+  );
+}
+
+function RankBadge({ rank }: { rank: string }) {
+  const color = RANK_COLORS[rank] ?? "#9E9E9E";
+  return (
+    <View style={[rankBadgeStyles.badge, { borderColor: color + "60", backgroundColor: color + "18" }]}>
+      <View style={[rankBadgeStyles.dot, { backgroundColor: color }]} />
+      <Text style={[rankBadgeStyles.text, { color }]}>{rank.toUpperCase()}</Text>
+    </View>
+  );
+}
+
+const rankBadgeStyles = StyleSheet.create({
+  badge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
+  dot:   { width: 6, height: 6, borderRadius: 3 },
+  text:  { fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 0.8 },
+});
 
 export default function SkillsScreen() {
   const insets = useSafeAreaInsets();
+  const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
   const { data, isLoading } = useSkills();
+  const { data: eventsData } = useSkillEvents(selectedSkill ?? undefined, 7);
+
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 16);
   const bottomPad = insets.bottom + 32;
 
   const skills = data?.skills ?? [];
   const totalXp = data?.totalXp ?? 0;
   const avgLevel = data?.avgLevel ?? 1;
+  const weakSkills = data?.weakSkills ?? [];
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
@@ -36,7 +80,10 @@ export default function SkillsScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
+        showsVerticalScrollIndicator={false}
+      >
         <Animated.View entering={FadeInDown.springify()} style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
@@ -51,9 +98,17 @@ export default function SkillsScreen() {
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
               <Text style={styles.summaryValue}>{skills.length}</Text>
-              <Text style={styles.summaryLabel}>Active Skills</Text>
+              <Text style={styles.summaryLabel}>Skills</Text>
             </View>
           </View>
+          {weakSkills.length > 0 && (
+            <View style={styles.weakBox}>
+              <Ionicons name="warning-outline" size={13} color={Colors.amber} />
+              <Text style={styles.weakText}>
+                Weak zones: {weakSkills.map((s: any) => s.meta?.label).join(", ")}
+              </Text>
+            </View>
+          )}
         </Animated.View>
 
         <Text style={styles.sectionLabel}>Character Skills</Text>
@@ -64,29 +119,73 @@ export default function SkillsScreen() {
           </View>
         )}
 
-        {skills.map((skill: any, i: number) => (
-          <Animated.View key={skill.skillId} entering={FadeInDown.delay(i * 60).springify()} style={styles.skillCard}>
-            <View style={[styles.iconBox, { backgroundColor: `${skill.meta.color}18` }]}>
-              <Ionicons name={skill.meta.icon as any} size={24} color={skill.meta.color} />
-            </View>
-            <View style={styles.skillContent}>
-              <View style={styles.skillHeader}>
-                <Text style={styles.skillName}>{skill.meta.label}</Text>
-                <View style={styles.levelBadge}>
-                  <Text style={styles.levelText}>LVL {skill.level}</Text>
+        {skills.map((skill: any, i: number) => {
+          const isSelected = selectedSkill === skill.skillId;
+          return (
+            <Animated.View key={skill.skillId} entering={FadeInDown.delay(i * 60).springify()}>
+              <Pressable
+                style={[styles.skillCard, isSelected && { borderColor: (RANK_COLORS[skill.rank] ?? "#9E9E9E") + "60" }]}
+                onPress={() => setSelectedSkill(isSelected ? null : skill.skillId)}
+              >
+                <View style={[styles.iconBox, { backgroundColor: `${skill.meta.color}18` }]}>
+                  <Ionicons
+                    name={(SKILL_ICONS[skill.skillId] ?? "star") as any}
+                    size={24}
+                    color={skill.meta.color}
+                  />
                 </View>
-              </View>
-              <Text style={styles.skillTitle}>{getLevelTitle(skill.level)}</Text>
-              <Text style={styles.skillDesc}>{skill.meta.description}</Text>
-              <View style={styles.xpRow}>
-                <View style={styles.xpBarBg}>
-                  <View style={[styles.xpBarFill, { width: `${skill.progressPct}%`, backgroundColor: skill.meta.color }]} />
+                <View style={styles.skillContent}>
+                  <View style={styles.skillHeader}>
+                    <Text style={styles.skillName}>{skill.meta.label}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <TrendIcon trend={skill.currentTrend} />
+                      <RankBadge rank={skill.rank} />
+                    </View>
+                  </View>
+
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <View style={[styles.levelBadge, { backgroundColor: skill.meta.color + "20" }]}>
+                      <Text style={[styles.levelText, { color: skill.meta.color }]}>LVL {skill.level}</Text>
+                    </View>
+                    {skill.recentXp > 0 && (
+                      <View style={styles.recentXpChip}>
+                        <Text style={styles.recentXpText}>+{skill.recentXp} this week</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <Text style={styles.skillDesc}>{skill.meta.description}</Text>
+
+                  <View style={styles.xpRow}>
+                    <View style={styles.xpBarBg}>
+                      <View style={[styles.xpBarFill, { width: `${skill.progressPct}%`, backgroundColor: skill.meta.color }]} />
+                    </View>
+                    <Text style={styles.xpText}>{skill.xp}/{skill.xpToNextLevel} XP</Text>
+                  </View>
+
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={styles.confLabel}>Confidence</Text>
+                    <View style={{ flex: 1 }}>
+                      <ConfidenceBar score={skill.confidenceScore ?? 0.5} />
+                    </View>
+                  </View>
                 </View>
-                <Text style={styles.xpText}>{skill.xp}/{skill.xpToNextLevel} XP</Text>
-              </View>
-            </View>
-          </Animated.View>
-        ))}
+              </Pressable>
+
+              {isSelected && eventsData?.events?.length > 0 && (
+                <View style={styles.eventsBox}>
+                  <Text style={styles.eventsTitle}>Recent XP Events</Text>
+                  {eventsData.events.slice(0, 5).map((evt: any, ei: number) => (
+                    <View key={ei} style={styles.eventRow}>
+                      <Ionicons name="flash" size={12} color={Colors.gold} />
+                      <Text style={styles.eventText}>+{evt.xpAmount} XP — {evt.description}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </Animated.View>
+          );
+        })}
 
         {skills.length === 0 && !isLoading && (
           <View style={styles.emptyBox}>
@@ -98,18 +197,18 @@ export default function SkillsScreen() {
 
         <View style={styles.howBox}>
           <Text style={styles.howTitle}>How Skills Grow</Text>
-          <View style={styles.howItem}>
-            <Ionicons name="timer-outline" size={16} color={Colors.cyan} />
-            <Text style={styles.howText}>Every minute of focused work earns skill XP</Text>
-          </View>
-          <View style={styles.howItem}>
-            <Ionicons name="checkmark-circle-outline" size={16} color={Colors.green} />
-            <Text style={styles.howText}>Approved proofs give a 40% XP bonus</Text>
-          </View>
-          <View style={styles.howItem}>
-            <Ionicons name="shield-outline" size={16} color={Colors.amber} />
-            <Text style={styles.howText}>Mission category determines which skills improve</Text>
-          </View>
+          {[
+            { icon: "timer-outline" as const,            color: Colors.cyan,    text: "Every minute of focused work earns skill XP" },
+            { icon: "checkmark-circle-outline" as const, color: Colors.green,   text: "Approved proofs give a 40% XP bonus" },
+            { icon: "shield-outline" as const,            color: Colors.amber,   text: "Mission category determines which skills improve" },
+            { icon: "trending-up-outline" as const,      color: Colors.gold,    text: "Weekly XP determines your Trend: Rising / Stable / Falling" },
+            { icon: "ribbon-outline" as const,            color: "#9C27B0",      text: "Ranks: Gray → Green → Blue → Purple → Gold → Red" },
+          ].map((item, i) => (
+            <View key={i} style={styles.howItem}>
+              <Ionicons name={item.icon} size={15} color={item.color} />
+              <Text style={styles.howText}>{item.text}</Text>
+            </View>
+          ))}
         </View>
       </ScrollView>
     </View>
@@ -117,50 +216,46 @@ export default function SkillsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  topBar: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 20, paddingBottom: 16,
-  },
-  backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  screenTitle: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.textPrimary },
-  scroll: { paddingHorizontal: 20, gap: 16 },
-  summaryCard: {
-    backgroundColor: Colors.bgCard, borderRadius: 20, padding: 20,
-    borderWidth: 1, borderColor: Colors.border,
-  },
-  summaryRow: { flexDirection: "row", alignItems: "center" },
-  summaryItem: { flex: 1, alignItems: "center", gap: 4 },
-  summaryValue: { fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.textPrimary },
-  summaryLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
+  container:      { flex: 1, backgroundColor: Colors.bg },
+  topBar:         { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 16 },
+  backBtn:        { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  screenTitle:    { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.textPrimary },
+  scroll:         { paddingHorizontal: 20, gap: 16 },
+  summaryCard:    { backgroundColor: Colors.bgCard, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: Colors.border, gap: 12 },
+  summaryRow:     { flexDirection: "row", alignItems: "center" },
+  summaryItem:    { flex: 1, alignItems: "center", gap: 4 },
+  summaryValue:   { fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.textPrimary },
+  summaryLabel:   { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
   summaryDivider: { width: 1, height: 40, backgroundColor: Colors.border },
-  sectionLabel: { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.textMuted, letterSpacing: 1, textTransform: "uppercase" },
-  loadingBox: { alignItems: "center", padding: 40 },
-  loadingText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textMuted },
-  skillCard: {
-    flexDirection: "row", gap: 16, backgroundColor: Colors.bgCard,
-    borderRadius: 18, padding: 16, borderWidth: 1, borderColor: Colors.border,
-  },
-  iconBox: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  skillContent: { flex: 1, gap: 6 },
-  skillHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  skillName: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.textPrimary },
-  levelBadge: { backgroundColor: Colors.accentGlow, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  levelText: { fontFamily: "Inter_700Bold", fontSize: 11, color: Colors.accent, letterSpacing: 0.5 },
-  skillTitle: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textAccent },
-  skillDesc: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
-  xpRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  xpBarBg: { flex: 1, height: 6, backgroundColor: Colors.border, borderRadius: 3, overflow: "hidden" },
-  xpBarFill: { height: "100%", borderRadius: 3 },
-  xpText: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
-  emptyBox: { alignItems: "center", gap: 12, paddingVertical: 40 },
-  emptyTitle: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.textSecondary },
-  emptyText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textMuted, textAlign: "center" },
-  howBox: {
-    backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, gap: 12,
-    borderWidth: 1, borderColor: Colors.border,
-  },
-  howTitle: { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.textPrimary },
-  howItem: { flexDirection: "row", alignItems: "center", gap: 10 },
-  howText: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, flex: 1 },
+  weakBox:        { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: Colors.amber + "12", borderRadius: 10, padding: 8 },
+  weakText:       { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.amber, flex: 1 },
+  sectionLabel:   { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.textMuted, letterSpacing: 1.2, textTransform: "uppercase" },
+  loadingBox:     { alignItems: "center", padding: 40 },
+  loadingText:    { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textMuted },
+  skillCard:      { flexDirection: "row", gap: 14, backgroundColor: Colors.bgCard, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: Colors.border },
+  iconBox:        { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  skillContent:   { flex: 1, gap: 7 },
+  skillHeader:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  skillName:      { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.textPrimary },
+  levelBadge:     { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
+  levelText:      { fontFamily: "Inter_700Bold", fontSize: 11 },
+  recentXpChip:   { backgroundColor: Colors.green + "18", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
+  recentXpText:   { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.green },
+  skillDesc:      { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
+  xpRow:          { flexDirection: "row", alignItems: "center", gap: 10 },
+  xpBarBg:        { flex: 1, height: 5, backgroundColor: Colors.border, borderRadius: 3, overflow: "hidden" },
+  xpBarFill:      { height: "100%", borderRadius: 3 },
+  xpText:         { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
+  confLabel:      { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
+  eventsBox:      { backgroundColor: Colors.bgElevated, borderRadius: 14, padding: 14, marginTop: 4, gap: 8, borderWidth: 1, borderColor: Colors.border },
+  eventsTitle:    { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textSecondary, marginBottom: 2 },
+  eventRow:       { flexDirection: "row", alignItems: "center", gap: 6 },
+  eventText:      { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, flex: 1 },
+  emptyBox:       { alignItems: "center", gap: 12, paddingVertical: 40 },
+  emptyTitle:     { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.textSecondary },
+  emptyText:      { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textMuted, textAlign: "center" },
+  howBox:         { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, gap: 12, borderWidth: 1, borderColor: Colors.border },
+  howTitle:       { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.textPrimary },
+  howItem:        { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  howText:        { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, flex: 1 },
 });
