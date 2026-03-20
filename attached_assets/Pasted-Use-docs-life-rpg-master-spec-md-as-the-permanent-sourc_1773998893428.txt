@@ -1,0 +1,237 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 7 — Economy + Balance + Retention Tuning.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Arc system works
+- Skill suggestions work
+- Proof intelligence and uploads work
+- Adaptive challenge, quest chains, rarity, and reward bonuses work
+- The next priority is to improve reward balance, mission pacing, comeback behavior, and daily re-engagement without bloating the product
+
+Your task:
+Implement only the smallest high-impact retention and balance layer.
+
+==================================================
+PHASE 7 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Reward economy balance tuning
+2. Daily re-engagement / comeback mission logic
+3. Anti-burnout / pacing guardrails
+4. Better mission pacing based on recent performance
+5. Minimal UI hints needed for the above
+
+Do NOT build:
+- social/community
+- leaderboard
+- marketplace expansion
+- world map
+- new skill trees
+- large asset systems
+- UI redesign
+- new onboarding flows
+- deep analytics dashboards
+- major new proof systems
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current reward system, mission generation, adaptive challenge, rarity, quest chains, and arc logic
+2. identify where economy inflation or weak pacing could happen
+3. identify the minimum set of changes needed
+4. avoid broad rewrites
+
+==================================================
+A. REWARD ECONOMY BALANCE
+==================================================
+
+Tune the reward economy so rewards feel motivating but controlled.
+
+Goals:
+- easy missions should not pay too much
+- hard and meaningful missions should feel rewarding
+- chain bonuses should feel special but not inflate too fast
+- rarity bonuses should feel exciting but controlled
+- proof quality should still matter more than pure repetition
+- streak/consistency should help, but not dominate quality
+
+Requirements:
+- keep all reward logic server-side only
+- preserve explainability of bonuses
+- keep changes data-driven where possible
+- avoid runaway inflation
+- do not redesign the whole economy
+
+Suggested areas to tune:
+- base mission reward scaling
+- rarity bonus values
+- chain completion bonus values
+- adaptive challenge bonus values
+- soft caps or dampening when users chain too many easy wins
+
+==================================================
+B. DAILY RE-ENGAGEMENT / COMEBACK MISSIONS
+==================================================
+
+Add a small retention layer for users who return daily or come back after falling off.
+
+Build:
+1. Daily re-engagement logic
+2. Comeback missions after inactivity/slump
+
+Requirements:
+- if a user is active and consistent, show a “best next mission” or “today’s recommended mission”
+- if a user has dropped off for some days, generate a comeback mission that is easier, lower-friction, and psychologically safe
+- comeback missions should feel like re-entry, not punishment
+- missions should be aligned to current arc and weak skills where possible
+
+Examples:
+- “Rebuild momentum with one 15-minute focus block”
+- “Recovery step: upload one small piece of trading review”
+- “Reset chain: complete one light discipline action today”
+
+Rules:
+- do not shame the user
+- do not immediately assign hard missions after a slump
+- use gentle but meaningful re-entry design
+
+==================================================
+C. ANTI-BURNOUT / PACING GUARDRAILS
+==================================================
+
+Improve pacing so the game remains engaging without overwhelming the user.
+
+Requirements:
+- detect overload or negative momentum
+- reduce mission pressure when the user is struggling
+- avoid stacking too many hard missions at once
+- avoid repeated high-friction proof requirements when the user is already overloaded
+- allow challenge to rise again when momentum improves
+
+Use existing signals where possible:
+- completion rate
+- abandonment
+- blocked attempts
+- proof quality
+- recent mission volume
+- current arc
+- recent failure patterns
+
+Keep this lightweight and practical.
+
+==================================================
+D. BETTER MISSION PACING
+==================================================
+
+Improve how many and what type of AI missions are generated.
+
+Goals:
+- avoid mission spam
+- make each AI mission feel more intentional
+- maintain a healthy mix of:
+  - maintenance missions
+  - growth missions
+  - recovery/reset missions
+  - stretch/challenge missions
+
+Requirements:
+- users should not get too many simultaneous AI missions
+- hard missions should feel earned
+- recommended mission selection should feel smart
+- use rule-based fallback if OpenAI is unavailable
+
+==================================================
+E. MINIMAL UI SUPPORT
+==================================================
+
+Add only minimal UI needed for this phase.
+
+Possible UI additions:
+- “Recommended for today” card
+- “Comeback mission” card if inactive
+- small reward explanation improvements if tuning changes
+- subtle overload/recovery state hint if useful
+
+Do NOT redesign the app.
+
+==================================================
+F. BACKEND / SECURITY RULES
+==================================================
+
+- all reward calculations remain server-side
+- all AI mission generation persistence remains server-side
+- preserve ownership checks
+- preserve JSON-only routes
+- do not trust client-provided reward values or pacing state
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. reward balance is tuned in a controlled, explainable way
+2. easy mission farming is less attractive than meaningful progress
+3. daily recommended mission logic exists
+4. comeback missions can appear after inactivity/slump
+5. comeback missions feel lower-friction and appropriate
+6. mission pacing avoids overload better than before
+7. AI missions do not spam excessively
+8. existing manual mission flow still works
+9. existing proof -> judge -> reward flow still works
+10. all new routes/logic remain ownership-safe and JSON-based
+11. no unrelated feature scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- where balance/pacing risks were found
+- what was changed
+- what was intentionally left unchanged
+
+2. Files changed in this run only
+
+3. Reward balance changes
+- old vs new logic or values
+- why the change was made
+
+4. Daily recommendation / comeback logic
+- trigger rules
+- mission selection logic
+
+5. Anti-burnout / pacing logic
+- signals used
+- how mission pressure is reduced or increased
+
+6. UI changes made in this run
+
+7. End-to-end test results for:
+- normal recommended mission
+- comeback mission after inactivity
+- reward comparison between easy vs meaningful mission
+- overload scenario
+- manual mission flow unchanged
+- proof/reward flow unchanged
+
+8. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

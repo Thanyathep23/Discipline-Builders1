@@ -370,3 +370,13 @@ export function useActiveChain() {
     refetchOnWindowFocus: true,
   });
 }
+
+export function useDailyContext() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["daily-context"],
+    queryFn: () => request<any>("/ai-missions/daily"),
+    staleTime: 60000,
+    refetchOnWindowFocus: true,
+  });
+}

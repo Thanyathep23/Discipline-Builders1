@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, lifeProfilesTable, aiMissionsTable, aiMissionVariantsTable, missionAcceptanceEventsTable, missionProofRequirementsTable, missionsTable, userSkillsTable, userQuestChainsTable } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count, gte } from "drizzle-orm";
 import { generateMissionsWithAI } from "../lib/mission-generator.js";
 import { resolveArcWithEvidenceGating } from "../lib/arc-resolver.js";
 import { requireAuth } from "../lib/auth.js";
@@ -78,8 +78,24 @@ router.get("/", requireAuth, async (req: any, res) => {
 router.post("/generate", requireAuth, async (req: any, res) => {
   try {
     const userId = req.user.id;
+
+    // Pacing guard: if user already has ≥4 pending AI missions, return them instead of generating more
+    const [{ pendingCount }] = await db
+      .select({ pendingCount: count() })
+      .from(aiMissionsTable)
+      .where(and(eq(aiMissionsTable.userId, userId), eq(aiMissionsTable.status, "pending")));
+    if (Number(pendingCount) >= 4) {
+      const existing = await db
+        .select()
+        .from(aiMissionsTable)
+        .where(and(eq(aiMissionsTable.userId, userId), eq(aiMissionsTable.status, "pending")))
+        .orderBy(desc(aiMissionsTable.createdAt))
+        .limit(10);
+      return res.json({ missions: existing, gmNote: "You still have open directives — review them before requesting new ones.", skippedGeneration: true });
+    }
+
     const [profile] = await db.select().from(lifeProfilesTable).where(eq(lifeProfilesTable.userId, userId)).limit(1);
-    const count = Math.min(parseInt(req.body?.count ?? "5"), 10);
+    const missionCount = Math.min(parseInt(req.body?.count ?? "5"), 10);
 
     const skillRows = await db.select().from(userSkillsTable).where(eq(userSkillsTable.userId, userId));
     const skillLevels: Record<string, number> = {};
@@ -108,12 +124,12 @@ router.post("/generate", requireAuth, async (req: any, res) => {
 
     const chainCandidate = selectChainForUser(weakSkillIds, activeChain);
     let newChain: typeof userQuestChainsTable.$inferSelect | null = null;
-    if (chainCandidate && count >= 3) {
+    if (chainCandidate && missionCount >= 3) {
       newChain = await createChain(userId, chainCandidate.id, randomUUID());
     }
     const effectiveChain = newChain ?? activeChain;
 
-    const generated = await generateMissionsWithAI(profile ?? {}, skillLevels, count, currentArc, challengeProfile);
+    const generated = await generateMissionsWithAI(profile ?? {}, skillLevels, missionCount, currentArc, challengeProfile);
 
     const now = new Date();
     const expiryAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
@@ -211,7 +227,7 @@ router.post("/generate", requireAuth, async (req: any, res) => {
       mainGoal: profile.mainGoal ?? undefined,
       strictnessPreference: profile.strictnessPreference ?? undefined,
     } : undefined;
-    const gmNote = getMissionBriefing(count, weakSkillIds, profileForBriefing);
+    const gmNote = getMissionBriefing(missionCount, weakSkillIds, profileForBriefing);
 
     return res.json({
       missions: inserted,
@@ -233,6 +249,78 @@ router.post("/generate", requireAuth, async (req: any, res) => {
         completionBonusCoins: effectiveChain.completionBonusCoins,
         status: effectiveChain.status,
       } : null,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/daily", requireAuth, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const now = new Date();
+    const since3d = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const since7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [recentMissions, last7dMissions, pendingAiMissions] = await Promise.all([
+      db.select({ status: missionsTable.status, createdAt: missionsTable.createdAt, updatedAt: missionsTable.updatedAt })
+        .from(missionsTable)
+        .where(and(eq(missionsTable.userId, userId), gte(missionsTable.updatedAt, since3d)))
+        .orderBy(desc(missionsTable.updatedAt))
+        .limit(20),
+      db.select({ status: missionsTable.status })
+        .from(missionsTable)
+        .where(and(eq(missionsTable.userId, userId), gte(missionsTable.createdAt, since7d))),
+      db.select({ id: aiMissionsTable.id })
+        .from(aiMissionsTable)
+        .where(and(eq(aiMissionsTable.userId, userId), eq(aiMissionsTable.status, "pending")))
+        .limit(10),
+    ]);
+
+    const completedRecent = recentMissions.filter((m) => m.status === "completed");
+    const abandonedRecent = recentMissions.filter((m) => m.status === "archived");
+    const total7d = last7dMissions.length;
+    const completed7d = last7dMissions.filter((m) => m.status === "completed").length;
+    const completionRate7d = total7d > 0 ? completed7d / total7d : null;
+
+    // Days since last completed mission
+    const lastCompleted = completedRecent[0]?.updatedAt ?? null;
+    const daysSinceLast = lastCompleted
+      ? Math.floor((now.getTime() - new Date(lastCompleted).getTime()) / (24 * 60 * 60 * 1000))
+      : null;
+
+    type EngagementState = "comeback" | "overloaded" | "active" | "fresh";
+    let state: EngagementState;
+    let message: string;
+    let suggestedAction: string;
+
+    if (daysSinceLast === null || daysSinceLast > 3) {
+      state = "comeback";
+      message = "Welcome back. One small step re-activates the system.";
+      suggestedAction = "generate_easy";
+    } else if (completionRate7d !== null && completionRate7d < 0.25 && abandonedRecent.length >= 2) {
+      state = "overloaded";
+      message = "You've been pushing hard. Let's dial back and rebuild momentum.";
+      suggestedAction = "generate_easy";
+    } else if (pendingAiMissions.length >= 4) {
+      state = "active";
+      message = "You have open directives waiting. Complete one before requesting more.";
+      suggestedAction = "review_pending";
+    } else {
+      state = "active";
+      message = daysSinceLast === 0
+        ? "You're in the system. Keep the chain alive."
+        : "Time to stack another rep. What's next?";
+      suggestedAction = "generate_normal";
+    }
+
+    return res.json({
+      state,
+      message,
+      suggestedAction,
+      daysSinceLast,
+      completionRate7d,
+      pendingMissionCount: pendingAiMissions.length,
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

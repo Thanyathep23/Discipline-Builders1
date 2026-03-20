@@ -32,7 +32,7 @@ export const CHAIN_DEFINITIONS: ChainDefinition[] = [
     theme: "Rebuild your capacity to lock in without distraction",
     relatedSkill: "focus",
     totalSteps: 3,
-    completionBonusCoins: 75,
+    completionBonusCoins: 50,
     steps: [
       {
         step: 1,
@@ -84,7 +84,7 @@ export const CHAIN_DEFINITIONS: ChainDefinition[] = [
     theme: "Build real edge through structured practice",
     relatedSkill: "trading",
     totalSteps: 4,
-    completionBonusCoins: 120,
+    completionBonusCoins: 90,
     steps: [
       {
         step: 1,
@@ -150,7 +150,7 @@ export const CHAIN_DEFINITIONS: ChainDefinition[] = [
     theme: "Build real knowledge through structured output",
     relatedSkill: "learning",
     totalSteps: 3,
-    completionBonusCoins: 80,
+    completionBonusCoins: 65,
     steps: [
       {
         step: 1,
@@ -202,7 +202,7 @@ export const CHAIN_DEFINITIONS: ChainDefinition[] = [
     theme: "Rebuild self-trust and consistency after a slump",
     relatedSkill: "discipline",
     totalSteps: 3,
-    completionBonusCoins: 60,
+    completionBonusCoins: 50,
     steps: [
       {
         step: 1,

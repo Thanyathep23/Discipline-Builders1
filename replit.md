@@ -310,7 +310,22 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck
 - Production migrations: `pnpm --filter @workspace/db run push`
 
-## Remaining Gaps (Post Phase 6 Audit)
+## Phase 7 — Balance & Engagement (Complete)
+
+### Reward inflation reduction
+- `computeRarityBonus` in `rewards.ts`: breakthrough +50→+30, rare +20→+12
+- Chain `completionBonusCoins` rebalanced: focus-recovery 75→60, trading-apprentice 120→90, learning-momentum 80→65, discipline-reset 60→50
+
+### Pending mission pacing guard (`ai-missions.ts` `/generate`)
+- Before generating, counts user's pending AI missions. If ≥4 exist, returns existing list + contextual GM note instead of creating more
+
+### Daily engagement context endpoint
+- `GET /api/ai-missions/daily` — computes engagement state (comeback / overloaded / active) based on mission history; returns `state`, `message`, `suggestedAction`, `daysSinceLast`, `completionRate7d`, `pendingMissionCount`
+
+### DailyDirectiveCard (home screen)
+- Renders at top of home feed after quest chain; color-coded by state (amber=comeback, red=overloaded, accent=active); CTA routes to AI mission tab
+
+## Remaining Gaps (Post Phase 7)
 
 ### Must-fix before production
 - **In-memory rate limiter** (`upload-rate-limiter.ts`): resets on server restart, allowing abuse bypass during deploys. Replace with DB-backed or Redis-backed limiter before production.

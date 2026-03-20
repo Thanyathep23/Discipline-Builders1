@@ -10,7 +10,7 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
-import { useDashboard, useActiveChain } from "@/hooks/useApi";
+import { useDashboard, useActiveChain, useDailyContext } from "@/hooks/useApi";
 
 function StatCard({ label, value, icon, color, delay }: any) {
   return (
@@ -66,6 +66,65 @@ function ActiveChainCard({ chain }: { chain: any }) {
   );
 }
 
+function DailyDirectiveCard({ state, message, suggestedAction, daysSinceLast }: {
+  state: string; message: string; suggestedAction: string; daysSinceLast: number | null;
+}) {
+  const isComeback = state === "comeback";
+  const isOverloaded = state === "overloaded";
+  const accentColor = isComeback ? Colors.amber : isOverloaded ? "#FF6B6B" : Colors.accent;
+  const iconName = isComeback ? "alert-circle-outline" : isOverloaded ? "warning-outline" : "radio-outline";
+  const label = isComeback ? "WELCOME BACK" : isOverloaded ? "PACE YOURSELF" : "DAILY DIRECTIVE";
+
+  function handleCTA() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (suggestedAction === "review_pending") {
+      router.push("/mission/ai");
+    } else {
+      router.push("/mission/ai");
+    }
+  }
+
+  return (
+    <Animated.View entering={FadeInDown.delay(180).springify()} style={[directiveStyles.card, { borderColor: accentColor + "35" }]}>
+      <View style={directiveStyles.header}>
+        <View style={[directiveStyles.iconBox, { backgroundColor: accentColor + "20" }]}>
+          <Ionicons name={iconName as any} size={16} color={accentColor} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[directiveStyles.label, { color: accentColor }]}>{label}</Text>
+          {daysSinceLast !== null && daysSinceLast > 0 && (
+            <Text style={directiveStyles.days}>{daysSinceLast}d ago</Text>
+          )}
+        </View>
+      </View>
+      <Text style={directiveStyles.message}>{message}</Text>
+      <Pressable
+        onPress={handleCTA}
+        style={({ pressed }) => [directiveStyles.cta, { opacity: pressed ? 0.8 : 1 }]}
+      >
+        <Text style={[directiveStyles.ctaText, { color: accentColor }]}>
+          {suggestedAction === "review_pending" ? "Review Directives" : "Get Directives"}
+        </Text>
+        <Ionicons name="arrow-forward" size={13} color={accentColor} />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+const directiveStyles = StyleSheet.create({
+  card: {
+    backgroundColor: "#FFFFFF08", borderRadius: 16, padding: 14,
+    borderWidth: 1, gap: 10,
+  },
+  header: { flexDirection: "row", alignItems: "center", gap: 10 },
+  iconBox: { width: 32, height: 32, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  label: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.2 },
+  days: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textSecondary, marginTop: 1 },
+  message: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textPrimary, lineHeight: 20 },
+  cta: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start" },
+  ctaText: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
+});
+
 const chainCardStyles = StyleSheet.create({
   card: {
     backgroundColor: "#4FC3F710", borderRadius: 16, padding: 14,
@@ -96,6 +155,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { data, isLoading, refetch, isRefetching } = useDashboard();
   const { data: chainData } = useActiveChain();
+  const { data: dailyData } = useDailyContext();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
@@ -167,6 +227,16 @@ export default function HomeScreen() {
         {/* Active Quest Chain */}
         {chainData?.chain && chainData.chain.status === "active" && (
           <ActiveChainCard chain={chainData.chain} />
+        )}
+
+        {/* Daily Directive */}
+        {dailyData && (
+          <DailyDirectiveCard
+            state={dailyData.state}
+            message={dailyData.message}
+            suggestedAction={dailyData.suggestedAction}
+            daysSinceLast={dailyData.daysSinceLast}
+          />
         )}
 
         {/* Quick Actions */}

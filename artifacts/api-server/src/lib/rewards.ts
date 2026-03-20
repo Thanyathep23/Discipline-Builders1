@@ -81,8 +81,8 @@ export function computeRewardCoins(input: RewardInput): { coins: number; xp: num
 }
 
 export function computeRarityBonus(rarity: string | null | undefined): number {
-  if (rarity === "breakthrough") return 50;
-  if (rarity === "rare") return 20;
+  if (rarity === "breakthrough") return 30;
+  if (rarity === "rare") return 12;
   return 0;
 }
 
