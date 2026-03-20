@@ -442,3 +442,28 @@ Six premium shareable card components, all screenshot-optimized with dark premiu
 - No private notes, proof text, or proof files exposed
 - No public profiles created — all data requires auth
 - Ownership check enforced on `/api/share/snapshot` via `requireAuth`
+
+## Phase 11 — Beta Launch + Telemetry + Feedback Loop (COMPLETE)
+
+### What was already complete before this run
+- `artifacts/api-server/src/lib/telemetry.ts` — `trackEvent()` helper + `Events` constants (all key product events)
+- `artifacts/api-server/src/lib/feature-flags.ts` — DB-backed feature flag system with cache + `getFlag/getFlagNum/getFlagBool/setFlag/getAllFlags`
+- `artifacts/api-server/src/routes/feedback.ts` — `POST /api/feedback` (categories, optional note, context, telemetry event)
+- `GET /admin/funnel` — funnel event counts + DAU (daily active users) over configurable window
+- `GET /admin/feedback` — user feedback list + category summary counts
+- `GET /admin/flags` + `PUT /admin/flags/:key` — feature flag read/edit, admin-only
+- Telemetry instrumented in: missions.ts (MISSION_CREATED), sessions.ts (FOCUS_STARTED/COMPLETED/ABANDONED), proofs.ts (PROOF_SUBMITTED/APPROVED/REJECTED/FOLLOWUP_REQUIRED), share.ts (SHARE_CARD_VIEWED), auth flows, ai-missions
+
+### What was completed in this run
+- **Mobile feedback form** — `artifacts/mobile/app/feedback/index.tsx`: 7-category picker, optional free-text note (1000 char), submit success + error states, dark-premium styling, POST /api/feedback integration
+- **Admin telemetry screen** — `artifacts/mobile/app/admin/telemetry.tsx`: activation funnel with step counts + conversion %, DAU bar chart, configurable day range (7/14/30/60/90d)
+- **Admin feedback viewer** — `artifacts/mobile/app/admin/feedback.tsx`: category summary cards, category filter strip, scrollable entry list with notes + context
+- **Admin feature flags editor** — `artifacts/mobile/app/admin/flags.tsx`: all flags listed with descriptions + current values, inline edit with immediate save, warning banner
+- **Admin nav updated** — `artifacts/mobile/app/admin/index.tsx`: added Telemetry & Funnels, User Feedback, Feature Flags nav cards
+- **Feedback entry point** — `artifacts/mobile/app/(tabs)/profile.tsx`: "Send Feedback" menu item in Quick Access section
+
+### Security
+- All admin Phase 11 endpoints covered by `router.use(requireAdmin)` in admin.ts (global middleware)
+- Feedback submission requires `requireAuth` — no anonymous submissions
+- No user PII in telemetry events (userId only, no names/email/content)
+- Feature flag edits write to audit log via `setFlag()` which records `updatedBy`

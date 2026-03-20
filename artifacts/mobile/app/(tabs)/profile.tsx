@@ -421,6 +421,7 @@ export default function ProfileScreen() {
             <MenuItem icon="stats-chart-outline" label="Skill Tree" onPress={() => router.push("/skills")} />
             <MenuItem icon="ribbon-outline" label="Inventory & Badges" onPress={() => router.push("/(tabs)/rewards")} />
             <MenuItem icon="ban-outline" label="Website Blocking" onPress={() => router.push("/settings/blocking")} />
+            <MenuItem icon="chatbubble-ellipses-outline" label="Send Feedback" onPress={() => router.push("/feedback")} />
             {user?.role === "admin" && (
               <MenuItem icon="shield-outline" label="Admin Panel" onPress={() => router.push("/admin")} accent />
             )}

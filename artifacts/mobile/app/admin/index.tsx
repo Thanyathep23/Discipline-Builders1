@@ -49,6 +49,9 @@ export default function AdminScreen() {
     { label: "Mission Inspection", icon: "flash-outline" as const, route: "/admin/missions", color: Colors.cyan },
     { label: "User Progression", icon: "person-outline" as const, route: "/admin/user-progression", color: Colors.accent },
     { label: "Override Actions", icon: "build-outline" as const, route: "/admin/overrides", color: Colors.crimson },
+    { label: "Telemetry & Funnels", icon: "pulse-outline" as const, route: "/admin/telemetry", color: Colors.green },
+    { label: "User Feedback", icon: "chatbubble-outline" as const, route: "/admin/feedback", color: Colors.amber },
+    { label: "Feature Flags", icon: "toggle-outline" as const, route: "/admin/flags", color: Colors.accent },
   ];
 
   return (

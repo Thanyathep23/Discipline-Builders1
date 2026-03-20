@@ -1,0 +1,173 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Resume Phase 11 only: Beta Launch + Telemetry + Feedback Loop.
+
+Important:
+- Do NOT restart the project from scratch.
+- Do NOT re-implement completed Phase 11 backend work.
+- Do NOT broaden scope beyond Phase 11.
+- First inspect the current codebase and determine exactly which Phase 11 requirements are already complete vs still incomplete.
+- Then implement only the remaining unfinished items.
+- If all acceptance criteria are already met, do NOT make unnecessary changes — only finalize verification, update docs, and return the completion report.
+
+Current context:
+The previous Phase 11 run was interrupted after:
+- schema changes
+- feature flags helper
+- feedback route
+- telemetry instrumentation across major backend flows
+- admin analytics endpoints
+- share telemetry
+- API server restart succeeded cleanly
+
+The run stopped when starting the mobile feedback form and admin/internal screens.
+
+Treat the current working tree as the source of truth and continue from there.
+
+==================================================
+PHASE 11 SCOPE ONLY
+==================================================
+
+Build / finish only:
+
+1. Mobile feedback / friction capture UI
+2. Admin/internal UI for telemetry, funnels, feedback, and feature flags
+3. Final verification of telemetry/funnels/feedback/flags
+4. Documentation and completion report
+
+Do NOT build:
+- new gameplay systems
+- new progression systems
+- social/community
+- leaderboard
+- marketplace
+- redesign of the app
+- unrelated analytics expansion
+- Phase 12 growth/invite systems
+
+==================================================
+STEP 1 — AUDIT BEFORE CODING
+==================================================
+
+Before changing anything:
+1. inspect all current Phase 11 files
+2. list which acceptance criteria are already satisfied
+3. identify only the remaining gaps
+4. make the minimum changes needed
+
+Specifically inspect:
+- telemetry/event tracking helpers
+- feature_flags helper/service/routes
+- user_feedback schema/routes
+- admin analytics/funnel endpoints
+- share telemetry instrumentation
+- mobile routing structure
+- existing settings/admin/internal screens
+- any existing placeholder feedback UI
+- docs/replit.md or equivalent project notes
+
+==================================================
+STEP 2 — COMPLETE ONLY THE REMAINING PHASE 11 GAPS
+==================================================
+
+A. Mobile feedback form
+Build the smallest useful in-app feedback UI.
+
+Requirements:
+- accessible from one or more key friction points or from a clear feedback entry point
+- categories:
+  - confusing
+  - too hard
+  - too easy
+  - proof annoying
+  - reward feels unfair
+  - bug/problem
+  - favorite part
+- optional free-text note
+- submit success state
+- submit error state
+- clean dark-premium styling
+- low-friction UX
+
+B. Admin/internal telemetry UI
+Build only the minimum admin/internal screens needed.
+
+Requirements:
+- view basic event/funnel summaries
+- view user feedback submissions
+- view/edit lightweight feature flags
+- keep it internal/admin only
+- do not build a giant BI dashboard
+- use simple list/table/card views
+
+Minimum internal visibility:
+- key event counts
+- basic funnel step counts
+- recent feedback entries
+- current feature flag values
+
+C. Final verification
+Run focused verification for:
+- telemetry events being recorded
+- funnel visibility working
+- feedback submission working
+- feature flag viewing/editing working
+- existing core product flow unchanged
+
+D. Documentation
+Update docs/replit.md or equivalent with:
+- what Phase 11 added
+- what was already complete before this run
+- what was completed now
+- remaining gaps for the next phase
+
+==================================================
+PHASE 11 ACCEPTANCE CRITERIA
+==================================================
+
+Phase 11 is complete only if:
+
+1. key product events are tracked
+2. critical funnels are visible internally
+3. users can send lightweight feedback from the app
+4. internal/admin tuning controls exist for key balance levers
+5. beta-readiness issues in critical flows are improved
+6. privacy and security remain intact
+7. no unrelated gameplay scope was added
+8. existing mission/proof/reward flow still works
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- which Phase 11 criteria were already complete before this run
+- which items were unfinished
+- what was done in this run
+
+2. Files changed in this run only
+
+3. UI added in this run:
+- feedback form
+- admin/internal telemetry/funnel view
+- admin/internal feedback view
+- feature flag UI if added
+
+4. Verification results for:
+- event tracking
+- funnel visibility
+- feedback submission
+- feature flag viewing/editing
+- existing core flow unchanged
+
+5. Documentation updates made
+
+6. Confirmation that no Phase 12 or unrelated scope was touched
+
+Important:
+Preserve the existing working app.
+Do not repeat finished work.
+Do not expand scope.
+Only finish Phase 11 cleanly.
