@@ -45,7 +45,10 @@ router.put("/users/:userId", async (req, res) => {
     const type = coinAdjustment > 0 ? "admin_grant" : "admin_revoke";
     const reason = note ?? `Admin adjustment by ${actor.username}`;
     if (coinAdjustment > 0) {
-      await grantReward(req.params.userId, Math.abs(coinAdjustment), 0, reason, undefined, undefined, actor.id);
+      await grantReward(req.params.userId, Math.abs(coinAdjustment), 0, reason, {
+        actorId: actor.id,
+        type: "admin_grant",
+      });
     } else {
       // Deduct coins
       const users = await db.select().from(usersTable).where(eq(usersTable.id, req.params.userId)).limit(1);
@@ -57,7 +60,9 @@ router.put("/users/:userId", async (req, res) => {
           userId: req.params.userId,
           type: "admin_revoke",
           amount: coinAdjustment,
+          xpAmount: 0,
           reason,
+          balanceAfter: newBal,
         });
       }
     }

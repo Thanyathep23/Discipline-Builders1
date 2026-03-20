@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, blockingConfigTable, focusSessionsTable, missionsTable } from "@workspace/db";
+import { db, blockingConfigTable, focusSessionsTable, missionsTable, blockedAttemptsTable, auditLogTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, generateId } from "../lib/auth.js";
@@ -89,6 +89,8 @@ router.post("/extension/blocked-attempt", requireAuth, async (req, res) => {
   const schema = z.object({
     sessionId: z.string(),
     domain: z.string(),
+    source: z.enum(["extension", "mobile", "api"]).default("extension"),
+    meta: z.record(z.unknown()).optional(),
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
@@ -97,17 +99,34 @@ router.post("/extension/blocked-attempt", requireAuth, async (req, res) => {
   }
 
   const userId = (req as any).userId;
+  const { sessionId, domain, source, meta } = parsed.data;
+
+  // Verify session ownership
   const sessions = await db.select().from(focusSessionsTable)
-    .where(and(eq(focusSessionsTable.id, parsed.data.sessionId), eq(focusSessionsTable.userId, userId)))
+    .where(and(eq(focusSessionsTable.id, sessionId), eq(focusSessionsTable.userId, userId)))
     .limit(1);
 
-  if (sessions[0]) {
-    await db.update(focusSessionsTable).set({
-      blockedAttemptCount: (sessions[0].blockedAttemptCount ?? 0) + 1,
-    }).where(eq(focusSessionsTable.id, parsed.data.sessionId));
+  if (!sessions[0]) {
+    res.status(404).json({ error: "Session not found" });
+    return;
   }
 
-  res.json({ message: "Blocked attempt recorded" });
+  // Increment counter on session
+  await db.update(focusSessionsTable).set({
+    blockedAttemptCount: (sessions[0].blockedAttemptCount ?? 0) + 1,
+  }).where(eq(focusSessionsTable.id, sessionId));
+
+  // Persist detailed blocked attempt record
+  await db.insert(blockedAttemptsTable).values({
+    id: generateId(),
+    userId,
+    sessionId,
+    domain,
+    source,
+    meta: JSON.stringify(meta ?? {}),
+  });
+
+  res.json({ message: "Blocked attempt recorded", count: (sessions[0].blockedAttemptCount ?? 0) + 1 });
 });
 
 export default router;

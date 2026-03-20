@@ -1,4 +1,4 @@
-import { db, usersTable, rewardTransactionsTable, auditLogTable, missionsTable } from "@workspace/db";
+import { db, usersTable, rewardTransactionsTable, auditLogTable, penaltiesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { generateId } from "./auth.js";
 
@@ -35,7 +35,7 @@ export interface RewardInput {
   currentStreak: number;
 }
 
-export function computeRewardCoins(input: RewardInput): { coins: number; multiplier: number } {
+export function computeRewardCoins(input: RewardInput): { coins: number; xp: number; multiplier: number } {
   const {
     missionPriority,
     missionImpact,
@@ -74,7 +74,10 @@ export function computeRewardCoins(input: RewardInput): { coins: number; multipl
   const multiplier = durationRatio * proofFactor * distractionPenalty * strictBonus * trustFactor * streakBonus;
   const coins = Math.max(0, Math.round(base * multiplier));
 
-  return { coins, multiplier: Math.round(multiplier * 100) / 100 };
+  // XP is always earned relative to actual time (0.5 xp per minute, min 5)
+  const xp = Math.max(5, Math.round(actualDurationMinutes * 0.5 * proofFactor * streakBonus));
+
+  return { coins, xp, multiplier: Math.round(multiplier * 100) / 100 };
 }
 
 export async function grantReward(
@@ -82,19 +85,25 @@ export async function grantReward(
   coins: number,
   xpAmount: number,
   reason: string,
-  missionId?: string,
-  proofId?: string,
-  actorId?: string
+  options?: {
+    missionId?: string;
+    sessionId?: string;
+    proofId?: string;
+    actorId?: string;
+    type?: "earned" | "bonus" | "admin_grant";
+  }
 ): Promise<void> {
-  // Update user balance
+  const opts = options ?? {};
+
   const user = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   if (!user[0]) return;
 
   const newBalance = user[0].coinBalance + coins;
   const newXp = user[0].xp + xpAmount;
   const xpNeeded = xpForLevel(user[0].level);
-  const newLevel = newXp >= xpNeeded ? user[0].level + 1 : user[0].level;
-  const finalXp = newXp >= xpNeeded ? newXp - xpNeeded : newXp;
+  const leveledUp = newXp >= xpNeeded;
+  const newLevel = leveledUp ? user[0].level + 1 : user[0].level;
+  const finalXp = leveledUp ? newXp - xpNeeded : newXp;
 
   await db.update(usersTable).set({
     coinBalance: newBalance,
@@ -103,26 +112,91 @@ export async function grantReward(
     updatedAt: new Date(),
   }).where(eq(usersTable.id, userId));
 
-  // Record transaction
+  // Record transaction with snapshot
   await db.insert(rewardTransactionsTable).values({
     id: generateId(),
     userId,
-    type: "earned",
+    type: opts.type ?? "earned",
     amount: coins,
+    xpAmount,
     reason,
-    missionId: missionId ?? null,
-    proofId: proofId ?? null,
+    missionId: opts.missionId ?? null,
+    sessionId: opts.sessionId ?? null,
+    proofId: opts.proofId ?? null,
+    balanceAfter: newBalance,
   });
 
   // Audit log
   await db.insert(auditLogTable).values({
     id: generateId(),
-    actorId: actorId ?? null,
-    actorRole: actorId ? "system" : "system",
+    actorId: opts.actorId ?? null,
+    actorRole: opts.actorId ? "admin" : "system",
     action: "reward_granted",
     targetId: userId,
     targetType: "user",
-    details: JSON.stringify({ coins, xp: xpAmount, reason, missionId, proofId }),
+    details: JSON.stringify({ coins, xp: xpAmount, reason, leveledUp, newLevel, ...opts }),
+  });
+}
+
+export async function applySystemPenalty(
+  userId: string,
+  coinsDeducted: number,
+  xpDeducted: number,
+  reason: "abandoned_session" | "blocked_attempt" | "failed_proof" | "missed_deadline" | "low_trust_score",
+  description: string,
+  options?: { sessionId?: string; missionId?: string; proofId?: string }
+): Promise<void> {
+  const opts = options ?? {};
+
+  const user = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (!user[0]) return;
+
+  const newBalance = Math.max(0, user[0].coinBalance - coinsDeducted);
+  const newXp = Math.max(0, user[0].xp - xpDeducted);
+
+  await db.update(usersTable).set({
+    coinBalance: newBalance,
+    xp: newXp,
+    updatedAt: new Date(),
+  }).where(eq(usersTable.id, userId));
+
+  const penaltyId = generateId();
+  await db.insert(penaltiesTable).values({
+    id: penaltyId,
+    userId,
+    sessionId: opts.sessionId ?? null,
+    missionId: opts.missionId ?? null,
+    proofId: opts.proofId ?? null,
+    reason,
+    coinsDeducted,
+    xpDeducted,
+    description,
+    appliedBy: null, // system
+  });
+
+  if (coinsDeducted > 0) {
+    await db.insert(rewardTransactionsTable).values({
+      id: generateId(),
+      userId,
+      type: "penalty",
+      amount: -coinsDeducted,
+      xpAmount: -xpDeducted,
+      reason: `System penalty: ${description}`,
+      sessionId: opts.sessionId ?? null,
+      missionId: opts.missionId ?? null,
+      penaltyId,
+      balanceAfter: newBalance,
+    });
+  }
+
+  await db.insert(auditLogTable).values({
+    id: generateId(),
+    actorId: null,
+    actorRole: "system",
+    action: "system_penalty_applied",
+    targetId: userId,
+    targetType: "user",
+    details: JSON.stringify({ coinsDeducted, xpDeducted, reason, description, ...opts }),
   });
 }
 

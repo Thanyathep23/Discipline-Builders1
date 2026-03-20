@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, focusSessionsTable, missionsTable } from "@workspace/db";
+import { db, focusSessionsTable, missionsTable, sessionHeartbeatsTable, timeEntriesTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, generateId } from "../lib/auth.js";
@@ -86,7 +86,6 @@ router.get("/active", async (req, res) => {
     .limit(1);
 
   if (!sessions[0]) {
-    // Also check paused
     const paused = await db.select().from(focusSessionsTable)
       .where(and(eq(focusSessionsTable.userId, userId), eq(focusSessionsTable.status, "paused")))
       .limit(1);
@@ -116,7 +115,6 @@ router.post("/start", async (req, res) => {
 
   const userId = (req as any).userId;
 
-  // Check for active session
   const existing = await db.select().from(focusSessionsTable)
     .where(and(eq(focusSessionsTable.userId, userId), eq(focusSessionsTable.status, "active")));
   if (existing.length > 0) {
@@ -124,7 +122,6 @@ router.post("/start", async (req, res) => {
     return;
   }
 
-  // Check mission exists and belongs to user
   const mission = await db.select().from(missionsTable)
     .where(and(eq(missionsTable.id, parsed.data.missionId), eq(missionsTable.userId, userId)))
     .limit(1);
@@ -134,6 +131,7 @@ router.post("/start", async (req, res) => {
   }
 
   const id = generateId();
+  const now = new Date();
   await db.insert(focusSessionsTable).values({
     id,
     userId,
@@ -145,6 +143,17 @@ router.post("/start", async (req, res) => {
     blockedAttemptCount: 0,
     heartbeatCount: 0,
     extensionConnected: false,
+  });
+
+  // Log a time entry start
+  await db.insert(timeEntriesTable).values({
+    id: generateId(),
+    userId,
+    sessionId: id,
+    missionId: parsed.data.missionId,
+    category: mission[0].category,
+    startedAt: now,
+    source: "focus_session",
   });
 
   const data = await getSessionWithMission(id, userId);
@@ -163,7 +172,6 @@ router.post("/:sessionId/pause", async (req, res) => {
     return;
   }
 
-  // Check pause limits for strict modes
   const limits: Record<string, number> = { normal: 3, strict: 1, extreme: 0 };
   const limit = limits[data.session.strictnessMode] ?? 3;
   if (data.session.pauseCount >= limit) {
@@ -224,17 +232,36 @@ router.post("/:sessionId/stop", async (req, res) => {
     return;
   }
 
+  const now = new Date();
   const finalStatus = parsed.data.reason === "completed" ? "completed" : "abandoned";
   await db.update(focusSessionsTable).set({
     status: finalStatus,
-    endedAt: new Date(),
+    endedAt: now,
   }).where(eq(focusSessionsTable.id, req.params.sessionId));
+
+  // Close out the time entry for this session
+  const startedAt = data.session.startedAt ? new Date(data.session.startedAt) : now;
+  const totalPaused = data.session.totalPausedSeconds ?? 0;
+  const rawDuration = Math.floor((now.getTime() - startedAt.getTime()) / 1000);
+  const durationSeconds = Math.max(0, rawDuration - totalPaused);
+
+  await db.update(timeEntriesTable)
+    .set({ endedAt: now, durationSeconds })
+    .where(eq(timeEntriesTable.sessionId, req.params.sessionId));
 
   const updated = await getSessionWithMission(req.params.sessionId, userId);
   res.json(parseSession(updated!.session, updated!.mission));
 });
 
 router.post("/:sessionId/heartbeat", async (req, res) => {
+  const schema = z.object({
+    source: z.enum(["mobile", "web", "extension"]).default("mobile"),
+    meta: z.record(z.unknown()).optional(),
+  });
+  const body = schema.safeParse(req.body);
+  const source = body.success ? body.data.source : "mobile";
+  const meta = body.success ? (body.data.meta ?? {}) : {};
+
   const userId = (req as any).userId;
   const sessions = await db.select().from(focusSessionsTable)
     .where(and(eq(focusSessionsTable.id, req.params.sessionId), eq(focusSessionsTable.userId, userId)))
@@ -245,12 +272,23 @@ router.post("/:sessionId/heartbeat", async (req, res) => {
     return;
   }
 
+  // Increment counter
   await db.update(focusSessionsTable).set({
     heartbeatCount: (sessions[0].heartbeatCount ?? 0) + 1,
     lastHeartbeatAt: new Date(),
+    extensionConnected: source === "extension" ? true : sessions[0].extensionConnected,
   }).where(eq(focusSessionsTable.id, req.params.sessionId));
 
-  res.json({ message: "Heartbeat recorded" });
+  // Persist to session_heartbeats for audit trail
+  await db.insert(sessionHeartbeatsTable).values({
+    id: generateId(),
+    sessionId: req.params.sessionId,
+    userId,
+    source,
+    meta: JSON.stringify(meta),
+  });
+
+  res.json({ message: "Heartbeat recorded", count: (sessions[0].heartbeatCount ?? 0) + 1 });
 });
 
 export default router;

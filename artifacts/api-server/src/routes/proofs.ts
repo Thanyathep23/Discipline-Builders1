@@ -4,7 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, generateId } from "../lib/auth.js";
 import { judgeProof } from "../lib/ai-judge.js";
-import { computeRewardCoins, grantReward, updateStreak } from "../lib/rewards.js";
+import { computeRewardCoins, grantReward, updateStreak, applySystemPenalty } from "../lib/rewards.js";
 import { auditLogTable } from "@workspace/db";
 
 const router = Router();
@@ -76,7 +76,7 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     const proofQuality = (judgeResult.rubric.relevanceScore + judgeResult.rubric.qualityScore +
       judgeResult.rubric.specificityScore) / 3;
 
-    const { coins } = computeRewardCoins({
+    const { coins, xp } = computeRewardCoins({
       missionPriority: mission.priority,
       missionImpact: mission.impactLevel,
       targetDurationMinutes: mission.targetDurationMinutes,
@@ -92,13 +92,27 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     coinsAwarded = Math.round(coins * judgeResult.rewardMultiplier);
 
     if (coinsAwarded > 0) {
-      await grantReward(userId, coinsAwarded, coinsAwarded * 2, `Mission completed: ${mission.title}`, mission.id, submissionId);
+      await grantReward(userId, coinsAwarded, xp, `Mission completed: ${mission.title}`, {
+        missionId: mission.id,
+        sessionId: session.id,
+        proofId: submissionId,
+      });
       await updateStreak(userId);
 
       // Update mission to completed
       await db.update(missionsTable).set({ status: "completed", updatedAt: new Date() })
         .where(eq(missionsTable.id, mission.id));
     }
+  }
+
+  // Apply system penalty for rejected proof
+  if (judgeResult.verdict === "rejected") {
+    await applySystemPenalty(
+      userId, 20, 10,
+      "failed_proof",
+      `Proof rejected by AI for mission: ${mission.title}`,
+      { sessionId: session.id, missionId: mission.id, proofId: submissionId }
+    );
   }
 
   // Adjust trust score based on verdict

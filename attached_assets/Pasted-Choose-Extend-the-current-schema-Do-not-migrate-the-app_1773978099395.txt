@@ -1,0 +1,55 @@
+Choose: Extend the current schema.
+
+Do not migrate the app to Supabase right now.
+
+Keep the current Express + Postgres + Drizzle architecture and use the provided Supabase schema/RLS files only as a reference for missing tables and business rules.
+
+Please do the following:
+
+1. Extend the existing Drizzle schema with the missing tables needed for DisciplineOS MVP:
+- sleep_logs
+- penalties
+- strictness_profiles
+- wallets
+- streaks
+- time_entries
+- blocked_attempts
+- session_heartbeats
+- inventory_items
+- reward_transactions audit-safe structure if missing
+- audit_logs improvements if needed
+
+2. Adapt all Supabase-specific concepts into the current backend architecture:
+- replace auth.uid() with req.user.id
+- replace Supabase RLS with backend ownership checks and admin role middleware
+- replace auth.users references with the existing users table
+- replace storage.objects policies with secure file upload rules in the current upload system
+
+3. Preserve current working routes and avoid breaking auth/session flow.
+
+4. Add secure authorization rules in Express:
+- normal users can only read/write their own records
+- admin can access admin-only review and audit routes
+- wallets, AI review results, reward finalization, and audit logs must never be directly writable by the client
+
+5. Keep reward calculation server-side only.
+
+6. Keep AI judge verdict persistence server-side only.
+
+7. After schema extension, update the existing routes and services to support:
+- sleep logging
+- penalties
+- strictness modes
+- streak tracking
+- time tracking
+- blocked attempt logging
+- session heartbeat logging
+- inventory purchases
+- secure reward ledger
+
+8. Do not introduce Supabase-specific code or dependencies during this step.
+
+9. After implementation, run through the full flow again:
+register/login -> create mission -> start focus session -> log blocked attempt -> submit proof -> AI judge -> finalize reward -> view wallet/inventory/streaks
+
+Also identify and fix the current signup/login response bug where the frontend expects JSON but is receiving HTML.
