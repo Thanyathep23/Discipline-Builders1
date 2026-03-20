@@ -137,7 +137,7 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
             aiMission.suggestedRewardBonus,
             Math.round(aiMission.suggestedRewardBonus * 0.5),
             `AI Mission bonus: ${mission.title}`,
-            { missionId: mission.id, aiMissionId: aiMission.id },
+            { missionId: mission.id },
           );
         }
 

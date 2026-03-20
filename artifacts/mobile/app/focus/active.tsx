@@ -33,8 +33,8 @@ export default function ActiveFocusScreen() {
   const stopSession = useStopSession();
   const heartbeat = useHeartbeat();
   const [localElapsed, setLocalElapsed] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval>>();
-  const heartbeatRef = useRef<ReturnType<typeof setInterval>>();
+  const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   const session = data?.session;
   const mission = session?.mission;

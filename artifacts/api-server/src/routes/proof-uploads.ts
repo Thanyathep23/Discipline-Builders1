@@ -50,7 +50,7 @@ router.post("/upload", (req: any, res, next) => {
     });
   }
 
-  upload.single("file")(req, res, (err) => {
+  return upload.single("file")(req, res, (err) => {
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
         return res.status(400).json({ error: "File too large. Maximum size is 10MB." });
@@ -60,7 +60,7 @@ router.post("/upload", (req: any, res, next) => {
     if (err) {
       return res.status(400).json({ error: err.message });
     }
-    next();
+    return next();
   });
 }, async (req: any, res) => {
   if (!req.file) {
@@ -133,7 +133,7 @@ router.get("/files/:fileId", async (req: any, res) => {
 
   res.setHeader("Content-Type", record.mimeType);
   res.setHeader("Content-Disposition", `inline; filename="${record.originalName}"`);
-  res.sendFile(filePath);
+  return void res.sendFile(filePath);
 });
 
 router.get("/files", async (req: any, res) => {

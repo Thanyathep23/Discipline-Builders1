@@ -39,7 +39,8 @@ export async function extractFileContent(
 
 async function extractPdf(filePath: string, originalName: string): Promise<ExtractionResult> {
   try {
-    const pdfParse = (await import("pdf-parse")).default;
+    const pdfParseModule = await import("pdf-parse");
+    const pdfParse = (pdfParseModule as any).default ?? pdfParseModule;
     const buffer = fs.readFileSync(filePath);
     const data = await pdfParse(buffer, { max: 5 });
     const raw = (data.text ?? "").trim();

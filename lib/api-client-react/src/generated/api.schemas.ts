@@ -270,7 +270,7 @@ export const ProofSubmissionStatus = {
   followup_needed: 'followup_needed',
 } as const;
 
-export interface AiRubric {
+export type AiRubric = {
   /** @nullable */
   relevanceScore?: number | null;
   /** @nullable */

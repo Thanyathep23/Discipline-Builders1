@@ -138,7 +138,11 @@ router.post("/generate", requireAuth, async (req: any, res) => {
     // Detect weak skills from skill levels
     const sortedByLevel = Object.entries(skillLevels).sort((a, b) => a[1] - b[1]);
     const weakSkillIds = sortedByLevel.slice(0, 2).map(([k]) => k);
-    const gmNote = getMissionBriefing(count, weakSkillIds, profile ?? undefined);
+    const profileForBriefing = profile ? {
+      mainGoal: profile.mainGoal ?? undefined,
+      strictnessPreference: profile.strictnessPreference ?? undefined,
+    } : undefined;
+    const gmNote = getMissionBriefing(count, weakSkillIds, profileForBriefing);
 
     return res.json({ missions: inserted, gmNote });
   } catch (err: any) {
