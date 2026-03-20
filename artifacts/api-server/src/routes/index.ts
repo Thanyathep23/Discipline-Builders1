@@ -12,6 +12,9 @@ import sleepRouter from "./sleep.js";
 import penaltiesRouter from "./penalties.js";
 import strictnessRouter from "./strictness.js";
 import timeEntriesRouter from "./time-entries.js";
+import profileRouter from "./profile.js";
+import skillsRouter from "./skills.js";
+import aiMissionsRouter from "./ai-missions.js";
 
 const router: IRouter = Router();
 
@@ -28,5 +31,8 @@ router.use("/sleep", sleepRouter);
 router.use("/penalties", penaltiesRouter);
 router.use("/settings/strictness", strictnessRouter);
 router.use("/time-entries", timeEntriesRouter);
+router.use("/profile", profileRouter);
+router.use("/skills", skillsRouter);
+router.use("/ai-missions", aiMissionsRouter);
 
 export default router;

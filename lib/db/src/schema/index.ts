@@ -12,3 +12,5 @@ export * from "./strictness";
 export * from "./heartbeats";
 export * from "./blocked-attempts";
 export * from "./time-entries";
+export * from "./life-profiles";
+export * from "./skills";

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAuth, generateId } from "../lib/auth.js";
 import { judgeProof } from "../lib/ai-judge.js";
 import { computeRewardCoins, grantReward, updateStreak, applySystemPenalty } from "../lib/rewards.js";
+import { grantSessionSkillXp } from "../lib/skill-engine.js";
 import { auditLogTable } from "@workspace/db";
 
 const router = Router();
@@ -98,6 +99,7 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
         proofId: submissionId,
       });
       await updateStreak(userId);
+      await grantSessionSkillXp(userId, mission.category, actualMinutes, judgeResult.verdict);
 
       // Update mission to completed
       await db.update(missionsTable).set({ status: "completed", updatedAt: new Date() })

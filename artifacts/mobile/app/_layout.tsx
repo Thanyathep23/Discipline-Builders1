@@ -52,6 +52,9 @@ function RootLayoutNav() {
         <Stack.Screen name="proof/[sessionId]" />
         <Stack.Screen name="mission/new" />
         <Stack.Screen name="mission/[id]" />
+        <Stack.Screen name="onboarding/index" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="skills/index" />
+        <Stack.Screen name="ai-missions/index" />
       </Stack>
     </AuthGuard>
   );

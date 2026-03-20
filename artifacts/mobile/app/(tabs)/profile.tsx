@@ -9,19 +9,31 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
-import { useRewardBalance, useDailyAnalytics } from "@/hooks/useApi";
+import { useRewardBalance, useDailyAnalytics, useSkills, useLifeProfile } from "@/hooks/useApi";
+
+const SKILL_ICONS: Record<string, string> = {
+  focus: "eye-outline", discipline: "shield-outline", learning: "book-outline",
+  health: "heart-outline", finance: "cash-outline", creativity: "color-palette-outline",
+};
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
   const { data: balance } = useRewardBalance();
   const { data: analytics } = useDailyAnalytics(7);
+  const { data: skillsData } = useSkills();
+  const { data: profileData } = useLifeProfile();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
 
   const totalFocusMinutes = analytics?.reduce((a: number, d: any) => a + d.focusMinutes, 0) ?? 0;
   const maxFocus = Math.max(1, ...(analytics?.map((d: any) => d.focusMinutes) ?? [1]));
+
+  const skills = skillsData?.skills ?? [];
+  const topSkill = skillsData?.topSkill;
+  const hasProfile = profileData?.exists && profileData?.profile?.quickStartDone;
+  const profile = profileData?.profile;
 
   async function handleLogout() {
     Alert.alert("Sign Out", "Are you sure?", [
@@ -39,18 +51,17 @@ export default function ProfileScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}>
-        {/* Profile Card */}
         <Animated.View entering={FadeInDown.springify()} style={styles.profileCard}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{user?.username?.[0]?.toUpperCase() ?? "?"}</Text>
           </View>
-          <View style={{ gap: 4 }}>
+          <View style={{ gap: 4, flex: 1 }}>
             <Text style={styles.username}>{user?.username}</Text>
             <Text style={styles.email}>{user?.email}</Text>
-            {user?.role === "admin" && (
-              <View style={styles.adminBadge}>
-                <Ionicons name="shield-checkmark" size={12} color={Colors.accent} />
-                <Text style={styles.adminBadgeText}>ADMIN</Text>
+            {topSkill && (
+              <View style={styles.topSkillBadge}>
+                <Ionicons name={SKILL_ICONS[topSkill.skillId] as any ?? "star"} size={11} color={Colors.gold} />
+                <Text style={styles.topSkillText}>Top: {topSkill.meta?.label} Lv{topSkill.level}</Text>
               </View>
             )}
           </View>
@@ -60,8 +71,71 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
-        {/* Weekly Focus Chart */}
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
+        {!hasProfile && (
+          <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.onboardBanner}>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={styles.onboardTitle}>Build Your Life Profile</Text>
+              <Text style={styles.onboardText}>Set up your profile so the AI Game Master can generate personalized missions.</Text>
+            </View>
+            <Pressable
+              style={styles.onboardBtn}
+              onPress={() => { Haptics.selectionAsync(); router.push("/onboarding"); }}
+            >
+              <Text style={styles.onboardBtnText}>Start</Text>
+              <Ionicons name="arrow-forward" size={14} color={Colors.bg} />
+            </Pressable>
+          </Animated.View>
+        )}
+
+        {hasProfile && profile && (
+          <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.profileSummary}>
+            <Text style={styles.sectionTitle}>Life Profile</Text>
+            <Text style={styles.profileGoal} numberOfLines={2}>{profile.mainGoal}</Text>
+            <View style={styles.profileTags}>
+              {JSON.parse(profile.improvementAreas ?? "[]").map((area: string) => (
+                <View key={area} style={styles.areaTag}>
+                  <Ionicons name={SKILL_ICONS[area] as any ?? "star-outline"} size={12} color={Colors.accent} />
+                  <Text style={styles.areaTagText}>{area.charAt(0).toUpperCase() + area.slice(1)}</Text>
+                </View>
+              ))}
+            </View>
+            <Pressable style={styles.editProfileBtn} onPress={() => router.push("/onboarding")}>
+              <Ionicons name="create-outline" size={14} color={Colors.textSecondary} />
+              <Text style={styles.editProfileText}>Edit Profile</Text>
+            </Pressable>
+          </Animated.View>
+        )}
+
+        {skills.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(100).springify()}>
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionTitle}>Character Skills</Text>
+              <Pressable onPress={() => { Haptics.selectionAsync(); router.push("/skills"); }}>
+                <Text style={styles.seeAllText}>View Full Tree</Text>
+              </Pressable>
+            </View>
+            <View style={styles.skillGrid}>
+              {skills.slice(0, 6).map((skill: any) => (
+                <Pressable
+                  key={skill.skillId}
+                  style={styles.skillCard}
+                  onPress={() => { Haptics.selectionAsync(); router.push("/skills"); }}
+                >
+                  <View style={[styles.skillIcon, { backgroundColor: `${skill.meta.color}18` }]}>
+                    <Ionicons name={skill.meta.icon as any} size={18} color={skill.meta.color} />
+                  </View>
+                  <Text style={styles.skillLabel}>{skill.meta.label}</Text>
+                  <View style={styles.skillXpBar}>
+                    <View style={[styles.skillXpFill, { width: `${skill.progressPct}%`, backgroundColor: skill.meta.color }]} />
+                  </View>
+                  <Text style={styles.skillLvl}>Lv{skill.level}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </Animated.View>
+        )}
+
+        <Animated.View entering={FadeInDown.delay(150).springify()}>
           <Text style={styles.sectionTitle}>7-Day Focus</Text>
           <View style={styles.chartCard}>
             <View style={styles.chart}>
@@ -89,10 +163,11 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
-        {/* Settings */}
-        <Animated.View entering={FadeInDown.delay(150).springify()}>
-          <Text style={styles.sectionTitle}>Settings</Text>
+        <Animated.View entering={FadeInDown.delay(200).springify()}>
+          <Text style={styles.sectionTitle}>Quick Access</Text>
           <View style={styles.menuList}>
+            <MenuItem icon="sparkles-outline" label="AI Mission Board" onPress={() => router.push("/ai-missions")} accent />
+            <MenuItem icon="stats-chart-outline" label="Skill Tree" onPress={() => router.push("/skills")} />
             <MenuItem icon="ban-outline" label="Website Blocking" onPress={() => router.push("/settings/blocking")} />
             {user?.role === "admin" && (
               <MenuItem icon="shield-outline" label="Admin Panel" onPress={() => router.push("/admin")} accent />
@@ -135,18 +210,54 @@ const styles = StyleSheet.create({
   avatarText: { fontFamily: "Inter_700Bold", fontSize: 24, color: Colors.accent },
   username: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.textPrimary },
   email: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
-  adminBadge: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: Colors.accentGlow, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, alignSelf: "flex-start",
+  topSkillBadge: {
+    flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start",
+    backgroundColor: Colors.goldDim, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
   },
-  adminBadgeText: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.accent, letterSpacing: 1 },
+  topSkillText: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.gold, letterSpacing: 0.5 },
   trustScore: {
-    marginLeft: "auto", alignItems: "center",
-    backgroundColor: Colors.bgElevated, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
+    alignItems: "center", backgroundColor: Colors.bgElevated,
+    padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
   },
   trustLabel: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1 },
   trustValue: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.green },
+  onboardBanner: {
+    flexDirection: "row", alignItems: "center", gap: 16, padding: 18,
+    backgroundColor: Colors.accentGlow, borderRadius: 18, borderWidth: 1, borderColor: Colors.accent,
+  },
+  onboardTitle: { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.textPrimary },
+  onboardText: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
+  onboardBtn: {
+    flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.accent,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
+  },
+  onboardBtnText: { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.bg },
+  profileSummary: {
+    backgroundColor: Colors.bgCard, borderRadius: 18, padding: 18,
+    borderWidth: 1, borderColor: Colors.border, gap: 10,
+  },
+  profileGoal: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.textPrimary, lineHeight: 22 },
+  profileTags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  areaTag: {
+    flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.accentGlow,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
+  },
+  areaTagText: { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.accent },
+  editProfileBtn: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" },
+  editProfileText: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
+  sectionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 17, color: Colors.textPrimary, marginBottom: 12 },
+  seeAllText: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.accent },
+  skillGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  skillCard: {
+    width: "31%", backgroundColor: Colors.bgCard, borderRadius: 14, padding: 12,
+    borderWidth: 1, borderColor: Colors.border, alignItems: "center", gap: 6,
+  },
+  skillIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  skillLabel: { fontFamily: "Inter_500Medium", fontSize: 11, color: Colors.textSecondary, textAlign: "center" },
+  skillXpBar: { width: "100%", height: 4, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden" },
+  skillXpFill: { height: "100%", borderRadius: 2 },
+  skillLvl: { fontFamily: "Inter_700Bold", fontSize: 12, color: Colors.textAccent },
   chartCard: { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Colors.border, gap: 12 },
   chart: { flexDirection: "row", alignItems: "flex-end", gap: 8, height: 80 },
   barCol: { flex: 1, alignItems: "center", gap: 6, height: "100%" },

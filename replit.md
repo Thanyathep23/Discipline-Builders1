@@ -2,14 +2,45 @@
 
 ## Overview
 
-**DisciplineOS** — A dark, premium gamified discipline mobile app (Expo) with a full-stack backend (Express + PostgreSQL). Users create missions, run focus sessions tracked by a live timer, submit proof of work to an AI judge (GPT-4o-mini), earn coins computed server-side only, and redeem items from a shop.
+**DisciplineOS** — A dark, premium Life RPG mobile app (Expo) with a full-stack backend (Express + PostgreSQL). Real life actions upgrade a real character. Users create missions, run focus sessions, submit proof to an AI judge, earn coins/XP, and level up a skill tree that reflects their actual behavior.
+
+Core loop: login → create mission → start focus session → stop → submit proof → AI judge → coins/XP reward → wallet → skill XP
 
 Key design mandates:
 - Rewards computed **server-side only** (never client-side)
-- **Real AI proof verification** (GPT-4o-mini, no auto-approve)
-- **Extension sync** real data
+- **Real AI proof verification** (GPT-4o-mini or rule-based fallback)
+- **Life RPG layer**: skills, life profile, AI mission generation
 - Data isolated per user (userId checks on all DB queries)
 - Admin has full **audit log**
+
+## Life RPG Features (Phase 1)
+
+### Skill System
+6 skills tied to real behavior: Focus, Discipline, Learning, Health, Finance, Creativity
+- XP granted automatically on proof submission (based on session duration, category, verdict)
+- Each skill has level/XP with scaling requirements
+- Skill → mission category mapping in `lib/db/src/schema/skills.ts`
+
+### AI Life Profile (Onboarding)
+3-layer profile: Quick Start (6 questions), Standard (8, optional), Deep (optional)
+- Stored in `life_profiles` table
+- Drives AI mission personalization
+
+### AI Mission Board
+- Generates personalized missions from life profile
+- Template-based with goal/area detection
+- User can accept missions (creates real missions in DB)
+
+### Routes
+- `GET/POST /api/profile` — life profile
+- `GET /api/skills` + `/api/skills/summary` — skill tree
+- `POST /api/ai-missions/generate` — AI mission generation
+
+### Mobile Screens
+- `/onboarding` — multi-step wizard (Quick Start)
+- `/skills` — skill tree with XP bars and level titles
+- `/ai-missions` — AI Mission Board with accept flow
+- Profile tab updated with skills widget, life profile summary
 
 ## Stack
 

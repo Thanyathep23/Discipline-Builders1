@@ -229,3 +229,38 @@ export function useHeartbeat() {
       request<any>(`/sessions/${sessionId}/heartbeat`, { method: "POST" }),
   });
 }
+
+export function useLifeProfile() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["profile", "life"],
+    queryFn: () => request<any>("/profile"),
+    staleTime: 30000,
+  });
+}
+
+export function useSaveLifeProfile() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => request<any>("/profile", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile"] }),
+  });
+}
+
+export function useSkills() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["skills"],
+    queryFn: () => request<any>("/skills/summary"),
+    staleTime: 20000,
+  });
+}
+
+export function useGenerateAiMissions() {
+  const { request } = useApiClient();
+  return useMutation({
+    mutationFn: (count?: number) =>
+      request<any>("/ai-missions/generate", { method: "POST", body: JSON.stringify({ count: count ?? 5 }) }),
+  });
+}
