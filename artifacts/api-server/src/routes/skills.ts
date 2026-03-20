@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { getUserSkills } from "../lib/skill-engine.js";
 import { requireAuth } from "../lib/auth.js";
-import { db, skillXpEventsTable } from "@workspace/db";
+import { db, skillXpEventsTable, lifeProfilesTable } from "@workspace/db";
 import { eq, and, desc, gte } from "drizzle-orm";
-import { resolveArc } from "../lib/arc-resolver.js";
+import { resolveArcWithEvidenceGating } from "../lib/arc-resolver.js";
 
 const router = Router();
 
@@ -18,7 +18,8 @@ router.get("/", requireAuth, async (req: any, res) => {
 
 router.get("/summary", requireAuth, async (req: any, res) => {
   try {
-    const skills = await getUserSkills(req.user.id);
+    const userId = req.user.id;
+    const skills = await getUserSkills(userId);
     const totalXp = skills.reduce((a, s) => a + s.totalXpEarned, 0);
     const avgLevel = skills.length > 0 ? skills.reduce((a, s) => a + s.level, 0) / skills.length : 1;
     const topSkill = skills.reduce(
@@ -27,7 +28,34 @@ router.get("/summary", requireAuth, async (req: any, res) => {
     );
     const weakSkills = [...skills].sort((a, b) => a.level - b.level).slice(0, 2);
 
-    const currentArc = resolveArc(skills);
+    const [profile] = await db
+      .select({
+        currentArc: lifeProfilesTable.currentArc,
+        arcXpSnapshot: lifeProfilesTable.arcXpSnapshot,
+      })
+      .from(lifeProfilesTable)
+      .where(eq(lifeProfilesTable.userId, userId))
+      .limit(1);
+
+    const persistedArc = profile?.currentArc ?? null;
+    const arcXpSnapshot: Record<string, number> = JSON.parse(profile?.arcXpSnapshot ?? "{}");
+
+    const gatingResult = resolveArcWithEvidenceGating(skills, persistedArc, arcXpSnapshot);
+
+    if (gatingResult.needsPersist) {
+      try {
+        await db
+          .update(lifeProfilesTable)
+          .set({
+            currentArc: gatingResult.newArcName,
+            arcSetAt: new Date(),
+            arcXpSnapshot: JSON.stringify(gatingResult.newXpSnapshot),
+            updatedAt: new Date(),
+          })
+          .where(eq(lifeProfilesTable.userId, userId));
+      } catch {
+      }
+    }
 
     return res.json({
       skills,
@@ -35,7 +63,7 @@ router.get("/summary", requireAuth, async (req: any, res) => {
       avgLevel: Math.round(avgLevel * 10) / 10,
       topSkill,
       weakSkills,
-      currentArc,
+      currentArc: gatingResult.arc,
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

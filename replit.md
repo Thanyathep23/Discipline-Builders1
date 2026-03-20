@@ -57,14 +57,28 @@ Key design mandates:
 - 7 arc types: Genesis Arc, Focus Recovery Arc, Discipline Reset Arc, Energy Rebuild Arc, Learning Momentum Arc, Trading Apprentice Arc
 - Returned by both `/api/skills/summary` and `/api/analytics/dashboard`
 - Displayed as a banner on the Home screen and in the Character Summary section of the Profile screen
-- Automatically shifts as skill levels change — no manual intervention needed
+- **Evidence-gated transitions (Phase 3)**: Arc only transitions when ≥100 total XP delta since last snapshot — prevents arc flicker when skills are close. Persisted in `life_profiles.current_arc` + `arc_set_at` + `arc_xp_snapshot` columns.
+- **Arc-aware mission generation (Phase 3)**: Current arc name + theme are injected into both the AI prompt and rule-based fallback to bias missions toward the arc's growth area.
+
+### Life Profile System (H) — Phase 3
+- **3-layer profile**: Quick Start (required onboarding) → Standard Profile → Deep Profile
+- Quick Start: mainGoal, primaryChallenge, focusStyle, motivationStyle, availableTime, strictnessPreference, onboardingStage
+- Standard Profile (7 steps, resumable): dailyRoutine, distractionTriggers, weakPoints, currentHabits, sleepPattern, healthStatus, financeRange
+- Deep Profile (4 steps, resumable, optional): longtermGoals, lifeConstraints, supportSystem, selfDescribed
+- Profile screen shows:
+  - Active Goal row (mainGoal as "active goal" in Character Summary)
+  - Profile Depth progress indicator (Quick Start → Standard → Deep connected dots)
+  - Contextual "Continue Profiling" banners at correct stage
+  - Layered navigation links in Life Profile section
 
 ### UI Screens (G)
 - **Mission Board** — tabbed: My Missions + AI Generated with full action row
 - **Skill Tree** — rank badges, trend arrows, confidence bars, XP event history on tap
-- **Profile/Character** — real arc banner (name + subtitle + icon), top strengths, weak zones, inventory preview
+- **Profile/Character** — arc banner, active goal row, profile depth progress indicator, top strengths, weak zones, inventory preview
 - **Home** — arc banner between stats grid and quick actions
 - **Rewards + Inventory** — tabs: Overview, Inventory (badges/titles), Shop, History
+- **Standard Onboarding** — 7-step resumable flow from profile screen
+- **Deep Onboarding** — 4-step resumable flow from profile screen (gold theme)
 
 ## Routes
 
@@ -139,13 +153,17 @@ artifacts-monorepo/
 - `lib/db/src/schema/ai-missions.ts` — AI mission + proof requirement tables
 - `lib/db/src/schema/inventory.ts` — badges, titles, milestones
 - `artifacts/api-server/src/lib/skill-engine.ts` — XP granting, rank calc, trend, confidence
-- `artifacts/api-server/src/lib/mission-generator.ts` — rule-based + AI mission generation
+- `artifacts/api-server/src/lib/arc-resolver.ts` — arc resolution + evidence-gated transitions
+- `artifacts/api-server/src/lib/mission-generator.ts` — rule-based + AI mission generation (arc-aware)
 - `artifacts/api-server/src/routes/ai-missions.ts` — full AI mission CRUD + respond flow
 - `artifacts/api-server/src/routes/inventory.ts` — badges/titles/milestones + awardBadge/awardTitle helpers
+- `artifacts/api-server/src/routes/skills.ts` — skill summary with evidence-gated arc persistence
 - `artifacts/mobile/app/(tabs)/missions.tsx` — Mission Board with AI tab
 - `artifacts/mobile/app/(tabs)/rewards.tsx` — Rewards + Inventory tab
-- `artifacts/mobile/app/(tabs)/profile.tsx` — Character summary
+- `artifacts/mobile/app/(tabs)/profile.tsx` — Character summary with active goal + profile depth progress
 - `artifacts/mobile/app/skills/index.tsx` — Skill tree with rank/trend/confidence
+- `artifacts/mobile/app/onboarding/standard.tsx` — 7-step Standard Profile flow
+- `artifacts/mobile/app/onboarding/deep.tsx` — 4-step Deep Profile flow
 
 ## TypeScript & Composite Projects
 

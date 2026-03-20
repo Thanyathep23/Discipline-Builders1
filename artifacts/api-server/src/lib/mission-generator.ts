@@ -258,13 +258,26 @@ function adjustForStrictness(mission: GeneratedAiMission, strictness: string): G
   return mission;
 }
 
-function detectWeakSkills(improvementAreas: string[], mainGoal: string): string[] {
+const ARC_THEME_TO_SKILL: Record<string, string> = {
+  focus: "focus",
+  discipline: "discipline",
+  energy: "sleep",
+  learning: "learning",
+  trading: "trading",
+  genesis: "discipline",
+};
+
+function detectWeakSkills(improvementAreas: string[], mainGoal: string, arcTheme?: string): string[] {
   const goal = mainGoal?.toLowerCase() ?? "";
   const areas = [...improvementAreas];
   if (goal.includes("trade") || goal.includes("invest")) areas.push("trading");
   if (goal.includes("fit") || goal.includes("gym") || goal.includes("health") || goal.includes("weight")) areas.push("fitness");
   if (goal.includes("study") || goal.includes("learn") || goal.includes("course")) areas.push("learning");
   if (goal.includes("sleep") || goal.includes("rest") || goal.includes("energy")) areas.push("sleep");
+  if (arcTheme && ARC_THEME_TO_SKILL[arcTheme]) {
+    const arcSkill = ARC_THEME_TO_SKILL[arcTheme];
+    if (!areas.includes(arcSkill)) areas.unshift(arcSkill);
+  }
   if (areas.length === 0) return ["focus", "discipline"];
   return [...new Set(areas)];
 }
@@ -273,12 +286,13 @@ export function generateMissionsFromProfile(
   profile: Partial<LifeProfile>,
   count = 5,
   skillLevels?: Record<string, number>,
+  currentArc?: { name: string; theme: string } | null,
 ): GeneratedAiMission[] {
   const improvementAreas: string[] = JSON.parse(profile.improvementAreas ?? "[]");
   const hoursPerDay = profile.availableHoursPerDay ?? 2;
   const strictness = profile.strictnessPreference ?? "normal";
 
-  const weakSkills = detectWeakSkills(improvementAreas, profile.mainGoal ?? "");
+  const weakSkills = detectWeakSkills(improvementAreas, profile.mainGoal ?? "", currentArc?.theme);
   const pool: GeneratedAiMission[] = [];
 
   for (const skill of weakSkills) {
@@ -312,10 +326,11 @@ export async function generateMissionsWithAI(
   profile: Partial<LifeProfile>,
   skillLevels: Record<string, number>,
   count = 5,
+  currentArc?: { name: string; theme: string } | null,
 ): Promise<GeneratedAiMission[]> {
   const client = getOpenAI();
   if (!client) {
-    return generateMissionsFromProfile(profile, count, skillLevels);
+    return generateMissionsFromProfile(profile, count, skillLevels, currentArc);
   }
 
   try {
@@ -327,6 +342,10 @@ export async function generateMissionsWithAI(
       .sort((a, b) => a[1] - b[1])
       .slice(0, 3)
       .map(([k, v]) => `${k} (Lv${v})`).join(", ");
+
+    const arcLine = currentArc
+      ? `- Current arc: ${currentArc.name} (theme: ${currentArc.theme}) — missions should reinforce this arc's growth area`
+      : "";
 
     const prompt = `You are the Game Master of DisciplineOS, a real-life RPG where daily actions become character progression.
 
@@ -342,20 +361,21 @@ PLAYER PROFILE:
 - Training mode: ${profile.strictnessPreference ?? "normal"}
 - Focus areas: ${profile.improvementAreas ?? "[]"}
 - Constraints: ${profile.lifeConstraints ?? "none"}
+${arcLine}
 
 SKILL STATE:
 - Weakest skills (prioritize these): ${weakSkills || "all at level 1"}
 - Full skill map: ${skillSummary || "all at level 1"}
 
 CALIBRATION RULES (follow precisely):
-1. Target the player's WEAKEST skills first
+1. Target the player's WEAKEST skills first, biased toward the current arc's theme skill
 2. Set difficulty one tier ABOVE the skill's current level:
    - Lv1-5 → green difficulty, Lv6-15 → blue, Lv16-30 → purple, Lv31-50 → gold, Lv51+ → red
 3. Duration must fit within available hours (max ${Math.round((profile.availableHoursPerDay ?? 2) * 60)}min/day total)
 4. Make missions feel specific to THIS player's goal — reference their actual context
 5. Proof requirements must match difficulty: basic (simple text) → expert (screenshots + detailed output)
 6. isStretch=true only for the hardest 1-2 missions in the set
-7. reason must explain WHY this mission connects to their specific goal, not a generic benefit
+7. reason must explain WHY this mission connects to their specific goal AND their current arc, not a generic benefit
 
 Return ONLY valid JSON with key "missions" containing exactly ${count} objects. Each:
 {
@@ -387,5 +407,5 @@ Return ONLY valid JSON with key "missions" containing exactly ${count} objects. 
     // fall through to rule-based
   }
 
-  return generateMissionsFromProfile(profile, count, skillLevels);
+  return generateMissionsFromProfile(profile, count, skillLevels, currentArc);
 }

@@ -72,6 +72,7 @@ router.post("/", requireAuth, async (req: any, res) => {
       "currentHabits", "sleepPattern", "healthStatus", "financeRange",
       "longtermGoals", "lifeConstraints", "supportSystem", "selfDescribed",
       "onboardingStage", "quickStartDone", "standardDone", "deepDone",
+      "currentArc", "arcSetAt", "arcXpSnapshot",
     ];
     for (const key of allowed) {
       if (body[key] !== undefined) updateData[key] = body[key];

@@ -27,6 +27,9 @@ export const lifeProfilesTable = pgTable("life_profiles", {
   lifeConstraints: text("life_constraints"),
   supportSystem: text("support_system"),
   selfDescribed: text("self_described"),
+  currentArc: text("current_arc"),
+  arcSetAt: timestamp("arc_set_at"),
+  arcXpSnapshot: text("arc_xp_snapshot").notNull().default("{}"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

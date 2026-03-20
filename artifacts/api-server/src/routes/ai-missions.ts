@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, lifeProfilesTable, aiMissionsTable, aiMissionVariantsTable, missionAcceptanceEventsTable, missionProofRequirementsTable, missionsTable, userSkillsTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { generateMissionsWithAI } from "../lib/mission-generator.js";
+import { resolveArcWithEvidenceGating } from "../lib/arc-resolver.js";
 import { requireAuth } from "../lib/auth.js";
 import { randomUUID } from "crypto";
 import {
@@ -75,7 +76,20 @@ router.post("/generate", requireAuth, async (req: any, res) => {
     const skillLevels: Record<string, number> = {};
     for (const row of skillRows) skillLevels[row.skillId] = row.level;
 
-    const generated = await generateMissionsWithAI(profile ?? {}, skillLevels, count);
+    const arcXpSnapshot: Record<string, number> = JSON.parse(profile?.arcXpSnapshot ?? "{}");
+    const arcSkillsInput = skillRows.map((r) => ({
+      skillId: r.skillId,
+      level: r.level,
+      xp: r.xp,
+      totalXpEarned: r.totalXpEarned,
+    }));
+    const { arc: currentArc } = resolveArcWithEvidenceGating(
+      arcSkillsInput,
+      profile?.currentArc ?? null,
+      arcXpSnapshot,
+    );
+
+    const generated = await generateMissionsWithAI(profile ?? {}, skillLevels, count, currentArc);
 
     const now = new Date();
     const expiryAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);

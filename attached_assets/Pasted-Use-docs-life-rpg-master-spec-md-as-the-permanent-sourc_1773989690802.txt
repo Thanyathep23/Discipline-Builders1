@@ -1,0 +1,61 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Now implement the next phase by closing the 4 documented deviations only.
+
+Strict scope:
+1. Build Standard Profile UI
+2. Build Deep Profile UI
+3. Add profile completion progress and active goals visibility
+4. Pass current arc into AI mission generation
+5. Add evidence-gated arc transitions so arc changes only after meaningful sustained evidence, not instantly
+
+Requirements:
+
+A. Standard + Deep Profile UI
+- Extend the current onboarding/profile flow beyond Quick Start
+- Add resumable multi-step UI for Standard Profile and Deep Profile
+- Keep pause/continue later
+- Keep optional questions skippable
+- Keep editability
+- Reuse existing DB columns and POST /profile support if already present
+- Do not redesign the whole onboarding system
+
+B. Profile completion + active goals
+- Show profile completion progress clearly
+- Distinguish Quick Start / Standard / Deep completion
+- Surface active goals explicitly in Character Summary/Profile
+- Keep UI aligned with dark premium command-center style
+
+C. Arc-aware AI missions
+- Pass current arc name/theme into AI mission generation
+- Make generated missions reflect the current arc
+- If AI is unavailable, rule-based fallback should still bias mission templates using the current arc
+
+D. Evidence-gated arc transitions
+- Do not let arcs flip instantly on minor skill changes
+- Add a lightweight evidence window or threshold system
+- Arc should transition only after enough sustained evidence from skill patterns / mission history
+- Keep implementation simple and robust for MVP
+- Surface current arc confidently, without noisy fluctuations
+
+Constraints:
+- Do not touch unrelated systems
+- Do not break the existing working core loop
+- Do not refactor broadly
+- Keep changes additive
+- Keep all routes ownership-safe and JSON-based
+
+Acceptance criteria:
+- User can fill Standard Profile and Deep Profile in resumable flows
+- Profile completion is visible by layer
+- Active goals are visible in Character Summary
+- AI mission generation uses current arc
+- Arc transitions require evidence and do not flip instantly
+- Existing mission/focus/proof/reward loop still works
+
+At the end report:
+1. files changed
+2. schema/model changes if any
+3. routes/services updated
+4. exact logic used for arc evidence gating
+5. end-to-end test results

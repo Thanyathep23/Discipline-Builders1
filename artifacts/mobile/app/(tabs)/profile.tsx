@@ -51,6 +51,10 @@ export default function ProfileScreen() {
   const hasProfile = profileData?.exists && profileData?.profile?.quickStartDone;
   const profile = profileData?.profile;
 
+  const quickStartDone = profile?.quickStartDone ?? false;
+  const standardDone = profile?.standardDone ?? false;
+  const deepDone = profile?.deepDone ?? false;
+
   const earnedBadges = (badgesData?.badges ?? []).filter((b: any) => b.earned);
   const activeTitle = (titlesData?.titles ?? []).find((t: any) => t.isActive);
 
@@ -142,6 +146,44 @@ export default function ProfileScreen() {
           </Animated.View>
         )}
 
+        {quickStartDone && !standardDone && (
+          <Animated.View entering={FadeInDown.delay(55).springify()} style={styles.continueBanner}>
+            <View style={styles.continueBannerIcon}>
+              <Ionicons name="layers-outline" size={18} color={Colors.accent} />
+            </View>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={styles.continueBannerTitle}>Unlock Standard Profile</Text>
+              <Text style={styles.continueBannerText}>Deeper context = smarter missions. Takes 3–4 minutes.</Text>
+            </View>
+            <Pressable
+              style={styles.continueBtn}
+              onPress={() => { Haptics.selectionAsync(); router.push("/onboarding/standard"); }}
+            >
+              <Text style={styles.continueBtnText}>Continue</Text>
+              <Ionicons name="chevron-forward" size={14} color={Colors.bg} />
+            </Pressable>
+          </Animated.View>
+        )}
+
+        {quickStartDone && standardDone && !deepDone && (
+          <Animated.View entering={FadeInDown.delay(55).springify()} style={[styles.continueBanner, styles.deepBanner]}>
+            <View style={[styles.continueBannerIcon, { backgroundColor: Colors.goldDim }]}>
+              <Ionicons name="diamond-outline" size={18} color={Colors.gold} />
+            </View>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={[styles.continueBannerTitle, { color: Colors.gold }]}>Complete Deep Profile</Text>
+              <Text style={styles.continueBannerText}>Optional — unlocks elite mission personalization.</Text>
+            </View>
+            <Pressable
+              style={[styles.continueBtn, { backgroundColor: Colors.gold }]}
+              onPress={() => { Haptics.selectionAsync(); router.push("/onboarding/deep"); }}
+            >
+              <Text style={styles.continueBtnText}>Unlock</Text>
+              <Ionicons name="chevron-forward" size={14} color={Colors.bg} />
+            </Pressable>
+          </Animated.View>
+        )}
+
         {skills.length > 0 && (
           <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.characterCard}>
             <View style={styles.sectionRow}>
@@ -160,6 +202,38 @@ export default function ProfileScreen() {
                   <Text style={styles.arcLabel}>CURRENT ARC</Text>
                   <Text style={styles.arcValue}>{skillsData.currentArc.name}</Text>
                   <Text style={styles.arcSub}>{skillsData.currentArc.subtitle}</Text>
+                </View>
+              </View>
+            )}
+
+            {profile?.mainGoal && (
+              <View style={styles.activeGoalBox}>
+                <View style={styles.activeGoalHeader}>
+                  <Ionicons name="flag" size={13} color={Colors.green} />
+                  <Text style={styles.activeGoalLabel}>ACTIVE GOAL</Text>
+                </View>
+                <Text style={styles.activeGoalText} numberOfLines={2}>{profile.mainGoal}</Text>
+              </View>
+            )}
+
+            {hasProfile && (
+              <View style={styles.completionRow}>
+                <Text style={styles.completionTitle}>Profile Depth</Text>
+                <View style={styles.completionLayers}>
+                  <View style={styles.completionLayer}>
+                    <View style={[styles.completionDot, quickStartDone && styles.completionDotDone]} />
+                    <Text style={[styles.completionLayerLabel, quickStartDone && styles.completionLayerLabelDone]}>Quick Start</Text>
+                  </View>
+                  <View style={[styles.completionConnector, standardDone && styles.completionConnectorDone]} />
+                  <View style={styles.completionLayer}>
+                    <View style={[styles.completionDot, standardDone && styles.completionDotDone]} />
+                    <Text style={[styles.completionLayerLabel, standardDone && styles.completionLayerLabelDone]}>Standard</Text>
+                  </View>
+                  <View style={[styles.completionConnector, deepDone && styles.completionConnectorDone]} />
+                  <View style={styles.completionLayer}>
+                    <View style={[styles.completionDot, deepDone && { backgroundColor: Colors.gold, borderColor: Colors.gold }]} />
+                    <Text style={[styles.completionLayerLabel, deepDone && { color: Colors.gold }]}>Deep</Text>
+                  </View>
                 </View>
               </View>
             )}
@@ -241,10 +315,24 @@ export default function ProfileScreen() {
           <Animated.View entering={FadeInDown.delay(140).springify()} style={styles.profileSummary}>
             <View style={styles.sectionRow}>
               <Text style={styles.sectionTitle}>Life Profile</Text>
-              <Pressable style={styles.editProfileBtn} onPress={() => router.push("/onboarding")}>
-                <Ionicons name="create-outline" size={14} color={Colors.textSecondary} />
-                <Text style={styles.editProfileText}>Edit</Text>
-              </Pressable>
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                {quickStartDone && !standardDone && (
+                  <Pressable style={styles.editProfileBtn} onPress={() => { Haptics.selectionAsync(); router.push("/onboarding/standard"); }}>
+                    <Ionicons name="layers-outline" size={14} color={Colors.accent} />
+                    <Text style={[styles.editProfileText, { color: Colors.accent }]}>Standard</Text>
+                  </Pressable>
+                )}
+                {standardDone && !deepDone && (
+                  <Pressable style={styles.editProfileBtn} onPress={() => { Haptics.selectionAsync(); router.push("/onboarding/deep"); }}>
+                    <Ionicons name="diamond-outline" size={14} color={Colors.gold} />
+                    <Text style={[styles.editProfileText, { color: Colors.gold }]}>Deep</Text>
+                  </Pressable>
+                )}
+                <Pressable style={styles.editProfileBtn} onPress={() => { Haptics.selectionAsync(); router.push("/onboarding"); }}>
+                  <Ionicons name="create-outline" size={14} color={Colors.textSecondary} />
+                  <Text style={styles.editProfileText}>Edit</Text>
+                </Pressable>
+              </View>
             </View>
             {profile.mainProblem && (
               <View style={styles.problemBox}>
@@ -419,8 +507,29 @@ const styles = StyleSheet.create({
   streakRight:      { flex: 1, gap: 5 },
   streakGm:         { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18, fontStyle: "italic" },
   streakBest:       { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
-  menuList:         { backgroundColor: Colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, overflow: "hidden" },
-  menuItem:         { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
-  menuIcon:         { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.bgElevated, alignItems: "center", justifyContent: "center" },
-  menuLabel:        { flex: 1, fontFamily: "Inter_500Medium", fontSize: 15, color: Colors.textPrimary },
+  menuList:              { backgroundColor: Colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, overflow: "hidden" },
+  menuItem:              { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
+  menuIcon:              { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.bgElevated, alignItems: "center", justifyContent: "center" },
+  menuLabel:             { flex: 1, fontFamily: "Inter_500Medium", fontSize: 15, color: Colors.textPrimary },
+  continueBanner:        { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, backgroundColor: Colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: Colors.accent + "40" },
+  deepBanner:            { borderColor: Colors.gold + "40" },
+  continueBannerIcon:    { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.accentGlow, alignItems: "center", justifyContent: "center" },
+  continueBannerTitle:   { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.textPrimary },
+  continueBannerText:    { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
+  continueBtn:           { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.accent, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  continueBtnText:       { fontFamily: "Inter_700Bold", fontSize: 12, color: Colors.bg },
+  activeGoalBox:         { backgroundColor: Colors.green + "12", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: Colors.green + "30", gap: 6 },
+  activeGoalHeader:      { flexDirection: "row", alignItems: "center", gap: 6 },
+  activeGoalLabel:       { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.green, letterSpacing: 1 },
+  activeGoalText:        { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.textPrimary, lineHeight: 19 },
+  completionRow:         { gap: 8 },
+  completionTitle:       { fontFamily: "Inter_700Bold", fontSize: 11, color: Colors.textSecondary, textTransform: "uppercase", letterSpacing: 0.8 },
+  completionLayers:      { flexDirection: "row", alignItems: "flex-start", gap: 0 },
+  completionLayer:       { alignItems: "center", gap: 4, flex: 1 },
+  completionDot:         { width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: Colors.border, backgroundColor: Colors.bgElevated },
+  completionDotDone:     { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  completionLayerLabel:  { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted, textAlign: "center" },
+  completionLayerLabelDone: { color: Colors.accent, fontFamily: "Inter_600SemiBold" },
+  completionConnector:      { flex: 1, height: 2, backgroundColor: Colors.border, marginTop: 5 },
+  completionConnectorDone:  { backgroundColor: Colors.accent },
 });

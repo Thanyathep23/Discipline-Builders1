@@ -666,25 +666,35 @@ Not for now, but plan for:
 
 ### ⚠️ PARTIAL / DEVIATIONS
 
-**Standard Profile & Deep Profile UI** — The database schema has all columns for Standard and Deep profile layers (`dailyRoutine`, `weakPoints`, `distractionTriggers`, `currentHabits`, `sleepPattern`, `healthStatus`, `financeRange`, `areaConfidence`, `longtermGoals`, `lifeConstraints`, `supportSystem`, `selfDescribed`), and the POST `/profile` endpoint accepts all of them. However, there is no dedicated UI screen for collecting Standard or Deep profile data step-by-step. The Profile screen has an "Edit" button that navigates back to the Quick Start onboarding only.
-> **TODO for next phase**: Add a "Continue Profiling" flow with Standard Profile steps, accessible from the Profile screen after Quick Start is done.
+**Standard Profile & Deep Profile UI** — ✅ CLOSED (Phase 3)
+- `app/onboarding/standard.tsx`: 7-step resumable flow collecting dailyRoutine, distractionTriggers, weakPoints, currentHabits, sleepPattern, healthStatus, financeRange. Optional steps are skippable. "Continue later" saves partial progress. Navigable from Profile screen.
+- `app/onboarding/deep.tsx`: 4-step resumable flow collecting longtermGoals, lifeConstraints, supportSystem, selfDescribed. All optional steps are skippable. Gold color theme distinguishes this layer.
+- Profile screen now shows "Unlock Standard Profile" and "Complete Deep Profile" banners in context when appropriate. Life Profile section shows layered navigation links.
 
-**Character Summary — "active goals" field** — The spec requires Character Summary to show "active goals." Currently it shows: arc, top 2 strengths, bottom 2 weak zones, skill grid. The `mainGoal` field from the profile is not surfaced separately as an "active goal."
-> **TODO**: Add a visible "Active Goal" row to the Character Summary section using `profile.mainGoal`.
+**Character Summary — "active goals" field** — ✅ CLOSED (Phase 3)
+- Active Goal row added to Character Summary using `profile.mainGoal`. Shown with green flag icon and ACTIVE GOAL label.
 
-**Character Summary — "profile completion status"** — The spec requires profile completion status to be visible. Currently the Profile screen shows an onboarding banner only when Quick Start is not done. It does not show a progress indicator for Standard/Deep profile completion.
-> **TODO**: Add a profile completion progress bar (Quick Start / Standard / Deep) to the Character Summary.
+**Character Summary — "profile completion status"** — ✅ CLOSED (Phase 3)
+- Profile Depth progress indicator added to Character Summary showing Quick Start → Standard → Deep as connected dots. Done layers shown in accent/gold color. Connector bars fill as layers complete.
 
-**Arc — AI mission generation does not yet reference the current arc** — The spec states "AI mission generation should reference the current arc." The arc is computed and displayed, but the mission generator prompt does not yet explicitly pass the arc name as an input to guide mission themes.
-> **TODO**: Pass `currentArc.name` into the AI mission generation prompt and rule-based fallback to align generated missions with the user's current arc.
+**Arc — AI mission generation does not yet reference the current arc** — ✅ CLOSED (Phase 3)
+- `mission-generator.ts` updated: both `generateMissionsFromProfile` and `generateMissionsWithAI` accept `currentArc?: { name: string; theme: string }` parameter.
+- AI prompt now includes: `- Current arc: <name> (theme: <theme>) — missions should reinforce this arc's growth area`.
+- Rule-based fallback biases the skill pool toward the arc's theme skill via `ARC_THEME_TO_SKILL` map + `detectWeakSkills`.
+- `ai-missions.ts` generate endpoint now computes the current arc from skill state before calling the generator and passes it through.
 
-**Arc — transition evidence gating** — The spec says "arcs should change only when enough evidence supports the transition." Currently the arc is computed on every request purely from skill state (no hysteresis or evidence window). This means the arc can flip back and forth if skills are close in level.
-> **TODO**: Optionally persist the arc to `life_profiles.currentArc` with a `arcSetAt` timestamp, and require meaningful XP delta before allowing an arc transition.
+**Arc — transition evidence gating** — ✅ CLOSED (Phase 3)
+- Three new columns added to `life_profiles`: `current_arc` (text), `arc_set_at` (timestamp), `arc_xp_snapshot` (text/JSON of skill XP at last transition).
+- `arc-resolver.ts` now exports `resolveArcWithEvidenceGating()` which:
+  1. If no persisted arc → accepts candidate immediately, persists.
+  2. If persisted arc === candidate arc → returns stable persisted arc (no update).
+  3. If candidate arc differs → checks total XP delta since last snapshot. If delta ≥ 100, allows transition and persists. Otherwise returns old arc (hysteresis).
+- `skills.ts` `/summary` endpoint: loads profile arc state, calls `resolveArcWithEvidenceGating`, persists the new arc to DB when needed, returns stable arc. Arc cannot flip back and forth on minor skill changes.
 
-**Skill Screen — "suggestions for growth"** — The Skill Tree screen shows rank, level, XP bar, trend, and recent XP events. It does not yet show explicit "suggestions for growth" per skill (e.g., "Complete 2 focus sessions to rise").
+**Skill Screen — "suggestions for growth"** — Still pending.
 > **TODO**: Add a growth suggestion line per skill based on trend and level gap.
 
-**Proof types — file upload / reflection answers** — The spec lists 6 proof types including file upload and reflection answers. Currently the proof submission UI supports text summary and link input. File uploads and structured reflection fields are not implemented in the mobile proof screen.
+**Proof types — file upload / reflection answers** — Still pending.
 > **TODO for next phase**: Add file/image picker and structured reflection answer inputs to the proof submission screen.
 
 ---
