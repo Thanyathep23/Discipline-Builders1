@@ -104,12 +104,12 @@ export async function startCycleForUser(userId: string, cycleType: CycleType): P
 export async function incrementCycleProgress(
   userId: string,
   skillId: string,
-): Promise<{ progressed: boolean; completed: boolean; cycleId: string | null }> {
+): Promise<{ progressed: boolean; completed: boolean; cycleId: string | null; cycleType: string | null }> {
   const cycle = await getActiveCycle(userId);
-  if (!cycle) return { progressed: false, completed: false, cycleId: null };
+  if (!cycle) return { progressed: false, completed: false, cycleId: null, cycleType: null };
 
   const def = CYCLE_DEFINITIONS[cycle.cycleType as CycleType];
-  if (!def || def.skillId !== skillId) return { progressed: false, completed: false, cycleId: cycle.id };
+  if (!def || def.skillId !== skillId) return { progressed: false, completed: false, cycleId: cycle.id, cycleType: cycle.cycleType };
 
   const newCount = cycle.progressCount + 1;
   const isNowComplete = newCount >= cycle.targetCount;
@@ -124,7 +124,14 @@ export async function incrementCycleProgress(
     })
     .where(eq(userCyclesTable.id, cycle.id));
 
-  return { progressed: true, completed: isNowComplete, cycleId: cycle.id };
+  return { progressed: true, completed: isNowComplete, cycleId: cycle.id, cycleType: cycle.cycleType };
+}
+
+export async function markCycleRewardClaimed(cycleId: string): Promise<void> {
+  await db
+    .update(userCyclesTable)
+    .set({ rewardClaimed: "true", updatedAt: new Date() })
+    .where(eq(userCyclesTable.id, cycleId));
 }
 
 export function suggestCycleType(weakSkillId: string): CycleType {
