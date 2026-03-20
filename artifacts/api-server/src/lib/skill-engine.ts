@@ -10,6 +10,7 @@ import {
 import type { SkillId } from "@workspace/db";
 import { eq, and, gte } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { checkAndGrantMastery } from "./mastery-engine.js";
 
 const XP_PER_LEVEL = 100;
 const LEVEL_SCALING = 1.4;
@@ -133,6 +134,9 @@ export async function grantSkillXp(
     sourceId: sourceId ?? null,
     description: description ?? `+${xpAmount} XP from ${source}`,
   });
+
+  const currentMasteryTier = rows[0].masteryTier ?? 0;
+  await checkAndGrantMastery(userId, skillId, level, totalXpEarned, confidence, currentMasteryTier).catch(() => {});
 
   return { leveled, newLevel: level, newXp: xp, rankChanged, newRank: newRankInfo.name };
 }

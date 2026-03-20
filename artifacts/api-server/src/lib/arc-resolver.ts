@@ -133,3 +133,55 @@ export function resolveArcWithEvidenceGating(
     newXpSnapshot: arcXpSnapshot,
   };
 }
+
+export type ArcStage = "beginning" | "developing" | "advanced" | "completed";
+
+export interface ArcStageResult {
+  stage: ArcStage;
+  stageLabel: string;
+  stageDescription: string;
+  xpDeltaSinceArcSet: number;
+  nextStage: ArcStage | null;
+  nextStageXpRequired: number | null;
+  progressToNextPct: number;
+}
+
+const ARC_STAGE_THRESHOLDS: { stage: ArcStage; minXpDelta: number; label: string; description: string }[] = [
+  { stage: "beginning",   minXpDelta: 0,    label: "Beginning",  description: "You have just entered this arc. Start building evidence." },
+  { stage: "developing",  minXpDelta: 200,  label: "Developing", description: "Progress is accumulating. Keep pushing forward." },
+  { stage: "advanced",    minXpDelta: 600,  label: "Advanced",   description: "Strong sustained effort in this arc. Near completion." },
+  { stage: "completed",   minXpDelta: 1500, label: "Completed",  description: "This arc is complete. New paths are opening." },
+];
+
+export function computeArcStage(
+  totalXpAcrossSkills: number,
+  arcStageXpSnapshot: Record<string, number>,
+): ArcStageResult {
+  const snapshotTotal = Object.values(arcStageXpSnapshot).reduce((s, v) => s + v, 0);
+  const xpDelta = Math.max(0, totalXpAcrossSkills - snapshotTotal);
+
+  let currentThreshold = ARC_STAGE_THRESHOLDS[0];
+  for (const t of ARC_STAGE_THRESHOLDS) {
+    if (xpDelta >= t.minXpDelta) currentThreshold = t;
+  }
+
+  const currentIdx = ARC_STAGE_THRESHOLDS.indexOf(currentThreshold);
+  const nextThreshold = ARC_STAGE_THRESHOLDS[currentIdx + 1] ?? null;
+
+  let progressToNextPct = 100;
+  if (nextThreshold) {
+    const rangeStart = currentThreshold.minXpDelta;
+    const rangeEnd = nextThreshold.minXpDelta;
+    progressToNextPct = Math.min(100, Math.round(((xpDelta - rangeStart) / (rangeEnd - rangeStart)) * 100));
+  }
+
+  return {
+    stage: currentThreshold.stage,
+    stageLabel: currentThreshold.label,
+    stageDescription: currentThreshold.description,
+    xpDeltaSinceArcSet: xpDelta,
+    nextStage: nextThreshold?.stage ?? null,
+    nextStageXpRequired: nextThreshold ? nextThreshold.minXpDelta - xpDelta : null,
+    progressToNextPct,
+  };
+}

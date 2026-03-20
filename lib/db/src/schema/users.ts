@@ -22,6 +22,8 @@ export const usersTable = pgTable("users", {
   acquisitionSource: text("acquisition_source"),
   invitedByCode: text("invited_by_code"),
   invitedBy: text("invited_by"),
+  prestigeTier: integer("prestige_tier").notNull().default(0),
+  prestigeReadyAt: timestamp("prestige_ready_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

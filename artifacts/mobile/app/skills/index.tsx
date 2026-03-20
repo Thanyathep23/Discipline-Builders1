@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
-import { useSkills, useSkillEvents } from "@/hooks/useApi";
+import { useSkills, useSkillEvents, useEndgame } from "@/hooks/useApi";
 
 const RANK_COLORS: Record<string, string> = {
   Gray:   "#9E9E9E",
@@ -53,6 +53,26 @@ function RankBadge({ rank }: { rank: string }) {
 const rankBadgeStyles = StyleSheet.create({
   badge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
   dot:   { width: 6, height: 6, borderRadius: 3 },
+  text:  { fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 0.8 },
+});
+
+const MASTERY_COLORS = ["transparent", "#9C27B0", "#F5C842", "#F44336"];
+const MASTERY_LABELS = [null, "M·I", "M·II", "M·III"];
+
+function MasteryBadge({ tier }: { tier: number }) {
+  if (!tier || tier < 1) return null;
+  const color = MASTERY_COLORS[tier] ?? "#9C27B0";
+  const label = MASTERY_LABELS[tier] ?? "M";
+  return (
+    <View style={[masteryBadgeStyles.badge, { borderColor: color + "70", backgroundColor: color + "18" }]}>
+      <Ionicons name="diamond" size={9} color={color} />
+      <Text style={[masteryBadgeStyles.text, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
+const masteryBadgeStyles = StyleSheet.create({
+  badge: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
   text:  { fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 0.8 },
 });
 
@@ -136,6 +156,14 @@ export default function SkillsScreen() {
   const [expandedSuggestions, setExpandedSuggestions] = useState<Set<string>>(new Set());
   const { data, isLoading } = useSkills();
   const { data: eventsData } = useSkillEvents(selectedSkill ?? undefined, 7);
+  const { data: endgameData } = useEndgame();
+
+  const masteryBySkill: Record<string, any> = {};
+  if (endgameData?.mastery) {
+    for (const m of endgameData.mastery) {
+      masteryBySkill[m.skillId] = m;
+    }
+  }
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 16);
   const bottomPad = insets.bottom + 32;
@@ -225,6 +253,7 @@ export default function SkillsScreen() {
                     <Text style={styles.skillName}>{skill.meta.label}</Text>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                       <TrendIcon trend={skill.currentTrend} />
+                      <MasteryBadge tier={skill.masteryTier ?? 0} />
                       <RankBadge rank={skill.rank} />
                     </View>
                   </View>
@@ -255,6 +284,24 @@ export default function SkillsScreen() {
                       <ConfidenceBar score={skill.confidenceScore ?? 0.5} />
                     </View>
                   </View>
+
+                  {(() => {
+                    const ms = masteryBySkill[skill.skillId];
+                    if (ms?.nextTierLabel && ms?.progressToNext) {
+                      const avg = Math.round((ms.progressToNext.levelPct + ms.progressToNext.xpPct + ms.progressToNext.confidencePct) / 3);
+                      return (
+                        <View style={masteryProgressStyles.row}>
+                          <Ionicons name="diamond-outline" size={11} color="#9C27B0" />
+                          <Text style={masteryProgressStyles.label}>→ {ms.nextTierLabel}</Text>
+                          <View style={masteryProgressStyles.barBg}>
+                            <View style={[masteryProgressStyles.barFill, { width: `${avg}%` as any }]} />
+                          </View>
+                          <Text style={masteryProgressStyles.pct}>{avg}%</Text>
+                        </View>
+                      );
+                    }
+                    return null;
+                  })()}
                 </View>
               </Pressable>
 
@@ -374,4 +421,12 @@ const styles = StyleSheet.create({
   howTitle:       { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.textPrimary },
   howItem:        { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   howText:        { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, flex: 1 },
+});
+
+const masteryProgressStyles = StyleSheet.create({
+  row:    { flexDirection: "row", alignItems: "center", gap: 6 },
+  label:  { fontFamily: "Inter_600SemiBold", fontSize: 10, color: "#9C27B0", minWidth: 55 },
+  barBg:  { flex: 1, height: 3, backgroundColor: "#9C27B020", borderRadius: 2, overflow: "hidden" },
+  barFill:{ height: "100%", backgroundColor: "#9C27B0", borderRadius: 2 },
+  pct:    { fontFamily: "Inter_400Regular", fontSize: 10, color: "#9C27B0", minWidth: 30, textAlign: "right" },
 });

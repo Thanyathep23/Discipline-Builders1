@@ -47,20 +47,39 @@ export const CATEGORY_SKILL_MAP: Record<string, SkillId[]> = {
   Recovery:  ["sleep", "fitness"],
 };
 
+export const MASTERY_TIERS = [
+  { tier: 0, label: null,         minLevel: 0,  minXp: 0,     minConfidence: 0 },
+  { tier: 1, label: "Mastery I",  minLevel: 20, minXp: 2000,  minConfidence: 0.60 },
+  { tier: 2, label: "Mastery II", minLevel: 40, minXp: 5000,  minConfidence: 0.75 },
+  { tier: 3, label: "Mastery III",minLevel: 60, minXp: 10000, minConfidence: 0.85 },
+] as const;
+
+export function computeMasteryTier(level: number, totalXpEarned: number, confidenceScore: number): number {
+  let tier = 0;
+  for (const t of MASTERY_TIERS) {
+    if (level >= t.minLevel && totalXpEarned >= t.minXp && confidenceScore >= t.minConfidence) {
+      tier = t.tier;
+    }
+  }
+  return tier;
+}
+
 export const userSkillsTable = pgTable("user_skills", {
-  id:              text("id").primaryKey(),
-  userId:          text("user_id").notNull(),
-  skillId:         text("skill_id").notNull(),
-  level:           integer("level").notNull().default(1),
-  xp:              integer("xp").notNull().default(0),
-  xpToNextLevel:   integer("xp_to_next_level").notNull().default(100),
-  totalXpEarned:   integer("total_xp_earned").notNull().default(0),
-  rank:            text("rank").notNull().default("Gray"),
-  currentTrend:    text("current_trend").notNull().default("stable"),
-  confidenceScore: real("confidence_score").notNull().default(0.5),
-  lastGainAt:      timestamp("last_gain_at"),
-  createdAt:       timestamp("created_at").notNull().defaultNow(),
-  updatedAt:       timestamp("updated_at").notNull().defaultNow(),
+  id:                  text("id").primaryKey(),
+  userId:              text("user_id").notNull(),
+  skillId:             text("skill_id").notNull(),
+  level:               integer("level").notNull().default(1),
+  xp:                  integer("xp").notNull().default(0),
+  xpToNextLevel:       integer("xp_to_next_level").notNull().default(100),
+  totalXpEarned:       integer("total_xp_earned").notNull().default(0),
+  rank:                text("rank").notNull().default("Gray"),
+  currentTrend:        text("current_trend").notNull().default("stable"),
+  confidenceScore:     real("confidence_score").notNull().default(0.5),
+  masteryTier:         integer("mastery_tier").notNull().default(0),
+  masteryUnlockedAt:   timestamp("mastery_unlocked_at"),
+  lastGainAt:          timestamp("last_gain_at"),
+  createdAt:           timestamp("created_at").notNull().defaultNow(),
+  updatedAt:           timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const skillXpEventsTable = pgTable("skill_xp_events", {

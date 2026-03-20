@@ -30,6 +30,8 @@ export const lifeProfilesTable = pgTable("life_profiles", {
   currentArc: text("current_arc"),
   arcSetAt: timestamp("arc_set_at"),
   arcXpSnapshot: text("arc_xp_snapshot").notNull().default("{}"),
+  arcStage: text("arc_stage").notNull().default("beginning"),
+  arcStageXpSnapshot: text("arc_stage_xp_snapshot").notNull().default("{}"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -418,3 +418,23 @@ export function useShareSnapshot() {
     refetchOnWindowFocus: false,
   });
 }
+
+export function useEndgame() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["endgame"],
+    queryFn: () => request<any>("/endgame"),
+    staleTime: 60000,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useStartCycle() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (cycleType: string) =>
+      request<any>("/endgame/cycles/start", { method: "POST", body: JSON.stringify({ cycleType }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["endgame"] }),
+  });
+}

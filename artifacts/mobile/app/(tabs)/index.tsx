@@ -10,7 +10,7 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
-import { useDashboard, useActiveChain, useDailyContext } from "@/hooks/useApi";
+import { useDashboard, useActiveChain, useDailyContext, useEndgame, useStartCycle } from "@/hooks/useApi";
 
 function StatCard({ label, value, icon, color, delay }: any) {
   return (
@@ -150,12 +150,82 @@ const chainCardStyles = StyleSheet.create({
   stepText: { fontFamily: "Inter_400Regular", fontSize: 11, color: "#4FC3F7" },
 });
 
+const URGENCY_COLORS: Record<string, string> = { high: "#F44336", medium: Colors.amber, low: Colors.textMuted };
+const HORIZON_ICONS: Record<string, string> = {
+  mastery: "diamond-outline",
+  prestige: "shield-half-outline",
+  arc_stage: "navigate-outline",
+  cycle: "reload-circle-outline",
+};
+
+function NextHorizonCard({ items, onStartCycle, cycleData }: {
+  items: Array<{ type: string; label: string; description: string; urgency: string }>;
+  onStartCycle: () => void;
+  cycleData: any;
+}) {
+  if (!items || items.length === 0) return null;
+  return (
+    <Animated.View entering={FadeInDown.delay(195).springify()} style={horizonStyles.card}>
+      <View style={horizonStyles.header}>
+        <View style={horizonStyles.iconBox}>
+          <Ionicons name="telescope-outline" size={16} color={Colors.accent} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={horizonStyles.label}>PROGRESSION HORIZON</Text>
+          <Text style={horizonStyles.subtitle}>Your next major unlocks</Text>
+        </View>
+      </View>
+      {items.map((item, i) => (
+        <View key={i} style={[horizonStyles.item, i > 0 && { borderTopWidth: 1, borderTopColor: Colors.border + "60" }]}>
+          <View style={[horizonStyles.itemIcon, { backgroundColor: URGENCY_COLORS[item.urgency] + "15" }]}>
+            <Ionicons name={(HORIZON_ICONS[item.type] ?? "arrow-forward-outline") as any} size={13} color={URGENCY_COLORS[item.urgency]} />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={[horizonStyles.itemLabel, { color: URGENCY_COLORS[item.urgency] }]}>{item.label}</Text>
+            <Text style={horizonStyles.itemDesc} numberOfLines={2}>{item.description}</Text>
+          </View>
+          <View style={[horizonStyles.urgencyDot, { backgroundColor: URGENCY_COLORS[item.urgency] }]} />
+        </View>
+      ))}
+      {!cycleData?.activeCycle && (
+        <Pressable
+          style={({ pressed }) => [horizonStyles.startCycleBtn, pressed && { opacity: 0.8 }]}
+          onPress={onStartCycle}
+        >
+          <Ionicons name="add-circle-outline" size={14} color={Colors.accent} />
+          <Text style={horizonStyles.startCycleBtnText}>Start a Season / Sprint</Text>
+        </Pressable>
+      )}
+    </Animated.View>
+  );
+}
+
+const horizonStyles = StyleSheet.create({
+  card: {
+    backgroundColor: "#FFFFFF06", borderRadius: 16, padding: 14,
+    borderWidth: 1, borderColor: Colors.accent + "25", gap: 10,
+  },
+  header: { flexDirection: "row", alignItems: "center", gap: 10 },
+  iconBox: { width: 32, height: 32, borderRadius: 9, backgroundColor: Colors.accent + "18", alignItems: "center", justifyContent: "center" },
+  label: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.accent, letterSpacing: 1.2 },
+  subtitle: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
+  item: { flexDirection: "row", alignItems: "flex-start", gap: 10, paddingTop: 8 },
+  itemIcon: { width: 28, height: 28, borderRadius: 7, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  itemLabel: { fontFamily: "Inter_700Bold", fontSize: 12 },
+  itemDesc: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, lineHeight: 16 },
+  urgencyDot: { width: 6, height: 6, borderRadius: 3, marginTop: 6, flexShrink: 0 },
+  startCycleBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingTop: 6 },
+  startCycleBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.accent },
+});
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { data, isLoading, refetch, isRefetching } = useDashboard();
   const { data: chainData } = useActiveChain();
   const { data: dailyData } = useDailyContext();
+  const { data: endgameData } = useEndgame();
+  const startCycle = useStartCycle();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
@@ -236,6 +306,19 @@ export default function HomeScreen() {
             message={dailyData.message}
             suggestedAction={dailyData.suggestedAction}
             daysSinceLast={dailyData.daysSinceLast}
+          />
+        )}
+
+        {/* Progression Horizon */}
+        {endgameData?.nextHorizon && endgameData.nextHorizon.length > 0 && (
+          <NextHorizonCard
+            items={endgameData.nextHorizon}
+            cycleData={endgameData.cycle}
+            onStartCycle={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              const suggested = endgameData.cycle?.suggestedCycleType ?? "focus_season";
+              startCycle.mutate(suggested);
+            }}
           />
         )}
 

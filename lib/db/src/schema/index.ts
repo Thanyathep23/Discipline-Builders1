@@ -20,3 +20,4 @@ export * from "./chains";
 export * from "./feedback";
 export * from "./feature-flags";
 export * from "./invite-codes";
+export * from "./endgame";

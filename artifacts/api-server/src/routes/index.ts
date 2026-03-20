@@ -21,6 +21,7 @@ import proofUploadsRouter from "./proof-uploads.js";
 import shareRouter from "./share.js";
 import feedbackRouter from "./feedback.js";
 import invitesRouter from "./invites.js";
+import endgameRouter from "./endgame.js";
 
 const router: IRouter = Router();
 
@@ -46,5 +47,6 @@ router.use("/streaks", streaksRouter);
 router.use("/share", shareRouter);
 router.use("/feedback", feedbackRouter);
 router.use("/invites", invitesRouter);
+router.use("/endgame", endgameRouter);
 
 export default router;

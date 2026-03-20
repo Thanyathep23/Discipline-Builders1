@@ -12,7 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   useRewardBalance, useDailyAnalytics, useSkills,
   useLifeProfile, useInventoryBadges, useInventoryTitles, useStreaks,
-  useIdentity,
+  useIdentity, useEndgame,
 } from "@/hooks/useApi";
 
 const SKILL_ICONS: Record<string, string> = {
@@ -40,6 +40,7 @@ export default function ProfileScreen() {
   const { data: titlesData } = useInventoryTitles();
   const { data: streakData } = useStreaks();
   const { data: identityData } = useIdentity();
+  const { data: endgameData } = useEndgame();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
@@ -220,6 +221,38 @@ export default function ProfileScreen() {
                   <Text style={styles.arcLabel}>CURRENT ARC</Text>
                   <Text style={styles.arcValue}>{skillsData.currentArc.name}</Text>
                   <Text style={styles.arcSub}>{skillsData.currentArc.subtitle}</Text>
+                  {endgameData?.arcStage && (
+                    <View style={endgameProfileStyles.arcStagePill}>
+                      <View style={endgameProfileStyles.arcStageDot} />
+                      <Text style={endgameProfileStyles.arcStageText}>
+                        {endgameData.arcStage.stageLabel} Stage — {endgameData.arcStage.progressToNextPct}%{endgameData.arcStage.nextStage ? ` to ${endgameData.arcStage.nextStage}` : " (complete)"}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {endgameData?.prestige && endgameData.prestige.currentTier > 0 && (
+              <View style={[endgameProfileStyles.prestigeBox, { borderColor: (endgameData.prestige.currentBorderColor ?? "#9C27B0") + "50" }]}>
+                <Ionicons name="shield-checkmark" size={16} color={endgameData.prestige.currentBorderColor ?? "#9C27B0"} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[endgameProfileStyles.prestigeLabel, { color: endgameData.prestige.currentBorderColor ?? "#9C27B0" }]}>
+                    {endgameData.prestige.currentLabel}
+                  </Text>
+                  <Text style={endgameProfileStyles.prestigeTitle}>{endgameData.prestige.currentTitle}</Text>
+                </View>
+              </View>
+            )}
+
+            {endgameData?.prestige && !endgameData.prestige.currentTier && endgameData.prestige.readinessScore >= 30 && (
+              <View style={endgameProfileStyles.prestigeReadinessBox}>
+                <View style={{ flex: 1 }}>
+                  <Text style={endgameProfileStyles.prestigeReadinessLabel}>PRESTIGE READINESS</Text>
+                  <Text style={endgameProfileStyles.prestigeReadinessDesc}>{endgameData.prestige.readinessSummary}</Text>
+                </View>
+                <View style={endgameProfileStyles.readinessPill}>
+                  <Text style={endgameProfileStyles.readinessPct}>{endgameData.prestige.readinessScore}%</Text>
                 </View>
               </View>
             )}
@@ -558,4 +591,31 @@ const styles = StyleSheet.create({
   completionLayerLabelDone: { color: Colors.accent, fontFamily: "Inter_600SemiBold" },
   completionConnector:      { flex: 1, height: 2, backgroundColor: Colors.border, marginTop: 5 },
   completionConnectorDone:  { backgroundColor: Colors.accent },
+});
+
+const endgameProfileStyles = StyleSheet.create({
+  arcStagePill: {
+    flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4,
+    backgroundColor: Colors.accent + "15", borderRadius: 8,
+    paddingHorizontal: 8, paddingVertical: 3, alignSelf: "flex-start",
+  },
+  arcStageDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.accent },
+  arcStageText: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.accent },
+  prestigeBox: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: "#9C27B012", borderRadius: 12, padding: 12, borderWidth: 1,
+  },
+  prestigeLabel: { fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 1 },
+  prestigeTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary, marginTop: 2 },
+  prestigeReadinessBox: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: "#FFFFFF06", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: Colors.border,
+  },
+  prestigeReadinessLabel: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.2, marginBottom: 3 },
+  prestigeReadinessDesc: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, lineHeight: 16 },
+  readinessPill: {
+    backgroundColor: Colors.accentGlow, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
+    alignItems: "center", justifyContent: "center",
+  },
+  readinessPct: { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.accent },
 });
