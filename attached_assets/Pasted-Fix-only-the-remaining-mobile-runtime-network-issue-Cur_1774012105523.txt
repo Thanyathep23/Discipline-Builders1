@@ -1,0 +1,54 @@
+Fix only the remaining mobile runtime network issue.
+
+Current status:
+- The database schema issue is already fixed.
+- Backend signup/login works when tested directly.
+- But the mobile/Expo app still shows "Failed to fetch" on signup/login.
+- Therefore the remaining problem is not database logic. It is the mobile runtime failing to reach the API.
+
+Your task:
+Audit and fix only the mobile runtime API connectivity issue.
+
+Strict scope:
+- inspect only:
+  - mobile API base URL construction
+  - EXPO_PUBLIC_DOMAIN usage
+  - mobile runtime env loading
+  - AuthContext.tsx
+  - useApi.ts
+  - any shared API client used by mobile
+  - Expo/Metro rebundling requirements
+  - API health fetch from the mobile runtime
+  - CORS/origin issues only if they affect the mobile runtime
+- do not touch gameplay, missions, rewards, arcs, uploads, chains, or database schema
+- do not refactor broadly
+- do not re-run unrelated migrations
+
+What to do:
+1. Log and verify the exact API_BASE value used at runtime inside the mobile app
+2. Log and verify the exact signup/login URL being fetched from the mobile app
+3. Test a simple fetch from the mobile runtime to:
+   - ${EXPO_PUBLIC_DOMAIN}/api/healthz
+4. Confirm whether the mobile runtime is still using:
+   - localhost
+   - a stale domain
+   - a stale /api-server/api path
+   - an undefined EXPO_PUBLIC_DOMAIN
+5. If env values changed, fully restart Expo/Metro so the mobile app rebundles with the current config
+6. Confirm auth requests from the actual mobile runtime reach the API server successfully
+7. Keep success/error responses handled cleanly
+
+Acceptance criteria:
+1. mobile runtime fetch to /api/healthz succeeds
+2. signup request from the mobile app reaches the API server
+3. login request from the mobile app reaches the API server
+4. no more "Failed to fetch" on signup/login
+5. no unrelated systems changed
+
+At the end return exactly:
+1. the exact API_BASE value used by the mobile runtime
+2. the exact auth URL used at runtime
+3. the root cause of the remaining Failed to fetch issue
+4. exact files changed
+5. whether Expo/Metro had to be restarted
+6. verification results from the actual mobile runtime, not only backend shell tests
