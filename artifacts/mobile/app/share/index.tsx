@@ -177,7 +177,18 @@ export default function ShareShowcaseScreen() {
           </Animated.View>
         )}
 
-        <Animated.View entering={FadeInDown.delay(180).springify()} style={styles.privacyNote}>
+        <Animated.View entering={FadeInDown.delay(160).springify()} style={styles.inviteCta}>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={styles.inviteCtaTitle}>Invite a Friend</Text>
+            <Text style={styles.inviteCtaText}>Know someone who should be doing more with their life? Send them your invite code.</Text>
+          </View>
+          <Pressable style={styles.inviteCtaBtn} onPress={() => router.push("/invite")}>
+            <Ionicons name="people-outline" size={16} color={Colors.accent} />
+            <Text style={styles.inviteCtaBtnText}>Invite</Text>
+          </Pressable>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.privacyNote}>
           <Ionicons name="shield-checkmark-outline" size={14} color={Colors.green} />
           <Text style={styles.privacyText}>
             Share cards never expose your email, financial data, private notes, or proof files.
@@ -210,6 +221,11 @@ const styles = StyleSheet.create({
   badgesList:      { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   badgePill:       { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 20, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
   badgePillText:   { fontFamily: "Inter_600SemiBold", fontSize: 11 },
+  inviteCta:       { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.border },
+  inviteCtaTitle:  { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.textPrimary },
+  inviteCtaText:   { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, lineHeight: 17 },
+  inviteCtaBtn:    { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: Colors.accentGlow, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: Colors.accentDim },
+  inviteCtaBtnText:{ fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.accent },
   privacyNote:     { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 6, paddingHorizontal: 4 },
   privacyText:     { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, flex: 1, lineHeight: 16 },
   loadingText:     { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textMuted, marginTop: 12 },

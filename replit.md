@@ -467,3 +467,30 @@ Six premium shareable card components, all screenshot-optimized with dark premiu
 - Feedback submission requires `requireAuth` — no anonymous submissions
 - No user PII in telemetry events (userId only, no names/email/content)
 - Feature flag edits write to audit log via `setFlag()` which records `updatedBy`
+
+## Phase 12 — Growth, Invites & Welcome Flow (COMPLETE)
+
+### DB schema additions
+- `invite_codes` table — one code per user (`DISC-XXXXXX` format, max 50 uses, `usesCount` tracked)
+- Users table new columns: `acquisitionSource` (direct/invite/share_card/…), `invitedByCode`, `invitedBy` (userId of referrer)
+- 30 total DB tables
+
+### Backend additions
+- `artifacts/api-server/src/routes/invites.ts` — `GET /invites/my-code` (auto-creates code if missing), `GET /invites/stats` (invitees list, activation count)
+- `artifacts/api-server/src/routes/admin.ts` — `GET /admin/growth` (acquisition source breakdown, invite funnel, active codes, recent invitees, configurable day window)
+- `artifacts/api-server/src/routes/auth.ts` — register now accepts `inviteCode` + `acquisitionSource`; resolves invite attribution, increments code use count, fires `INVITE_CODE_USED` telemetry
+- New telemetry events: `INVITE_CODE_GENERATED`, `INVITE_CODE_USED`
+
+### Mobile screens
+- `app/(auth)/welcome.tsx` — Pre-login landing: hero, 4-step "how it works", 4 differentiators, privacy note, "Begin Your Discipline" CTA → register, sign-in link
+- `app/invite/index.tsx` — Invite code display (dashed border), copy + native share, usage stats (signed up / activated / remaining), invitee list, rules card
+- `app/admin/growth.tsx` — Admin growth funnel: day range picker, overview stats, acquisition source bar chart, invite funnel conversion, active codes table, recent invite signups
+
+### Mobile wiring
+- Auth guard redirect changed from `/(auth)/login` to `/(auth)/welcome` for new users
+- `app/_layout.tsx` — `invite/index` + `admin/growth` registered as Stack screens
+- `app/(auth)/register.tsx` — optional invite code field added to form
+- `context/AuthContext.tsx` — `register()` accepts optional `inviteCode`, sends `acquisitionSource`
+- `app/(tabs)/profile.tsx` — "Invite Friends" Quick Access item added
+- `app/share/index.tsx` — "Invite a Friend" CTA card appended
+- `app/admin/index.tsx` — "Growth Funnel" nav card added

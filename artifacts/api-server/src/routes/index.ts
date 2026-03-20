@@ -20,6 +20,7 @@ import streaksRouter from "./streaks.js";
 import proofUploadsRouter from "./proof-uploads.js";
 import shareRouter from "./share.js";
 import feedbackRouter from "./feedback.js";
+import invitesRouter from "./invites.js";
 
 const router: IRouter = Router();
 
@@ -44,5 +45,6 @@ router.use("/inventory", inventoryRouter);
 router.use("/streaks", streaksRouter);
 router.use("/share", shareRouter);
 router.use("/feedback", feedbackRouter);
+router.use("/invites", invitesRouter);
 
 export default router;

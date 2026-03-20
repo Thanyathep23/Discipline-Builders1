@@ -33,7 +33,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (isLoading) return;
     const inAuthGroup = segments[0] === "(auth)";
     if (!user && !inAuthGroup) {
-      router.replace("/(auth)/login");
+      router.replace("/(auth)/welcome");
     } else if (user && inAuthGroup) {
       router.replace("/(tabs)");
     }
@@ -55,6 +55,8 @@ function RootLayoutNav() {
         <Stack.Screen name="onboarding/index" options={{ gestureEnabled: false }} />
         <Stack.Screen name="skills/index" />
         <Stack.Screen name="ai-missions/index" />
+        <Stack.Screen name="invite/index" />
+        <Stack.Screen name="admin/growth" />
       </Stack>
     </AuthGuard>
   );

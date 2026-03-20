@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, inviteCodesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -14,6 +14,8 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   username: z.string().min(2).max(50),
+  inviteCode: z.string().max(20).optional(),
+  acquisitionSource: z.string().max(50).optional(),
 });
 
 const loginSchema = z.object({
@@ -44,13 +46,35 @@ router.post("/register", async (req, res) => {
     return;
   }
 
-  const { email, password, username } = parsed.data;
+  const { email, password, username, inviteCode, acquisitionSource } = parsed.data;
 
   const existing = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
   if (existing[0]) {
     res.status(409).json({ error: "Email already registered" });
     return;
   }
+
+  // Resolve invite code attribution
+  let invitedByCode: string | null = null;
+  let invitedBy: string | null = null;
+  if (inviteCode) {
+    const codeRow = await db
+      .select()
+      .from(inviteCodesTable)
+      .where(eq(inviteCodesTable.code, inviteCode.toUpperCase().trim()))
+      .limit(1);
+    if (codeRow[0] && codeRow[0].usesCount < codeRow[0].maxUses) {
+      invitedByCode = codeRow[0].code;
+      invitedBy = codeRow[0].creatorId;
+      // Increment uses count
+      await db
+        .update(inviteCodesTable)
+        .set({ usesCount: codeRow[0].usesCount + 1 })
+        .where(eq(inviteCodesTable.id, codeRow[0].id));
+    }
+  }
+
+  const source = acquisitionSource ?? (invitedByCode ? "invite" : "direct");
 
   const passwordHash = await hashPassword(password);
   const userId = generateId();
@@ -67,12 +91,18 @@ router.post("/register", async (req, res) => {
     currentStreak: 0,
     longestStreak: 0,
     trustScore: 1.0,
+    acquisitionSource: source,
+    invitedByCode,
+    invitedBy,
   });
 
   const user = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   const token = createToken(userId);
 
-  trackEvent(Events.SIGNUP_COMPLETED, userId, { username }).catch(() => {});
+  trackEvent(Events.SIGNUP_COMPLETED, userId, { username, acquisitionSource: source, invitedByCode }).catch(() => {});
+  if (invitedByCode) {
+    trackEvent(Events.INVITE_CODE_USED, invitedBy, { inviteCode: invitedByCode, inviteeId: userId }).catch(() => {});
+  }
   res.status(201).json({ token, user: formatUser(user[0]) });
 });
 

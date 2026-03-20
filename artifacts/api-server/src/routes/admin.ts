@@ -18,8 +18,9 @@ import {
   titlesTable,
   userFeedbackTable,
   featureFlagsTable,
+  inviteCodesTable,
 } from "@workspace/db";
-import { eq, desc, count, and, gte, inArray, sql } from "drizzle-orm";
+import { eq, desc, count, and, gte, inArray, sql, isNotNull } from "drizzle-orm";
 import { setFlag } from "../lib/feature-flags.js";
 import { z } from "zod";
 import { requireAdmin, generateId } from "../lib/auth.js";
@@ -983,6 +984,96 @@ router.put("/flags/:key", async (req, res) => {
 
     const [updated] = await db.select().from(featureFlagsTable).where(eq(featureFlagsTable.key, key)).limit(1);
     return res.json({ flag: updated });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// =====================================================================
+// GROWTH FUNNEL  —  GET /admin/growth
+// =====================================================================
+router.get("/growth", async (req, res) => {
+  try {
+    const days = Math.min(Number(req.query.days ?? 30), 90);
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    // Acquisition source breakdown
+    const sourcesRaw = await db
+      .select({ source: usersTable.acquisitionSource, n: count() })
+      .from(usersTable)
+      .where(gte(usersTable.createdAt, since))
+      .groupBy(usersTable.acquisitionSource)
+      .orderBy(desc(count()));
+
+    const sources: Record<string, number> = {};
+    for (const r of sourcesRaw) sources[r.source ?? "unknown"] = Number(r.n);
+
+    // Total signups in window
+    const totalSignups = Object.values(sources).reduce((a, b) => a + b, 0);
+
+    // Invite funnel
+    const invitedSignups = await db
+      .select({ n: count() })
+      .from(usersTable)
+      .where(and(isNotNull(usersTable.invitedByCode), gte(usersTable.createdAt, since)));
+
+    const inviteActivated = await db
+      .select({ n: count() })
+      .from(usersTable)
+      .innerJoin(lifeProfilesTable, eq(usersTable.id, lifeProfilesTable.userId))
+      .where(and(
+        isNotNull(usersTable.invitedByCode),
+        isNotNull(lifeProfilesTable.onboardingStage),
+        gte(usersTable.createdAt, since),
+      ));
+
+    // Active invite codes (with usage)
+    const activeCodes = await db
+      .select({
+        code: inviteCodesTable.code,
+        creatorId: inviteCodesTable.creatorId,
+        usesCount: inviteCodesTable.usesCount,
+        maxUses: inviteCodesTable.maxUses,
+        createdAt: inviteCodesTable.createdAt,
+      })
+      .from(inviteCodesTable)
+      .orderBy(desc(inviteCodesTable.usesCount))
+      .limit(20);
+
+    // Recent invite-sourced users
+    const recentInvitees = await db
+      .select({
+        username: usersTable.username,
+        invitedByCode: usersTable.invitedByCode,
+        createdAt: usersTable.createdAt,
+        acquisitionSource: usersTable.acquisitionSource,
+      })
+      .from(usersTable)
+      .where(and(isNotNull(usersTable.invitedByCode), gte(usersTable.createdAt, since)))
+      .orderBy(desc(usersTable.createdAt))
+      .limit(25);
+
+    return res.json({
+      days,
+      totalSignups,
+      acquisitionSources: sources,
+      inviteFunnel: {
+        signups: Number(invitedSignups[0]?.n ?? 0),
+        activated: Number(inviteActivated[0]?.n ?? 0),
+      },
+      activeCodes: activeCodes.map(c => ({
+        code: c.code,
+        usesCount: c.usesCount,
+        maxUses: c.maxUses,
+        createdAt: c.createdAt?.toISOString(),
+      })),
+      recentInvitees: recentInvitees.map(u => ({
+        username: u.username,
+        code: u.invitedByCode,
+        joinedAt: u.createdAt?.toISOString(),
+        source: u.acquisitionSource,
+      })),
+    });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

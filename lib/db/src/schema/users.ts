@@ -19,6 +19,9 @@ export const usersTable = pgTable("users", {
   isActive: boolean("is_active").notNull().default(true),
   lastActiveAt: timestamp("last_active_at"),
   lastStreakDate: text("last_streak_date"),
+  acquisitionSource: text("acquisition_source"),
+  invitedByCode: text("invited_by_code"),
+  invitedBy: text("invited_by"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

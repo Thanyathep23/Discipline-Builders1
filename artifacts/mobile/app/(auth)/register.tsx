@@ -14,6 +14,7 @@ export default function RegisterScreen() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,7 +29,7 @@ export default function RegisterScreen() {
     setError("");
     setLoading(true);
     try {
-      await register(email.trim().toLowerCase(), password, username.trim());
+      await register(email.trim().toLowerCase(), password, username.trim(), inviteCode.trim() || undefined);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err: any) {
       setError(err.message ?? "Registration failed");
@@ -98,6 +99,21 @@ export default function RegisterScreen() {
               <Pressable onPress={() => setShowPassword(v => !v)} style={styles.eyeBtn}>
                 <Ionicons name={showPassword ? "eye-off" : "eye"} size={18} color={Colors.textMuted} />
               </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Invite Code <Text style={{ color: Colors.textMuted, fontFamily: "Inter_400Regular" }}>(optional)</Text></Text>
+            <View style={styles.inputWrap}>
+              <Ionicons name="people-outline" size={18} color={Colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="DISC-XXXXXX"
+                placeholderTextColor={Colors.textMuted}
+                value={inviteCode}
+                onChangeText={setInviteCode}
+                autoCapitalize="characters"
+              />
             </View>
           </View>
 

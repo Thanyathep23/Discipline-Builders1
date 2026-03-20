@@ -1,0 +1,337 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 12 — Growth / Positioning / Invite Loop.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Arc, proof intelligence, adaptive challenge, identity layer, admin tools, and shareable layer are complete
+- Beta telemetry, funnel visibility, feedback, and tuning controls are complete
+- The next highest-value step is to make the product understandable, compelling, and shareable enough to drive intentional growth
+
+Your task:
+Build only the smallest high-impact growth layer:
+1. clear positioning surfaces
+2. invite/referral loop lite
+3. share-to-invite bridge
+4. lightweight acquisition attribution
+5. activation-focused growth visibility
+
+Do NOT build:
+- full social network
+- viral spam mechanics
+- full CRM/marketing automation suite
+- email marketing platform
+- ads system
+- leaderboard/community
+- marketplace expansion
+- redesign of the whole product
+- large analytics warehouse
+
+==================================================
+PHASE 12 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Positioning / landing surfaces
+2. Invite / referral loop lite
+3. Share-to-invite bridge
+4. Acquisition attribution lite
+5. Growth funnel visibility for invites and activation
+6. Minimal admin/internal growth controls if needed
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current onboarding, shareable layer, telemetry, profile/identity surfaces, and any existing landing or marketing pages
+2. identify what currently explains the product well vs poorly
+3. identify what invite/share hooks already exist
+4. implement only the minimum set of growth features needed
+5. avoid broad refactors
+
+==================================================
+A. POSITIONING / LANDING SURFACES
+==================================================
+
+Create or improve lightweight growth-facing surfaces that explain the product clearly.
+
+Primary product positioning:
+This is not a generic productivity app.
+This is a serious Life RPG with an AI Game Master that turns real-life progress into visible character growth.
+
+Build:
+- a lightweight landing/marketing page or equivalent entry surface
+- a concise value proposition section
+- a “how it works” section
+- a “why it feels different” section
+- a privacy/trust section
+- a CTA path into signup / invite / beta access
+
+Messaging priorities:
+- real life -> game progression
+- AI missions and fair proof-based rewards
+- skill growth tied to actual behavior
+- identity progression, not fake gamification
+- private-first and non-creepy positioning
+
+Requirements:
+- copy should feel premium, sharp, and modern
+- not overhyped or childish
+- not vague corporate language
+- should convert a cold user into understanding the product within seconds
+
+Do NOT build a giant marketing site.
+Keep it focused and high-conviction.
+
+==================================================
+B. INVITE / REFERRAL LOOP LITE
+==================================================
+
+Add a lightweight invite system.
+
+Build:
+- invite codes or referral codes
+- invite link generation
+- referral attribution on signup if feasible
+- basic tracking of:
+  - inviter
+  - invitee
+  - invite accepted / completed signup / activated
+- lightweight reward or recognition for successful invites
+
+Possible rewards:
+- symbolic badge
+- invite milestone title
+- invite-only cosmetic/profile marker
+- small controlled in-game bonus if safe and non-inflationary
+
+Rules:
+- do not create spam incentives
+- do not create money-like referral abuse
+- rewards should feel meaningful but controlled
+- invite loop should remain private-first and tasteful
+
+Requirements:
+- preserve ownership/security
+- invite attribution should be server-side
+- avoid easy self-referral abuse if feasible
+- keep implementation lightweight
+
+==================================================
+C. SHARE-TO-INVITE BRIDGE
+==================================================
+
+Connect existing shareable cards/surfaces to lightweight growth actions.
+
+Examples:
+- after exporting a share card, offer:
+  - copy invite link
+  - invite a friend
+  - share “start your Life RPG” message
+- profile showcase can expose a tasteful invite CTA
+- milestone cards can include subtle invite framing
+
+Requirements:
+- do not turn every share into spam
+- share moments should remain identity-first, invite-second
+- invite CTA should feel optional and elegant
+- preserve privacy and avoid exposing sensitive data
+
+==================================================
+D. ACQUISITION ATTRIBUTION LITE
+==================================================
+
+Add simple growth attribution so the team can see what brings users in.
+
+Track lightweight fields/events such as:
+- acquisition source
+- invite code used
+- share card source if relevant
+- landing CTA used
+- signup source
+- first activation source
+
+Requirements:
+- keep it privacy-safe
+- keep it lightweight
+- tie into existing telemetry where possible
+- do not build a giant attribution system
+
+Suggested source categories:
+- direct
+- invite
+- share_card
+- landing_page
+- comeback_reentry
+- manual/admin/test
+- unknown
+
+==================================================
+E. GROWTH FUNNEL VISIBILITY
+==================================================
+
+Add lightweight internal visibility for growth funnels.
+
+Minimum funnels:
+1. Landing page -> signup
+2. Signup -> Quick Start complete
+3. Quick Start -> first mission
+4. Invite received -> signup
+5. Invite signup -> activated user
+6. Share card viewed/exported -> invite click/signup if feasible
+
+Requirements:
+- use existing admin/tuning surfaces where possible
+- do not build a huge BI dashboard
+- keep it tactical and lightweight
+- make it possible to tell whether invites and positioning are working
+
+==================================================
+F. ACTIVATION-FOCUSED GROWTH LOGIC
+==================================================
+
+Improve the early path from signup to “aha moment.”
+
+The aha moment is not account creation.
+The aha moment is:
+- understanding the Life RPG concept,
+- getting a meaningful mission,
+- completing something,
+- seeing real progression.
+
+Add only small high-impact growth improvements such as:
+- stronger first-run CTA path
+- better first recommended action after signup
+- clearer post-signup direction to Quick Start / first mission / first AI mission
+- lightweight “start here” guidance for invited users
+
+Do NOT redesign the whole onboarding.
+Keep this tactical.
+
+==================================================
+G. MINIMAL ADMIN / INTERNAL CONTROLS
+==================================================
+
+If needed, add only minimal internal controls for growth:
+- invite system on/off
+- invite reward on/off or small multiplier
+- landing CTA variants if cheap and safe
+- basic source/category toggles
+- invite abuse review visibility
+
+Keep it lightweight and admin-only.
+
+==================================================
+H. PRIVACY / SAFETY RULES
+==================================================
+
+- growth surfaces must stay private-first
+- no public-by-default user profiles
+- no exposure of sensitive profile data
+- no spammy invite mechanics
+- no misleading scarcity or manipulative dark patterns
+- preserve ownership checks
+- preserve JSON-only APIs
+- keep schema changes minimal and additive
+
+==================================================
+I. UI / UX DIRECTION
+==================================================
+
+Design direction:
+- dark premium
+- command-center prestige
+- sharp, modern, credible
+- growth-oriented but not gimmicky
+- invite/share prompts should feel elegant, not desperate
+
+Landing/positioning should feel:
+- clear
+- distinct
+- premium
+- believable
+- emotionally strong
+
+Invite UX should feel:
+- selective
+- intentional
+- rewarding
+- non-spammy
+
+==================================================
+J. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. the product has a clear growth-facing positioning surface
+2. users can generate/use invite links or invite codes
+3. invite/referral attribution works in a lightweight but real way
+4. shareable moments can connect to invite flow elegantly
+5. internal funnel visibility exists for growth and activation
+6. activation path from signup to first meaningful action is clearer
+7. invite logic is ownership-safe and non-spammy
+8. existing mission/proof/reward flow still works
+9. no unrelated gameplay or oversized marketing scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what growth-facing surfaces already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Positioning / landing improvements
+- what surfaces were added or improved
+- what core messaging was implemented
+
+4. Invite / referral loop added
+- how invite links/codes work
+- attribution logic
+- reward/recognition logic
+- abuse protections applied
+
+5. Share-to-invite bridge
+- where invite CTA now appears
+- how it connects to existing shareable surfaces
+
+6. Acquisition attribution added
+- source categories
+- what is tracked
+- how it is inspected internally
+
+7. Growth funnel visibility added
+- which funnels are now visible
+- where they can be inspected
+
+8. Activation improvements added
+- what first-run/growth-path changes were made
+
+9. End-to-end verification results for:
+- landing/positioning flow
+- invite generation
+- invite signup attribution
+- first activation flow
+- share-to-invite flow
+- existing app flow unchanged
+
+10. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

@@ -66,4 +66,7 @@ export const Events = {
   COMEBACK_MISSION_COMPLETED:    "comeback_mission_completed",
   // Feedback
   FEEDBACK_SUBMITTED:            "feedback_submitted",
+  // Growth / Invites
+  INVITE_CODE_GENERATED:         "invite_code_generated",
+  INVITE_CODE_USED:              "invite_code_used",
 } as const;
