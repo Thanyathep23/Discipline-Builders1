@@ -78,7 +78,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { throw new Error("Server error: unexpected response"); }
     if (!res.ok) throw new Error(data.error ?? "Login failed");
 
     setToken(data.token);
@@ -93,7 +95,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, username }),
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { throw new Error("Server error: unexpected response"); }
     if (!res.ok) throw new Error(data.error ?? "Registration failed");
 
     setToken(data.token);

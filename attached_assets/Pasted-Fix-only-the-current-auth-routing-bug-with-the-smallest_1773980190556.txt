@@ -1,0 +1,89 @@
+Fix only the current auth routing bug with the smallest possible change set.
+
+Context:
+- Current app uses custom Express backend + Postgres + Drizzle.
+- Do NOT migrate to Supabase.
+- Do NOT add new features.
+- Do NOT refactor unrelated files.
+- Do NOT touch database schema unless absolutely required for auth to work.
+- Goal is only to fix the login/signup flow so the frontend receives valid JSON from the correct API server.
+
+Current symptoms:
+- Frontend expects JSON but gets HTML.
+- Error looks like: Unexpected token '<' ... not valid JSON.
+- The dev/public domain appears to be routing to the Expo/app server instead of the API server for auth requests.
+- User currently cannot sign up or sign in.
+
+Your task:
+1. Diagnose exactly why login/signup requests are returning HTML instead of JSON.
+2. Fix routing/proxy/base URL issues so auth requests hit the Express API server.
+3. Fix login and signup endpoints so they always return valid JSON on both success and error.
+4. Keep the current stack and architecture intact.
+
+Strict scope:
+- Only inspect and modify files related to:
+  - frontend auth request URLs
+  - frontend fetch/axios auth helpers
+  - Express auth routes
+  - server routing/proxy config
+  - catch-all/fallback route behavior
+  - environment variables related to API base URL
+  - dev/preview artifact routing if needed
+- Do not work on rewards, missions, admin, AI judge, extension, or analytics.
+
+What to check:
+- Whether frontend auth requests use relative paths that are being captured by the wrong server
+- Whether API_BASE_URL / NEXT_PUBLIC_* / EXPO_PUBLIC_* or similar env vars are missing or incorrect
+- Whether Express auth routes exist and are mounted correctly
+- Whether the app server has a catch-all route returning index.html before API routes
+- Whether the wrong port/domain is being used in development/preview
+- Whether signup/signin handlers sometimes return HTML redirects instead of JSON
+- Whether error middleware sends HTML instead of JSON for /api/auth/* routes
+- Whether CORS, proxy, or rewrites are misconfigured
+
+Required fixes:
+- All auth requests must go to the Express API server
+- POST /api/auth/signup must return JSON
+- POST /api/auth/login must return JSON
+- Failed auth must also return JSON, never HTML
+- Response content-type for auth endpoints must be application/json
+- Frontend must parse and handle JSON safely
+- If API returns non-JSON unexpectedly, frontend should show a clean error instead of crashing
+
+Implementation rules:
+- Make the minimum number of changes
+- Prefer small targeted patches over refactors
+- Preserve current auth/session logic if possible
+- If there is a catch-all route, ensure /api/* routes are matched before it
+- If base URL is wrong, centralize it in one auth API client/helper
+- Add a tiny defensive JSON parsing guard on frontend auth calls
+- Keep logs concise and useful
+
+Deliverables:
+1. Root cause summary in 3-6 bullets
+2. Exact files changed
+3. Minimal patch applied
+4. Final verification results
+
+Acceptance criteria:
+- Signup request reaches the Express API, not the app HTML server
+- Login request reaches the Express API, not the app HTML server
+- Browser network tab would show JSON response bodies for both success and failure cases
+- No HTML response for /api/auth/signup or /api/auth/login
+- User can create account and sign in successfully
+- Invalid credentials show a clean error message, not a JSON parse error
+- No unrelated files changed
+
+Execution plan:
+1. Inspect auth frontend request code and current API base URL usage
+2. Inspect Express route mounting order and fallback route behavior
+3. Fix the smallest number of files needed
+4. Restart the necessary server(s)
+5. Test signup
+6. Test login
+7. Report exactly what was fixed
+
+Important:
+Do not ask me broad architecture questions.
+Do not propose migrations.
+Do the diagnosis and fix directly in one pass with minimal credit usage.
