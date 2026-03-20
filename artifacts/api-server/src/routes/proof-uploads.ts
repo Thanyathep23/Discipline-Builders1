@@ -6,12 +6,14 @@ import { randomUUID } from "crypto";
 import { requireAuth } from "../lib/auth.js";
 import { db } from "@workspace/db";
 import { proofFilesTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull, lt } from "drizzle-orm";
+import { checkUploadRateLimit } from "../lib/upload-rate-limiter.js";
+import { extractFileContent } from "../lib/content-extractor.js";
 
 const router = Router();
 router.use(requireAuth);
 
-const UPLOAD_DIR = path.join(process.cwd(), ".proof-uploads");
+export const UPLOAD_DIR = path.join(process.cwd(), ".proof-uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const ALLOWED_MIME_TYPES = new Set([
@@ -38,7 +40,16 @@ const upload = multer({
   },
 });
 
-router.post("/upload", (req, res, next) => {
+router.post("/upload", (req: any, res, next) => {
+  const userId = req.user?.id ?? (req as any).userId;
+  const rateCheck = checkUploadRateLimit(userId);
+  if (!rateCheck.allowed) {
+    return res.status(429).json({
+      error: `Upload limit reached. You can upload up to 20 files per hour. Try again in ${Math.ceil(rateCheck.resetInSeconds / 60)} minute(s).`,
+      resetInSeconds: rateCheck.resetInSeconds,
+    });
+  }
+
   upload.single("file")(req, res, (err) => {
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
@@ -59,6 +70,8 @@ router.post("/upload", (req, res, next) => {
   const userId = req.user?.id ?? (req as any).userId;
   const fileId = randomUUID();
   const storedName = req.file.filename;
+  const filePath = path.join(UPLOAD_DIR, storedName);
+  const missionCategory = (req.body?.missionCategory as string) ?? "default";
 
   try {
     await db.insert(proofFilesTable).values({
@@ -69,7 +82,21 @@ router.post("/upload", (req, res, next) => {
       mimeType: req.file.mimetype,
       fileSize: req.file.size,
       proofSubmissionId: null,
+      extractedText: null,
+      extractionStatus: "pending",
     });
+
+    extractFileContent(filePath, req.file.mimetype, req.file.originalname, missionCategory)
+      .then(async (result) => {
+        await db
+          .update(proofFilesTable)
+          .set({
+            extractedText: result.text ?? null,
+            extractionStatus: result.status,
+          })
+          .where(eq(proofFilesTable.id, fileId));
+      })
+      .catch((err) => console.error("Async extraction failed:", err));
 
     return res.status(201).json({
       fileId,
@@ -77,9 +104,10 @@ router.post("/upload", (req, res, next) => {
       mimeType: req.file.mimetype,
       fileSize: req.file.size,
       fileSizeKb: Math.round(req.file.size / 1024),
+      extractionPending: true,
     });
   } catch (dbErr: any) {
-    fs.unlink(path.join(UPLOAD_DIR, storedName), () => {});
+    fs.unlink(filePath, () => {});
     return res.status(500).json({ error: "Failed to store file metadata." });
   }
 });
@@ -118,6 +146,7 @@ router.get("/files", async (req: any, res) => {
       mimeType: proofFilesTable.mimeType,
       fileSize: proofFilesTable.fileSize,
       proofSubmissionId: proofFilesTable.proofSubmissionId,
+      extractionStatus: proofFilesTable.extractionStatus,
       createdAt: proofFilesTable.createdAt,
     })
     .from(proofFilesTable)
@@ -126,5 +155,39 @@ router.get("/files", async (req: any, res) => {
 
   return res.json({ files });
 });
+
+export async function cleanupOrphanedFiles(): Promise<{ deleted: number }> {
+  const orphanCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  let deleted = 0;
+
+  try {
+    const orphans = await db
+      .select({ id: proofFilesTable.id, storedName: proofFilesTable.storedName })
+      .from(proofFilesTable)
+      .where(and(isNull(proofFilesTable.proofSubmissionId), lt(proofFilesTable.createdAt, orphanCutoff)))
+      .limit(50);
+
+    for (const orphan of orphans) {
+      try {
+        const filePath = path.join(UPLOAD_DIR, orphan.storedName);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        await db.delete(proofFilesTable).where(eq(proofFilesTable.id, orphan.id));
+        deleted++;
+      } catch (e) {
+        console.error("Orphan cleanup error for file", orphan.id, e);
+      }
+    }
+  } catch (e) {
+    console.error("Orphan cleanup query error:", e);
+  }
+
+  return { deleted };
+}
+
+setInterval(() => {
+  cleanupOrphanedFiles()
+    .then(({ deleted }) => { if (deleted > 0) console.log(`Orphan cleanup: deleted ${deleted} files`); })
+    .catch((e) => console.error("Orphan cleanup interval error:", e));
+}, 30 * 60 * 1000);
 
 export default router;

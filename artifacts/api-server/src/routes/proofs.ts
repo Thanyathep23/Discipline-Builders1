@@ -59,6 +59,8 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
       originalName: proofFilesTable.originalName,
       mimeType: proofFilesTable.mimeType,
       fileSize: proofFilesTable.fileSize,
+      extractedText: proofFilesTable.extractedText,
+      extractionStatus: proofFilesTable.extractionStatus,
     })
     .from(proofFilesTable)
     .where(and(eq(proofFilesTable.proofSubmissionId, submissionId), eq(proofFilesTable.userId, userId)));
@@ -82,6 +84,8 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
       name: f.originalName,
       type: f.mimeType,
       sizeKb: Math.round(f.fileSize / 1024),
+      extractedText: f.extractedText ?? undefined,
+      extractionStatus: f.extractionStatus ?? undefined,
     })),
   });
 

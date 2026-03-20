@@ -92,12 +92,57 @@ Key design mandates:
 ### File Upload Proof Types (B)
 - New route file: `artifacts/api-server/src/routes/proof-uploads.ts`
 - Endpoints: `POST /api/proofs/upload`, `GET /api/proofs/files`, `GET /api/proofs/files/:fileId`
-- New DB table: `proof_files` (id, userId, originalName, storedName, mimeType, fileSize, proofSubmissionId)
+- New DB table: `proof_files` (id, userId, originalName, storedName, mimeType, fileSize, proofSubmissionId, extractedText, extractionStatus)
 - Allowed types: JPEG, PNG, GIF, WebP, PDF — max 10MB
 - Ownership enforced server-side; cross-user access returns 404
 - `POST /api/proofs` accepts `proofFileIds: string[]` — links files to submission
 - AI judge receives file metadata (name, type, size) in evaluation context
 - Mobile proof screen: "Attach File" button with image picker + document picker
+
+## Phase 5A Features
+
+### File Content Awareness (A)
+- New lib: `artifacts/api-server/src/lib/content-extractor.ts`
+  - `extractPdfText()` — uses `pdf-parse` to extract raw text from PDFs; cleaned, truncated to 3000 chars
+  - `extractImage()` — uses GPT-4o-mini Vision API (low detail) to describe image contents in context of mission category
+  - Both fail gracefully: status set to `"failed"` or `"metadata_only"`, extracted text is a descriptive bracket fallback
+  - Extraction runs asynchronously post-upload (non-blocking to upload response)
+- `buildFileContentSummary()` — builds rich text block from files including extracted content for AI judge
+- `proof_files` schema extended: `extractedText TEXT`, `extractionStatus TEXT` (pending/extracted/failed/metadata_only/skipped)
+
+### Upload Hardening (B)
+- New lib: `artifacts/api-server/src/lib/upload-rate-limiter.ts`
+  - Per-user in-memory rate limit: **20 uploads per hour per user**
+  - Rate check happens BEFORE multer processing (counts all attempts including rejected types)
+  - Returns 429 with `resetInSeconds` field; memory cleaned up every 10 minutes
+- Orphan cleanup: `cleanupOrphanedFiles()` in `proof-uploads.ts`
+  - Deletes files unlinked to any proof submission older than 2 hours
+  - Runs on a 30-minute interval automatically
+  - Safe: deletes disk file first, then DB record; errors per-file don't abort the batch
+- Server still enforces: MIME type validation, 10MB cap, ownership checks on all read/serve requests
+
+### Proof Submission UX (C)
+- Mobile proof screen redesigned file list cards:
+  - **Image files**: show 52×52 pixel thumbnail preview using the local URI
+  - **PDF/document files**: show styled icon badge (purple tinted)
+  - File name, colored type tag (green for images, purple for docs), size in KB
+  - Remove button (X) per file with haptic feedback
+  - **Upload errors** shown inline (not Alert) in a red error bar below the file list
+  - Upload error clears on next attempt
+
+### Proof Judge Improvements (D)
+- `AttachedFileInfo` type extended with `extractedText` and `extractionStatus`
+- AI judge prompt now includes full `buildFileContentSummary()` output (including extracted content up to 800 chars per file)
+- Prompt explicitly instructs judge to:
+  - Evaluate actual extracted text content (not just file presence)
+  - Give irrelevant files a small bonus only (+0.05 max)
+  - Give relevant files a moderate bonus (+0.15 max)
+  - Explain when extracted content influenced the verdict
+- Rule-based fallback upgraded:
+  - Checks `filesHaveUsefulContent()` — requires >30 chars of non-bracket extracted text
+  - If content extracted and mission-relevant: partial verdict at 0.75 multiplier vs. 0.55 without content
+  - Explanation mentions "file content extracted and reviewed"
+  - File bonus stacks with word count and link bonuses for approved verdicts
 
 ## Routes
 

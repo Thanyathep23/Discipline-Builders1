@@ -47,6 +47,8 @@ export const proofFilesTable = pgTable("proof_files", {
   mimeType: text("mime_type").notNull(),
   fileSize: integer("file_size").notNull(),
   proofSubmissionId: text("proof_submission_id"),
+  extractedText: text("extracted_text"),
+  extractionStatus: text("extraction_status").default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

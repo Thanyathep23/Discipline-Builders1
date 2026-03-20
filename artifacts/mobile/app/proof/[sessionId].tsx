@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   View, Text, TextInput, Pressable, StyleSheet, ScrollView,
-  Platform, ActivityIndicator, Alert,
+  Platform, ActivityIndicator, Alert, Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,14 +28,21 @@ interface AttachedFile {
   originalName: string;
   mimeType: string;
   fileSizeKb: number;
-  uploading?: boolean;
-  error?: string;
+  localUri?: string;
+  uploadError?: string;
 }
 
-function fileIcon(mimeType: string): "image-outline" | "document-text-outline" | "document-outline" {
-  if (mimeType.startsWith("image/")) return "image-outline";
-  if (mimeType === "application/pdf") return "document-text-outline";
-  return "document-outline";
+function isImage(mimeType: string) {
+  return mimeType.startsWith("image/");
+}
+
+function fileTypeLabel(mimeType: string): string {
+  if (mimeType === "application/pdf") return "PDF";
+  if (mimeType === "image/png") return "PNG";
+  if (mimeType === "image/jpeg" || mimeType === "image/jpg") return "JPEG";
+  if (mimeType === "image/gif") return "GIF";
+  if (mimeType === "image/webp") return "WebP";
+  return mimeType.split("/").pop()?.toUpperCase() ?? "FILE";
 }
 
 export default function ProofSubmissionScreen() {
@@ -48,6 +55,7 @@ export default function ProofSubmissionScreen() {
   const [followupAnswer, setFollowupAnswer] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const submitProof = useSubmitProof();
   const { data: proof, isLoading: proofLoading } = useProof(submissionId);
@@ -61,6 +69,11 @@ export default function ProofSubmissionScreen() {
       setLinks(l => [...l, link.trim()]);
       setLink("");
     }
+  }
+
+  function removeFile(index: number) {
+    setAttachedFiles(prev => prev.filter((_, j) => j !== index));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }
 
   async function pickImage() {
@@ -78,13 +91,9 @@ export default function ProofSubmissionScreen() {
       if (result.canceled || !result.assets?.[0]) return;
 
       const asset = result.assets[0];
-      const uri = asset.uri;
-      const name = asset.fileName ?? `photo_${Date.now()}.jpg`;
-      const type = asset.mimeType ?? "image/jpeg";
-
-      await doUpload(uri, name, type);
+      await doUpload(asset.uri, asset.fileName ?? `photo_${Date.now()}.jpg`, asset.mimeType ?? "image/jpeg", asset.uri);
     } catch (err: any) {
-      Alert.alert("Error", err.message ?? "Could not pick image.");
+      setUploadError(err.message ?? "Could not pick image.");
     }
   }
 
@@ -97,19 +106,21 @@ export default function ProofSubmissionScreen() {
       if (result.canceled || !result.assets?.[0]) return;
 
       const asset = result.assets[0];
-      await doUpload(asset.uri, asset.name, asset.mimeType ?? "application/octet-stream");
+      const isImg = (asset.mimeType ?? "").startsWith("image/");
+      await doUpload(asset.uri, asset.name, asset.mimeType ?? "application/octet-stream", isImg ? asset.uri : undefined);
     } catch (err: any) {
-      Alert.alert("Error", err.message ?? "Could not pick document.");
+      setUploadError(err.message ?? "Could not pick document.");
     }
   }
 
-  async function doUpload(uri: string, name: string, type: string) {
+  async function doUpload(uri: string, name: string, type: string, localUri?: string) {
     if (attachedFiles.length >= 5) {
-      Alert.alert("Limit reached", "You can attach up to 5 files per proof.");
+      setUploadError("You can attach up to 5 files per proof submission.");
       return;
     }
 
     setUploadingFile(true);
+    setUploadError(null);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const res = await uploadFile.mutateAsync({ uri, name, type });
@@ -118,10 +129,12 @@ export default function ProofSubmissionScreen() {
         originalName: res.originalName,
         mimeType: res.mimeType,
         fileSizeKb: res.fileSizeKb,
+        localUri,
       }]);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err: any) {
-      Alert.alert("Upload failed", err.message ?? "Could not upload file. Max 10MB, images and PDFs only.");
+      const msg = err?.message ?? "Upload failed. Max 10MB, images and PDFs only.";
+      setUploadError(msg);
     } finally {
       setUploadingFile(false);
     }
@@ -186,24 +199,27 @@ export default function ProofSubmissionScreen() {
         <View style={{ width: 36 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]}
+        keyboardShouldPersistTaps="handled"
+      >
         {!submissionId && (
           <>
             <Animated.View entering={FadeInDown.springify()}>
               <View style={styles.infoBox}>
                 <Ionicons name="information-circle" size={20} color={Colors.cyan} />
                 <Text style={styles.infoText}>
-                  The AI judge will review your proof against the mission requirements.
-                  Be specific about what you did, the outcome, and what remains.
+                  The AI judge will review your proof against mission requirements. Be specific about what you did, outcomes produced, and what remains.
                 </Text>
               </View>
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.field}>
-              <Text style={styles.label}>What did you accomplish? <Text style={{ color: Colors.crimson }}>*</Text></Text>
+              <Text style={styles.label}>What did you accomplish?</Text>
               <Text style={styles.sublabel}>Describe specifically what you did, outcomes produced, and what remains</Text>
               <TextInput
-                style={[styles.textarea]}
+                style={styles.textarea}
                 placeholder="I completed the first 3 sections of the project proposal, including the executive summary and market analysis. The outcome is a 4-page draft..."
                 placeholderTextColor={Colors.textMuted}
                 value={textSummary}
@@ -245,21 +261,39 @@ export default function ProofSubmissionScreen() {
             <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.field}>
               <View style={styles.attachHeader}>
                 <Text style={styles.label}>File Attachments (optional)</Text>
-                <Text style={styles.sublabel}>Images, screenshots, PDFs, journals — max 10MB each</Text>
+                <Text style={styles.sublabel}>Images, screenshots, PDFs — max 10MB · up to 5 files</Text>
               </View>
 
               {attachedFiles.map((f, i) => (
-                <View key={f.fileId} style={styles.fileChip}>
-                  <Ionicons name={fileIcon(f.mimeType)} size={16} color={Colors.accent} />
-                  <View style={{ flex: 1 }}>
+                <View key={f.fileId} style={styles.fileCard}>
+                  {isImage(f.mimeType) && f.localUri ? (
+                    <Image source={{ uri: f.localUri }} style={styles.thumbnail} resizeMode="cover" />
+                  ) : (
+                    <View style={styles.pdfBadge}>
+                      <Ionicons name="document-text" size={22} color={Colors.accent} />
+                    </View>
+                  )}
+                  <View style={styles.fileInfo}>
                     <Text style={styles.fileName} numberOfLines={1}>{f.originalName}</Text>
-                    <Text style={styles.fileMeta}>{f.mimeType.split("/").pop()?.toUpperCase()} · {f.fileSizeKb}KB</Text>
+                    <Text style={styles.fileMeta}>
+                      <Text style={isImage(f.mimeType) ? styles.imageTag : styles.docTag}>
+                        {fileTypeLabel(f.mimeType)}
+                      </Text>
+                      {"  "}{f.fileSizeKb}KB
+                    </Text>
                   </View>
-                  <Pressable onPress={() => setAttachedFiles(prev => prev.filter((_, j) => j !== i))}>
-                    <Ionicons name="close-circle" size={20} color={Colors.textMuted} />
+                  <Pressable onPress={() => removeFile(i)} style={styles.removeBtn} hitSlop={8}>
+                    <Ionicons name="close-circle" size={22} color={Colors.textMuted} />
                   </Pressable>
                 </View>
               ))}
+
+              {uploadError && (
+                <View style={styles.uploadError}>
+                  <Ionicons name="alert-circle" size={14} color={Colors.crimson} />
+                  <Text style={styles.uploadErrorText}>{uploadError}</Text>
+                </View>
+              )}
 
               <Pressable
                 style={[styles.attachBtn, (uploadingFile || attachedFiles.length >= 5) && { opacity: 0.5 }]}
@@ -321,23 +355,28 @@ export default function ProofSubmissionScreen() {
                     </View>
                   )}
 
-                  {proof.fileUrls?.length > 0 || attachedFiles.length > 0 ? (
+                  {attachedFiles.length > 0 && (
                     <View style={styles.filesSummary}>
                       <Ionicons name="attach" size={14} color={Colors.textMuted} />
                       <Text style={styles.filesSummaryText}>
                         {attachedFiles.length} file{attachedFiles.length !== 1 ? "s" : ""} included in submission
                       </Text>
                     </View>
-                  ) : null}
+                  )}
 
                   {proof.aiRubric && (
                     <View style={styles.rubric}>
                       <Text style={styles.rubricTitle}>EVALUATION RUBRIC</Text>
                       {Object.entries(proof.aiRubric).map(([key, val]: [string, any]) => (
                         <View key={key} style={styles.rubricRow}>
-                          <Text style={styles.rubricLabel}>{key.replace(/([A-Z])/g, ' $1').replace('Score', '').trim()}</Text>
+                          <Text style={styles.rubricLabel}>
+                            {key.replace(/([A-Z])/g, " $1").replace("Score", "").trim()}
+                          </Text>
                           <View style={styles.rubricBar}>
-                            <View style={[styles.rubricFill, { width: `${Math.round((val ?? 0) * 100)}%`, backgroundColor: (val ?? 0) > 0.6 ? Colors.green : (val ?? 0) > 0.3 ? Colors.amber : Colors.crimson }]} />
+                            <View style={[styles.rubricFill, {
+                              width: `${Math.round((val ?? 0) * 100)}%`,
+                              backgroundColor: (val ?? 0) > 0.6 ? Colors.green : (val ?? 0) > 0.3 ? Colors.amber : Colors.crimson,
+                            }]} />
                           </View>
                           <Text style={styles.rubricVal}>{Math.round((val ?? 0) * 100)}%</Text>
                         </View>
@@ -399,11 +438,20 @@ export default function ProofSubmissionScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 16 },
-  backBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: Colors.bgCard },
+  header: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 20, paddingBottom: 16,
+  },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 10, alignItems: "center",
+    justifyContent: "center", backgroundColor: Colors.bgCard,
+  },
   headerTitle: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.textPrimary },
   scroll: { paddingHorizontal: 20, gap: 20 },
-  infoBox: { flexDirection: "row", gap: 10, backgroundColor: Colors.cyanDim, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: Colors.cyan + "40" },
+  infoBox: {
+    flexDirection: "row", gap: 10, backgroundColor: Colors.cyanDim, borderRadius: 12,
+    padding: 14, borderWidth: 1, borderColor: Colors.cyan + "40",
+  },
   infoText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
   field: { gap: 10 },
   label: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textSecondary },
@@ -419,28 +467,51 @@ const styles = StyleSheet.create({
     fontSize: 14, color: Colors.textPrimary, height: 50,
   },
   linkRow: { flexDirection: "row", gap: 10 },
-  addLinkBtn: { width: 50, height: 50, borderRadius: 12, backgroundColor: Colors.accent, alignItems: "center", justifyContent: "center" },
-  linkChip: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.cyanDim, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 1, borderColor: Colors.cyan + "30" },
+  addLinkBtn: {
+    width: 50, height: 50, borderRadius: 12, backgroundColor: Colors.accent,
+    alignItems: "center", justifyContent: "center",
+  },
+  linkChip: {
+    flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.cyanDim,
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 1, borderColor: Colors.cyan + "30",
+  },
   linkText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.cyan },
   attachHeader: { gap: 4 },
   attachBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
     borderWidth: 1, borderColor: Colors.accent + "60", borderRadius: 12,
-    paddingVertical: 12, backgroundColor: Colors.accent + "10",
-    borderStyle: "dashed",
+    paddingVertical: 12, backgroundColor: Colors.accent + "10", borderStyle: "dashed",
   },
   attachBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.accent },
-  fileChip: {
-    flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: Colors.bgCard, borderRadius: 10, padding: 12,
+  fileCard: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: Colors.bgCard, borderRadius: 12, padding: 10,
     borderWidth: 1, borderColor: Colors.accent + "30",
   },
+  thumbnail: {
+    width: 52, height: 52, borderRadius: 8, backgroundColor: Colors.border,
+  },
+  pdfBadge: {
+    width: 52, height: 52, borderRadius: 8, backgroundColor: Colors.accent + "18",
+    alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.accent + "30",
+  },
+  fileInfo: { flex: 1, gap: 3 },
   fileName: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.textPrimary },
   fileMeta: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
+  imageTag: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.green },
+  docTag: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.accent },
+  removeBtn: { padding: 4 },
+  uploadError: {
+    flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: Colors.crimson + "15",
+    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8,
+    borderWidth: 1, borderColor: Colors.crimson + "40",
+  },
+  uploadErrorText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.crimson, lineHeight: 16 },
   submitBtn: {
     backgroundColor: Colors.accent, borderRadius: 14, height: 56,
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-    shadowColor: Colors.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
+    shadowColor: Colors.accent, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
   },
   submitBtnText: { fontFamily: "Inter_700Bold", fontSize: 16, color: "#fff" },
   reviewingBox: { alignItems: "center", gap: 16, padding: 48 },
@@ -451,8 +522,14 @@ const styles = StyleSheet.create({
     alignItems: "center", gap: 16, borderWidth: 1,
   },
   verdictLabel: { fontFamily: "Inter_700Bold", fontSize: 20 },
-  verdictExplanation: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, textAlign: "center", lineHeight: 20 },
-  coinsRow: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.goldDim + "40", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
+  verdictExplanation: {
+    fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary,
+    textAlign: "center", lineHeight: 20,
+  },
+  coinsRow: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: Colors.goldDim + "40", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
+  },
   coinsText: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.gold },
   filesSummary: { flexDirection: "row", alignItems: "center", gap: 6 },
   filesSummaryText: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
@@ -463,11 +540,17 @@ const styles = StyleSheet.create({
   rubricBar: { flex: 1, height: 6, backgroundColor: Colors.border, borderRadius: 3, overflow: "hidden" },
   rubricFill: { height: "100%", borderRadius: 3 },
   rubricVal: { fontFamily: "Inter_700Bold", fontSize: 11, color: Colors.textPrimary, width: 32, textAlign: "right" },
-  followupBox: { backgroundColor: Colors.amberDim, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Colors.amber + "40", gap: 14 },
+  followupBox: {
+    backgroundColor: Colors.amberDim, borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: Colors.amber + "40", gap: 14,
+  },
   followupHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   followupTitle: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.amber },
   followupQuestions: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
-  followupBtn: { backgroundColor: Colors.amber, borderRadius: 12, height: 48, alignItems: "center", justifyContent: "center" },
+  followupBtn: {
+    backgroundColor: Colors.amber, borderRadius: 12, height: 48,
+    alignItems: "center", justifyContent: "center",
+  },
   followupBtnText: { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.bg },
   homeBtn: {
     backgroundColor: Colors.accent, borderRadius: 14, height: 54,
