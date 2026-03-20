@@ -416,7 +416,8 @@ export default function ProfileScreen() {
         <Animated.View entering={FadeInDown.delay(200).springify()}>
           <Text style={styles.sectionTitle}>Quick Access</Text>
           <View style={styles.menuList}>
-            <MenuItem icon="sparkles-outline" label="AI Mission Board" onPress={() => router.push("/(tabs)/missions")} accent />
+            <MenuItem icon="share-outline" label="Share Progress" onPress={() => router.push("/share")} accent />
+            <MenuItem icon="sparkles-outline" label="AI Mission Board" onPress={() => router.push("/(tabs)/missions")} />
             <MenuItem icon="stats-chart-outline" label="Skill Tree" onPress={() => router.push("/skills")} />
             <MenuItem icon="ribbon-outline" label="Inventory & Badges" onPress={() => router.push("/(tabs)/rewards")} />
             <MenuItem icon="ban-outline" label="Website Blocking" onPress={() => router.push("/settings/blocking")} />

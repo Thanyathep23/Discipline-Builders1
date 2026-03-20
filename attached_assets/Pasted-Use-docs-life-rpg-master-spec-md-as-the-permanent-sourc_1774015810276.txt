@@ -1,0 +1,265 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 10 — Viral / Shareable Layer Lite.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Arc system works
+- Proof intelligence works
+- Adaptive challenge, quest chains, rarity, reward balance, and retention systems exist
+- Identity layer is complete
+- Admin / tuning tools are complete or in progress
+- The next high-value step is to create lightweight, high-impact shareable moments that make progress feel worth showing
+
+Your task:
+Build only the smallest high-impact viral/shareable layer.
+
+==================================================
+PHASE 10 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Shareable progress cards
+2. Shareable mission/result cards
+3. Shareable streak / comeback / milestone moments
+4. Lightweight personal showcase surfaces
+5. Minimal export/share UX
+
+Do NOT build:
+- full social feed
+- comments
+- likes
+- following/friends graph
+- leaderboard
+- chat
+- public profiles by default
+- referral system
+- marketplace/social trading
+- community systems
+- large redesign of the app
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current identity layer, titles, badges, skills, arc, streak/comeback logic, reward result views, and inventory/profile screens
+2. identify the most naturally shareable moments already present
+3. build only the minimum set of features needed to let users export or display those moments cleanly
+4. avoid broad refactors
+
+==================================================
+A. SHAREABLE PROGRESS CARDS
+==================================================
+
+Create lightweight shareable cards for major progress moments.
+
+Examples:
+- current arc card
+- skill rank-up card
+- active title / identity card
+- weekly growth snapshot
+- character summary snapshot
+
+Requirements:
+- cards should look premium and clean
+- cards should feel serious, aspirational, and game-like
+- cards should reflect real user state, not mock data
+- cards should be visually compact and good for screenshot/export
+- cards should not expose sensitive profile data by default
+
+Suggested share card types:
+- Arc Card
+- Skill Rank Card
+- Character Identity Card
+- Weekly Growth Card
+
+==================================================
+B. SHAREABLE MISSION / RESULT CARDS
+==================================================
+
+Create lightweight result cards for meaningful completions.
+
+Examples:
+- AI mission completed
+- quest chain completed
+- breakthrough mission completed
+- comeback mission success
+- high-quality proof approval
+- rare title / badge unlock
+
+Requirements:
+- result cards should explain why the moment matters
+- show important metadata such as:
+  - mission name
+  - related skill
+  - rarity if applicable
+  - reward earned
+  - bonus earned
+  - chain completion or arc relevance if applicable
+- cards should be exportable or easily screen-capturable
+- keep copy short, powerful, and non-cringe
+
+==================================================
+C. STREAK / COMEBACK / MILESTONE MOMENTS
+==================================================
+
+Add lightweight milestone share surfaces for emotionally strong moments.
+
+Examples:
+- 3-day / 7-day / 14-day consistency
+- first comeback mission completed after slump
+- first chain completion
+- first breakthrough mission
+- first major title unlock
+- first time reaching a new rank tier in a key skill
+
+Rules:
+- do not spam minor events
+- only create shareable moments for meaningful milestones
+- milestone moments should reinforce identity and progress
+- keep this focused and selective
+
+==================================================
+D. PERSONAL SHOWCASE SURFACES
+==================================================
+
+Add a lightweight personal showcase section.
+
+Possible surfaces:
+- profile section with active title + arc + top strengths
+- “recent unlocks” strip
+- “best recent achievement” card
+- “share profile snapshot” action
+
+Requirements:
+- keep it private-first
+- do not make profiles public by default
+- this should be a showcase/export surface, not a social system
+- keep data concise and identity-driven
+
+==================================================
+E. EXPORT / SHARE UX
+==================================================
+
+Add minimal ways for users to share progress.
+
+Preferred MVP options:
+1. export/share card view optimized for screenshot
+2. save/export image if already easy and reliable
+3. copy short progress summary text if useful
+
+Requirements:
+- do not over-engineer native platform share integration unless already cheap/easy in the current app
+- prioritize beautiful screenshot-friendly card layouts first
+- share/export UX should feel intentional, not gimmicky
+- all exported/shareable content should avoid leaking sensitive data
+
+==================================================
+F. PRIVACY / SAFETY RULES
+==================================================
+
+- shareable surfaces must be private-first
+- no exact finance values
+- no sensitive profile answers by default
+- no raw proof files exposed through share cards
+- no private mission notes exposed unless explicitly intended
+- keep public/share content curated and safe
+- preserve ownership checks on any export/share routes if they exist
+
+==================================================
+G. UI / UX DIRECTION
+==================================================
+
+Design direction:
+- dark premium
+- command center meets prestige card
+- serious, sharp, aspirational
+- visually strong enough to screenshot and share
+- no childish “gamification” look
+- no clutter
+
+Cards should feel like:
+- elite progress snapshots
+- identity/status moments
+- visible proof of self-upgrade
+
+==================================================
+H. BACKEND / SECURITY RULES
+==================================================
+
+- all shareable data must come from real user state
+- preserve ownership checks
+- preserve JSON-only APIs
+- do not create public profile exposure by default
+- any export route must enforce auth and ownership
+- keep schema changes minimal and additive
+
+==================================================
+I. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. users can view at least several polished shareable progress/result cards
+2. cards reflect real progression data
+3. meaningful milestone moments are surfaced
+4. a lightweight personal showcase surface exists
+5. share/export flow is screenshot-friendly and/or exportable
+6. sensitive/private data is not exposed by default
+7. existing mission/proof/reward flow still works
+8. no full social system was added
+9. no unrelated systems were changed
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what moments were already naturally shareable
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Shareable card types added
+- what each card shows
+- what triggers it
+
+4. Milestone/share moments added
+- streak
+- comeback
+- chain
+- breakthrough
+- title/badge/rank
+
+5. Personal showcase changes
+- what profile/showcase elements were added
+
+6. Export/share UX added
+- screenshot-optimized only, export image, or both
+- privacy protections applied
+
+7. End-to-end verification results for:
+- shareable progress card
+- mission/result card
+- milestone moment card
+- personal showcase visibility
+- privacy-safe output
+- existing app flow unchanged
+
+8. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

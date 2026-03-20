@@ -407,3 +407,38 @@ All existing routes preserved unchanged. New routes added, all protected by `req
 - All override actions write explicit audit log entries with actor, action, target, and full context details
 - User-facing routes unchanged — no ownership bypass introduced
 - No sensitive proof file contents exposed by new routes
+
+## Phase 10 — Viral / Shareable Layer Lite
+
+### Share Snapshot API
+- `GET /api/share/snapshot` — returns a curated, privacy-safe snapshot of user progress. No email, no finance values, no private notes, no raw proof files. Requires auth + ownership. Returns: username, activeTitle, identitySummaryLine, currentArc, topSkills (top 3), topSkill, streak (current/longest/activeToday), level, xp, recentBadges (last 5), weeklyFocusMinutes, weeklySessionsCompleted, totalSessions.
+- Route file: `artifacts/api-server/src/routes/share.ts`
+
+### Share Card Components (`artifacts/mobile/components/ShareCards.tsx`)
+Six premium shareable card components, all screenshot-optimized with dark premium design:
+- **IdentityCard** — username, active title, identity summary line, level bubble, streak/XP/sessions stats, top skill with rank. Trigger: always available.
+- **ArcCard** — current arc name, subtitle, arc icon, operator identity. Trigger: when user has a current arc.
+- **SkillRankCard** — top skill with icon, rank, level, XP progress bar. Trigger: when user has skills.
+- **WeeklyGrowthCard** — 7-day focus time, sessions, streak, top 3 skills as pills. Trigger: always available.
+- **MilestoneCard** — reusable component for streak/comeback/badge/title/rank/chain milestones with type label, icon, label, sublabel. Trigger: parameterized.
+- **MissionResultCard** — mission completion with skill, rewards (XP/coins), streak bonus, rarity chip. Trigger: parameterized (for use after proof approval).
+
+### Share Showcase Screen (`artifacts/mobile/app/share/index.tsx`)
+- Navigated to from Profile "Share Progress" and Rewards "Share Progress Cards" buttons
+- Tab-based card switcher: Identity / Arc / Top Skill / Weekly / Streak tabs
+- Screenshot hint explaining how to share
+- Recent unlocks strip showing last 5 earned badges
+- Privacy note confirming no sensitive data is exposed
+- Native Share button (copies identity summary text via OS share sheet)
+- Back button to return to previous screen
+
+### Entry Points
+- **Profile screen** → Quick Access → "Share Progress" (top accent button) → `/share`
+- **Rewards screen** → Overview tab → "Share Progress Cards" button → `/share`
+
+### Privacy Rules Applied
+- No email exposed in any share card or API response
+- No coin balance or exact financial values in share snapshot
+- No private notes, proof text, or proof files exposed
+- No public profiles created — all data requires auth
+- Ownership check enforced on `/api/share/snapshot` via `requireAuth`

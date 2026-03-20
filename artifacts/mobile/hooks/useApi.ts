@@ -408,3 +408,13 @@ export function useMilestones() {
     staleTime: 60000,
   });
 }
+
+export function useShareSnapshot() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["share", "snapshot"],
+    queryFn: () => request<any>("/share/snapshot"),
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+  });
+}

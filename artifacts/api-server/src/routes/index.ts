@@ -18,6 +18,7 @@ import aiMissionsRouter from "./ai-missions.js";
 import inventoryRouter from "./inventory.js";
 import streaksRouter from "./streaks.js";
 import proofUploadsRouter from "./proof-uploads.js";
+import shareRouter from "./share.js";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use("/skills", skillsRouter);
 router.use("/ai-missions", aiMissionsRouter);
 router.use("/inventory", inventoryRouter);
 router.use("/streaks", streaksRouter);
+router.use("/share", shareRouter);
 
 export default router;

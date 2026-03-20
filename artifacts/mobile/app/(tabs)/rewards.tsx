@@ -13,6 +13,7 @@ import {
   useInventoryBadges, useInventoryTitles, useActivateTitle,
   useInventoryAssets,
 } from "@/hooks/useApi";
+import { router } from "expo-router";
 
 const RARITY_COLORS: Record<string, string> = {
   common:   "#9E9E9E",
@@ -139,12 +140,23 @@ export default function RewardsScreen() {
                 {activeTitle && (
                   <Animated.View entering={FadeInDown.delay(160).springify()} style={styles.activeTitleCard}>
                     <Ionicons name="ribbon" size={18} color={Colors.gold} />
-                    <View>
+                    <View style={{ flex: 1 }}>
                       <Text style={styles.activeTitleLabel}>Active Title</Text>
                       <Text style={styles.activeTitleValue}>{activeTitle.name}</Text>
                     </View>
                   </Animated.View>
                 )}
+
+                <Animated.View entering={FadeInDown.delay(180).springify()}>
+                  <Pressable
+                    style={styles.shareSnapshotBtn}
+                    onPress={() => { Haptics.selectionAsync(); router.push("/share"); }}
+                  >
+                    <Ionicons name="share-outline" size={16} color={Colors.accent} />
+                    <Text style={styles.shareSnapshotText}>Share Progress Cards</Text>
+                    <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
+                  </Pressable>
+                </Animated.View>
 
                 {earnedBadges.length > 0 && (
                   <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.recentBadgesCard}>
@@ -446,4 +458,6 @@ const styles = StyleSheet.create({
   cancelBtnText:      { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textSecondary },
   redeemBtn:          { flex: 1, paddingVertical: 12, backgroundColor: Colors.accent, borderRadius: 12, alignItems: "center" },
   redeemBtnText:      { fontFamily: "Inter_700Bold", fontSize: 14, color: "#fff" },
+  shareSnapshotBtn:   { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.accentGlow, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.accent + "40" },
+  shareSnapshotText:  { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.accent, flex: 1 },
 });
