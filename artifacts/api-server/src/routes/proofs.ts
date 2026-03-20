@@ -199,6 +199,30 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     );
   }
 
+  // Milestone triggers for approved proofs
+  if (judgeResult.verdict === "approved") {
+    try {
+      const { recordMilestone } = await import("./inventory.js");
+      const [{ value: approvedCount }] = await db
+        .select({ value: count() })
+        .from(proofSubmissionsTable)
+        .where(and(eq(proofSubmissionsTable.userId, userId), eq(proofSubmissionsTable.status, "approved")));
+      const n = Number(approvedCount) + 1;
+      if (n === 1) {
+        await awardBadge(userId, "badge-focus-initiate");
+        await awardTitle(userId, "title-focus-initiate");
+        await recordMilestone(userId, "first_proof_approved");
+      }
+      if (n >= 5) {
+        await awardTitle(userId, "title-focus-operator");
+      }
+      if (n >= 10) {
+        await awardBadge(userId, "badge-proof-master");
+        await awardTitle(userId, "title-proof-master");
+      }
+    } catch {}
+  }
+
   // Adjust trust score based on verdict
   let trustDelta = 0;
   if (judgeResult.verdict === "rejected") trustDelta = -0.05;

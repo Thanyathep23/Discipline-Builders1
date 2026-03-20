@@ -441,6 +441,20 @@ router.post("/:missionId/respond", requireAuth, async (req: any, res) => {
         .set({ status: "accepted", acceptedMissionId: newMission.id, updatedAt: new Date() })
         .where(eq(aiMissionsTable.id, missionId));
 
+      try {
+        const { awardBadge, awardTitle, recordMilestone } = await import("./inventory.js");
+        const [{ value: aiAcceptedCount }] = await db.select({ value: count() })
+          .from(aiMissionsTable)
+          .where(and(eq(aiMissionsTable.userId, userId), eq(aiMissionsTable.status, "accepted")));
+        if (Number(aiAcceptedCount) === 1) {
+          await awardBadge(userId, "badge-first-ai-mission");
+          await recordMilestone(userId, "first_ai_mission_accepted");
+        }
+        if (Number(aiAcceptedCount) >= 3) {
+          await awardTitle(userId, "title-grind-architect");
+        }
+      } catch {}
+
       const gmNote = getAcceptNote(mission);
       return res.json({
         status: "accepted",

@@ -380,3 +380,31 @@ export function useDailyContext() {
     refetchOnWindowFocus: true,
   });
 }
+
+export function useIdentity() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["identity"],
+    queryFn: () => request<any>("/inventory/identity"),
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useInventoryAssets() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["inventory", "assets"],
+    queryFn: () => request<any>("/inventory/assets"),
+    staleTime: 30000,
+  });
+}
+
+export function useMilestones() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["inventory", "milestones"],
+    queryFn: () => request<any>("/inventory/milestones"),
+    staleTime: 60000,
+  });
+}

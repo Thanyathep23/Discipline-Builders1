@@ -342,3 +342,31 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - **Distributed lock / idempotency key on grantReward** for multi-instance safety
 - **Chain step tracking per-mission** (log which mission contributed to which step) for auditability
 - **Social/community, leaderboard, marketplace** — explicitly out of scope until post-Phase 6
+
+## Phase 8 — Symbolic Identity & Inventory System
+
+### Badge & title catalog expansion (`inventory.ts`)
+- 15 badges: initiate, 7-day/14-day streaks, first AI mission, first session, proof master, etc.
+- 14 titles: Initiate, Focus Operator, Discipline Builder, Iron Discipline, Momentum Keeper, Grind Architect, Proof Master, etc.
+- 6 symbolic shop assets in trophy/room/cosmetic categories
+- New `GET /inventory/identity` — returns activeTitle, currentArc, topStrengths, weakZones, recentUnlock, identitySummaryLine, nextMilestoneHint, streak stats
+- New `GET /inventory/assets` — returns full asset list with `owned` flag for each (shop purchases + milestone trophies)
+- Exports: `awardBadge(userId, badgeId)`, `awardTitle(userId, titleId)`, `recordMilestone(userId, key, details?)`
+
+### Milestone triggers added
+- `sessions.ts` (first completed session): badge-focus-initiate, title-focus-initiate, title-initiate
+- `proofs.ts` (1st/5th/10th approved proof): badge/title milestones for proof-master arc
+- `ai-missions.ts` (first + 3rd accepted AI mission): badge-first-ai-mission, title-grind-architect
+- `streaks.ts` (7-day streak check): badge-7day-discipline, title-discipline-builder; (14-day): badge-14day-momentum, title-iron-discipline, title-momentum-keeper
+
+### Frontend hooks (`useApi.ts`)
+- `useIdentity()` — queries `/inventory/identity`
+- `useInventoryAssets()` — queries `/inventory/assets`
+- `useMilestones()` — queries `/inventory/milestones`
+
+### Profile screen (`profile.tsx`)
+- Identity summary line (italic) shown beneath active title in profile card
+- "Recent Unlock" card with trophy icon, name, and next milestone hint shown between streak card and onboarding prompts
+
+### Rewards screen (`rewards.tsx`)
+- Inventory tab: new "Symbolic Assets" grid section at top, before titles, showing owned trophies/rooms/cosmetics with category-color coding

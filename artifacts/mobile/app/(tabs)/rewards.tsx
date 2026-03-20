@@ -11,6 +11,7 @@ import { Colors } from "@/constants/colors";
 import {
   useRewardBalance, useRewardHistory, useShopItems, useRedeemItem,
   useInventoryBadges, useInventoryTitles, useActivateTitle,
+  useInventoryAssets,
 } from "@/hooks/useApi";
 
 const RARITY_COLORS: Record<string, string> = {
@@ -58,12 +59,15 @@ export default function RewardsScreen() {
     }
   }
 
+  const { data: assetsData } = useInventoryAssets();
+
   const badges = badgesData?.badges ?? [];
   const titles = titlesData?.titles ?? [];
   const earnedBadges = badges.filter((b: any) => b.earned);
   const lockedBadges = badges.filter((b: any) => !b.earned);
   const earnedTitles = titles.filter((t: any) => t.earned);
   const activeTitle = titles.find((t: any) => t.isActive);
+  const ownedAssets = (assetsData?.assets ?? []).filter((a: any) => a.owned);
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
@@ -166,7 +170,29 @@ export default function RewardsScreen() {
 
         {tab === "inventory" && (
           <>
-            <Text style={styles.sectionLabel}>Titles</Text>
+            {ownedAssets.length > 0 && (
+              <>
+                <Text style={styles.sectionLabel}>Symbolic Assets</Text>
+                <View style={styles.badgesGrid}>
+                  {ownedAssets.map((a: any, i: number) => {
+                    const catColor = a.category === "trophy" ? Colors.gold : a.category === "room" ? Colors.accent : "#E040FB";
+                    return (
+                      <Animated.View key={a.id} entering={FadeInDown.delay(i * 50).springify()} style={[styles.badgeCard, { borderColor: catColor + "40" }]}>
+                        <View style={[styles.badgeIcon, { backgroundColor: catColor + "18" }]}>
+                          <Ionicons name={(a.icon ?? "trophy-outline") as any} size={26} color={catColor} />
+                        </View>
+                        <Text style={styles.badgeName} numberOfLines={2}>{a.name}</Text>
+                        <View style={[styles.rarityChip, { backgroundColor: catColor + "18" }]}>
+                          <Text style={[styles.rarityText, { color: catColor }]}>{(a.category ?? "asset").toUpperCase()}</Text>
+                        </View>
+                      </Animated.View>
+                    );
+                  })}
+                </View>
+              </>
+            )}
+
+            <Text style={[styles.sectionLabel, { marginTop: ownedAssets.length > 0 ? 8 : 0 }]}>Titles</Text>
             {earnedTitles.length === 0 ? (
               <View style={styles.emptySmall}>
                 <Text style={styles.emptySmallText}>No titles earned yet. Complete milestones to unlock them.</Text>

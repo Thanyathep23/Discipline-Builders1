@@ -1,0 +1,244 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 8 — Identity Layer + Asset Progression Lite.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Arc system works
+- Skill suggestions work
+- Proof intelligence and upload hardening work
+- Adaptive challenge, quest chains, rarity, reward balance, and retention tuning are in place or being finalized
+- The next high-value layer is identity progression: making the user feel that real-life actions are transforming a meaningful character/profile
+
+Your task:
+Build only the smallest high-impact identity progression layer.
+
+==================================================
+PHASE 8 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Stronger title progression
+2. Better badge cadence and milestone unlocks
+3. Symbolic asset progression lite
+4. Character identity summary improvements
+5. Minimal UI for the above
+
+Do NOT build:
+- social/community
+- leaderboard
+- marketplace expansion
+- world map / 3D world
+- large new economy systems
+- new onboarding systems
+- major analytics overhaul
+- deep profile redesign
+- cosmetic redesign of the whole app
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current titles, badges, symbolic assets, current arc, profile summary, reward unlock flow, and inventory lite
+2. identify what already exists and what feels too shallow
+3. implement only the minimum set of changes needed to make identity progression feel meaningful
+4. avoid broad refactors
+
+==================================================
+A. TITLE PROGRESSION
+==================================================
+
+Improve titles so they feel earned and identity-shaping.
+
+Goals:
+- titles should reflect real behavior and progress
+- titles should connect to skills, arcs, and mission performance
+- titles should feel aspirational and game-like without being childish
+
+Requirements:
+- users can have one active title
+- users can unlock multiple titles over time
+- titles should come from meaningful triggers, not spam
+- titles should be visible in Character Summary and Inventory Lite
+- title unlock logic must remain server-side
+
+Suggested examples:
+- Focus Initiate
+- Discipline Builder
+- Recovery Rebuilder
+- Learning Climber
+- Trading Apprentice
+- Momentum Keeper
+- Arc Survivor
+- Proof Master
+
+Rules:
+- titles should map to real skill/mission behavior
+- titles should not unlock too frequently
+- titles should reinforce identity progression
+
+==================================================
+B. BADGE CADENCE + MILESTONE UNLOCKS
+==================================================
+
+Improve badge pacing so rewards feel more emotionally satisfying.
+
+Goals:
+- badges should appear at meaningful moments
+- badge cadence should support retention and momentum
+- milestones should be tied to verified progress, not button clicks
+
+Requirements:
+- create milestone-based badge logic for:
+  - first approved AI mission
+  - first quest chain completion
+  - focus consistency
+  - recovery/comeback success
+  - trading practice milestones
+  - learning milestones
+- unlocks must remain server-side
+- avoid badge spam
+- keep the system data-driven where possible
+
+==================================================
+C. SYMBOLIC ASSET PROGRESSION LITE
+==================================================
+
+Add a lightweight symbolic asset progression layer.
+
+This is NOT a full world-building system.
+Keep it small and meaningful.
+
+Possible asset types:
+- room upgrades
+- command center upgrades
+- symbolic trophies
+- profile cosmetics
+- status cards / prestige markers
+
+Requirements:
+- assets should be tied to real progress
+- some should come from coin purchase
+- some should come from milestone unlocks
+- some should come from arc or chain completion
+- asset unlocks must feel connected to user identity
+
+Do not build:
+- large city systems
+- house builder
+- 3D asset world
+- deep item trading economy
+
+==================================================
+D. CHARACTER IDENTITY SUMMARY
+==================================================
+
+Upgrade the Character Summary/Profile so it feels more like a real character sheet.
+
+Add or improve:
+- active title
+- current arc
+- top 2 strengths
+- top 2 weak zones
+- recent meaningful unlock
+- identity summary line based on current progression
+- visible progression toward next meaningful unlock if feasible
+
+Requirements:
+- summary should feel serious and premium
+- summary should reflect actual user state
+- do not make it verbose or cluttered
+- use existing profile/skills/arc data as much as possible
+
+==================================================
+E. UI / UX MVP
+==================================================
+
+Build only minimal UI needed.
+
+Requirements:
+- Character/Profile screen clearly shows active title and identity summary
+- Inventory Lite shows badges, titles, symbolic assets more clearly
+- Unlock moments should be visible but not overdesigned
+- if helpful, add a small “recent unlock” card on Home or Profile
+- keep existing dark premium / command center style
+- do not redesign the whole app
+
+==================================================
+F. BACKEND / SECURITY RULES
+==================================================
+
+- all unlock logic remains server-side
+- titles/badges/assets must not be client-trusted
+- preserve ownership checks
+- preserve JSON-only APIs
+- do not trust client-supplied unlock state
+- keep schema changes additive and minimal
+
+==================================================
+G. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. title progression feels more meaningful and visible
+2. users can unlock and display titles based on real progress
+3. badge cadence is improved with milestone-based unlocks
+4. symbolic asset progression lite exists
+5. Character Summary feels more like a real identity sheet
+6. Inventory Lite clearly shows badges, titles, and assets
+7. unlock logic is server-side and ownership-safe
+8. existing mission/proof/reward flow still works
+9. no unrelated systems were changed
+10. no social or oversized world-building scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what already existed
+- what felt shallow
+- what was improved
+
+2. Files changed in this run only
+
+3. Title progression changes
+- unlock rules
+- display behavior
+
+4. Badge / milestone changes
+- new milestone logic
+- cadence improvements
+
+5. Symbolic asset progression changes
+- asset types added
+- unlock/purchase rules
+
+6. Character Summary improvements
+- what new identity information is shown
+
+7. End-to-end verification results for:
+- title unlock
+- badge unlock
+- asset unlock or purchase
+- inventory visibility
+- character summary visibility
+- existing mission/reward flow unchanged
+
+8. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

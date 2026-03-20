@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   useRewardBalance, useDailyAnalytics, useSkills,
   useLifeProfile, useInventoryBadges, useInventoryTitles, useStreaks,
+  useIdentity,
 } from "@/hooks/useApi";
 
 const SKILL_ICONS: Record<string, string> = {
@@ -38,6 +39,7 @@ export default function ProfileScreen() {
   const { data: badgesData } = useInventoryBadges();
   const { data: titlesData } = useInventoryTitles();
   const { data: streakData } = useStreaks();
+  const { data: identityData } = useIdentity();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
@@ -91,6 +93,9 @@ export default function ProfileScreen() {
                 <Text style={styles.activeTitleText}>{activeTitle.name}</Text>
               </View>
             )}
+            {identityData?.identitySummaryLine ? (
+              <Text style={styles.identityLine} numberOfLines={2}>{identityData.identitySummaryLine}</Text>
+            ) : null}
             <Text style={styles.email}>{user?.email}</Text>
             {topSkill && (
               <View style={styles.topSkillBadge}>
@@ -125,6 +130,19 @@ export default function ProfileScreen() {
                 <Text style={styles.streakBest}>Best: {streakData.longestStreak} days</Text>
               )}
             </View>
+          </Animated.View>
+        )}
+
+        {identityData?.recentUnlock && (
+          <Animated.View entering={FadeInDown.delay(45).springify()} style={styles.recentUnlockCard}>
+            <Ionicons name="trophy-outline" size={16} color={Colors.gold} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.recentUnlockLabel}>RECENT UNLOCK</Text>
+              <Text style={styles.recentUnlockName}>{identityData.recentUnlock.name}</Text>
+            </View>
+            {identityData.nextMilestoneHint ? (
+              <Text style={styles.nextMilestoneHint} numberOfLines={1}>Next: {identityData.nextMilestoneHint}</Text>
+            ) : null}
           </Animated.View>
         )}
 
@@ -438,6 +456,11 @@ const styles = StyleSheet.create({
   email:            { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
   activeTitleBadge: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", backgroundColor: Colors.goldDim, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   activeTitleText:  { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.gold },
+  identityLine:     { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textSecondary, fontStyle: "italic", lineHeight: 15 },
+  recentUnlockCard: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, backgroundColor: Colors.goldDim, borderRadius: 14, borderWidth: 1, borderColor: Colors.gold + "33" },
+  recentUnlockLabel:{ fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.gold, letterSpacing: 1 },
+  recentUnlockName: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.textPrimary, marginTop: 2 },
+  nextMilestoneHint:{ fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted, flexShrink: 1 },
   topSkillBadge:    { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", backgroundColor: Colors.goldDim, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   topSkillText:     { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.gold },
   trustScore:       { alignItems: "center", backgroundColor: Colors.bgElevated, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.border },

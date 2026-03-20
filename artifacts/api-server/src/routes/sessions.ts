@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, focusSessionsTable, missionsTable, sessionHeartbeatsTable, timeEntriesTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
+import { awardBadge, awardTitle, recordMilestone } from "./inventory.js";
 import { z } from "zod";
 import { requireAuth, generateId } from "../lib/auth.js";
 
@@ -251,6 +252,21 @@ router.post("/:sessionId/stop", async (req, res) => {
 
   const updated = await getSessionWithMission(req.params.sessionId, userId);
   res.json(parseSession(updated!.session, updated!.mission));
+
+  if (finalStatus === "completed") {
+    try {
+      const [{ value: completedCount }] = await db.select({ value: count() })
+        .from(focusSessionsTable)
+        .where(and(eq(focusSessionsTable.userId, userId), eq(focusSessionsTable.status, "completed")));
+      const n = Number(completedCount);
+      if (n === 1) {
+        await awardBadge(userId, "badge-focus-initiate");
+        await awardTitle(userId, "title-focus-initiate");
+        await recordMilestone(userId, "first_session_completed");
+      }
+      if (n === 1) await awardTitle(userId, "title-initiate");
+    } catch {}
+  }
 });
 
 router.post("/:sessionId/heartbeat", async (req, res) => {
