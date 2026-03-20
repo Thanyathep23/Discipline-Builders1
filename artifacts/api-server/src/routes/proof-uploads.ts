@@ -40,77 +40,87 @@ const upload = multer({
   },
 });
 
-router.post("/upload", (req: any, res, next) => {
-  const userId = req.user?.id ?? (req as any).userId;
-  const rateCheck = checkUploadRateLimit(userId);
-  if (!rateCheck.allowed) {
-    return res.status(429).json({
-      error: `Upload limit reached. You can upload up to 20 files per hour. Try again in ${Math.ceil(rateCheck.resetInSeconds / 60)} minute(s).`,
-      resetInSeconds: rateCheck.resetInSeconds,
-    });
-  }
-
-  return upload.single("file")(req, res, (err) => {
-    if (err instanceof multer.MulterError) {
-      if (err.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({ error: "File too large. Maximum size is 10MB." });
+router.post(
+  "/upload",
+  async (req: any, res, next) => {
+    const userId = req.user?.id ?? (req as any).userId;
+    const rateCheck = await checkUploadRateLimit(userId);
+    if (!rateCheck.allowed) {
+      res.status(429).json({
+        error: `Upload limit reached. You can upload up to 20 files per hour. Try again in ${Math.ceil(rateCheck.resetInSeconds / 60)} minute(s).`,
+        resetInSeconds: rateCheck.resetInSeconds,
+      });
+      return;
+    }
+    next();
+  },
+  (req: any, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          res.status(400).json({ error: "File too large. Maximum size is 10MB." });
+          return;
+        }
+        res.status(400).json({ error: `Upload error: ${err.message}` });
+        return;
       }
-      return res.status(400).json({ error: `Upload error: ${err.message}` });
-    }
-    if (err) {
-      return res.status(400).json({ error: err.message });
-    }
-    return next();
-  });
-}, async (req: any, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No file provided. Send a multipart/form-data request with a 'file' field." });
-  }
-
-  const userId = req.user?.id ?? (req as any).userId;
-  const fileId = randomUUID();
-  const storedName = req.file.filename;
-  const filePath = path.join(UPLOAD_DIR, storedName);
-  const missionCategory = (req.body?.missionCategory as string) ?? "default";
-
-  try {
-    await db.insert(proofFilesTable).values({
-      id: fileId,
-      userId,
-      originalName: req.file.originalname,
-      storedName,
-      mimeType: req.file.mimetype,
-      fileSize: req.file.size,
-      proofSubmissionId: null,
-      extractedText: null,
-      extractionStatus: "pending",
+      if (err) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      next();
     });
+  },
+  async (req: any, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file provided. Send a multipart/form-data request with a 'file' field." });
+    }
 
-    extractFileContent(filePath, req.file.mimetype, req.file.originalname, missionCategory)
-      .then(async (result) => {
-        await db
-          .update(proofFilesTable)
-          .set({
-            extractedText: result.text ?? null,
-            extractionStatus: result.status,
-          })
-          .where(eq(proofFilesTable.id, fileId));
-      })
-      .catch((err) => console.error("Async extraction failed:", err));
+    const userId = req.user?.id ?? (req as any).userId;
+    const fileId = randomUUID();
+    const storedName = req.file.filename;
+    const filePath = path.join(UPLOAD_DIR, storedName);
+    const missionCategory = (req.body?.missionCategory as string) ?? "default";
 
-    return res.status(201).json({
-      fileId,
-      originalName: req.file.originalname,
-      mimeType: req.file.mimetype,
-      fileSize: req.file.size,
-      fileSizeKb: Math.round(req.file.size / 1024),
-      extractionPending: true,
-    });
-  } catch (dbErr: any) {
-    fs.unlink(filePath, () => {});
-    return res.status(500).json({ error: "Failed to store file metadata." });
-  }
-});
+    try {
+      await db.insert(proofFilesTable).values({
+        id: fileId,
+        userId,
+        originalName: req.file.originalname,
+        storedName,
+        mimeType: req.file.mimetype,
+        fileSize: req.file.size,
+        proofSubmissionId: null,
+        extractedText: null,
+        extractionStatus: "pending",
+      });
+
+      extractFileContent(filePath, req.file.mimetype, req.file.originalname, missionCategory)
+        .then(async (result) => {
+          await db
+            .update(proofFilesTable)
+            .set({
+              extractedText: result.text ?? null,
+              extractionStatus: result.status,
+            })
+            .where(eq(proofFilesTable.id, fileId));
+        })
+        .catch((err) => console.error("Async extraction failed:", err));
+
+      return res.status(201).json({
+        fileId,
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        fileSize: req.file.size,
+        fileSizeKb: Math.round(req.file.size / 1024),
+        extractionPending: true,
+      });
+    } catch (dbErr: any) {
+      fs.unlink(filePath, () => {});
+      return res.status(500).json({ error: "Failed to store file metadata." });
+    }
+  },
+);
 
 router.get("/files/:fileId", async (req: any, res) => {
   const userId = req.user?.id ?? (req as any).userId;

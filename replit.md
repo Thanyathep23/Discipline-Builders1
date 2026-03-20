@@ -177,6 +177,24 @@ Key design mandates:
 - `artifacts/api-server` — Express API on port 8080, mounted at `/api`
 - `artifacts/mobile` — Expo React Native app on port 18115
 
+## Phase 6.5: Production Safety Pass (COMPLETE)
+
+### Rate Limiter — DB-backed (no new table)
+- `artifacts/api-server/src/lib/upload-rate-limiter.ts` rewritten: counts uploads from the existing `proof_files` table within a rolling 1-hour window
+- Survives server restarts because the limit is derived from persisted DB rows
+- `/api/proofs/upload` middleware restructured into 3 stages: async rate-check → multer → DB insert
+- Returns `{ error, resetInSeconds }` JSON on 429
+
+### Reward — Transaction-safe
+- `grantReward` in `artifacts/api-server/src/lib/rewards.ts` now wraps all three writes (user balance update, reward_transactions insert, audit_log insert) in a single `db.transaction()` call
+- If any write fails, all three roll back — no partial balances or orphaned logs
+
+### fileUrls — Removed from input
+- Removed `fileUrls` from the Zod input schema in `proofs.ts` — no longer accepted from clients
+- Removed from the DB insert for new submissions
+- DB column kept intact (existing data unaffected); `parseProof` still returns it for legacy records
+- `proofFileIds` is the sole upload attachment mechanism going forward
+
 ## Phase 6: Stability + QA + Hardening (COMPLETE)
 
 ### Fixes applied

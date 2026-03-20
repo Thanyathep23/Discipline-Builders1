@@ -108,46 +108,46 @@ export async function grantReward(
 ): Promise<void> {
   const opts = options ?? {};
 
-  const user = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-  if (!user[0]) return;
+  await db.transaction(async (tx) => {
+    const user = await tx.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user[0]) return;
 
-  const newBalance = user[0].coinBalance + coins;
-  const newXp = user[0].xp + xpAmount;
-  const xpNeeded = xpForLevel(user[0].level);
-  const leveledUp = newXp >= xpNeeded;
-  const newLevel = leveledUp ? user[0].level + 1 : user[0].level;
-  const finalXp = leveledUp ? newXp - xpNeeded : newXp;
+    const newBalance = user[0].coinBalance + coins;
+    const newXp = user[0].xp + xpAmount;
+    const xpNeeded = xpForLevel(user[0].level);
+    const leveledUp = newXp >= xpNeeded;
+    const newLevel = leveledUp ? user[0].level + 1 : user[0].level;
+    const finalXp = leveledUp ? newXp - xpNeeded : newXp;
 
-  await db.update(usersTable).set({
-    coinBalance: newBalance,
-    xp: finalXp,
-    level: newLevel,
-    updatedAt: new Date(),
-  }).where(eq(usersTable.id, userId));
+    await tx.update(usersTable).set({
+      coinBalance: newBalance,
+      xp: finalXp,
+      level: newLevel,
+      updatedAt: new Date(),
+    }).where(eq(usersTable.id, userId));
 
-  // Record transaction with snapshot
-  await db.insert(rewardTransactionsTable).values({
-    id: generateId(),
-    userId,
-    type: opts.type ?? "earned",
-    amount: coins,
-    xpAmount,
-    reason,
-    missionId: opts.missionId ?? null,
-    sessionId: opts.sessionId ?? null,
-    proofId: opts.proofId ?? null,
-    balanceAfter: newBalance,
-  });
+    await tx.insert(rewardTransactionsTable).values({
+      id: generateId(),
+      userId,
+      type: opts.type ?? "earned",
+      amount: coins,
+      xpAmount,
+      reason,
+      missionId: opts.missionId ?? null,
+      sessionId: opts.sessionId ?? null,
+      proofId: opts.proofId ?? null,
+      balanceAfter: newBalance,
+    });
 
-  // Audit log
-  await db.insert(auditLogTable).values({
-    id: generateId(),
-    actorId: opts.actorId ?? null,
-    actorRole: opts.actorId ? "admin" : "system",
-    action: "reward_granted",
-    targetId: userId,
-    targetType: "user",
-    details: JSON.stringify({ coins, xp: xpAmount, reason, leveledUp, newLevel, ...opts }),
+    await tx.insert(auditLogTable).values({
+      id: generateId(),
+      actorId: opts.actorId ?? null,
+      actorRole: opts.actorId ? "admin" : "system",
+      action: "reward_granted",
+      targetId: userId,
+      targetType: "user",
+      details: JSON.stringify({ coins, xp: xpAmount, reason, leveledUp, newLevel, ...opts }),
+    });
   });
 }
 

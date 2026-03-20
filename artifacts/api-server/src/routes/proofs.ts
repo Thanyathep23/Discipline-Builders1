@@ -242,7 +242,6 @@ router.post("/", async (req, res) => {
     sessionId: z.string(),
     textSummary: z.string().optional().nullable(),
     links: z.array(z.string()).optional().default([]),
-    fileUrls: z.array(z.string()).optional().default([]),
     proofFileIds: z.array(z.string()).optional().default([]),
   });
 
@@ -304,7 +303,6 @@ router.post("/", async (req, res) => {
     status: "reviewing",
     textSummary: parsed.data.textSummary ?? null,
     links: JSON.stringify(parsed.data.links),
-    fileUrls: JSON.stringify(parsed.data.fileUrls),
   });
 
   if (hasFileIds) {
