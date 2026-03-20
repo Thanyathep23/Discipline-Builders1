@@ -38,3 +38,16 @@ export const insertProofSchema = createInsertSchema(proofSubmissionsTable).omit(
 
 export type InsertProof = z.infer<typeof insertProofSchema>;
 export type ProofSubmission = typeof proofSubmissionsTable.$inferSelect;
+
+export const proofFilesTable = pgTable("proof_files", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  originalName: text("original_name").notNull(),
+  storedName: text("stored_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  fileSize: integer("file_size").notNull(),
+  proofSubmissionId: text("proof_submission_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type ProofFile = typeof proofFilesTable.$inferSelect;

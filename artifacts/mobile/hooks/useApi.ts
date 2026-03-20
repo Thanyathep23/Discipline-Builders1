@@ -126,11 +126,32 @@ export function useSubmitProof() {
   const { request } = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { sessionId: string; textSummary?: string; links?: string[] }) =>
+    mutationFn: (data: { sessionId: string; textSummary?: string; links?: string[]; proofFileIds?: string[] }) =>
       request<any>("/proofs", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proofs"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
+export function useUploadProofFile() {
+  const { token } = useAuth();
+  return useMutation({
+    mutationFn: async (file: { uri: string; name: string; type: string }) => {
+      const formData = new FormData();
+      formData.append("file", { uri: file.uri, name: file.name, type: file.type } as any);
+
+      const res = await fetch(`${API_BASE}/proofs/upload`, {
+        method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Upload failed");
+      return data as { fileId: string; originalName: string; mimeType: string; fileSize: number; fileSizeKb: number };
     },
   });
 }

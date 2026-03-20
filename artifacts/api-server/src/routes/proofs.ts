@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, proofSubmissionsTable, focusSessionsTable, missionsTable, usersTable, aiMissionsTable } from "@workspace/db";
-import { eq, and, count } from "drizzle-orm";
+import { db, proofSubmissionsTable, focusSessionsTable, missionsTable, usersTable, aiMissionsTable, proofFilesTable } from "@workspace/db";
+import { eq, and, count, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, generateId } from "../lib/auth.js";
 import { judgeProof } from "../lib/ai-judge.js";
@@ -54,7 +54,15 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
   const session = sessions[0];
   const user = users[0];
 
-  // Calculate actual duration
+  const attachedFiles = await db
+    .select({
+      originalName: proofFilesTable.originalName,
+      mimeType: proofFilesTable.mimeType,
+      fileSize: proofFilesTable.fileSize,
+    })
+    .from(proofFilesTable)
+    .where(and(eq(proofFilesTable.proofSubmissionId, submissionId), eq(proofFilesTable.userId, userId)));
+
   const startedAt = new Date(session.startedAt);
   const endedAt = session.endedAt ? new Date(session.endedAt) : new Date();
   const actualMinutes = Math.floor((endedAt.getTime() - startedAt.getTime()) / 60000) - Math.floor((session.totalPausedSeconds ?? 0) / 60);
@@ -70,6 +78,11 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     links: JSON.parse(proof.links || "[]"),
     requiredProofTypes: JSON.parse(mission.requiredProofTypes || "[]"),
     followupAnswers: proof.followupAnswers,
+    attachedFiles: attachedFiles.map((f) => ({
+      name: f.originalName,
+      type: f.mimeType,
+      sizeKb: Math.round(f.fileSize / 1024),
+    })),
   });
 
   let coinsAwarded = 0;
@@ -194,6 +207,7 @@ router.post("/", async (req, res) => {
     textSummary: z.string().optional().nullable(),
     links: z.array(z.string()).optional().default([]),
     fileUrls: z.array(z.string()).optional().default([]),
+    proofFileIds: z.array(z.string()).optional().default([]),
   });
 
   const parsed = schema.safeParse(req.body);
@@ -202,9 +216,8 @@ router.post("/", async (req, res) => {
     return;
   }
 
-  const userId = (req as any).userId;
+  const userId = (req as any).userId ?? (req as any).user?.id;
 
-  // Validate session belongs to user
   const sessions = await db.select().from(focusSessionsTable)
     .where(and(eq(focusSessionsTable.id, parsed.data.sessionId), eq(focusSessionsTable.userId, userId)))
     .limit(1);
@@ -214,13 +227,36 @@ router.post("/", async (req, res) => {
     return;
   }
 
-  // Check for duplicate submission
   const existing = await db.select().from(proofSubmissionsTable)
     .where(eq(proofSubmissionsTable.sessionId, parsed.data.sessionId))
     .limit(1);
   if (existing[0] && !["rejected", "followup_needed"].includes(existing[0].status)) {
     res.status(400).json({ error: "Proof already submitted for this session" });
     return;
+  }
+
+  const hasFileIds = parsed.data.proofFileIds.length > 0;
+  const hasText = (parsed.data.textSummary ?? "").trim().length > 0;
+  const hasLinks = parsed.data.links.length > 0;
+
+  if (!hasText && !hasLinks && !hasFileIds) {
+    res.status(400).json({ error: "Proof required: provide a text summary, link, or uploaded file." });
+    return;
+  }
+
+  if (hasFileIds) {
+    const ownedFiles = await db
+      .select({ id: proofFilesTable.id })
+      .from(proofFilesTable)
+      .where(and(
+        inArray(proofFilesTable.id, parsed.data.proofFileIds),
+        eq(proofFilesTable.userId, userId),
+      ));
+
+    if (ownedFiles.length !== parsed.data.proofFileIds.length) {
+      res.status(403).json({ error: "One or more file IDs are invalid or do not belong to you." });
+      return;
+    }
   }
 
   const id = generateId();
@@ -235,7 +271,16 @@ router.post("/", async (req, res) => {
     fileUrls: JSON.stringify(parsed.data.fileUrls),
   });
 
-  // Run AI judgment asynchronously (don't block response)
+  if (hasFileIds) {
+    await db
+      .update(proofFilesTable)
+      .set({ proofSubmissionId: id })
+      .where(and(
+        inArray(proofFilesTable.id, parsed.data.proofFileIds),
+        eq(proofFilesTable.userId, userId),
+      ));
+  }
+
   runJudgment(id, userId).catch(err => console.error("Judge error:", err));
 
   const proof = await db.select().from(proofSubmissionsTable).where(eq(proofSubmissionsTable.id, id)).limit(1);

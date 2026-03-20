@@ -11,6 +11,12 @@ function getOpenAI(): OpenAI {
   return openaiClient;
 }
 
+export interface AttachedFileInfo {
+  name: string;
+  type: string;
+  sizeKb: number;
+}
+
 export interface ProofContext {
   missionTitle: string;
   missionDescription: string | null;
@@ -22,6 +28,7 @@ export interface ProofContext {
   links: string[];
   requiredProofTypes: string[];
   followupAnswers?: string | null;
+  attachedFiles?: AttachedFileInfo[];
 }
 
 export interface JudgeResult {
@@ -41,15 +48,27 @@ export interface JudgeResult {
 function ruleBasedJudge(ctx: ProofContext): JudgeResult {
   const summary = (ctx.textSummary ?? "").trim();
   const hasLinks = ctx.links.length > 0;
+  const hasFiles = (ctx.attachedFiles ?? []).length > 0;
   const wordCount = summary.split(/\s+/).filter(Boolean).length;
 
-  if (!summary && !hasLinks) {
+  if (!summary && !hasLinks && !hasFiles) {
     return {
       verdict: "rejected",
       confidenceScore: 0.95,
       rewardMultiplier: 0,
-      explanation: "No proof was provided. A text summary or link is required.",
+      explanation: "No proof was provided. A text summary, link, or file upload is required.",
       rubric: { relevanceScore: 0, qualityScore: 0, plausibilityScore: 0, specificityScore: 0 },
+    };
+  }
+
+  if (hasFiles && !summary && !hasLinks) {
+    const fileBonus = ctx.attachedFiles!.length > 1 ? 0.75 : 0.6;
+    return {
+      verdict: "partial",
+      confidenceScore: 0.72,
+      rewardMultiplier: fileBonus,
+      explanation: `File attachment${ctx.attachedFiles!.length > 1 ? "s" : ""} received as proof. Adding a written summary would increase your reward.`,
+      rubric: { relevanceScore: 0.6, qualityScore: 0.55, plausibilityScore: 0.65, specificityScore: 0.45 },
     };
   }
 
@@ -112,7 +131,12 @@ Be strict but fair:
 - Specific outcomes, deliverables, challenges overcome = high scores
 - Always return valid JSON matching the schema exactly`;
 
-  const hasProof = ctx.textSummary || ctx.links.length > 0;
+  const hasFiles = (ctx.attachedFiles ?? []).length > 0;
+  const hasProof = ctx.textSummary || ctx.links.length > 0 || hasFiles;
+
+  const fileDesc = hasFiles
+    ? ctx.attachedFiles!.map((f) => `  - ${f.name} (${f.type}, ${f.sizeKb}KB)`).join("\n")
+    : "None";
 
   const userPrompt = `Evaluate this proof submission:
 
@@ -127,9 +151,11 @@ Required Proof Types: ${ctx.requiredProofTypes.join(", ")}
 SUBMITTED PROOF:
 Text Summary: ${ctx.textSummary ?? "None provided"}
 Links: ${ctx.links.length > 0 ? ctx.links.join(", ") : "None"}
+Attached Files:\n${fileDesc}
 ${ctx.followupAnswers ? `Follow-up Answers: ${ctx.followupAnswers}` : ""}
 
 ${!hasProof ? "WARNING: No proof was submitted at all." : ""}
+${hasFiles && !ctx.textSummary ? "NOTE: Files attached but no written summary. Consider a follow-up if the file content is unclear from metadata alone." : ""}
 
 Return a JSON object with EXACTLY these fields:
 {

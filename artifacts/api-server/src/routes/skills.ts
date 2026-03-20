@@ -4,6 +4,7 @@ import { requireAuth } from "../lib/auth.js";
 import { db, skillXpEventsTable, lifeProfilesTable } from "@workspace/db";
 import { eq, and, desc, gte } from "drizzle-orm";
 import { resolveArcWithEvidenceGating } from "../lib/arc-resolver.js";
+import { deriveSkillSuggestions } from "../lib/skill-suggestions.js";
 
 const router = Router();
 
@@ -57,8 +58,27 @@ router.get("/summary", requireAuth, async (req: any, res) => {
       }
     }
 
+    const skillsWithSuggestions = await Promise.all(
+      skills.map(async (skill) => {
+        try {
+          const suggestions = await deriveSkillSuggestions(
+            userId,
+            skill.skillId,
+            skill.level,
+            skill.currentTrend,
+            skill.recentXp,
+            skill.totalXpEarned,
+            skill.confidenceScore ?? 0.1,
+          );
+          return { ...skill, suggestions };
+        } catch {
+          return { ...skill, suggestions: null };
+        }
+      }),
+    );
+
     return res.json({
-      skills,
+      skills: skillsWithSuggestions,
       totalXp,
       avgLevel: Math.round(avgLevel * 10) / 10,
       topSkill,

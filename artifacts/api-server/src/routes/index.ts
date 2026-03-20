@@ -17,6 +17,7 @@ import skillsRouter from "./skills.js";
 import aiMissionsRouter from "./ai-missions.js";
 import inventoryRouter from "./inventory.js";
 import streaksRouter from "./streaks.js";
+import proofUploadsRouter from "./proof-uploads.js";
 
 const router: IRouter = Router();
 
@@ -24,6 +25,7 @@ router.use(healthRouter);
 router.use("/auth", authRouter);
 router.use("/missions", missionsRouter);
 router.use("/sessions", sessionsRouter);
+router.use("/proofs", proofUploadsRouter);
 router.use("/proofs", proofsRouter);
 router.use("/rewards", rewardsRouter);
 router.use("/analytics", analyticsRouter);

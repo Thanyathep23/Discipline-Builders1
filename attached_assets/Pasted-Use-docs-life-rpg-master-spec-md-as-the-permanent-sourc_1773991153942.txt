@@ -1,0 +1,206 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Current status:
+- Core loop works
+- Life RPG layer works
+- Arc system is evidence-gated
+- Arc-aware AI missions work
+- Quick Start, Standard Profile, and Deep Profile flows exist
+- The remaining important spec gaps are:
+  1. Skill Screen growth suggestions
+  2. File upload proof types
+
+Your task in this phase:
+Implement only these remaining high-value gaps and a small amount of supporting polish.
+
+==================================================
+PHASE 4 SCOPE
+==================================================
+
+Build only:
+
+1. Skill Growth Suggestions
+2. File Upload Proof Types
+3. Small proof/reward polish only where necessary to support the above
+
+Do NOT build:
+- social/community
+- leaderboard
+- world map
+- marketplace expansion
+- deep economy
+- admin expansion
+- large analytics overhaul
+- sleep overhaul
+- new onboarding systems
+- large UI redesign
+
+==================================================
+A. SKILL GROWTH SUGGESTIONS
+==================================================
+
+Add actionable growth suggestions to the Skill screen.
+
+For each of the 6 core skills:
+- Focus
+- Discipline
+- Sleep
+- Fitness
+- Learning
+- Trading
+
+show:
+- why the skill is currently at this level/trend
+- what is helping it
+- what is hurting it
+- 2-4 practical next actions to improve it
+
+Requirements:
+- suggestions must be based on actual user data where possible
+- suggestions must feel specific, not generic filler
+- suggestions should connect to mission categories already in the app
+- suggestions should help the user understand how to level the skill in real life
+
+Examples:
+- Focus: reduce blocked attempts, complete one uninterrupted 25-minute session, finish a deep work mission with strong proof
+- Discipline: accept fewer missions but complete more, reduce abandonment, maintain consistency
+- Learning: submit better summaries, complete study missions with takeaways, increase proof quality
+- Trading: complete verified chart review, submit reasoning, do backtesting/journaling missions with evidence
+
+Implementation:
+- add backend service or route logic that derives suggestions from:
+  - skill trends
+  - recent missions
+  - completed vs abandoned sessions
+  - blocked attempts
+  - proof quality
+  - mission categories
+  - arc if useful
+- if data is sparse, use strong rule-based defaults
+- expose suggestions in the skill summary endpoint
+- render them clearly in the Skill screen UI
+
+==================================================
+B. FILE UPLOAD PROOF TYPES
+==================================================
+
+Extend the proof system so missions can use file upload as a first-class proof type.
+
+Requirements:
+- support proof file uploads for relevant missions
+- connect uploaded files to proof submissions
+- support at least:
+  - image files
+  - PDF/doc-like files if current upload system can support safely
+  - optional fallback to image-only if broader file support is risky
+- store file metadata securely
+- validate file type and file size
+- return JSON errors on invalid uploads
+- preserve the existing proof -> judge -> reward flow
+
+Rules:
+- file uploads must remain ownership-safe
+- user can only access their own uploaded proof files
+- proof uploads must not break current text/link proof flows
+- do not make file upload mandatory for all missions
+- only require files when the mission proof requirement calls for it
+
+Mission examples where file upload matters:
+- Trading review -> upload journal/export/screenshot bundle
+- Learning mission -> upload notes or worksheet
+- Deep work/output mission -> upload file artifact or document
+- Fitness mission -> usually image/log, not document-heavy
+
+Implementation:
+- reuse existing upload/storage system if present
+- if no safe generalized upload system exists, implement the smallest secure version needed
+- persist uploaded files in proof file records
+- ensure AI judge / rule-based judge can see file metadata and use it in evaluation
+- if file content cannot be deeply parsed yet, still use metadata + presence + mission fit
+
+==================================================
+C. PROOF / REWARD POLISH
+==================================================
+
+Only make minimal supporting improvements required for this phase.
+
+Possible examples:
+- proof preview improvements
+- clear file attachment state in proof submission UI
+- better error feedback on failed upload
+- better reward explanation when file-based proof improves result
+
+Do not redesign the whole proof system.
+
+==================================================
+D. DESIGN / UX RULES
+==================================================
+
+Keep UI direction:
+- dark premium
+- command center
+- serious but exciting
+- not childish
+
+Skill screen:
+- show growth suggestions clearly
+- suggestions should feel like tactical coaching
+- avoid overly verbose blocks
+
+Proof UI:
+- file attachments should feel reliable and clear
+- show attached file name/type/state
+- keep submission flow simple
+
+==================================================
+E. BACKEND / SECURITY RULES
+==================================================
+
+- all file validation must happen server-side
+- all ownership checks must be enforced server-side
+- reward calculation remains server-side only
+- proof verdict persistence remains server-side only
+- uploaded proof files must not be publicly exposed without authorization
+- keep all API routes JSON-only
+- do not trust client-provided file metadata blindly
+
+==================================================
+F. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. Skill screen shows specific growth suggestions for all 6 core skills
+2. Suggestions are based on real user state or robust fallback logic
+3. User can upload proof files as part of a submission
+4. Uploaded proof files are linked to proof submissions
+5. File validation works with clean JSON errors
+6. Existing text/link proof flows still work
+7. Proof -> judge -> reward flow still works after file uploads
+8. Ownership/security remains intact
+9. No unrelated systems are changed
+
+==================================================
+G. DELIVERABLE FORMAT
+==================================================
+
+At the end report:
+1. files changed
+2. new routes/services added
+3. upload validation rules
+4. how skill suggestions are derived
+5. what proof file types are supported
+6. end-to-end test results for:
+   - text-only proof
+   - link proof
+   - file upload proof
+   - skill screen suggestions visibility
+7. remaining TODOs for the next phase
+
+Important:
+Do not expand scope.
+Do not restart the project.
+Preserve the current working app and extend it carefully.

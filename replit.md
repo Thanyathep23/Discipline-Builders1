@@ -80,6 +80,25 @@ Key design mandates:
 - **Standard Onboarding** — 7-step resumable flow from profile screen
 - **Deep Onboarding** — 4-step resumable flow from profile screen (gold theme)
 
+## Phase 4 Features
+
+### Skill Growth Suggestions (A)
+- `deriveSkillSuggestions()` in `artifacts/api-server/src/lib/skill-suggestions.ts`
+- Analyzes: completed/abandoned missions, blocked attempts, session history, proof quality, XP events
+- Returns per-skill: `reason`, `helping[]`, `hurting[]`, `actions[]` (2-4 practical next steps)
+- Integrated into `/api/skills/summary` — every skill now has a `suggestions` field
+- Mobile Skill screen: tap skill → "Show Growth Suggestions" expands tactical coaching panel
+
+### File Upload Proof Types (B)
+- New route file: `artifacts/api-server/src/routes/proof-uploads.ts`
+- Endpoints: `POST /api/proofs/upload`, `GET /api/proofs/files`, `GET /api/proofs/files/:fileId`
+- New DB table: `proof_files` (id, userId, originalName, storedName, mimeType, fileSize, proofSubmissionId)
+- Allowed types: JPEG, PNG, GIF, WebP, PDF — max 10MB
+- Ownership enforced server-side; cross-user access returns 404
+- `POST /api/proofs` accepts `proofFileIds: string[]` — links files to submission
+- AI judge receives file metadata (name, type, size) in evaluation context
+- Mobile proof screen: "Attach File" button with image picker + document picker
+
 ## Routes
 
 - `GET/POST /api/profile` — life profile
@@ -88,6 +107,9 @@ Key design mandates:
 - `GET /api/ai-missions` — list pending/all AI missions
 - `GET /api/ai-missions/:id` — mission detail + proof reqs + variants
 - `POST /api/ai-missions/:id/respond` — accept/reject/not_now/make_easier/make_harder/ask_why
+- `POST /api/proofs/upload` — upload proof file (multipart/form-data)
+- `GET /api/proofs/files` — list user's uploaded proof files
+- `GET /api/proofs/files/:fileId` — serve file (ownership-gated)
 - `GET /api/inventory/badges` — all badges + earned status
 - `GET /api/inventory/titles` — all titles + earned status + active
 - `POST /api/inventory/titles/:id/activate` — activate a title
@@ -112,7 +134,7 @@ Key design mandates:
 
 ## Database Tables (29 total)
 
-Core: users, missions, focus_sessions, proof_submissions, reward_transactions, audit_log, penalties
+Core: users, missions, focus_sessions, proof_submissions, proof_files, reward_transactions, audit_log, penalties
 Skills: user_skills, skill_xp_events
 AI Missions: ai_missions, ai_mission_variants, mission_acceptance_events, mission_proof_requirements, proof_requirement_templates, alternate_proof_requests
 Inventory: badges, user_badges, titles, user_titles, milestone_unlocks
