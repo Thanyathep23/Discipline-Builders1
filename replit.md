@@ -177,6 +177,40 @@ Key design mandates:
 - `artifacts/api-server` — Express API on port 8080, mounted at `/api`
 - `artifacts/mobile` — Expo React Native app on port 18115
 
+## Phase 5B: Adaptive Challenge + Quest Chains + Reward Balance (COMPLETE)
+
+### Adaptive Challenge (`artifacts/api-server/src/lib/adaptive-challenge.ts`)
+- Reads last 14 days of missions, proofs, and skill trends to build a `ChallengeProfile`
+- `targetDifficultyDelta` (+1/0/-1): increases after sustained success, softens after struggle/overload
+- `durationMultiplier`: shortens sessions when overloaded (0.75×), extends when pushing (1.15×)
+- `rarityTrigger`: "rare" at streak≥3 + good performance; "breakthrough" at streak≥7 + high performance
+- `adaptiveDifficultyScore`: 0-100 composite score used in mission prompt context
+- Full OpenAI fallback: rule-based generator respects same tuning params
+- **Key fix**: `userSkillsTable.currentTrend` (not `.trend`) — column name corrected in v5B final
+
+### Quest Chains (`artifacts/api-server/src/lib/quest-chains.ts`)
+- Static chain library: "Focus Recovery" (3 steps), "Trading Apprentice" (4 steps), "Discipline Reset" (3 steps)
+- `selectChainForUser`: picks chain matching user's weakest skill if no active chain exists
+- Chains stored in `user_quest_chains` table; accepted chain missions carry `chainId` + `chainStep`
+- `advanceChainStep`: increments progress on proof approval; grants `completionBonusCoins` on final step
+- `GET /api/ai-missions/chains/active`: dedicated endpoint (ordered before `/:missionId` to avoid conflict)
+
+### Rare / Breakthrough Missions
+- Rarity propagated from `ChallengeProfile.rarityTrigger` → AI mission generation → accepted mission
+- Persisted in `ai_missions.rarity` and `missions.rarity` fields
+- `computeRarityBonus` in `artifacts/api-server/src/lib/rewards.ts`: rare +5c, breakthrough +10c
+
+### Reward Balance
+- `computeAdaptiveDifficultyBonus`: bonus coins based on mission difficulty color (blue+1c, purple+2c, gold+3c, red+5c)
+- All bonuses computed server-side in `proofs.ts` verdict flow
+- Chain completion bonus granted via `grantReward` on final chain step
+- Proof result screen shows: base reward + rarity indicator + chain progress indicator
+
+### UI
+- `RarityBadge` + `ChainBadge` on AI mission cards in missions screen
+- `ActiveChainCard` on home screen (shows chain name, step progress bar, bonus)
+- Bonus breakdown box in proof result view
+
 ## Database Tables (29 total)
 
 Core: users, missions, focus_sessions, proof_submissions, proof_files, reward_transactions, audit_log, penalties

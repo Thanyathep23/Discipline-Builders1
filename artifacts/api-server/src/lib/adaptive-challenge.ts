@@ -43,7 +43,7 @@ export async function computeAdaptiveChallenge(userId: string): Promise<Challeng
       .limit(10),
 
     db
-      .select({ skillId: userSkillsTable.skillId, level: userSkillsTable.level, trend: userSkillsTable.trend })
+      .select({ skillId: userSkillsTable.skillId, level: userSkillsTable.level, trend: userSkillsTable.currentTrend })
       .from(userSkillsTable)
       .where(eq(userSkillsTable.userId, userId)),
   ]);
