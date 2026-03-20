@@ -38,6 +38,68 @@ export interface JudgeResult {
   };
 }
 
+function ruleBasedJudge(ctx: ProofContext): JudgeResult {
+  const summary = (ctx.textSummary ?? "").trim();
+  const hasLinks = ctx.links.length > 0;
+  const wordCount = summary.split(/\s+/).filter(Boolean).length;
+
+  if (!summary && !hasLinks) {
+    return {
+      verdict: "rejected",
+      confidenceScore: 0.95,
+      rewardMultiplier: 0,
+      explanation: "No proof was provided. A text summary or link is required.",
+      rubric: { relevanceScore: 0, qualityScore: 0, plausibilityScore: 0, specificityScore: 0 },
+    };
+  }
+
+  if (wordCount < 10) {
+    return {
+      verdict: "rejected",
+      confidenceScore: 0.9,
+      rewardMultiplier: 0,
+      explanation: "Proof is too vague. Please describe specifically what you accomplished.",
+      rubric: { relevanceScore: 0.1, qualityScore: 0.05, plausibilityScore: 0.1, specificityScore: 0.05 },
+    };
+  }
+
+  if (wordCount < 30 && !hasLinks) {
+    return {
+      verdict: "partial",
+      confidenceScore: 0.7,
+      rewardMultiplier: 0.35,
+      explanation: "Proof is brief. More specific details would earn a full reward.",
+      rubric: { relevanceScore: 0.4, qualityScore: 0.3, plausibilityScore: 0.5, specificityScore: 0.2 },
+    };
+  }
+
+  if (wordCount < 60 && !hasLinks) {
+    return {
+      verdict: "partial",
+      confidenceScore: 0.75,
+      rewardMultiplier: 0.55,
+      explanation: "Proof is acceptable but lacks specific outcomes. Partial reward granted.",
+      rubric: { relevanceScore: 0.55, qualityScore: 0.45, plausibilityScore: 0.6, specificityScore: 0.4 },
+    };
+  }
+
+  const multiplier = hasLinks ? 0.9 : wordCount >= 100 ? 0.8 : 0.7;
+  const quality = hasLinks ? 0.85 : wordCount >= 100 ? 0.75 : 0.65;
+
+  return {
+    verdict: "approved",
+    confidenceScore: 0.8,
+    rewardMultiplier: multiplier,
+    explanation: `Proof accepted. ${hasLinks ? "Evidence links noted. " : ""}Good level of detail provided.`,
+    rubric: {
+      relevanceScore: quality,
+      qualityScore: quality - 0.05,
+      plausibilityScore: quality + 0.05,
+      specificityScore: hasLinks ? quality : quality - 0.1,
+    },
+  };
+}
+
 export async function judgeProof(ctx: ProofContext): Promise<JudgeResult> {
   const openai = getOpenAI();
 
@@ -122,14 +184,7 @@ Rules:
       },
     };
   } catch (err) {
-    console.error("AI judge error:", err);
-    // Fallback for missing API key or errors
-    return {
-      verdict: "flagged",
-      confidenceScore: 0,
-      rewardMultiplier: 0,
-      explanation: "AI evaluation unavailable. Flagged for manual review.",
-      rubric: { relevanceScore: 0, qualityScore: 0, plausibilityScore: 0, specificityScore: 0 },
-    };
+    console.error("AI judge error, using rule-based fallback:", err);
+    return ruleBasedJudge(ctx);
   }
 }
