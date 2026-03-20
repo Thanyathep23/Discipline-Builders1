@@ -51,6 +51,8 @@ router.get("/summary", requireAuth, async (req: any, res) => {
             currentArc: gatingResult.newArcName,
             arcSetAt: new Date(),
             arcXpSnapshot: JSON.stringify(gatingResult.newXpSnapshot),
+            arcStageXpSnapshot: JSON.stringify(gatingResult.newXpSnapshot),
+            arcStage: "beginning",
             updatedAt: new Date(),
           })
           .where(eq(lifeProfilesTable.userId, userId));

@@ -71,14 +71,14 @@ export async function grantSkillXp(
   source: string,
   sourceId?: string,
   description?: string,
-): Promise<{ leveled: boolean; newLevel: number; newXp: number; rankChanged: boolean; newRank: string }> {
+): Promise<{ leveled: boolean; newLevel: number; newXp: number; rankChanged: boolean; newRank: string; tieredUp: boolean; newMasteryTier: number }> {
   await ensureUserSkills(userId);
   const rows = await db
     .select()
     .from(userSkillsTable)
     .where(and(eq(userSkillsTable.userId, userId), eq(userSkillsTable.skillId, skillId)))
     .limit(1);
-  if (rows.length === 0) return { leveled: false, newLevel: 1, newXp: 0, rankChanged: false, newRank: "Gray" };
+  if (rows.length === 0) return { leveled: false, newLevel: 1, newXp: 0, rankChanged: false, newRank: "Gray", tieredUp: false, newMasteryTier: 0 };
 
   let { level, xp, xpToNextLevel, totalXpEarned, rank: oldRank } = rows[0];
   xp += xpAmount;
@@ -136,9 +136,26 @@ export async function grantSkillXp(
   });
 
   const currentMasteryTier = rows[0].masteryTier ?? 0;
-  await checkAndGrantMastery(userId, skillId, level, totalXpEarned, confidence, currentMasteryTier).catch(() => {});
+  let tieredUp = false;
+  let newMasteryTier = currentMasteryTier;
+  try {
+    const masteryResult = await checkAndGrantMastery(userId, skillId, level, totalXpEarned, confidence, currentMasteryTier);
+    tieredUp = masteryResult.tieredUp;
+    newMasteryTier = masteryResult.newTier;
+    if (tieredUp) {
+      await db.insert(skillXpEventsTable).values({
+        id: randomUUID(),
+        userId,
+        skillId,
+        xpAmount: 0,
+        source: "mastery_tier_up",
+        sourceId: null,
+        description: `Mastery Tier ${newMasteryTier} achieved`,
+      });
+    }
+  } catch {}
 
-  return { leveled, newLevel: level, newXp: xp, rankChanged, newRank: newRankInfo.name };
+  return { leveled, newLevel: level, newXp: xp, rankChanged, newRank: newRankInfo.name, tieredUp, newMasteryTier };
 }
 
 export async function grantSessionSkillXp(

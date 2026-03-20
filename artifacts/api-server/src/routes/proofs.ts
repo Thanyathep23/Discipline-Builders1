@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { db, proofSubmissionsTable, focusSessionsTable, missionsTable, usersTable, aiMissionsTable, proofFilesTable } from "@workspace/db";
+import { db, proofSubmissionsTable, focusSessionsTable, missionsTable, usersTable, aiMissionsTable, proofFilesTable, CATEGORY_SKILL_MAP, CYCLE_DEFINITIONS } from "@workspace/db";
+import type { CycleType } from "@workspace/db";
 import { eq, and, count, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, generateId } from "../lib/auth.js";
@@ -7,6 +8,7 @@ import { judgeProof } from "../lib/ai-judge.js";
 import { computeRewardCoins, grantReward, updateStreak, applySystemPenalty, computeRarityBonus, computeAdaptiveDifficultyBonus } from "../lib/rewards.js";
 import { advanceChainStep } from "../lib/quest-chains.js";
 import { grantSessionSkillXp } from "../lib/skill-engine.js";
+import { incrementCycleProgress, markCycleRewardClaimed } from "../lib/cycle-engine.js";
 import { auditLogTable } from "@workspace/db";
 import { awardBadge, awardTitle } from "./inventory.js";
 import { trackEvent, Events } from "../lib/telemetry.js";
@@ -123,6 +125,31 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
       });
       await updateStreak(userId);
       await grantSessionSkillXp(userId, mission.category, actualMinutes, judgeResult.verdict);
+
+      // Gap 1: Auto-increment cycle progress based on mission skill/category
+      const categorySkills = CATEGORY_SKILL_MAP[mission.category] ?? ["focus"];
+      const cycleSkillsToCheck = [
+        ...new Set([
+          ...categorySkills,
+          "focus",
+          ...(judgeResult.verdict === "approved" ? ["discipline"] : []),
+        ]),
+      ];
+      let cycleRewardProcessed = false;
+      for (const skillId of cycleSkillsToCheck) {
+        const cycleResult = await incrementCycleProgress(userId, skillId).catch(() => null);
+        if (cycleResult?.completed && cycleResult.cycleId && cycleResult.cycleType && !cycleRewardProcessed) {
+          cycleRewardProcessed = true;
+          // Gap 3: Auto-claim cycle completion reward and title
+          const def = CYCLE_DEFINITIONS[cycleResult.cycleType as CycleType];
+          if (def) {
+            const titleId = "title-" + def.rewardTitle.toLowerCase().replace(/\s+/g, "-");
+            await awardTitle(userId, titleId).catch(() => {});
+            await grantReward(userId, 200, 100, `Cycle completed: ${def.label}`);
+            await markCycleRewardClaimed(cycleResult.cycleId);
+          }
+        }
+      }
 
       // Update mission to completed
       await db.update(missionsTable).set({ status: "completed", updatedAt: new Date() })
