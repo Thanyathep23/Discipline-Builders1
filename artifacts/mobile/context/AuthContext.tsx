@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api-server/api`;
+const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api`;
 
 export interface UserProfile {
   id: string;

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 
-const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api-server/api`;
+const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api`;
 
 export function useApiClient() {
   const { token } = useAuth();
