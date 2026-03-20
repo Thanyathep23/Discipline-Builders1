@@ -370,3 +370,40 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ### Rewards screen (`rewards.tsx`)
 - Inventory tab: new "Symbolic Assets" grid section at top, before titles, showing owned trophies/rooms/cosmetics with category-color coding
+
+## Phase 9 — Admin / Tuning Tools Lite (COMPLETE)
+
+### Backend: New Admin Endpoints (`artifacts/api-server/src/routes/admin.ts`)
+All existing routes preserved unchanged. New routes added, all protected by `requireAdmin`:
+
+**A. Dashboard:**
+- `GET /api/admin/dashboard` — system health summary: user count, AI mission counts by status (pending/accepted/rejected/expired/aiGenerated/ruleBased), proof counts (approved/flagged/rejected), reward transaction counts (total + last 24h), active chain count, recent 7d badge/title unlocks
+
+**B. Reward / Economy Inspection:**
+- `GET /api/admin/rewards?userId=&limit=&offset=` — recent reward transactions with mission context cross-reference (title, rarity, difficultyColor, chainId from the missions table)
+- `GET /api/admin/rewards/user/:userId` — full wallet state (balance, xp, level, streak, trust) + earned/spent/penalty summary + last 50 transactions for a specific user
+
+**C. Mission Generation Inspection:**
+- `GET /api/admin/missions/generated?status=&generatedBy=&userId=&limit=&offset=` — AI-generated missions with full metadata (category, difficultyColor, rarity, relatedSkill, generatedBy, adaptiveDifficultyScore, chainId, chainStep, suggestedRewardBonus, expiryAt) + acceptance event action counts per mission
+
+**D. User Progression Inspection:**
+- `GET /api/admin/users/:userId/progression` — full progression state: user wallet, arc (current arc name, setAt, mainGoal, mainProblem, onboardingStage), 6 skills with level/xp/rank/trend/confidence, active chain with theme + recent chain missions, all badges with metadata, all titles with active status
+
+**E. Override Actions (all audit-logged):**
+- `POST /api/admin/missions/generate/:userId` — re-run AI mission generation for a user, bypasses pacing guard. Writes `admin_mission_generate` audit entry.
+- `POST /api/admin/missions/:missionId/expire` — mark a pending AI mission as expired. Only affects pending missions. Writes `admin_mission_expired` audit entry.
+- `POST /api/admin/inventory/grant` — grant badge or title to a user. Idempotent (409 if already owned). Writes `admin_badge_granted` / `admin_title_granted` audit entry.
+- `POST /api/admin/chains/:chainId/reset` — reset quest chain to step=0 + status=active for repair. Writes `admin_chain_reset` audit entry with previous state snapshot.
+
+### Mobile UI: New Admin Screens
+- `app/admin/index.tsx` — Updated: adds system dashboard stats (4 summary cards, AI mission breakdown, economy/proof stats, recent unlocks), 4 navigation cards to sub-screens (Rewards Audit, Mission Inspection, User Progression, Override Actions)
+- `app/admin/rewards.tsx` — Rewards audit view: filterable by userId, shows wallet summary (coins, xp, level, streak, trust) when inspecting a specific user, lists transactions with type-color coding, bonus context (mission rarity/difficulty), reason text, balance snapshots
+- `app/admin/missions.tsx` — Mission generation inspection: filter by status (pending/accepted/rejected/expired) and source (AI/rule-based), shows full mission metadata with expandable detail, acceptance event counts per mission
+- `app/admin/user-progression.tsx` — User progression inspector: search by userId, shows arc + mainGoal + onboardingStage, 6 skills with XP bars/rank/trend indicators, active chain with progress bar + recent chain missions, badge grid, title list with active indicator
+- `app/admin/overrides.tsx` — Override actions panel: forms for all 4 override actions with confirmation dialogs before execution, warning banner, all mutations invalidate admin cache
+
+### Security
+- All new admin routes use existing `requireAdmin` middleware (checks `user.role === "admin"` server-side)
+- All override actions write explicit audit log entries with actor, action, target, and full context details
+- User-facing routes unchanged — no ownership bypass introduced
+- No sensitive proof file contents exposed by new routes

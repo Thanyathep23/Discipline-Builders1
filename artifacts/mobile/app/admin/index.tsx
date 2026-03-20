@@ -15,9 +15,9 @@ export default function AdminScreen() {
   const { request } = useApiClient();
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
 
-  const { data: users, isLoading: usersLoading } = useQuery({
-    queryKey: ["admin", "users"],
-    queryFn: () => request<any[]>("/admin/users"),
+  const { data: dashboard, isLoading: dashLoading } = useQuery({
+    queryKey: ["admin", "dashboard"],
+    queryFn: () => request<any>("/admin/dashboard"),
   });
 
   const { data: flagged, isLoading: flaggedLoading } = useQuery({
@@ -27,7 +27,7 @@ export default function AdminScreen() {
 
   const { data: auditLog, isLoading: auditLoading } = useQuery({
     queryKey: ["admin", "audit"],
-    queryFn: () => request<any[]>("/admin/audit-log?limit=20"),
+    queryFn: () => request<any[]>("/admin/audit-log?limit=15"),
   });
 
   const ACTION_COLORS: Record<string, string> = {
@@ -37,7 +37,19 @@ export default function AdminScreen() {
     admin_proof_review: Colors.accent,
     item_redeemed: Colors.gold,
     shop_item_created: Colors.accent,
+    admin_mission_generate: Colors.cyan,
+    admin_mission_expired: Colors.amber,
+    admin_badge_granted: Colors.gold,
+    admin_title_granted: Colors.gold,
+    admin_chain_reset: Colors.crimson,
   };
+
+  const NAV_ITEMS = [
+    { label: "Rewards Audit", icon: "cash-outline" as const, route: "/admin/rewards", color: Colors.gold },
+    { label: "Mission Inspection", icon: "flash-outline" as const, route: "/admin/missions", color: Colors.cyan },
+    { label: "User Progression", icon: "person-outline" as const, route: "/admin/user-progression", color: Colors.accent },
+    { label: "Override Actions", icon: "build-outline" as const, route: "/admin/overrides", color: Colors.crimson },
+  ];
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
@@ -53,24 +65,133 @@ export default function AdminScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]}>
-        {/* Stats */}
-        <Animated.View entering={FadeInDown.springify()} style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Ionicons name="people" size={24} color={Colors.accent} />
-            <Text style={styles.statValue}>{users?.length ?? 0}</Text>
-            <Text style={styles.statLabel}>Total Users</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="flag" size={24} color={Colors.crimson} />
-            <Text style={[styles.statValue, { color: flagged?.length ? Colors.crimson : Colors.textPrimary }]}>
-              {flagged?.length ?? 0}
-            </Text>
-            <Text style={styles.statLabel}>Flagged Proofs</Text>
+
+        {/* Dashboard Stats */}
+        <Animated.View entering={FadeInDown.springify()}>
+          <Text style={styles.sectionTitle}>System Health</Text>
+          {dashLoading ? (
+            <ActivityIndicator color={Colors.accent} />
+          ) : dashboard ? (
+            <>
+              <View style={styles.statsGrid}>
+                <View style={styles.statCard}>
+                  <Ionicons name="people" size={20} color={Colors.accent} />
+                  <Text style={styles.statValue}>{dashboard.users?.total ?? 0}</Text>
+                  <Text style={styles.statLabel}>Users</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Ionicons name="flash" size={20} color={Colors.cyan} />
+                  <Text style={styles.statValue}>{dashboard.aiMissions?.total ?? 0}</Text>
+                  <Text style={styles.statLabel}>AI Missions</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Ionicons name="flag" size={20} color={Colors.crimson} />
+                  <Text style={[styles.statValue, { color: (dashboard.proofs?.flagged ?? 0) > 0 ? Colors.crimson : Colors.textPrimary }]}>
+                    {dashboard.proofs?.flagged ?? 0}
+                  </Text>
+                  <Text style={styles.statLabel}>Flagged</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Ionicons name="link" size={20} color={Colors.green} />
+                  <Text style={styles.statValue}>{dashboard.chains?.active ?? 0}</Text>
+                  <Text style={styles.statLabel}>Chains</Text>
+                </View>
+              </View>
+
+              {/* Mission breakdown */}
+              <View style={styles.breakdownCard}>
+                <Text style={styles.breakdownTitle}>AI Missions Breakdown</Text>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Pending</Text>
+                  <Text style={[styles.breakdownVal, { color: Colors.amber }]}>{dashboard.aiMissions?.pending ?? 0}</Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Accepted</Text>
+                  <Text style={[styles.breakdownVal, { color: Colors.green }]}>{dashboard.aiMissions?.accepted ?? 0}</Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Rejected</Text>
+                  <Text style={[styles.breakdownVal, { color: Colors.crimson }]}>{dashboard.aiMissions?.rejected ?? 0}</Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Expired</Text>
+                  <Text style={[styles.breakdownVal, { color: Colors.textMuted }]}>{dashboard.aiMissions?.expired ?? 0}</Text>
+                </View>
+                <View style={[styles.breakdownRow, { borderTopWidth: 1, borderTopColor: Colors.border, marginTop: 4, paddingTop: 8 }]}>
+                  <Text style={styles.breakdownLabel}>AI Generated</Text>
+                  <Text style={[styles.breakdownVal, { color: Colors.cyan }]}>{dashboard.aiMissions?.aiGenerated ?? 0}</Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Rule-Based</Text>
+                  <Text style={[styles.breakdownVal, { color: Colors.textSecondary }]}>{dashboard.aiMissions?.ruleBased ?? 0}</Text>
+                </View>
+              </View>
+
+              {/* Reward / Proof Summary */}
+              <View style={styles.breakdownCard}>
+                <Text style={styles.breakdownTitle}>Economy & Proofs</Text>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Total Reward Tx</Text>
+                  <Text style={styles.breakdownVal}>{dashboard.rewards?.totalTransactions ?? 0}</Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Tx Last 24h</Text>
+                  <Text style={[styles.breakdownVal, { color: Colors.gold }]}>{dashboard.rewards?.last24hTransactions ?? 0}</Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Approved Proofs</Text>
+                  <Text style={[styles.breakdownVal, { color: Colors.green }]}>{dashboard.proofs?.approved ?? 0}</Text>
+                </View>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Rejected Proofs</Text>
+                  <Text style={[styles.breakdownVal, { color: Colors.crimson }]}>{dashboard.proofs?.rejected ?? 0}</Text>
+                </View>
+              </View>
+
+              {/* Recent unlocks */}
+              {((dashboard.recentUnlocks?.badges?.length ?? 0) + (dashboard.recentUnlocks?.titles?.length ?? 0)) > 0 && (
+                <View style={styles.breakdownCard}>
+                  <Text style={styles.breakdownTitle}>Recent Unlocks (7d)</Text>
+                  {dashboard.recentUnlocks?.badges?.map((b: any) => (
+                    <View key={`b-${b.badgeId}-${b.earnedAt}`} style={styles.breakdownRow}>
+                      <Text style={styles.breakdownLabel}><Ionicons name="ribbon" size={12} /> Badge</Text>
+                      <Text style={[styles.breakdownVal, { color: Colors.gold }]}>{b.badgeId}</Text>
+                    </View>
+                  ))}
+                  {dashboard.recentUnlocks?.titles?.map((t: any) => (
+                    <View key={`t-${t.titleId}-${t.earnedAt}`} style={styles.breakdownRow}>
+                      <Text style={styles.breakdownLabel}><Ionicons name="star" size={12} /> Title</Text>
+                      <Text style={[styles.breakdownVal, { color: Colors.accent }]}>{t.titleId}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </>
+          ) : null}
+        </Animated.View>
+
+        {/* Navigation */}
+        <Animated.View entering={FadeInDown.delay(80).springify()}>
+          <Text style={styles.sectionTitle}>Inspection Tools</Text>
+          <View style={styles.navGrid}>
+            {NAV_ITEMS.map(item => (
+              <Pressable
+                key={item.route}
+                style={({ pressed }) => [styles.navCard, pressed && { opacity: 0.7 }]}
+                onPress={() => router.push(item.route as any)}
+              >
+                <View style={[styles.navIcon, { backgroundColor: item.color + "18" }]}>
+                  <Ionicons name={item.icon} size={22} color={item.color} />
+                </View>
+                <Text style={styles.navLabel}>{item.label}</Text>
+                <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+              </Pressable>
+            ))}
           </View>
         </Animated.View>
 
         {/* Flagged Proofs */}
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
+        <Animated.View entering={FadeInDown.delay(160).springify()}>
           <Text style={styles.sectionTitle}>Flagged Submissions</Text>
           {flaggedLoading ? (
             <ActivityIndicator color={Colors.accent} />
@@ -91,38 +212,6 @@ export default function AdminScreen() {
                 </View>
                 <Text style={styles.flagText} numberOfLines={3}>{p.textSummary ?? "No text summary"}</Text>
                 {p.aiExplanation && <Text style={styles.flagAI} numberOfLines={2}>{p.aiExplanation}</Text>}
-              </View>
-            ))
-          )}
-        </Animated.View>
-
-        {/* Users */}
-        <Animated.View entering={FadeInDown.delay(150).springify()}>
-          <Text style={styles.sectionTitle}>Users</Text>
-          {usersLoading ? (
-            <ActivityIndicator color={Colors.accent} />
-          ) : (
-            users?.slice(0, 10).map((u: any) => (
-              <View key={u.id} style={styles.userRow}>
-                <View style={styles.userAvatar}>
-                  <Text style={styles.avatarText}>{u.username?.[0]?.toUpperCase()}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.userName}>{u.username}</Text>
-                  <Text style={styles.userEmail} numberOfLines={1}>{u.email}</Text>
-                </View>
-                <View style={{ alignItems: "flex-end", gap: 4 }}>
-                  <View style={styles.trustBadge}>
-                    <Text style={[styles.trustText, { color: u.trustScore > 0.8 ? Colors.green : u.trustScore > 0.5 ? Colors.amber : Colors.crimson }]}>
-                      {(u.trustScore * 100).toFixed(0)}%
-                    </Text>
-                  </View>
-                  {u.role === "admin" && (
-                    <View style={styles.adminPill}>
-                      <Text style={styles.adminPillText}>ADMIN</Text>
-                    </View>
-                  )}
-                </View>
               </View>
             ))
           )}
@@ -165,41 +254,31 @@ const styles = StyleSheet.create({
   },
   adminBadgeText: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.accent, letterSpacing: 1 },
   scroll: { paddingHorizontal: 20, gap: 24 },
-  statsGrid: { flexDirection: "row", gap: 12 },
-  statCard: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: 14, padding: 16, alignItems: "center", gap: 8, borderWidth: 1, borderColor: Colors.border },
-  statValue: { fontFamily: "Inter_700Bold", fontSize: 28, color: Colors.textPrimary },
-  statLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
   sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 17, color: Colors.textPrimary, marginBottom: 12 },
+  statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 12 },
+  statCard: { flex: 1, minWidth: "45%", backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, alignItems: "center", gap: 6, borderWidth: 1, borderColor: Colors.border },
+  statValue: { fontFamily: "Inter_700Bold", fontSize: 26, color: Colors.textPrimary },
+  statLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textSecondary },
+  breakdownCard: { backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.border, gap: 6, marginBottom: 10 },
+  breakdownTitle: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.textSecondary, marginBottom: 6, letterSpacing: 0.5, textTransform: "uppercase" },
+  breakdownRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  breakdownLabel: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
+  breakdownVal: { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.textPrimary },
+  navGrid: { gap: 10 },
+  navCard: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: Colors.bgCard, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: Colors.border },
+  navIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  navLabel: { flex: 1, fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.textPrimary },
   emptyCard: { backgroundColor: Colors.bgCard, borderRadius: 14, padding: 24, alignItems: "center", gap: 10, borderWidth: 1, borderColor: Colors.border },
   emptyText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary },
-  flagCard: {
-    backgroundColor: Colors.crimsonDim, borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: Colors.crimson + "30", marginBottom: 10, gap: 10,
-  },
+  flagCard: { backgroundColor: Colors.crimsonDim, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.crimson + "30", marginBottom: 10, gap: 10 },
   flagHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   flagBadge: { flexDirection: "row", alignItems: "center", gap: 4 },
   flagBadgeText: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.crimson, letterSpacing: 1 },
   flagDate: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
   flagText: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textPrimary, lineHeight: 18 },
   flagAI: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, lineHeight: 16, fontStyle: "italic" },
-  userRow: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: Colors.bgCard, borderRadius: 12, padding: 14, marginBottom: 8,
-    borderWidth: 1, borderColor: Colors.border,
-  },
-  userAvatar: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.accentGlow, alignItems: "center", justifyContent: "center" },
-  avatarText: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.accent },
-  userName: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
-  userEmail: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
-  trustBadge: { backgroundColor: Colors.bgElevated, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  trustText: { fontFamily: "Inter_700Bold", fontSize: 12 },
-  adminPill: { backgroundColor: Colors.accentGlow, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  adminPillText: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.accent, letterSpacing: 0.8 },
   auditList: { backgroundColor: Colors.bgCard, borderRadius: 14, borderWidth: 1, borderColor: Colors.border, overflow: "hidden" },
-  auditRow: {
-    flexDirection: "row", alignItems: "center", gap: 12, padding: 12,
-    borderBottomWidth: 1, borderBottomColor: Colors.borderLight,
-  },
+  auditRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
   auditDot: { width: 8, height: 8, borderRadius: 4 },
   auditAction: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textPrimary, letterSpacing: 0.5 },
   auditDate: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, marginTop: 2 },
