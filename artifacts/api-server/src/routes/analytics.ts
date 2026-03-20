@@ -2,6 +2,8 @@ import { Router } from "express";
 import { db, usersTable, missionsTable, focusSessionsTable, rewardTransactionsTable, proofSubmissionsTable } from "@workspace/db";
 import { eq, and, gte, desc, count, sum } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
+import { getUserSkills } from "../lib/skill-engine.js";
+import { resolveArc } from "../lib/arc-resolver.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -76,7 +78,11 @@ router.get("/dashboard", async (req, res) => {
   const pendingProofs = await db.select().from(proofSubmissionsTable)
     .where(and(eq(proofSubmissionsTable.userId, userId), eq(proofSubmissionsTable.status, "followup_needed")));
 
+  const userSkills = await getUserSkills(userId).catch(() => []);
+  const currentArc = resolveArc(userSkills);
+
   res.json({
+    currentArc,
     todayMissions: todayMissions.length,
     todayCompleted: todayMissions.filter(m => m.status === "completed").length,
     todayFocusMinutes: calcFocusMinutes(todaySessions),

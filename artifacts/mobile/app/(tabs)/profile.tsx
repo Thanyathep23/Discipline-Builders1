@@ -151,12 +151,15 @@ export default function ProfileScreen() {
               </Pressable>
             </View>
 
-            {hasProfile && profile?.mainGoal && (
+            {skillsData?.currentArc && (
               <View style={styles.arcBox}>
-                <Ionicons name="navigate" size={14} color={Colors.accent} />
+                <View style={styles.arcIconWrap}>
+                  <Ionicons name={(skillsData.currentArc.icon ?? "navigate") as any} size={16} color={Colors.accent} />
+                </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.arcLabel}>Current Arc</Text>
-                  <Text style={styles.arcValue} numberOfLines={2}>{profile.mainGoal}</Text>
+                  <Text style={styles.arcLabel}>CURRENT ARC</Text>
+                  <Text style={styles.arcValue}>{skillsData.currentArc.name}</Text>
+                  <Text style={styles.arcSub}>{skillsData.currentArc.subtitle}</Text>
                 </View>
               </View>
             )}
@@ -358,9 +361,11 @@ const styles = StyleSheet.create({
   onboardBtn:       { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.accent, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
   onboardBtnText:   { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.bg },
   characterCard:    { backgroundColor: Colors.bgCard, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: Colors.border, gap: 14 },
-  arcBox:           { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: Colors.accentGlow, borderRadius: 10, padding: 10 },
-  arcLabel:         { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.textAccent, textTransform: "uppercase", letterSpacing: 0.8 },
-  arcValue:         { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textPrimary, lineHeight: 18 },
+  arcBox:           { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: Colors.accentGlow, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: Colors.accent + "30" },
+  arcIconWrap:      { width: 32, height: 32, borderRadius: 8, backgroundColor: Colors.accent + "20", alignItems: "center", justifyContent: "center", marginTop: 1 },
+  arcLabel:         { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textAccent, letterSpacing: 1.2, marginBottom: 2 },
+  arcValue:         { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.textPrimary, lineHeight: 19 },
+  arcSub:           { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textAccent, lineHeight: 17, marginTop: 3 },
   strengthsRow:     { flexDirection: "row", gap: 12 },
   strengthsCol:     { flex: 1, gap: 8 },
   strengthsDivider: { width: 1, backgroundColor: Colors.border },

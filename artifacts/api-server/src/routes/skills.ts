@@ -3,6 +3,7 @@ import { getUserSkills } from "../lib/skill-engine.js";
 import { requireAuth } from "../lib/auth.js";
 import { db, skillXpEventsTable } from "@workspace/db";
 import { eq, and, desc, gte } from "drizzle-orm";
+import { resolveArc } from "../lib/arc-resolver.js";
 
 const router = Router();
 
@@ -26,12 +27,15 @@ router.get("/summary", requireAuth, async (req: any, res) => {
     );
     const weakSkills = [...skills].sort((a, b) => a.level - b.level).slice(0, 2);
 
+    const currentArc = resolveArc(skills);
+
     return res.json({
       skills,
       totalXp,
       avgLevel: Math.round(avgLevel * 10) / 10,
       topSkill,
       weakSkills,
+      currentArc,
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

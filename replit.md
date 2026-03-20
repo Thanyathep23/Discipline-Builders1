@@ -51,10 +51,19 @@ Key design mandates:
 - `milestone_unlocks` table for key progression events
 - Award via `awardBadge()` and `awardTitle()` helper functions in inventory route
 
-### UI Screens (F)
+### Life Arc System (F)
+- Computed server-side in `artifacts/api-server/src/lib/arc-resolver.ts`
+- Derived from weakest skill (lowest level + XP) to give users a narrative growth theme
+- 7 arc types: Genesis Arc, Focus Recovery Arc, Discipline Reset Arc, Energy Rebuild Arc, Learning Momentum Arc, Trading Apprentice Arc
+- Returned by both `/api/skills/summary` and `/api/analytics/dashboard`
+- Displayed as a banner on the Home screen and in the Character Summary section of the Profile screen
+- Automatically shifts as skill levels change — no manual intervention needed
+
+### UI Screens (G)
 - **Mission Board** — tabbed: My Missions + AI Generated with full action row
 - **Skill Tree** — rank badges, trend arrows, confidence bars, XP event history on tap
-- **Profile/Character** — arc display, top strengths, weak zones, inventory preview
+- **Profile/Character** — real arc banner (name + subtitle + icon), top strengths, weak zones, inventory preview
+- **Home** — arc banner between stats grid and quick actions
 - **Rewards + Inventory** — tabs: Overview, Inventory (badges/titles), Shop, History
 
 ## Routes

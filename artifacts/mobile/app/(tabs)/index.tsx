@@ -97,6 +97,20 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Current Arc */}
+        {data?.currentArc && (
+          <Animated.View entering={FadeInDown.delay(175).springify()} style={styles.arcBanner}>
+            <View style={styles.arcBannerIcon}>
+              <Ionicons name={(data.currentArc.icon ?? "navigate") as any} size={18} color={Colors.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.arcBannerLabel}>CURRENT ARC</Text>
+              <Text style={styles.arcBannerName}>{data.currentArc.name}</Text>
+              <Text style={styles.arcBannerSub} numberOfLines={1}>{data.currentArc.subtitle}</Text>
+            </View>
+          </Animated.View>
+        )}
+
         {/* Quick Actions */}
         <Animated.View entering={FadeInDown.delay(200).springify()}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -261,6 +275,19 @@ const styles = StyleSheet.create({
   missionCardRight: { alignItems: "flex-end", gap: 8 },
   priorityBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   priorityText: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 0.8 },
+
+  arcBanner: {
+    flexDirection: "row", alignItems: "flex-start", gap: 12,
+    backgroundColor: Colors.accentGlow, borderRadius: 16, padding: 14,
+    borderWidth: 1, borderColor: Colors.accent + "30",
+  },
+  arcBannerIcon: {
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: Colors.accent + "20", alignItems: "center", justifyContent: "center",
+  },
+  arcBannerLabel: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textAccent, letterSpacing: 1.2, marginBottom: 3 },
+  arcBannerName:  { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.textPrimary, lineHeight: 20 },
+  arcBannerSub:   { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textAccent, lineHeight: 16, marginTop: 3 },
 
   emptyBox: { alignItems: "center", padding: 32, gap: 12 },
   emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: Colors.textSecondary },
