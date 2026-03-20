@@ -77,14 +77,15 @@ router.get("/stats", requireAuth, async (req: any, res) => {
       .where(eq(usersTable.invitedByCode, code))
       .limit(50);
 
-    // Check which invitees have completed Quick Start
+    // Count invitees of THIS code who have started onboarding (have a life profile)
     const activatedCount = await db
       .select({ n: count() })
-      .from(lifeProfilesTable)
+      .from(usersTable)
+      .innerJoin(lifeProfilesTable, eq(usersTable.id, lifeProfilesTable.userId))
       .where(
         and(
+          eq(usersTable.invitedByCode, code),
           isNotNull(lifeProfilesTable.onboardingStage),
-          eq(lifeProfilesTable.onboardingStage, "quick_start")
         )
       );
 
