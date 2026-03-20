@@ -3,6 +3,7 @@ import { db, lifeProfilesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { requireAuth } from "../lib/auth.js";
+import { trackEvent, Events } from "../lib/telemetry.js";
 
 const router = Router();
 
@@ -85,6 +86,18 @@ router.post("/", requireAuth, async (req: any, res) => {
     }
 
     const updated = await db.update(lifeProfilesTable).set(updateData).where(eq(lifeProfilesTable.userId, userId)).returning();
+
+    // Track onboarding stage completions
+    if (body.quickStartDone === true && !existing[0]?.quickStartDone) {
+      trackEvent(Events.QUICK_START_COMPLETED, userId).catch(() => {});
+    }
+    if (body.standardDone === true && !existing[0]?.standardDone) {
+      trackEvent(Events.STANDARD_PROFILE_COMPLETED, userId).catch(() => {});
+    }
+    if (body.deepDone === true && !existing[0]?.deepDone) {
+      trackEvent(Events.DEEP_PROFILE_COMPLETED, userId).catch(() => {});
+    }
+
     return res.json({ profile: updated[0], created: false });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

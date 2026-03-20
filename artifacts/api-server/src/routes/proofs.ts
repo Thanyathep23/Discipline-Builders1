@@ -9,6 +9,7 @@ import { advanceChainStep } from "../lib/quest-chains.js";
 import { grantSessionSkillXp } from "../lib/skill-engine.js";
 import { auditLogTable } from "@workspace/db";
 import { awardBadge, awardTitle } from "./inventory.js";
+import { trackEvent, Events } from "../lib/telemetry.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -259,6 +260,15 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     targetType: "proof",
     details: JSON.stringify({ verdict: judgeResult.verdict, coins: coinsAwarded }),
   });
+
+  // Telemetry
+  const verdictEvent =
+    judgeResult.verdict === "approved" || judgeResult.verdict === "partial" ? Events.PROOF_APPROVED :
+    judgeResult.verdict === "rejected" || judgeResult.verdict === "flagged"  ? Events.PROOF_REJECTED :
+    judgeResult.verdict === "followup_needed" ? Events.PROOF_FOLLOWUP_REQUIRED : null;
+  if (verdictEvent) {
+    trackEvent(verdictEvent, userId, { submissionId, verdict: judgeResult.verdict, coins: coinsAwarded }).catch(() => {});
+  }
 }
 
 router.post("/", async (req, res) => {
@@ -339,6 +349,7 @@ router.post("/", async (req, res) => {
       ));
   }
 
+  trackEvent(Events.PROOF_SUBMITTED, userId, { sessionId: parsed.data.sessionId }).catch(() => {});
   runJudgment(id, userId).catch(err => console.error("Judge error:", err));
 
   const proof = await db.select().from(proofSubmissionsTable).where(eq(proofSubmissionsTable.id, id)).limit(1);

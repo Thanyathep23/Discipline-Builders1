@@ -5,6 +5,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { getUserSkills } from "../lib/skill-engine.js";
 import { resolveArcWithEvidenceGating } from "../lib/arc-resolver.js";
+import { trackEvent, Events } from "../lib/telemetry.js";
 
 const router = Router();
 
@@ -181,6 +182,7 @@ router.get("/snapshot", requireAuth, async (req: any, res) => {
         : (parts.join(" · ").charAt(0).toUpperCase() + parts.join(" · ").slice(1));
 
     // --- Return curated snapshot ---
+    trackEvent(Events.SHARE_CARD_VIEWED, userId).catch(() => {});
     return res.json({
       username: user?.username ?? "Operator",
       activeTitle,

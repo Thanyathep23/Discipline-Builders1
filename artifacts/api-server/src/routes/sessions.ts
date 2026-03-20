@@ -4,6 +4,7 @@ import { eq, and, count } from "drizzle-orm";
 import { awardBadge, awardTitle, recordMilestone } from "./inventory.js";
 import { z } from "zod";
 import { requireAuth, generateId } from "../lib/auth.js";
+import { trackEvent, Events } from "../lib/telemetry.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -158,6 +159,7 @@ router.post("/start", async (req, res) => {
   });
 
   const data = await getSessionWithMission(id, userId);
+  trackEvent(Events.FOCUS_STARTED, userId, { missionId: parsed.data.missionId, strictnessMode: parsed.data.strictnessMode }).catch(() => {});
   res.status(201).json(parseSession(data!.session, data!.mission));
 });
 
@@ -252,6 +254,9 @@ router.post("/:sessionId/stop", async (req, res) => {
 
   const updated = await getSessionWithMission(req.params.sessionId, userId);
   res.json(parseSession(updated!.session, updated!.mission));
+
+  const evt = finalStatus === "completed" ? Events.FOCUS_COMPLETED : Events.FOCUS_ABANDONED;
+  trackEvent(evt, userId, { sessionId: req.params.sessionId, durationSeconds, reason: parsed.data.reason }).catch(() => {});
 
   if (finalStatus === "completed") {
     try {

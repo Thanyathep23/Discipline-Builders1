@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAuth } from "../lib/auth.js";
 import { calculateRewardPotential } from "../lib/rewards.js";
 import { generateId } from "../lib/auth.js";
+import { trackEvent, Events } from "../lib/telemetry.js";
 
 const router = Router();
 
@@ -76,6 +77,7 @@ router.post("/", async (req, res) => {
   });
 
   const mission = await db.select().from(missionsTable).where(eq(missionsTable.id, id)).limit(1);
+  trackEvent(Events.MISSION_CREATED, userId, { category: data.category, priority: data.priority }).catch(() => {});
   res.status(201).json(parseMission(mission[0]));
 });
 

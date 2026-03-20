@@ -16,8 +16,11 @@ import {
   badgesTable,
   userTitlesTable,
   titlesTable,
+  userFeedbackTable,
+  featureFlagsTable,
 } from "@workspace/db";
-import { eq, desc, count, and, gte, inArray } from "drizzle-orm";
+import { eq, desc, count, and, gte, inArray, sql } from "drizzle-orm";
+import { setFlag } from "../lib/feature-flags.js";
 import { z } from "zod";
 import { requireAdmin, generateId } from "../lib/auth.js";
 import { grantReward } from "../lib/rewards.js";
@@ -864,6 +867,125 @@ router.post("/shop", async (req, res) => {
 
   const item = await db.select().from(shopItemsTable).where(eq(shopItemsTable.id, id)).limit(1);
   res.status(201).json({ ...item[0], createdAt: undefined });
+});
+
+// =====================================================================
+// FUNNEL ANALYTICS  —  GET /admin/funnel
+// =====================================================================
+router.get("/funnel", async (req, res) => {
+  try {
+    const days = Math.min(Number(req.query.days ?? 30), 90);
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const FUNNEL_EVENTS = [
+      "signup_completed",
+      "quick_start_completed",
+      "standard_profile_completed",
+      "deep_profile_completed",
+      "ai_mission_shown",
+      "ai_mission_accepted",
+      "focus_started",
+      "focus_completed",
+      "proof_submitted",
+      "proof_approved",
+    ];
+
+    const rows = await db
+      .select({ action: auditLogTable.action, n: count() })
+      .from(auditLogTable)
+      .where(and(
+        gte(auditLogTable.createdAt, since),
+        inArray(auditLogTable.action, FUNNEL_EVENTS),
+      ))
+      .groupBy(auditLogTable.action);
+
+    const counts: Record<string, number> = {};
+    for (const r of rows) counts[r.action] = Number(r.n);
+
+    const funnel = FUNNEL_EVENTS.map(ev => ({ event: ev, count: counts[ev] ?? 0 }));
+
+    // Daily DAU-ish: unique users who logged any event
+    const dauRows = await db
+      .select({ day: sql<string>`date_trunc('day', ${auditLogTable.createdAt})`, n: sql<number>`count(distinct ${auditLogTable.actorId})` })
+      .from(auditLogTable)
+      .where(and(
+        gte(auditLogTable.createdAt, since),
+        eq(auditLogTable.actorRole, "user"),
+      ))
+      .groupBy(sql`date_trunc('day', ${auditLogTable.createdAt})`)
+      .orderBy(sql`date_trunc('day', ${auditLogTable.createdAt})`);
+
+    return res.json({ funnel, dau: dauRows, days });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// =====================================================================
+// FEEDBACK VIEWER  —  GET /admin/feedback
+// =====================================================================
+router.get("/feedback", async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit ?? 100), 500);
+    const category = req.query.category as string | undefined;
+
+    const rows = await db
+      .select()
+      .from(userFeedbackTable)
+      .where(category ? eq(userFeedbackTable.category, category) : undefined)
+      .orderBy(desc(userFeedbackTable.createdAt))
+      .limit(limit);
+
+    // Summary counts by category
+    const summaryRows = await db
+      .select({ category: userFeedbackTable.category, n: count() })
+      .from(userFeedbackTable)
+      .groupBy(userFeedbackTable.category)
+      .orderBy(desc(count()));
+
+    const summary: Record<string, number> = {};
+    for (const r of summaryRows) summary[r.category] = Number(r.n);
+
+    return res.json({ feedback: rows, summary, total: rows.length });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// =====================================================================
+// FEATURE FLAGS  —  GET /admin/flags  |  PUT /admin/flags/:key
+// =====================================================================
+router.get("/flags", async (req, res) => {
+  try {
+    const flags = await db.select().from(featureFlagsTable).orderBy(featureFlagsTable.key);
+    return res.json({ flags });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.put("/flags/:key", async (req, res) => {
+  try {
+    const schema = z.object({
+      value: z.string().min(1).max(200),
+      description: z.string().max(400).optional(),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Validation failed", details: parsed.error.message });
+    }
+
+    const { key } = req.params;
+    const actor = (req as any).user;
+    const { value } = parsed.data;
+
+    await setFlag(key, value, actor.id);
+
+    const [updated] = await db.select().from(featureFlagsTable).where(eq(featureFlagsTable.key, key)).limit(1);
+    return res.json({ flag: updated });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

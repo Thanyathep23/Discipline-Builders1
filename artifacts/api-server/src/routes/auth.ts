@@ -6,6 +6,7 @@ import {
   generateId, hashPassword, verifyPassword,
   createToken, revokeToken, requireAuth
 } from "../lib/auth.js";
+import { trackEvent, Events } from "../lib/telemetry.js";
 
 const router = Router();
 
@@ -71,6 +72,7 @@ router.post("/register", async (req, res) => {
   const user = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   const token = createToken(userId);
 
+  trackEvent(Events.SIGNUP_COMPLETED, userId, { username }).catch(() => {});
   res.status(201).json({ token, user: formatUser(user[0]) });
 });
 
@@ -104,6 +106,7 @@ router.post("/login", async (req, res) => {
   await db.update(usersTable).set({ lastActiveAt: new Date(), updatedAt: new Date() }).where(eq(usersTable.id, user.id));
 
   const token = createToken(user.id);
+  trackEvent(Events.LOGIN_COMPLETED, user.id).catch(() => {});
   res.json({ token, user: formatUser(user) });
 });
 

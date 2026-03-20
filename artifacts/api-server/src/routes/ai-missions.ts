@@ -4,6 +4,7 @@ import { eq, and, desc, count, gte } from "drizzle-orm";
 import { generateMissionsWithAI } from "../lib/mission-generator.js";
 import { resolveArcWithEvidenceGating } from "../lib/arc-resolver.js";
 import { requireAuth } from "../lib/auth.js";
+import { trackEvent, Events } from "../lib/telemetry.js";
 import { randomUUID } from "crypto";
 import {
   getMissionBriefing,
@@ -228,6 +229,8 @@ router.post("/generate", requireAuth, async (req: any, res) => {
       strictnessPreference: profile.strictnessPreference ?? undefined,
     } : undefined;
     const gmNote = getMissionBriefing(missionCount, weakSkillIds, profileForBriefing);
+
+    trackEvent(Events.AI_MISSION_SHOWN, userId, { count: inserted.length }).catch(() => {});
 
     return res.json({
       missions: inserted,
@@ -455,6 +458,7 @@ router.post("/:missionId/respond", requireAuth, async (req: any, res) => {
         }
       } catch {}
 
+      trackEvent(Events.AI_MISSION_ACCEPTED, userId, { missionId, relatedSkill: mission.relatedSkill }).catch(() => {});
       const gmNote = getAcceptNote(mission);
       return res.json({
         status: "accepted",
@@ -473,6 +477,7 @@ router.post("/:missionId/respond", requireAuth, async (req: any, res) => {
         .update(aiMissionsTable)
         .set({ status: "rejected", updatedAt: new Date() })
         .where(eq(aiMissionsTable.id, missionId));
+      trackEvent(Events.AI_MISSION_REJECTED, userId, { missionId }).catch(() => {});
       const gmNote = getRejectNote(mission);
       return res.json({ status: "rejected", gmNote });
     }
@@ -482,6 +487,7 @@ router.post("/:missionId/respond", requireAuth, async (req: any, res) => {
         .update(aiMissionsTable)
         .set({ status: "not_now", updatedAt: new Date() })
         .where(eq(aiMissionsTable.id, missionId));
+      trackEvent(Events.AI_MISSION_NOT_NOW, userId, { missionId }).catch(() => {});
       const gmNote = getNotNowNote(mission);
       return res.json({ status: "not_now", gmNote });
     }
