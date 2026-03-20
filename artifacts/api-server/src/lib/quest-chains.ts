@@ -300,7 +300,12 @@ export async function advanceChainStep(
 
   if (!chain) return { completed: false, newStep: 0, bonusCoins: 0, chainName: "" };
 
-  const newStep = chain.currentStep + 1;
+  // Guard: only advance active chains — prevents bonus farming on completed chains
+  if (chain.status !== "active") {
+    return { completed: false, newStep: chain.currentStep, bonusCoins: 0, chainName: chain.chainName };
+  }
+
+  const newStep = Math.min(chain.currentStep + 1, chain.totalSteps);
   const isComplete = newStep >= chain.totalSteps;
 
   await db

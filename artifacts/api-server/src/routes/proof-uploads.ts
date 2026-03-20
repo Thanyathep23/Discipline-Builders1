@@ -165,7 +165,7 @@ export async function cleanupOrphanedFiles(): Promise<{ deleted: number }> {
       .select({ id: proofFilesTable.id, storedName: proofFilesTable.storedName })
       .from(proofFilesTable)
       .where(and(isNull(proofFilesTable.proofSubmissionId), lt(proofFilesTable.createdAt, orphanCutoff)))
-      .limit(50);
+      .limit(200);
 
     for (const orphan of orphans) {
       try {

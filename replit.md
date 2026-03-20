@@ -177,6 +177,24 @@ Key design mandates:
 - `artifacts/api-server` — Express API on port 8080, mounted at `/api`
 - `artifacts/mobile` — Expo React Native app on port 18115
 
+## Phase 6: Stability + QA + Hardening (COMPLETE)
+
+### Fixes applied
+- **`advanceChainStep` idempotency** (`quest-chains.ts`): Added `status !== "active"` guard — completed chains can no longer be re-advanced to farm bonus coins. Also capped `newStep` at `totalSteps` to prevent counter overflow.
+- **`runJudgment` double-reward guard** (`proofs.ts`): Added early-return if `proof.status !== "reviewing"` — prevents concurrent/duplicate judgment calls from granting rewards twice on the same submission.
+- **Orphan file cleanup limit** (`proof-uploads.ts`): Increased per-interval cleanup batch from 50 → 200 files to prevent disk exhaustion under sustained upload abuse.
+
+### Confirmed solid (no changes needed)
+- Express 5 used — async errors propagate automatically to global JSON handler; "missing try/catch" is not a real gap
+- Route ordering `/proofs/files` vs `/proofs/:submissionId`: `proofUploadsRouter` mounted first, static `/files` path always wins; no real conflict
+- `/api/ai-missions/chains/active` correctly registered before `/:missionId`
+- Ownership checks on all Phase 5B routes verified correct
+- File upload: MIME filter, 10MB limit, UUID filenames, ownership gated serving all in place
+- In-memory rate limiter (20 uploads/hour): acceptable trade-off; resets on restart but resistant to casual abuse
+
+### Remaining gaps (documented)
+See "Remaining Gaps" section at bottom of this file.
+
 ## Phase 5B: Adaptive Challenge + Quest Chains + Reward Balance (COMPLETE)
 
 ### Adaptive Challenge (`artifacts/api-server/src/lib/adaptive-challenge.ts`)
@@ -273,3 +291,21 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - **Always typecheck from the root** — run `pnpm run typecheck`
 - **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck
 - Production migrations: `pnpm --filter @workspace/db run push`
+
+## Remaining Gaps (Post Phase 6 Audit)
+
+### Must-fix before production
+- **In-memory rate limiter** (`upload-rate-limiter.ts`): resets on server restart, allowing abuse bypass during deploys. Replace with DB-backed or Redis-backed limiter before production.
+- **`grantReward` not in a DB transaction** (`rewards.ts`): balance update and transaction insert are two separate statements. Under extreme concurrency, balance could diverge. Wrap in a Drizzle transaction before production.
+- **`fileUrls` unvalidated free-field** (`proofs.ts` schema): allows arbitrary external URL strings to be stored. Either restrict to internal domain or remove the field; it is shadowed by `proofFileIds` anyway.
+
+### Nice-to-have
+- **Quest chain step-matching validation**: `advanceChainStep` advances any active chain regardless of which step the mission was assigned. If two chain missions are somehow both active, either would advance the same chain. Add `missionChainStep` parameter and verify it matches `chain.currentStep + 1`.
+- **Admin proof file access**: admins cannot view proof files through the `/proofs/files/:fileId` route. A separate admin endpoint with audit logging would be useful.
+- **`fileUrls` vs `proofFileIds` unification**: two mechanisms exist for attaching evidence. Consolidate to `proofFileIds` only and deprecate the `fileUrls` free-form field.
+
+### Next-phase features
+- **DB-backed upload rate limiting** for multi-instance resilience
+- **Distributed lock / idempotency key on grantReward** for multi-instance safety
+- **Chain step tracking per-mission** (log which mission contributed to which step) for auditability
+- **Social/community, leaderboard, marketplace** — explicitly out of scope until post-Phase 6

@@ -46,6 +46,9 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
   if (!proofs[0]) return;
   const proof = proofs[0];
 
+  // Guard: only judge proofs still in 'reviewing' state — prevents double-reward from concurrent calls
+  if (proof.status !== "reviewing") return;
+
   const missions = await db.select().from(missionsTable).where(eq(missionsTable.id, proof.missionId)).limit(1);
   const sessions = await db.select().from(focusSessionsTable).where(eq(focusSessionsTable.id, proof.sessionId)).limit(1);
   const users = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
