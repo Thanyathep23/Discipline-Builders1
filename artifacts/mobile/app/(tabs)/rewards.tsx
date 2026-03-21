@@ -13,7 +13,9 @@ import {
   useInventoryBadges, useInventoryTitles, useActivateTitle,
   useInventoryAssets, useAppliedState,
   useMarketplace, useCatalogCategories, useBuyItem, useEquipItem, useUnequipItem, useSellItem,
+  useRecommendations,
 } from "@/hooks/useApi";
+import { StoreRecommendationCard } from "@/components/guidance/RecommendationPanel";
 import { router } from "expo-router";
 
 const RARITY_COLORS: Record<string, string> = {
@@ -97,6 +99,7 @@ export default function RewardsScreen() {
   const activateTitle = useActivateTitle();
   const { data: assetsData } = useInventoryAssets();
   const { data: appliedState } = useAppliedState();
+  const { data: recData } = useRecommendations();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
@@ -341,6 +344,13 @@ export default function RewardsScreen() {
                   </Pressable>
                 )}
               </View>
+            )}
+
+            {/* Recommended for You — smart store card */}
+            {recData?.storeRecommendation && (
+              <Animated.View entering={FadeInDown.delay(30).springify()} style={{ paddingHorizontal: 20, marginBottom: 6 }}>
+                <StoreRecommendationCard rec={recData.storeRecommendation} delay={0} />
+              </Animated.View>
             )}
 
             {/* Category tabs */}

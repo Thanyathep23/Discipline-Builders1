@@ -10,9 +10,10 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
-import { useDashboard, useActiveChain, useDailyContext, useEndgame, useStartCycle, useLiveOps, useVariantBySurface, useTrackVariantOutcome, useNextAction } from "@/hooks/useApi";
+import { useDashboard, useActiveChain, useDailyContext, useEndgame, useStartCycle, useLiveOps, useVariantBySurface, useTrackVariantOutcome, useNextAction, useRecommendations } from "@/hooks/useApi";
 import { NextActionCard } from "@/components/guidance/NextActionCard";
 import { CoachCard } from "@/components/guidance/CoachCard";
+import { ProgressionTipCard, StoreRecommendationCard, SecondaryActionCard } from "@/components/guidance/RecommendationPanel";
 
 function StatCard({ label, value, icon, color, delay }: any) {
   return (
@@ -324,6 +325,7 @@ export default function HomeScreen() {
   const { data: endgameData } = useEndgame();
   const { data: liveOpsData } = useLiveOps();
   const { data: guidanceData } = useNextAction();
+  const { data: recData } = useRecommendations();
   const [dismissedCards, setDismissedCards] = React.useState<string[]>([]);
   const isComeback = dailyData?.state === "comeback";
   const { data: comebackVariant } = useVariantBySurface("comeback_copy", isComeback);
@@ -483,6 +485,22 @@ export default function HomeScreen() {
                 delay={i * 40}
                 onDismiss={(id) => setDismissedCards((prev) => [...prev, id])}
               />
+            ))}
+          </Animated.View>
+        )}
+
+        {/* For You — Recommendation Panel (intermediate/advanced users only) */}
+        {recData && recData.userTier !== "new" && (
+          <Animated.View entering={FadeInDown.delay(240).springify()} style={{ gap: 10 }}>
+            <Text style={styles.sectionTitle}>For You</Text>
+            {recData.progressionTip && (
+              <ProgressionTipCard tip={recData.progressionTip} delay={0} />
+            )}
+            {!recData.progressionTip && recData.storeRecommendation && (
+              <StoreRecommendationCard rec={recData.storeRecommendation} delay={0} />
+            )}
+            {(recData.secondaryActions ?? []).map((action: any, i: number) => (
+              <SecondaryActionCard key={action.type} action={action} delay={i * 40} />
             ))}
           </Animated.View>
         )}

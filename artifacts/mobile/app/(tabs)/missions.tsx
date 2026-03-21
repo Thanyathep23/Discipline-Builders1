@@ -12,7 +12,9 @@ import { Colors } from "@/constants/colors";
 import {
   useMissions, useStartSession, useActiveSession,
   useAiMissions, useGenerateAiMissions, useRespondToAiMission,
+  useRecommendations,
 } from "@/hooks/useApi";
+import { RecommendedBadge } from "@/components/guidance/RecommendationPanel";
 
 const BOARD_TABS = ["mine", "ai"] as const;
 const MISSION_TABS = ["active", "completed", "draft", "archived"] as const;
@@ -137,6 +139,8 @@ export default function MissionsScreen() {
   const [gmResponse, setGmResponse] = useState<string | null>(null);
 
   const { data: missions, isLoading: missionsLoading, refetch: refetchMissions, isRefetching: refetchingMissions } = useMissions(missionTab);
+  const { data: recData } = useRecommendations();
+  const recommendedMissionId: string | null = recData?.recommendedMission?.missionId ?? null;
   const { data: aiData, isLoading: aiLoading, refetch: refetchAi, isRefetching: refetchingAi } = useAiMissions("pending");
   const { data: activeSessionData } = useActiveSession();
   const startSession = useStartSession();
@@ -340,6 +344,12 @@ export default function MissionsScreen() {
                             <Text style={[styles.metaText, { color: Colors.gold }]}>{m.rewardPotential}</Text>
                           </View>
                         </View>
+                        {missionTab === "active" && m.id === recommendedMissionId && recData?.recommendedMission && (
+                          <RecommendedBadge
+                            why={recData.recommendedMission.why}
+                            confidence={recData.recommendedMission.confidence}
+                          />
+                        )}
                       </View>
                     </View>
                     {missionTab === "active" && (

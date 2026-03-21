@@ -861,3 +861,18 @@ export function useNextAction() {
     staleTime: 60000,
   });
 }
+
+export function useRecommendations() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["guidance", "recommendations"],
+    queryFn: () => request<{
+      userTier: "new" | "intermediate" | "advanced";
+      recommendedMission: any | null;
+      storeRecommendation: any | null;
+      progressionTip: any | null;
+      secondaryActions: any[];
+    }>("/guidance/recommendations"),
+    staleTime: 90000,
+  });
+}

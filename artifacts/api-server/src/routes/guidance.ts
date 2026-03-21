@@ -2,10 +2,14 @@ import { Router } from "express";
 import {
   db, usersTable, lifeProfilesTable, missionsTable,
   focusSessionsTable, proofSubmissionsTable, aiMissionsTable,
-  userInventoryTable,
+  userInventoryTable, shopItemsTable,
 } from "@workspace/db";
 import { eq, and, count, desc } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
+import { getUserSkills } from "../lib/skill-engine.js";
+import { resolveArc } from "../lib/arc-resolver.js";
+import { computePrestigeState } from "../lib/prestige-engine.js";
+import { computeAdaptiveChallenge, ChallengeProfile } from "../lib/adaptive-challenge.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -293,6 +297,387 @@ router.get("/next-action", async (req, res) => {
   }
 
   res.json({ nextAction: action, coachCards: cards.slice(0, 3) });
+});
+
+// ─── Recommendation Engine (Phase 25) ────────────────────────────────────────
+
+const SKILL_NAMES: Record<string, string> = {
+  focus: "Focus", discipline: "Discipline", sleep: "Sleep",
+  fitness: "Fitness", learning: "Learning", trading: "Trading",
+};
+const SKILL_ICONS: Record<string, string> = {
+  focus: "eye-outline", discipline: "shield-outline", sleep: "moon-outline",
+  fitness: "barbell-outline", learning: "book-outline", trading: "trending-up-outline",
+};
+
+function safeJsonArray(raw: string | null | undefined): string[] {
+  try { const v = JSON.parse(raw ?? "[]"); return Array.isArray(v) ? v : []; }
+  catch { return []; }
+}
+
+interface RecMission {
+  missionId: string;
+  title: string;
+  category: string;
+  relatedSkill: string | null;
+  why: string;
+  confidence: "high" | "medium" | "low";
+  icon: string;
+}
+
+interface RecStore {
+  itemId: string;
+  name: string;
+  cost: number;
+  category: string;
+  icon: string;
+  rarity: string;
+  why: string;
+  canAfford: boolean;
+  aspirational: boolean;
+}
+
+interface RecProgression {
+  title: string;
+  body: string;
+  skillId: string | null;
+  icon: string;
+  progressPct: number;
+  accentColor: string;
+}
+
+interface SecondaryAction {
+  type: string;
+  title: string;
+  body: string;
+  icon: string;
+  accentColor: string;
+  route: string;
+}
+
+router.get("/recommendations", async (req, res) => {
+  const userId = (req as any).userId;
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (!user) { res.status(404).json({ error: "Not found" }); return; }
+
+  const { level, coinBalance, prestigeTier } = user;
+
+  // ── Maturity tier ──────────────────────────────────────────────────────────
+  const [{ sessionCount }] = await db
+    .select({ sessionCount: count() })
+    .from(focusSessionsTable)
+    .where(eq(focusSessionsTable.userId, userId));
+
+  const sc = Number(sessionCount);
+  const userTier: "new" | "intermediate" | "advanced" =
+    sc < 3 ? "new" : (level < 10 && sc < 20) ? "intermediate" : "advanced";
+
+  // ── Skills ─────────────────────────────────────────────────────────────────
+  const skills = await getUserSkills(userId);
+  const sortedByStrength = [...skills].sort((a, b) => a.level !== b.level ? a.level - b.level : a.totalXpEarned - b.totalXpEarned);
+  const weakest = sortedByStrength[0] ?? null;
+  const totalXpAcrossSkills = skills.reduce((s, sk) => s + sk.totalXpEarned, 0);
+  const avgLevel = skills.length > 0 ? skills.reduce((s, sk) => s + sk.level, 0) / skills.length : 1;
+
+  // ── Arc ────────────────────────────────────────────────────────────────────
+  const skillsForArc = skills.map((s) => ({ skillId: s.skillId, level: s.level, xp: s.xp, totalXpEarned: s.totalXpEarned }));
+  const arc = resolveArc(skillsForArc);
+  const arcTheme = arc.theme ?? "genesis"; // "focus" | "discipline" | "energy" | "learning" | "trading" | "genesis"
+
+  // ── Prestige ───────────────────────────────────────────────────────────────
+  const prestige = computePrestigeState(prestigeTier, totalXpAcrossSkills, level);
+
+  // ── Adaptive challenge ─────────────────────────────────────────────────────
+  let challenge: ChallengeProfile | null = null;
+  try { challenge = await computeAdaptiveChallenge(userId); } catch { /* non-fatal */ }
+  const isStruggling = challenge?.isOverloaded === true || (challenge?.recentCompletionRate ?? 1) < 0.35;
+  const isStrong = !isStruggling && (challenge?.recentCompletionRate ?? 0) > 0.7 && (challenge?.recentStreak ?? 0) >= 3;
+
+  // ── Active missions ────────────────────────────────────────────────────────
+  const activeMissions = await db
+    .select()
+    .from(missionsTable)
+    .where(and(eq(missionsTable.userId, userId), eq(missionsTable.status, "active")))
+    .orderBy(desc(missionsTable.createdAt))
+    .limit(15);
+
+  // ── Shop items not yet owned ───────────────────────────────────────────────
+  const ownedRows = await db
+    .select({ itemId: userInventoryTable.itemId })
+    .from(userInventoryTable)
+    .where(eq(userInventoryTable.userId, userId));
+  const ownedSet = new Set(ownedRows.map((r) => r.itemId));
+
+  const availableItems = await db
+    .select()
+    .from(shopItemsTable)
+    .where(and(eq(shopItemsTable.isAvailable, true)))
+    .limit(60);
+  const unownedItems = availableItems.filter((item) => !ownedSet.has(item.id) && (item.status ?? "active") === "active");
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // A. RECOMMENDED MISSION
+  // ═══════════════════════════════════════════════════════════════════════════
+  let recommendedMission: RecMission | null = null;
+
+  if (activeMissions.length > 0) {
+    const scored = activeMissions.map((m) => {
+      let score = 0;
+      const reasons: string[] = [];
+
+      if (m.chainId) { score += 4; reasons.push("part of an active quest chain"); }
+
+      if (weakest && m.relatedSkill === weakest.skillId) {
+        score += 3;
+        reasons.push(`targets your weakest skill (${SKILL_NAMES[weakest.skillId] ?? weakest.skillId})`);
+      }
+
+      // Arc theme keyword match
+      if (arcTheme !== "genesis" && m.category?.toLowerCase().includes(arcTheme)) {
+        score += 2;
+        reasons.push("aligned with your current arc");
+      }
+
+      // Recovery state — prefer easier missions
+      if (isStruggling && (m.difficultyColor === "gray" || m.difficultyColor === "green")) {
+        score += 2;
+        reasons.push("fits your current recovery phase");
+      }
+
+      // Strong state — prefer harder or chain missions
+      if (isStrong && (m.difficultyColor === "blue" || m.difficultyColor === "purple" || m.difficultyColor === "gold")) {
+        score += 1;
+        reasons.push("matches your current momentum");
+      }
+
+      score += 1; // base score for being active
+
+      const why = reasons.length > 0
+        ? `Recommended because it's ${reasons.join(" and ")}.`
+        : "Recommended based on your current progression state.";
+
+      return { m, score, why };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    const top = scored[0];
+
+    if (top) {
+      const skillId = top.m.relatedSkill ?? null;
+      recommendedMission = {
+        missionId: top.m.id,
+        title: top.m.title,
+        category: top.m.category,
+        relatedSkill: skillId,
+        why: top.why,
+        confidence: top.score >= 5 ? "high" : top.score >= 3 ? "medium" : "low",
+        icon: skillId ? (SKILL_ICONS[skillId] ?? "rocket-outline") : "rocket-outline",
+      };
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // B. STORE RECOMMENDATION
+  // ═══════════════════════════════════════════════════════════════════════════
+  let storeRecommendation: RecStore | null = null;
+
+  if (unownedItems.length > 0) {
+    const rarityScore: Record<string, number> = { common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5 };
+    const levelTier = Math.max(1, Math.ceil(level / 5));
+
+    const scoredItems = unownedItems
+      .map((item) => {
+        let score = 0;
+        const canAfford = item.cost <= coinBalance;
+        const aspirational = !canAfford && item.cost <= Math.max(coinBalance * 1.6, coinBalance + 100);
+
+        // Skip items the user clearly can't afford and aren't aspirational
+        if (!canAfford && !aspirational && coinBalance < item.cost * 0.4) return null;
+
+        if (canAfford) score += 3;
+        else if (aspirational) score += 1;
+
+        // Arc-theme match via category, subcategory, tags
+        const tags = safeJsonArray(item.tags);
+        const allText = [item.category, item.subcategory ?? "", ...tags].join(" ").toLowerCase();
+        if (arcTheme !== "genesis") {
+          const themeKeywords: Record<string, string[]> = {
+            focus:      ["focus", "desk", "productivity", "office"],
+            discipline: ["discipline", "habit", "routine"],
+            energy:     ["fitness", "energy", "health", "sleep"],
+            learning:   ["learning", "book", "study", "knowledge"],
+            trading:    ["trading", "finance", "market"],
+          };
+          const kws = themeKeywords[arcTheme] ?? [];
+          if (kws.some((kw) => allText.includes(kw))) score += 3;
+        }
+
+        // Level-appropriate rarity
+        const iRarity = rarityScore[item.rarity] ?? 1;
+        if (iRarity <= levelTier + 1 && iRarity >= Math.max(1, levelTier - 1)) score += 2;
+
+        // World items match for intermediate/advanced
+        if (item.isWorldItem && userTier !== "new") score += 2;
+
+        // Profile items for all users
+        if (item.isProfileItem) score += 1;
+
+        // Featured items
+        if (item.featuredOrder !== null && item.featuredOrder !== undefined) score += 1;
+
+        return { item, score, canAfford, aspirational };
+      })
+      .filter((s): s is NonNullable<typeof s> => s !== null && s.score > 0)
+      .sort((a, b) => b.score - a.score);
+
+    const topItem = scoredItems[0] ?? null;
+    if (topItem) {
+      const reasons: string[] = [];
+      const tags = safeJsonArray(topItem.item.tags);
+      const allText = [topItem.item.category, topItem.item.subcategory ?? "", ...tags].join(" ").toLowerCase();
+      const themeKeywords: Record<string, string[]> = {
+        focus: ["focus", "desk", "productivity", "office"],
+        discipline: ["discipline", "habit", "routine"],
+        energy: ["fitness", "energy", "health", "sleep"],
+        learning: ["learning", "book", "study", "knowledge"],
+        trading: ["trading", "finance", "market"],
+      };
+      const kws = themeKeywords[arcTheme] ?? [];
+      if (kws.some((kw) => allText.includes(kw))) reasons.push(`aligned with your current ${arc.name}`);
+      if (topItem.canAfford) reasons.push("within your current budget");
+      else if (topItem.aspirational) reasons.push("your next achievable upgrade");
+      if (topItem.item.isWorldItem) reasons.push("upgrades your Command Center");
+      if (topItem.item.isProfileItem) reasons.push("enhances your character presentation");
+
+      const why = reasons.length > 0
+        ? reasons.slice(0, 2).map((r, i) => i === 0 ? r.charAt(0).toUpperCase() + r.slice(1) : r).join(", ") + "."
+        : "Relevant upgrade based on your current status.";
+
+      storeRecommendation = {
+        itemId: topItem.item.id,
+        name: topItem.item.name,
+        cost: topItem.item.cost,
+        category: topItem.item.category,
+        icon: topItem.item.icon,
+        rarity: topItem.item.rarity,
+        why,
+        canAfford: topItem.canAfford,
+        aspirational: topItem.aspirational,
+      };
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // C. PROGRESSION TIP
+  // ═══════════════════════════════════════════════════════════════════════════
+  let progressionTip: RecProgression | null = null;
+
+  if (isStruggling && challenge) {
+    // Recovery state: focus on comeback
+    progressionTip = {
+      title: "Recovery mode active",
+      body: `Your completion rate is low right now. Focus on shorter, easier missions to rebuild momentum before taking on bigger challenges.`,
+      skillId: weakest?.skillId ?? null,
+      icon: "refresh-circle-outline",
+      progressPct: Math.round((challenge.recentCompletionRate ?? 0) * 100),
+      accentColor: "#F5C842",
+    };
+  } else if (prestige.nextTier && prestige.readinessScore >= 40 && prestige.readinessScore < 100) {
+    // Close to prestige
+    progressionTip = {
+      title: `${prestige.readinessScore}% ready for ${prestige.nextTier.label}`,
+      body: prestige.readinessSummary,
+      skillId: null,
+      icon: "shield-checkmark-outline",
+      progressPct: prestige.readinessScore,
+      accentColor: prestige.nextTier.borderColor ?? "#9C27B0",
+    };
+  } else if (weakest && weakest.level < Math.max(1, avgLevel - 1)) {
+    // Meaningful skill gap
+    const pct = Math.round((weakest.xp / Math.max(1, weakest.xpToNextLevel)) * 100);
+    const skillName = SKILL_NAMES[weakest.skillId] ?? weakest.skillId;
+    progressionTip = {
+      title: `Raise ${skillName} to level ${weakest.level + 1}`,
+      body: `Your ${skillName} skill is lagging behind your other disciplines. Improving it will unlock better AI missions, expand your arc potential, and advance your character presentation.`,
+      skillId: weakest.skillId,
+      icon: SKILL_ICONS[weakest.skillId] ?? "trending-up-outline",
+      progressPct: pct,
+      accentColor: "#00D4FF",
+    };
+  } else if (isStrong && prestige.nextTier) {
+    // Strong user, push towards prestige
+    progressionTip = {
+      title: `Aim for ${prestige.nextTier.label}`,
+      body: `You're performing well. Keep your completion rate high and push your skills further to reach the next prestige tier.`,
+      skillId: null,
+      icon: "shield-checkmark-outline",
+      progressPct: prestige.readinessScore,
+      accentColor: prestige.nextTier.borderColor ?? "#9C27B0",
+    };
+  } else if (weakest) {
+    // Generic weak skill improvement
+    const pct = Math.round((weakest.xp / Math.max(1, weakest.xpToNextLevel)) * 100);
+    const skillName = SKILL_NAMES[weakest.skillId] ?? weakest.skillId;
+    progressionTip = {
+      title: `Work on ${skillName}`,
+      body: `${skillName} is your current weak point. Missions in this area will accelerate your overall character growth.`,
+      skillId: weakest.skillId,
+      icon: SKILL_ICONS[weakest.skillId] ?? "trending-up-outline",
+      progressPct: pct,
+      accentColor: "#00D4FF",
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // D. SECONDARY ACTIONS (up to 2 complementary nudges)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const secondaryActions: SecondaryAction[] = [];
+
+  // Chain nudge: if they have no chain missions but are intermediate/advanced
+  const hasChainMission = activeMissions.some((m) => !!m.chainId);
+  if (!hasChainMission && userTier !== "new" && secondaryActions.length < 2) {
+    secondaryActions.push({
+      type: "chains",
+      title: "Start a quest chain",
+      body: "Chain missions build on each other. Completing a full chain earns bonus coins and pushes your arc forward faster.",
+      icon: "link-outline",
+      accentColor: "#4FC3F7",
+      route: "/(tabs)/missions",
+    });
+  }
+
+  // Store nudge if they have enough coins for something and no store rec yet shown
+  if (!storeRecommendation && coinBalance > 50 && secondaryActions.length < 2) {
+    secondaryActions.push({
+      type: "store",
+      title: "Browse the marketplace",
+      body: `You have ${coinBalance} coins. See what upgrades are available for your current status tier.`,
+      icon: "storefront-outline",
+      accentColor: "#9C27B0",
+      route: "/(tabs)/rewards",
+    });
+  }
+
+  // Stretch challenge for strong users
+  if (isStrong && !isStruggling && secondaryActions.length < 2) {
+    secondaryActions.push({
+      type: "stretch",
+      title: "Take on a harder mission",
+      body: "Your momentum is strong. A higher-difficulty mission will reward more XP and build your skill levels faster.",
+      icon: "flame-outline",
+      accentColor: "#F5C842",
+      route: "/mission/new",
+    });
+  }
+
+  res.json({
+    userTier,
+    recommendedMission,
+    storeRecommendation,
+    progressionTip,
+    secondaryActions: secondaryActions.slice(0, 2),
+  });
 });
 
 export default router;

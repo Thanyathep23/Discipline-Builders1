@@ -12,8 +12,9 @@ import { useAuth } from "@/context/AuthContext";
 import {
   useRewardBalance, useDailyAnalytics, useSkills,
   useLifeProfile, useInventoryBadges, useInventoryTitles, useStreaks,
-  useIdentity, useEndgame,
+  useIdentity, useEndgame, useRecommendations,
 } from "@/hooks/useApi";
+import { ProgressionTipCard } from "@/components/guidance/RecommendationPanel";
 
 const SKILL_ICONS: Record<string, string> = {
   focus: "eye-outline", discipline: "shield-outline", learning: "book-outline",
@@ -41,6 +42,7 @@ export default function ProfileScreen() {
   const { data: streakData } = useStreaks();
   const { data: identityData } = useIdentity();
   const { data: endgameData } = useEndgame();
+  const { data: recData } = useRecommendations();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
@@ -200,6 +202,13 @@ export default function ProfileScreen() {
               <Text style={styles.continueBtnText}>Unlock</Text>
               <Ionicons name="chevron-forward" size={14} color={Colors.bg} />
             </Pressable>
+          </Animated.View>
+        )}
+
+        {/* Best Next Move — progression recommendation (intermediate/advanced) */}
+        {recData?.progressionTip && recData.userTier !== "new" && (
+          <Animated.View entering={FadeInDown.delay(60).springify()}>
+            <ProgressionTipCard tip={recData.progressionTip} delay={0} />
           </Animated.View>
         )}
 
