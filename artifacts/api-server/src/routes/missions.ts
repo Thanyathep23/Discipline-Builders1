@@ -6,6 +6,7 @@ import { requireAuth } from "../lib/auth.js";
 import { calculateRewardPotential } from "../lib/rewards.js";
 import { generateId } from "../lib/auth.js";
 import { trackEvent, Events } from "../lib/telemetry.js";
+import { dispatchWebhookEvent } from "../lib/webhook-dispatcher.js";
 
 const router = Router();
 
@@ -78,6 +79,14 @@ router.post("/", async (req, res) => {
 
   const mission = await db.select().from(missionsTable).where(eq(missionsTable.id, id)).limit(1);
   trackEvent(Events.MISSION_CREATED, userId, { category: data.category, priority: data.priority }).catch(() => {});
+  dispatchWebhookEvent(userId, "mission.created", {
+    missionId: id,
+    title: data.title,
+    category: data.category,
+    priority: data.priority,
+    targetDurationMinutes: data.targetDurationMinutes,
+    rewardPotential,
+  }).catch(() => {});
   res.status(201).json(parseMission(mission[0]));
 });
 

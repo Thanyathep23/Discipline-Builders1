@@ -552,3 +552,83 @@ Six premium shareable card components, all screenshot-optimized with dark premiu
 - Remove member: owner-only
 - Report/flag: any active member can report; stored in `circle_reports` table with `pending` status
 - Telemetry events: `circle_created`, `circle_joined`, `circle_left`, `circle_member_removed`, `circle_report_submitted`, `circle_challenge_created`, `circle_challenge_joined`, `circle_challenge_completed`
+
+## Phase 16 — Platformization / API / Automation / Integrations Lite (COMPLETE)
+
+### Controlled API Surface (`/api/v1/*`)
+- `GET /api/v1/profile` — user profile (no sensitive private fields)
+- `GET /api/v1/skills` — skill levels, XP, rank, trend, confidence
+- `GET /api/v1/missions` — mission list with optional `?status=` filter (50 max)
+- `GET /api/v1/missions/ai` — pending AI missions
+- `GET /api/v1/rewards` — wallet + last 30 reward transactions
+- `GET /api/v1/inventory` — earned badges and titles
+- `POST /api/v1/missions` — create mission (write scope required)
+- Auth: Bearer session token OR `X-API-Key: dos_...` header
+- Ownership enforced on all routes; sensitive fields (trust score raw, private profile answers) not exposed
+
+### API Key Management (`/api/platform/keys`)
+- `POST /api/platform/keys` — create scoped key (label + scope: read|read_write)
+- `GET /api/platform/keys` — list all keys (prefix only, no raw key)
+- `DELETE /api/platform/keys/:id` — revoke key
+- Max 5 active keys per user; keys hashed SHA-256, raw shown once only
+- Route file: `artifacts/api-server/src/routes/api-keys.ts`
+- DB table: `api_keys` in `lib/db/src/schema/platform.ts`
+
+### Webhook System (`/api/platform/webhooks`)
+- `GET /api/platform/webhooks` — list subscriptions + availableEvents
+- `POST /api/platform/webhooks` — create subscription (label, endpointUrl, events[])
+- `PUT /api/platform/webhooks/:id` — update (toggle active, change events/url)
+- `DELETE /api/platform/webhooks/:id` — delete
+- `GET /api/platform/webhooks/:id/deliveries` — delivery audit log (last 50)
+- `POST /api/platform/webhooks/:id/test` — send test payload
+- HMAC-SHA256 signed payloads; secret shown once at creation; auto-disabled after 10 consecutive failures
+- Dispatcher: `artifacts/api-server/src/lib/webhook-dispatcher.ts` — always resolves, never throws
+- DB tables: `webhook_subscriptions`, `webhook_deliveries` in `lib/db/src/schema/platform.ts`
+
+### Webhook Events Dispatched
+- `mission.created` — `missions.ts` after user creates a mission
+- `mission.completed` — `proofs.ts` when proof approved and mission status updated
+- `ai_mission.accepted` — `ai-missions.ts` when user accepts an AI mission
+- `proof.approved` / `proof.rejected` — `proofs.ts` at verdict
+- `focus.completed` — `sessions.ts` when a focus session is completed
+- `badge.unlocked` / `title.unlocked` — `inventory.ts` at award time
+- `chain.completed` — `lib/quest-chains.ts` when final chain step cleared
+- `streak.milestone` — `streaks.ts` at 7-day and 14-day streak thresholds
+- `arc.changed` — `skills.ts` when evidence-gated arc transition persists
+- All dispatches are fire-and-forget; failures never break core product flow
+
+### Calendar Integration (`/api/calendar/*`)
+- `GET /api/calendar/missions.ics` — active missions as ICS calendar events
+- `GET /api/calendar/sessions.ics` — last 30 days of completed focus sessions as ICS
+- `GET /api/calendar/export` — combined missions + sessions ICS download
+- `POST /api/calendar/focus-block` — generate a single focus-block ICS event
+- Valid RFC 5545 ICS output; UTF-8; proper VCALENDAR wrapper and VEVENT structure
+- Route file: `artifacts/api-server/src/routes/calendar.ts`
+
+### Import / Export (`/api/platform/export/*`, `/api/platform/import/*`)
+- `GET /api/platform/export/progress` — full JSON snapshot (user, arc, skills, badges, titles)
+- `GET /api/platform/export/missions?format=json|csv` — mission history (500 max)
+- `GET /api/platform/export/rewards?format=json|csv` — reward transaction history (500 max)
+- `POST /api/platform/import/missions` — bulk import up to 20 seed missions from structured JSON
+- Import: strict Zod validation; partial failures reported; no silent overwrites; ownership enforced
+- Route file: `artifacts/api-server/src/routes/data-export.ts`
+
+### Integration Management
+- `GET /api/platform/integrations/status` — user's full integration summary (keys, webhooks, capabilities)
+- `GET /api/platform/integrations/events` — admin-only: system-wide webhook delivery audit log
+- Route file: `artifacts/api-server/src/routes/integrations.ts`
+
+### Mobile Integrations Screen
+- `artifacts/mobile/app/settings/integrations.tsx` — 5-tab screen: Overview, API Keys, Webhooks, Export, Calendar
+- Overview: status cards, capabilities list, available webhook events
+- API Keys tab: create (label + scope), show-once key display, list with prefix, revoke
+- Webhooks tab: create (URL + event picker), list with failure count, test button, delete
+- Export tab: download progress/missions/rewards in JSON or CSV (deep-link to API)
+- Calendar tab: download instructions and deep-link to ICS export endpoints
+- Navigation entry: Profile screen → Settings section → "Integrations & API" (line 460 of profile.tsx)
+
+### DB Schema (3 new tables)
+- `api_keys` — id, userId, label, keyHash, keyPrefix, scope, revokedAt, lastUsedAt, createdAt
+- `webhook_subscriptions` — id, userId, label, endpointUrl, events (JSON), secret, isActive, failureCount, lastDeliveredAt, createdAt, updatedAt
+- `webhook_deliveries` — id, subscriptionId, eventName, payload, httpStatus, responseBody, success, attemptCount, deliveredAt
+- All exported from `lib/db/src/schema/index.ts`

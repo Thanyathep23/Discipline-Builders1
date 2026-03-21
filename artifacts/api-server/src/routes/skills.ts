@@ -5,6 +5,7 @@ import { db, skillXpEventsTable, lifeProfilesTable } from "@workspace/db";
 import { eq, and, desc, gte } from "drizzle-orm";
 import { resolveArcWithEvidenceGating } from "../lib/arc-resolver.js";
 import { deriveSkillSuggestions } from "../lib/skill-suggestions.js";
+import { dispatchWebhookEvent } from "../lib/webhook-dispatcher.js";
 
 const router = Router();
 
@@ -56,6 +57,13 @@ router.get("/summary", requireAuth, async (req: any, res) => {
             updatedAt: new Date(),
           })
           .where(eq(lifeProfilesTable.userId, userId));
+
+        if (gatingResult.newArcName && gatingResult.newArcName !== persistedArc) {
+          dispatchWebhookEvent(userId, "arc.changed", {
+            previousArc: persistedArc ?? null,
+            newArc: gatingResult.newArcName,
+          }).catch(() => {});
+        }
       } catch {
       }
     }

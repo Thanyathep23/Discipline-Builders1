@@ -2,6 +2,7 @@ import { db, userQuestChainsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import type { GeneratedAiMission } from "./mission-generator.js";
 import { emitActivityForUser } from "./circle-activity.js";
+import { dispatchWebhookEvent } from "./webhook-dispatcher.js";
 
 export interface ChainDefinition {
   id: string;
@@ -325,6 +326,12 @@ export async function advanceChainStep(
       icon: "git-branch",
       color: "#00E676",
     });
+    dispatchWebhookEvent(userId, "chain.completed", {
+      chainId: chain.chainId,
+      chainName: chain.chainName,
+      relatedSkill: chain.relatedSkill,
+      bonusCoins: chain.completionBonusCoins,
+    }).catch(() => {});
   }
 
   return {

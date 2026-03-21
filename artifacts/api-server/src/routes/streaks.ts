@@ -3,6 +3,7 @@ import { requireAuth } from "../lib/auth.js";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import { getStreakNote } from "../lib/gameMaster.js";
+import { dispatchWebhookEvent } from "../lib/webhook-dispatcher.js";
 
 const router = Router();
 
@@ -94,6 +95,7 @@ router.get("/", requireAuth, async (req: any, res) => {
         await awardBadge(userId, "badge-7day-discipline");
         await awardTitle(userId, "title-discipline-builder");
         if (currentStreak >= 7) await recordMilestone(userId, "streak_7_days", { streak: currentStreak });
+        dispatchWebhookEvent(userId, "streak.milestone", { streak: currentStreak, milestone: 7 }).catch(() => {});
       } catch {}
     }
     if (currentStreak >= 14) {
@@ -103,6 +105,7 @@ router.get("/", requireAuth, async (req: any, res) => {
         await awardTitle(userId, "title-iron-discipline");
         await awardTitle(userId, "title-momentum-keeper");
         await recordMilestone(userId, "streak_14_days", { streak: currentStreak });
+        dispatchWebhookEvent(userId, "streak.milestone", { streak: currentStreak, milestone: 14 }).catch(() => {});
       } catch {}
     }
 
