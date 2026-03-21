@@ -6,6 +6,7 @@ import {
 import { checkUserPremium } from "./premium.js";
 import { eq, and, asc, isNotNull } from "drizzle-orm";
 import { requireAuth, requireAdmin, generateId } from "../lib/auth.js";
+import { isKilled } from "../lib/kill-switches.js";
 
 const router = Router();
 
@@ -139,6 +140,10 @@ router.get("/:itemId", requireAuth, async (req: any, res) => {
 // ─────────────────────────────────────────────────────────
 router.post("/:itemId/buy", requireAuth, async (req: any, res) => {
   try {
+    // Kill-switch: block marketplace purchases if disabled
+    if (await isKilled("kill_marketplace_purchases")) {
+      return res.status(503).json({ error: "Marketplace purchases are temporarily unavailable. Please try again later." });
+    }
     const userId = req.user.id;
     const { itemId } = req.params;
 
@@ -317,6 +322,10 @@ router.post("/:itemId/unequip", requireAuth, async (req: any, res) => {
 // ─────────────────────────────────────────────────────────
 router.post("/:itemId/sell", requireAuth, async (req: any, res) => {
   try {
+    // Kill-switch: block marketplace transactions if disabled
+    if (await isKilled("kill_marketplace_purchases")) {
+      return res.status(503).json({ error: "Marketplace transactions are temporarily unavailable. Please try again later." });
+    }
     const userId = req.user.id;
     const { itemId } = req.params;
 

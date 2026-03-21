@@ -318,7 +318,7 @@ router.get("/identity", requireAuth, async (req: any, res) => {
     const [{ value: approvedProofsCount }] = await db.select({ value: count() }).from(proofSubmissionsTable)
       .where(andOp(eqOp(proofSubmissionsTable.userId, userId), eqOp(proofSubmissionsTable.status, "approved")));
     const [{ value: aiMissionsAcceptedCount }] = await db.select({ value: count() }).from(aiMissionsTable)
-      .where(andOp(eqOp(aiMissionsTable.userId, userId), eqOp(aiMissionsTable.status, "active")));
+      .where(andOp(eqOp(aiMissionsTable.userId, userId), eqOp(aiMissionsTable.status, "accepted")));
 
     const streak = profile ? 0 : 0;
     const { usersTable } = await import("@workspace/db");

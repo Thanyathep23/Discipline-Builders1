@@ -123,10 +123,12 @@ router.post("/grant", async (req: any, res) => {
 
     await db.insert(auditLogTable).values({
       id: generateId(),
-      userId: actor.id,
+      actorId: actor.id,
+      actorRole: "admin",
       action: "admin_premium_grant",
+      targetId: userId,
+      targetType: "user",
       details: JSON.stringify({ targetUserId: userId, durationDays, reason, expiresAt: expiresAt.toISOString() }),
-      createdAt: now,
     });
 
     return res.json({ success: true, userId, expiresAt: expiresAt.toISOString() });
@@ -159,10 +161,12 @@ router.post("/revoke", async (req: any, res) => {
 
     await db.insert(auditLogTable).values({
       id: generateId(),
-      userId: actor.id,
+      actorId: actor.id,
+      actorRole: "admin",
       action: "admin_premium_revoke",
+      targetId: userId,
+      targetType: "user",
       details: JSON.stringify({ targetUserId: userId, reason: reason ?? "admin_revoke" }),
-      createdAt: now,
     });
 
     return res.json({ success: true, userId });
@@ -214,10 +218,12 @@ router.patch("/packs/:packId", async (req: any, res) => {
 
     await db.insert(auditLogTable).values({
       id: generateId(),
-      userId: actor.id,
+      actorId: actor.id,
+      actorRole: "admin",
       action: "admin_premium_pack_update",
+      targetId: packId,
+      targetType: "premium_pack",
       details: JSON.stringify({ packId, changes: parsed.data }),
-      createdAt: new Date(),
     });
 
     const [updated] = await db.select().from(premiumPacksTable).where(eq(premiumPacksTable.id, packId)).limit(1);
@@ -275,10 +281,12 @@ router.patch("/items/:itemId", async (req: any, res) => {
 
     await db.insert(auditLogTable).values({
       id: generateId(),
-      userId: actor.id,
+      actorId: actor.id,
+      actorRole: "admin",
       action: "admin_offer_item_update",
+      targetId: itemId,
+      targetType: "shop_item",
       details: JSON.stringify({ itemId, changes: parsed.data }),
-      createdAt: new Date(),
     });
 
     const [updated] = await db.select().from(shopItemsTable).where(eq(shopItemsTable.id, itemId)).limit(1);

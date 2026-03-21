@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 const DEFAULT_FLAGS: Record<string, { value: string; description: string }> = {
+  // Tuning flags
   ai_missions_per_day:           { value: "5",   description: "Max AI missions generated per user per day" },
   comeback_threshold_days:       { value: "3",   description: "Days of inactivity before comeback state triggers" },
   proof_strictness_multiplier:   { value: "1.0", description: "Global multiplier for proof strictness (0.5 = lenient, 2.0 = strict)" },
@@ -10,6 +11,15 @@ const DEFAULT_FLAGS: Record<string, { value: string; description: string }> = {
   streak_bonus_max_pct:          { value: "20",  description: "Max streak bonus percentage added to rewards" },
   chain_max_depth:               { value: "5",   description: "Max number of steps in a quest chain" },
   share_cards_enabled:           { value: "true", description: "Whether share card feature is visible to users" },
+  // Kill-switches (Phase 20) — "true" = subsystem is DISABLED
+  kill_ai_missions:              { value: "false", description: "Emergency: disable AI mission generation (falls back to rule-based)" },
+  kill_ocr_extraction:           { value: "false", description: "Emergency: disable OCR/PDF/image content extraction" },
+  kill_premium_purchases:        { value: "false", description: "Emergency: disable premium purchase activation flow" },
+  kill_marketplace_purchases:    { value: "false", description: "Emergency: disable marketplace buy/sell actions" },
+  kill_circles:                  { value: "false", description: "Emergency: disable circles creation and join flows" },
+  kill_webhooks:                 { value: "false", description: "Emergency: disable all outbound webhook dispatching" },
+  kill_invite_system:            { value: "false", description: "Emergency: disable invite code generation and use" },
+  kill_live_ops:                 { value: "false", description: "Emergency: disable live ops event activation" },
 };
 
 let flagCache: Record<string, string> | null = null;

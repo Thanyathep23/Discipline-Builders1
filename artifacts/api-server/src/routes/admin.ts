@@ -19,8 +19,11 @@ import {
   userFeedbackTable,
   featureFlagsTable,
   inviteCodesTable,
+  premiumPacksTable,
+  userPremiumPacksTable,
+  focusSessionsTable,
 } from "@workspace/db";
-import { eq, desc, count, and, gte, inArray, sql, isNotNull } from "drizzle-orm";
+import { eq, desc, count, and, gte, inArray, sql, isNotNull, lt } from "drizzle-orm";
 import { setFlag } from "../lib/feature-flags.js";
 import { z } from "zod";
 import { requireAdmin, generateId } from "../lib/auth.js";
@@ -29,6 +32,8 @@ import { generateMissionsWithAI } from "../lib/mission-generator.js";
 import { resolveArcWithEvidenceGating } from "../lib/arc-resolver.js";
 import { computeAdaptiveChallenge } from "../lib/adaptive-challenge.js";
 import { getActiveChain, getChainById } from "../lib/quest-chains.js";
+import { getAllKillSwitchStatus, killSystem, reviveSystem, KILL_SWITCH_DESCRIPTIONS } from "../lib/kill-switches.js";
+import type { KillSwitchKey } from "../lib/kill-switches.js";
 
 const router = Router();
 router.use(requireAdmin);
@@ -1073,6 +1078,479 @@ router.get("/growth", async (req, res) => {
         joinedAt: u.createdAt?.toISOString(),
         source: u.acquisitionSource,
       })),
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// =====================================================================
+// PHASE 20 — KILL-SWITCH CONTROLS (admin-only)
+// =====================================================================
+
+/**
+ * GET /api/admin/kill-switches
+ * View current status of all kill-switches (emergency disable controls).
+ */
+router.get("/kill-switches", async (_req, res) => {
+  try {
+    const statuses = await getAllKillSwitchStatus();
+    return res.json({ killSwitches: statuses });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/kill-switches/:key/kill
+ * Enable a kill-switch — DISABLE the named subsystem.
+ * All such actions are audit-logged.
+ */
+router.post("/kill-switches/:key/kill", async (req: any, res) => {
+  try {
+    const { key } = req.params as { key: string };
+    if (!(key in KILL_SWITCH_DESCRIPTIONS)) {
+      return res.status(400).json({ error: "Unknown kill-switch key" });
+    }
+    const actorId = req.user.id;
+    await killSystem(key as KillSwitchKey, actorId);
+    await db.insert(auditLogTable).values({
+      id: generateId(),
+      actorId,
+      actorRole: "admin",
+      action: "kill_switch_activated",
+      targetId: key,
+      targetType: "system",
+      details: JSON.stringify({ key, action: "kill", description: KILL_SWITCH_DESCRIPTIONS[key as KillSwitchKey] }),
+    });
+    return res.json({ key, killed: true, message: `Kill-switch activated: ${key}` });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/kill-switches/:key/revive
+ * Disable a kill-switch — RE-ENABLE the named subsystem.
+ * All such actions are audit-logged.
+ */
+router.post("/kill-switches/:key/revive", async (req: any, res) => {
+  try {
+    const { key } = req.params as { key: string };
+    if (!(key in KILL_SWITCH_DESCRIPTIONS)) {
+      return res.status(400).json({ error: "Unknown kill-switch key" });
+    }
+    const actorId = req.user.id;
+    await reviveSystem(key as KillSwitchKey, actorId);
+    await db.insert(auditLogTable).values({
+      id: generateId(),
+      actorId,
+      actorRole: "admin",
+      action: "kill_switch_deactivated",
+      targetId: key,
+      targetType: "system",
+      details: JSON.stringify({ key, action: "revive", description: KILL_SWITCH_DESCRIPTIONS[key as KillSwitchKey] }),
+    });
+    return res.json({ key, killed: false, message: `Kill-switch deactivated: ${key} — subsystem restored` });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// =====================================================================
+// PHASE 20 — OBSERVABILITY (lightweight spike detection)
+// =====================================================================
+
+/**
+ * GET /api/admin/observability?windowMinutes=60
+ * Returns lightweight spike detection metrics for launch-critical signals.
+ * Reads from audit_log (which stores both admin audit entries and telemetry events).
+ */
+router.get("/observability", async (req, res) => {
+  try {
+    const windowMinutes = Math.min(Number(req.query.windowMinutes ?? 60), 1440); // max 24h
+    const since = new Date(Date.now() - windowMinutes * 60 * 1000);
+
+    const [
+      proofSubmissions,
+      proofApprovals,
+      proofRejections,
+      proofFollowups,
+      signups,
+      logins,
+      focusStarts,
+      focusCompletions,
+      focusAbandonments,
+      rewardTx,
+      stuckProofs,
+      suspendedUsers,
+    ] = await Promise.all([
+      db.select({ n: count() }).from(auditLogTable)
+        .where(and(eq(auditLogTable.action, "proof_submitted"), gte(auditLogTable.createdAt, since))),
+      db.select({ n: count() }).from(auditLogTable)
+        .where(and(eq(auditLogTable.action, "proof_approved"), gte(auditLogTable.createdAt, since))),
+      db.select({ n: count() }).from(auditLogTable)
+        .where(and(eq(auditLogTable.action, "proof_rejected"), gte(auditLogTable.createdAt, since))),
+      db.select({ n: count() }).from(auditLogTable)
+        .where(and(eq(auditLogTable.action, "proof_followup_required"), gte(auditLogTable.createdAt, since))),
+      db.select({ n: count() }).from(auditLogTable)
+        .where(and(eq(auditLogTable.action, "signup_completed"), gte(auditLogTable.createdAt, since))),
+      db.select({ n: count() }).from(auditLogTable)
+        .where(and(eq(auditLogTable.action, "login_completed"), gte(auditLogTable.createdAt, since))),
+      db.select({ n: count() }).from(auditLogTable)
+        .where(and(eq(auditLogTable.action, "focus_started"), gte(auditLogTable.createdAt, since))),
+      db.select({ n: count() }).from(auditLogTable)
+        .where(and(eq(auditLogTable.action, "focus_completed"), gte(auditLogTable.createdAt, since))),
+      db.select({ n: count() }).from(auditLogTable)
+        .where(and(eq(auditLogTable.action, "focus_abandoned"), gte(auditLogTable.createdAt, since))),
+      db.select({ n: count() }).from(rewardTransactionsTable)
+        .where(gte(rewardTransactionsTable.createdAt, since)),
+      // Proofs stuck in "reviewing" state for more than 15 minutes
+      db.select({ n: count() }).from(proofSubmissionsTable)
+        .where(and(
+          eq(proofSubmissionsTable.status, "reviewing"),
+          lt(proofSubmissionsTable.updatedAt, new Date(Date.now() - 15 * 60 * 1000)),
+        )),
+      // Users suspended in the window
+      db.select({ n: count() }).from(usersTable)
+        .where(and(eq(usersTable.isActive, false), gte(usersTable.updatedAt, since))),
+    ]);
+
+    const proofCount = Number(proofSubmissions[0]?.n ?? 0);
+    const approvedCount = Number(proofApprovals[0]?.n ?? 0);
+    const rejectedCount = Number(proofRejections[0]?.n ?? 0);
+    const approvalRate = proofCount > 0 ? Math.round((approvedCount / proofCount) * 100) : null;
+
+    const focusStarted = Number(focusStarts[0]?.n ?? 0);
+    const focusCompleted = Number(focusCompletions[0]?.n ?? 0);
+    const focusAbandoned = Number(focusAbandonments[0]?.n ?? 0);
+    const sessionCompletionRate = focusStarted > 0 ? Math.round((focusCompleted / focusStarted) * 100) : null;
+
+    const warnings: string[] = [];
+    if (approvalRate !== null && approvalRate < 30 && proofCount > 5) {
+      warnings.push(`Low proof approval rate: ${approvalRate}% (threshold: 30%)`);
+    }
+    if (Number(stuckProofs[0]?.n ?? 0) > 0) {
+      warnings.push(`${stuckProofs[0]?.n} proof(s) stuck in 'reviewing' for >15 minutes`);
+    }
+    if (sessionCompletionRate !== null && sessionCompletionRate < 40 && focusStarted > 5) {
+      warnings.push(`Low focus session completion rate: ${sessionCompletionRate}% (threshold: 40%)`);
+    }
+
+    return res.json({
+      windowMinutes,
+      generatedAt: new Date().toISOString(),
+      warnings,
+      auth: {
+        signups: Number(signups[0]?.n ?? 0),
+        logins: Number(logins[0]?.n ?? 0),
+      },
+      proofs: {
+        submitted: proofCount,
+        approved: approvedCount,
+        rejected: rejectedCount,
+        followupRequired: Number(proofFollowups[0]?.n ?? 0),
+        approvalRate,
+        stuckInReviewing: Number(stuckProofs[0]?.n ?? 0),
+      },
+      focus: {
+        started: focusStarted,
+        completed: focusCompleted,
+        abandoned: focusAbandoned,
+        completionRate: sessionCompletionRate,
+      },
+      rewards: {
+        transactionsInWindow: Number(rewardTx[0]?.n ?? 0),
+      },
+      users: {
+        suspendedInWindow: Number(suspendedUsers[0]?.n ?? 0),
+      },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// =====================================================================
+// PHASE 20 — SUPPORT / REPAIR TOOLS (admin-only, all audit-logged)
+// =====================================================================
+
+/**
+ * GET /api/admin/support/stuck-proofs
+ * Find proofs stuck in 'reviewing' state for more than 15 minutes.
+ * These indicate a failed AI judge call that didn't resolve.
+ */
+router.get("/support/stuck-proofs", async (_req, res) => {
+  try {
+    const staleThreshold = new Date(Date.now() - 15 * 60 * 1000);
+    const stuckProofs = await db
+      .select({
+        id: proofSubmissionsTable.id,
+        userId: proofSubmissionsTable.userId,
+        missionId: proofSubmissionsTable.missionId,
+        sessionId: proofSubmissionsTable.sessionId,
+        status: proofSubmissionsTable.status,
+        createdAt: proofSubmissionsTable.createdAt,
+        updatedAt: proofSubmissionsTable.updatedAt,
+      })
+      .from(proofSubmissionsTable)
+      .where(
+        and(
+          eq(proofSubmissionsTable.status, "reviewing"),
+          lt(proofSubmissionsTable.updatedAt, staleThreshold),
+        )
+      )
+      .orderBy(desc(proofSubmissionsTable.updatedAt))
+      .limit(50);
+
+    return res.json({
+      count: stuckProofs.length,
+      staleThresholdMinutes: 15,
+      proofs: stuckProofs.map(p => ({
+        ...p,
+        createdAt: p.createdAt?.toISOString(),
+        updatedAt: p.updatedAt?.toISOString(),
+        stuckForMinutes: p.updatedAt
+          ? Math.round((Date.now() - p.updatedAt.getTime()) / 60000)
+          : null,
+      })),
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/support/proof/:proofId/reset
+ * Reset a stuck proof from 'reviewing' back to 'pending' so the user can resubmit.
+ * This is a safe, targeted repair — no reward is granted.
+ * All resets are audit-logged.
+ */
+router.post("/support/proof/:proofId/reset", async (req: any, res) => {
+  try {
+    const { proofId } = req.params;
+    const actorId = req.user.id;
+
+    const [proof] = await db
+      .select()
+      .from(proofSubmissionsTable)
+      .where(eq(proofSubmissionsTable.id, proofId))
+      .limit(1);
+
+    if (!proof) {
+      return res.status(404).json({ error: "Proof submission not found" });
+    }
+    if (proof.status !== "reviewing") {
+      return res.status(400).json({ error: `Proof is in '${proof.status}' state, not 'reviewing'. Cannot reset.` });
+    }
+
+    await db
+      .update(proofSubmissionsTable)
+      .set({ status: "pending", updatedAt: new Date() })
+      .where(eq(proofSubmissionsTable.id, proofId));
+
+    await db.insert(auditLogTable).values({
+      id: generateId(),
+      actorId,
+      actorRole: "admin",
+      action: "proof_reset_by_admin",
+      targetId: proofId,
+      targetType: "proof_submission",
+      details: JSON.stringify({ previousStatus: "reviewing", newStatus: "pending", userId: proof.userId }),
+    });
+
+    return res.json({ proofId, previousStatus: "reviewing", newStatus: "pending", message: "Proof reset to pending. User may now resubmit." });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/admin/support/user/:userId/state
+ * Full user state snapshot for support diagnosis.
+ * Shows wallet, premium, recent activity, stuck states.
+ * Sensitive fields (passwordHash, private notes) never exposed.
+ */
+router.get("/support/user/:userId/state", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const [user] = await db
+      .select({
+        id: usersTable.id,
+        username: usersTable.username,
+        email: usersTable.email,
+        role: usersTable.role,
+        isActive: usersTable.isActive,
+        coinBalance: usersTable.coinBalance,
+        level: usersTable.level,
+        xp: usersTable.xp,
+        currentStreak: usersTable.currentStreak,
+        longestStreak: usersTable.longestStreak,
+        trustScore: usersTable.trustScore,
+        isPremium: usersTable.isPremium,
+        premiumExpiresAt: usersTable.premiumExpiresAt,
+        lastActiveAt: usersTable.lastActiveAt,
+        createdAt: usersTable.createdAt,
+        acquisitionSource: usersTable.acquisitionSource,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId))
+      .limit(1);
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Recent proof submissions (last 10)
+    const recentProofs = await db
+      .select({ id: proofSubmissionsTable.id, status: proofSubmissionsTable.status, createdAt: proofSubmissionsTable.createdAt, updatedAt: proofSubmissionsTable.updatedAt })
+      .from(proofSubmissionsTable)
+      .where(eq(proofSubmissionsTable.userId, userId))
+      .orderBy(desc(proofSubmissionsTable.createdAt))
+      .limit(10);
+
+    // Stuck proofs for this user
+    const staleThreshold = new Date(Date.now() - 15 * 60 * 1000);
+    const stuckProofs = recentProofs.filter(p => p.status === "reviewing" && p.updatedAt && p.updatedAt < staleThreshold);
+
+    // Recent reward transactions (last 5)
+    const recentRewards = await db
+      .select({ type: rewardTransactionsTable.type, amount: rewardTransactionsTable.amount, reason: rewardTransactionsTable.reason, balanceAfter: rewardTransactionsTable.balanceAfter, createdAt: rewardTransactionsTable.createdAt })
+      .from(rewardTransactionsTable)
+      .where(eq(rewardTransactionsTable.userId, userId))
+      .orderBy(desc(rewardTransactionsTable.createdAt))
+      .limit(5);
+
+    // Active focus session
+    const [activeSession] = await db
+      .select({ id: focusSessionsTable.id, status: focusSessionsTable.status, startedAt: focusSessionsTable.startedAt })
+      .from(focusSessionsTable)
+      .where(and(eq(focusSessionsTable.userId, userId), eq(focusSessionsTable.status, "active")))
+      .limit(1);
+
+    // Premium packs owned
+    const ownedPacks = await db
+      .select({ packId: userPremiumPacksTable.packId, grantedAt: userPremiumPacksTable.grantedAt })
+      .from(userPremiumPacksTable)
+      .where(eq(userPremiumPacksTable.userId, userId));
+
+    // Active quest chain
+    const activeChain = await getActiveChain(userId).catch(() => null);
+
+    return res.json({
+      user: {
+        ...user,
+        premiumExpiresAt: user.premiumExpiresAt?.toISOString() ?? null,
+        lastActiveAt: user.lastActiveAt?.toISOString() ?? null,
+        createdAt: user.createdAt?.toISOString() ?? null,
+      },
+      diagnostics: {
+        hasStuckProofs: stuckProofs.length > 0,
+        stuckProofCount: stuckProofs.length,
+        hasActiveSession: !!activeSession,
+        premiumPackCount: ownedPacks.length,
+        hasActiveChain: !!activeChain,
+      },
+      recentProofs: recentProofs.map(p => ({
+        ...p,
+        createdAt: p.createdAt?.toISOString(),
+        updatedAt: p.updatedAt?.toISOString(),
+      })),
+      recentRewards: recentRewards.map(r => ({
+        ...r,
+        createdAt: r.createdAt?.toISOString(),
+      })),
+      activeSession: activeSession ? {
+        id: activeSession.id,
+        startedAt: activeSession.startedAt?.toISOString(),
+      } : null,
+      ownedPacks: ownedPacks.map(p => ({
+        packId: p.packId,
+        grantedAt: p.grantedAt?.toISOString(),
+      })),
+      activeChain: activeChain ? {
+        id: activeChain.id,
+        chainId: activeChain.chainId,
+        currentStep: activeChain.currentStep,
+        totalSteps: activeChain.totalSteps,
+        status: activeChain.status,
+      } : null,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/support/user/:userId/premium/resync
+ * Re-sync premium entitlement for a user.
+ * Useful when a user's premium state is corrupted or out of sync after a billing event.
+ * Provide { isPremium: bool, durationDays?: number } in body.
+ * All actions audit-logged.
+ */
+router.post("/support/user/:userId/premium/resync", async (req: any, res) => {
+  try {
+    const { userId } = req.params;
+    const actorId = req.user.id;
+
+    const schema = z.object({
+      isPremium: z.boolean(),
+      durationDays: z.number().int().min(1).max(365).optional(),
+      reason: z.string().max(200).optional(),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid body", details: parsed.error.message });
+    }
+
+    const { isPremium, durationDays, reason } = parsed.data;
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const now = new Date();
+    let premiumExpiresAt: Date | null = null;
+    if (isPremium && durationDays) {
+      premiumExpiresAt = new Date(now);
+      premiumExpiresAt.setDate(premiumExpiresAt.getDate() + durationDays);
+    }
+
+    await db.update(usersTable).set({
+      isPremium,
+      premiumGrantedAt: isPremium ? now : null,
+      premiumExpiresAt: isPremium ? premiumExpiresAt : null,
+      updatedAt: now,
+    }).where(eq(usersTable.id, userId));
+
+    // If granting premium, also grant all active packs
+    let packsGranted = 0;
+    if (isPremium) {
+      const allPacks = await db.select().from(premiumPacksTable).where(eq(premiumPacksTable.isActive, true));
+      for (const pack of allPacks) {
+        await db.insert(userPremiumPacksTable)
+          .values({ id: generateId(), userId, packId: pack.id, grantedBy: actorId })
+          .onConflictDoNothing();
+        packsGranted++;
+      }
+    }
+
+    await db.insert(auditLogTable).values({
+      id: generateId(),
+      actorId,
+      actorRole: "admin",
+      action: "premium_entitlement_resynced",
+      targetId: userId,
+      targetType: "user",
+      details: JSON.stringify({ isPremium, durationDays: durationDays ?? null, premiumExpiresAt: premiumExpiresAt?.toISOString() ?? null, packsGranted, reason: reason ?? "admin_resync" }),
+    });
+
+    return res.json({
+      userId,
+      isPremium,
+      premiumExpiresAt: premiumExpiresAt?.toISOString() ?? null,
+      packsGranted,
+      message: isPremium
+        ? `Premium entitlement granted. ${packsGranted} pack(s) synced.`
+        : "Premium entitlement revoked.",
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

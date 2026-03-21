@@ -121,7 +121,7 @@ router.get("/room", requireAuth, async (req: any, res) => {
     }
 
     // Resolve active theme
-    let activeTheme = { ...DEFAULT_THEME };
+    let activeTheme: { id: string | null; name: string; tier: number; accentColor: string; icon: string; description: string } = { ...DEFAULT_THEME };
     const roomSlotItem = slotMap["room_theme"];
     if (roomSlotItem && ROOM_THEMES[roomSlotItem.itemId]) {
       activeTheme = ROOM_THEMES[roomSlotItem.itemId];

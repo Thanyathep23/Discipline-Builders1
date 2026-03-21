@@ -4,6 +4,7 @@ import { eq, count, and, isNotNull } from "drizzle-orm";
 import { requireAuth, generateId } from "../lib/auth.js";
 import { trackEvent, Events } from "../lib/telemetry.js";
 import { randomBytes } from "crypto";
+import { isKilled } from "../lib/kill-switches.js";
 
 const router = Router();
 
@@ -23,6 +24,10 @@ function generateCode(): string {
  */
 router.get("/my-code", requireAuth, async (req: any, res) => {
   try {
+    // Kill-switch: disable invite code generation when invite system is off
+    if (await isKilled("kill_invite_system")) {
+      return res.status(503).json({ error: "The invite system is temporarily unavailable. Please try again later." });
+    }
     const userId = req.user.id;
 
     const existing = await db

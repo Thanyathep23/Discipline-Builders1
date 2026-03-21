@@ -8,6 +8,7 @@ import crypto from "crypto";
 import { db, webhookSubscriptionsTable, webhookDeliveriesTable } from "@workspace/db";
 import { eq, and, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { isKilled } from "./kill-switches.js";
 
 export interface WebhookPayload {
   event: string;
@@ -30,6 +31,9 @@ export async function dispatchWebhookEvent(
   data: Record<string, unknown>,
 ): Promise<void> {
   try {
+    // Kill-switch: if webhooks are disabled, silently skip dispatch
+    if (await isKilled("kill_webhooks")) return;
+
     // Find all active subscriptions for this user that include this event
     const subscriptions = await db
       .select()

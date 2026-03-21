@@ -161,55 +161,58 @@ export async function applySystemPenalty(
 ): Promise<void> {
   const opts = options ?? {};
 
-  const user = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-  if (!user[0]) return;
+  // Wrap all penalty writes in a single transaction for consistency
+  await db.transaction(async (tx) => {
+    const user = await tx.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user[0]) return;
 
-  const newBalance = Math.max(0, user[0].coinBalance - coinsDeducted);
-  const newXp = Math.max(0, user[0].xp - xpDeducted);
+    const newBalance = Math.max(0, user[0].coinBalance - coinsDeducted);
+    const newXp = Math.max(0, user[0].xp - xpDeducted);
 
-  await db.update(usersTable).set({
-    coinBalance: newBalance,
-    xp: newXp,
-    updatedAt: new Date(),
-  }).where(eq(usersTable.id, userId));
+    await tx.update(usersTable).set({
+      coinBalance: newBalance,
+      xp: newXp,
+      updatedAt: new Date(),
+    }).where(eq(usersTable.id, userId));
 
-  const penaltyId = generateId();
-  await db.insert(penaltiesTable).values({
-    id: penaltyId,
-    userId,
-    sessionId: opts.sessionId ?? null,
-    missionId: opts.missionId ?? null,
-    proofId: opts.proofId ?? null,
-    reason,
-    coinsDeducted,
-    xpDeducted,
-    description,
-    appliedBy: null, // system
-  });
-
-  if (coinsDeducted > 0) {
-    await db.insert(rewardTransactionsTable).values({
-      id: generateId(),
+    const penaltyId = generateId();
+    await tx.insert(penaltiesTable).values({
+      id: penaltyId,
       userId,
-      type: "penalty",
-      amount: -coinsDeducted,
-      xpAmount: -xpDeducted,
-      reason: `System penalty: ${description}`,
       sessionId: opts.sessionId ?? null,
       missionId: opts.missionId ?? null,
-      penaltyId,
-      balanceAfter: newBalance,
+      proofId: opts.proofId ?? null,
+      reason,
+      coinsDeducted,
+      xpDeducted,
+      description,
+      appliedBy: null, // system
     });
-  }
 
-  await db.insert(auditLogTable).values({
-    id: generateId(),
-    actorId: null,
-    actorRole: "system",
-    action: "system_penalty_applied",
-    targetId: userId,
-    targetType: "user",
-    details: JSON.stringify({ coinsDeducted, xpDeducted, reason, description, ...opts }),
+    if (coinsDeducted > 0) {
+      await tx.insert(rewardTransactionsTable).values({
+        id: generateId(),
+        userId,
+        type: "penalty",
+        amount: -coinsDeducted,
+        xpAmount: -xpDeducted,
+        reason: `System penalty: ${description}`,
+        sessionId: opts.sessionId ?? null,
+        missionId: opts.missionId ?? null,
+        penaltyId,
+        balanceAfter: newBalance,
+      });
+    }
+
+    await tx.insert(auditLogTable).values({
+      id: generateId(),
+      actorId: null,
+      actorRole: "system",
+      action: "system_penalty_applied",
+      targetId: userId,
+      targetType: "user",
+      details: JSON.stringify({ coinsDeducted, xpDeducted, reason, description, ...opts }),
+    });
   });
 }
 

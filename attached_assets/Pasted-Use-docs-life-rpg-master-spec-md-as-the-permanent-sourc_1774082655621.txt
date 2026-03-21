@@ -1,0 +1,328 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 20 — Launch / Scale / Post-launch Operations.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Proof intelligence works
+- Adaptive challenge, quest chains, rarity, identity layer, telemetry, growth, endgame, live-ops, community/accountability, integrations, economy/marketplace, world/room/lifestyle presentation, and premium/monetization systems are complete
+- The next and final highest-value step is to make the product operationally ready for real launch, scaling, monitoring, support, recovery, and post-launch maintenance
+
+Your task:
+Build only the smallest high-impact launch/scale/post-launch layer:
+1. launch readiness
+2. reliability and recovery
+3. performance and scale checks
+4. security/fraud/abuse hardening
+5. operational tooling and support surfaces
+6. rollout and post-launch safety controls
+
+Do NOT build:
+- new gameplay systems
+- new monetization systems
+- new social/community systems
+- redesign of the product
+- large enterprise platform features
+- giant devops platform from scratch
+- broad new integrations unrelated to launch readiness
+
+==================================================
+PHASE 20 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Release readiness checklist implementation
+2. Reliability / recovery / failure-handling hardening
+3. Performance / load-awareness / scale readiness checks
+4. Security / fraud / abuse hardening
+5. Operational support / diagnostics / admin recovery tools lite
+6. Rollout / kill-switch / post-launch safety controls
+7. Minimal launch-facing documentation / runbook surfaces
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current auth, onboarding, mission, focus, proof, reward, AI mission, chain, rarity, economy, premium, community, integrations, and admin/tuning/live-ops systems
+2. identify what is already launch-safe vs what is still fragile
+3. identify the minimum set of fixes and controls needed for real release readiness
+4. implement only the minimum systems needed
+5. avoid broad refactors
+
+==================================================
+A. RELEASE READINESS / CRITICAL FLOW HARDENING
+==================================================
+
+Ensure the main user journeys are launch-safe.
+
+Critical flows to harden and verify:
+- signup / login / session recovery
+- onboarding / profile progression
+- user mission flow
+- AI mission flow
+- focus session flow
+- proof submission flow
+- proof upload flow
+- reward/wallet flow
+- inventory / marketplace / equip flow
+- room/world display flow
+- premium entitlement checks
+- circle/community flow if already live
+- integrations / calendar / export/import if already live
+
+Requirements:
+- improve error recovery where still weak
+- improve partial-state recovery where needed
+- improve fallback behavior when AI/integration services are unavailable
+- ensure empty states and degraded states do not strand the user
+- preserve JSON-only APIs and ownership checks
+
+==================================================
+B. RELIABILITY / RECOVERY / FAIL-SAFE BEHAVIOR
+==================================================
+
+Add or improve lightweight reliability and recovery controls.
+
+Examples:
+- job or process-safe retry strategy where appropriate
+- idempotency or duplicate-protection on sensitive actions where still missing
+- safe handling of interrupted proof upload / reward finalization / chain advancement / entitlement grant
+- graceful fallback when AI, OCR, PDF extraction, calendar, webhook, or payment/premium components fail
+- recovery UI or admin repair paths for corrupted partial state
+
+Requirements:
+- main flow should not be fragile when downstream services fail
+- failure in non-critical subsystems must not break the entire user experience
+- keep reliability mechanisms lightweight and practical
+- no giant distributed systems redesign
+
+==================================================
+C. PERFORMANCE / SCALE READINESS
+==================================================
+
+Add only the minimum performance/scale readiness needed for launch confidence.
+
+Audit and improve where necessary:
+- obvious N+1 or repeated unnecessary queries
+- expensive dashboard/profile/world queries
+- large payload responses
+- heavy image/file handling bottlenecks
+- admin pages with unbounded lists
+- marketplace/inventory/world rendering hot spots
+- telemetry/admin/live-ops queries that may grow badly
+
+Requirements:
+- add pagination or query limits where needed
+- add indexes where clearly necessary
+- reduce obvious waste
+- preserve correctness
+- do not over-engineer premature scaling infrastructure
+
+If load testing is feasible, add a lightweight sanity check.
+If not, add operational notes and clear bottleneck awareness.
+
+==================================================
+D. SECURITY / FRAUD / ABUSE HARDENING
+==================================================
+
+Strengthen launch-critical security and abuse resistance.
+
+Audit and improve:
+- auth/session protection
+- proof/reward abuse
+- invite/referral abuse
+- circle/community misuse
+- premium entitlement abuse
+- double-spend or duplicate purchase paths
+- upload abuse
+- webhook / integration abuse if applicable
+- admin route protection
+- dangerous missing validation paths
+
+Requirements:
+- preserve server-side authority for progression, rewards, entitlements, ownership, and display state
+- improve rate limiting where still weak
+- improve audit logging where needed
+- add lightweight fraud/abuse detection or safeguards where clearly valuable
+- keep changes focused and practical
+
+==================================================
+E. OPERATIONAL SUPPORT / DIAGNOSTICS / RECOVERY TOOLS LITE
+==================================================
+
+Add only minimal internal tools needed to operate post-launch.
+
+Possible examples:
+- failed job/integration delivery visibility
+- stuck proof/review/reward state inspector
+- user state repair tool for critical corruption cases
+- premium entitlement repair/re-sync tool
+- content/event activation sanity view
+- error/event diagnostics summary
+- “safe replay/retry” actions for selected flows
+- basic user support admin view for launch support
+
+Requirements:
+- admin-only
+- all actions audit-logged
+- no dangerous bulk mutation tools unless absolutely necessary
+- keep tools tactical, not enterprise-bloated
+
+==================================================
+F. ROLLOUT / KILL-SWITCH / SAFETY CONTROLS
+==================================================
+
+Add lightweight release control mechanisms.
+
+Examples:
+- feature flags or kill-switches for high-risk systems:
+  - AI mission generation
+  - OCR/PDF extraction
+  - premium purchases
+  - share/invite/community surfaces
+  - integrations/webhooks
+  - live events / packs
+- safe degrade modes
+- rollout flags for new features
+- admin/internal emergency disable controls
+
+Requirements:
+- keep controls lightweight
+- admin/internal only
+- allow product to stay usable if a subsystem must be disabled
+- preserve trust and continuity
+
+==================================================
+G. POST-LAUNCH OPERATIONS / RUNBOOK LITE
+==================================================
+
+Add lightweight operational documentation and internal guidance.
+
+Create or improve practical docs such as:
+- launch checklist
+- critical flows checklist
+- incident response notes
+- “what to check first” for common issues
+- recovery steps for stuck user states
+- support/debug notes for admins
+- post-launch monitoring checklist
+
+Requirements:
+- keep docs practical and short
+- based on the real system as implemented
+- no vague theoretical documentation
+
+==================================================
+H. OBSERVABILITY / ALERTING LITE
+==================================================
+
+Using the current telemetry/admin infrastructure, add lightweight observability for launch-critical issues.
+
+Examples:
+- failed signup/login spikes
+- proof submission failure spikes
+- reward failure anomalies
+- upload failure spikes
+- AI mission generation failures
+- premium entitlement mismatches
+- circle/invite abuse spikes
+- integration/webhook failure spikes
+
+Requirements:
+- keep it lightweight
+- use existing telemetry/admin surfaces where possible
+- make it easier to notice launch-breaking patterns early
+- do not build a giant observability platform
+
+==================================================
+I. BACKEND / SECURITY RULES
+==================================================
+
+- preserve JSON-only APIs
+- preserve ownership and entitlement checks
+- preserve server-side authority for progression, rewards, premium, economy, display state, and community visibility
+- keep schema changes additive and minimal
+- all admin recovery/repair actions must be audit-logged
+- do not trust client-side launch-state assumptions
+- protect sensitive data in diagnostics/support surfaces
+
+==================================================
+J. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. critical user flows have been audited and hardened for launch
+2. key fragile points have recovery/degrade paths
+3. obvious launch-risk performance issues are reduced or documented
+4. critical security/fraud/abuse risks are hardened further
+5. minimal operational support/repair tools exist
+6. kill-switch / rollout safety controls exist for high-risk systems
+7. practical launch/runbook documentation exists
+8. lightweight observability exists for critical launch issues
+9. existing app behavior still works
+10. no unrelated gameplay or oversized infrastructure scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what was already launch-safe
+- what was still risky
+- what was added or hardened
+
+2. Files changed in this run only
+
+3. Launch-hardening changes
+- which critical flows were improved
+- what failure/recovery cases were handled
+
+4. Reliability / recovery changes
+- duplicate/idempotency/fallback protections added
+- what subsystems now fail more safely
+
+5. Performance / scale readiness changes
+- query/index/pagination/load-awareness improvements
+- any remaining known bottlenecks
+
+6. Security / fraud / abuse hardening changes
+- what risks were addressed
+- what safeguards were added
+
+7. Operational/admin tools added
+- what support/repair/diagnostic tools now exist
+- what actions are audit-logged
+
+8. Rollout / kill-switch / safety controls added
+- which systems can now be disabled or degraded safely
+- where those controls live
+
+9. Launch/runbook documentation added
+- what docs/checklists were created or updated
+
+10. End-to-end verification results for:
+- core user flow
+- AI mission flow
+- proof/upload/reward flow
+- marketplace/world/premium flow
+- community/invite flow if live
+- integration flow if live
+- degraded/disabled subsystem behavior
+
+11. Remaining gaps after Phase 20
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

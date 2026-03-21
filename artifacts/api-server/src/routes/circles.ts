@@ -19,6 +19,7 @@ import { requireAuth, generateId } from "../lib/auth.js";
 import { trackEvent } from "../lib/telemetry.js";
 import { randomBytes, randomUUID } from "crypto";
 import { emitActivityForUser } from "../lib/circle-activity.js";
+import { isKilled } from "../lib/kill-switches.js";
 
 const router = Router();
 
@@ -112,6 +113,10 @@ async function getMemberSnapshot(userId: string) {
 // ─────────────────────────────────────────────────────────────────────────────
 router.post("/", requireAuth, async (req: any, res) => {
   try {
+    // Kill-switch: block circles if disabled
+    if (await isKilled("kill_circles")) {
+      return res.status(503).json({ error: "Accountability circles are temporarily unavailable. Please try again later." });
+    }
     const userId = req.user.id;
     const { name, description } = req.body as { name?: string; description?: string };
     if (!name || name.trim().length < 2 || name.trim().length > 40) {
@@ -340,6 +345,10 @@ router.get("/:circleId", requireAuth, async (req: any, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 router.post("/join", requireAuth, async (req: any, res) => {
   try {
+    // Kill-switch: block circles if disabled
+    if (await isKilled("kill_circles")) {
+      return res.status(503).json({ error: "Accountability circles are temporarily unavailable. Please try again later." });
+    }
     const userId = req.user.id;
     const { inviteCode } = req.body as { inviteCode?: string };
     if (!inviteCode) return res.status(400).json({ error: "Invite code required." });

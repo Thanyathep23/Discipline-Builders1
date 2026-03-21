@@ -7,6 +7,7 @@ import {
 import { eq, and, desc, asc } from "drizzle-orm";
 import { requireAuth, requireAdmin, generateId } from "../lib/auth.js";
 import { z } from "zod";
+import { isKilled } from "../lib/kill-switches.js";
 
 const router = Router();
 
@@ -221,6 +222,10 @@ router.get("/offers", requireAuth, async (req: any, res) => {
 // ─── POST /premium/activate — purchase simulation (billing TODO) ──────────────
 router.post("/activate", requireAuth, async (req: any, res) => {
   try {
+    // Kill-switch: block premium purchases if disabled
+    if (await isKilled("kill_premium_purchases")) {
+      return res.status(503).json({ error: "Premium purchases are temporarily unavailable. Please try again later." });
+    }
     const userId = req.user.id;
     const schema = z.object({
       plan: z.enum(["monthly", "annual"]),
@@ -284,10 +289,12 @@ router.post("/activate", requireAuth, async (req: any, res) => {
     // Audit
     await db.insert(auditLogTable).values({
       id: generateId(),
-      userId,
+      actorId: userId,
+      actorRole: "user",
       action: "premium_activated",
+      targetId: userId,
+      targetType: "user",
       details: JSON.stringify({ plan, expiresAt: expiresAt.toISOString() }),
-      createdAt: now,
     });
 
     return res.json({

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import OpenAI from "openai";
+import { isKilled } from "./kill-switches.js";
 
 const MAX_EXTRACTED_CHARS = 3000;
 
@@ -23,6 +24,10 @@ export async function extractFileContent(
   originalName: string,
   missionCategory: string,
 ): Promise<ExtractionResult> {
+  // Kill-switch: if OCR extraction is disabled, return skipped immediately
+  if (await isKilled("kill_ocr_extraction")) {
+    return { text: null, status: "skipped", method: "kill_switch_ocr_disabled" };
+  }
   try {
     if (mimeType === "application/pdf") {
       return await extractPdf(filePath, originalName);

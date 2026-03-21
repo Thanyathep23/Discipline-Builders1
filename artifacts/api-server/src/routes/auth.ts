@@ -7,6 +7,7 @@ import {
   createToken, revokeToken, requireAuth
 } from "../lib/auth.js";
 import { trackEvent, Events } from "../lib/telemetry.js";
+import { checkLoginRateLimit, recordFailedLogin, resetLoginRateLimit } from "../lib/auth-rate-limiter.js";
 
 const router = Router();
 
@@ -107,6 +108,13 @@ router.post("/register", async (req, res) => {
 });
 
 router.post("/login", async (req, res) => {
+  const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ?? req.socket.remoteAddress ?? "unknown";
+  const rateCheck = checkLoginRateLimit(ip);
+  if (!rateCheck.allowed) {
+    res.status(429).json({ error: "Too many login attempts. Please wait.", retryAfterSeconds: rateCheck.retryAfterSeconds });
+    return;
+  }
+
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Validation failed" });
@@ -116,6 +124,7 @@ router.post("/login", async (req, res) => {
   const { email, password } = parsed.data;
   const users = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
   if (!users[0]) {
+    recordFailedLogin(ip);
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }
@@ -123,6 +132,7 @@ router.post("/login", async (req, res) => {
   const user = users[0];
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
+    recordFailedLogin(ip);
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }
@@ -131,6 +141,9 @@ router.post("/login", async (req, res) => {
     res.status(403).json({ error: "Account suspended" });
     return;
   }
+
+  // Successful login: reset the IP's failure counter
+  resetLoginRateLimit(ip);
 
   // Update lastActiveAt
   await db.update(usersTable).set({ lastActiveAt: new Date(), updatedAt: new Date() }).where(eq(usersTable.id, user.id));
