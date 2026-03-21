@@ -10,6 +10,8 @@ import {
   badgesTable,
   lifeProfilesTable,
   circleMembersTable,
+  userInventoryTable,
+  shopItemsTable,
 } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { requireAuth, generateId } from "../lib/auth.js";
@@ -203,6 +205,30 @@ async function buildAndReturnShowcase(userId: string, res: any, isSelf: boolean)
       .filter(Boolean) as { name: string; icon: string; rarity: string }[];
   }
 
+  // Equipped profile items (cosmetics/prestige with isProfileItem flag)
+  let equippedProfileItems: { id: string; name: string; icon: string; rarity: string; itemType: string }[] = [];
+  try {
+    const profileInventory = await db.select({
+      itemId:   userInventoryTable.itemId,
+      name:     shopItemsTable.name,
+      icon:     shopItemsTable.icon,
+      rarity:   shopItemsTable.rarity,
+      itemType: shopItemsTable.itemType,
+    })
+      .from(userInventoryTable)
+      .innerJoin(shopItemsTable, eq(userInventoryTable.itemId, shopItemsTable.id))
+      .where(and(
+        eq(userInventoryTable.userId, userId),
+        eq(userInventoryTable.isEquipped, true),
+        eq(shopItemsTable.isProfileItem, true),
+      ));
+    equippedProfileItems = profileInventory.map(i => ({
+      id: i.itemId, name: i.name, icon: i.icon, rarity: i.rarity, itemType: i.itemType,
+    }));
+  } catch {
+    // non-critical
+  }
+
   return res.json({
     username: user?.username ?? "Operator",
     level: showLevel ? (user?.level ?? 1) : null,
@@ -210,6 +236,7 @@ async function buildAndReturnShowcase(userId: string, res: any, isSelf: boolean)
     activeTitle,
     topSkills,
     recentBadges,
+    equippedProfileItems,
     settings: isSelf
       ? {
           showTitle: settings?.showTitle ?? false,

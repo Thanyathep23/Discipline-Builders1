@@ -11,7 +11,7 @@ import { Colors } from "@/constants/colors";
 import {
   useRewardBalance, useRewardHistory,
   useInventoryBadges, useInventoryTitles, useActivateTitle,
-  useInventoryAssets,
+  useInventoryAssets, useAppliedState,
   useMarketplace, useCatalogCategories, useBuyItem, useEquipItem, useUnequipItem, useSellItem,
 } from "@/hooks/useApi";
 import { router } from "expo-router";
@@ -38,6 +38,28 @@ const CATEGORY_ICONS: Record<string, string> = {
   room:     "home-outline",
   cosmetic: "color-palette-outline",
   prestige: "star-outline",
+};
+
+const SURFACE_META: Record<string, { label: string; icon: string; color: string }> = {
+  character: { label: "Character",       icon: "person-outline",   color: "#7C5CFC" },
+  world:     { label: "Command Center",  icon: "home-outline",     color: "#00D4FF" },
+  profile:   { label: "Profile",         icon: "id-card-outline",  color: "#F5C842" },
+};
+
+const APPLICATION_MODE_DESC: Record<string, string> = {
+  equip:             "Equip to activate on your character",
+  display:           "Display in your Command Center slot",
+  equip_and_display: "Equip on character + display in Command Center",
+  passive:           "Permanently unlocked — no slot required",
+};
+
+const SLOT_LABELS: Record<string, string> = {
+  room_theme:      "Room Theme",
+  centerpiece:     "Centerpiece",
+  trophy_shelf_1:  "Trophy Shelf I",
+  trophy_shelf_2:  "Trophy Shelf II",
+  trophy_shelf_3:  "Trophy Shelf III",
+  prestige_marker: "Prestige Marker",
 };
 
 type MainTab = "overview" | "marketplace" | "inventory" | "history";
@@ -74,6 +96,7 @@ export default function RewardsScreen() {
   const { data: titlesData } = useInventoryTitles();
   const activateTitle = useActivateTitle();
   const { data: assetsData } = useInventoryAssets();
+  const { data: appliedState } = useAppliedState();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
@@ -510,7 +533,10 @@ export default function RewardsScreen() {
                         return (
                           <Animated.View key={item.id} entering={FadeInDown.delay(i * 40).springify()}>
                             <Pressable
-                              style={[styles.invCard, item.isEquipped && { borderColor: rarityColor + "60" }]}
+                              style={[
+                                styles.invCard,
+                                (item.isEquipped || item.displaySlot) && { borderColor: rarityColor + "60" },
+                              ]}
                               onPress={() => openDetail(item)}
                             >
                               <View style={[styles.invIcon, { backgroundColor: rarityColor + "15" }]}>
@@ -522,13 +548,23 @@ export default function RewardsScreen() {
                                   <Text style={[styles.rarityText, { color: rarityColor }]}>{item.rarity.toUpperCase()}</Text>
                                 </View>
                               </View>
-                              {item.isEquipped ? (
-                                <View style={styles.equippedChip}>
-                                  <Text style={styles.equippedChipText}>EQUIPPED</Text>
-                                </View>
-                              ) : (
-                                <Text style={styles.equipText}>Equip</Text>
-                              )}
+                              <View style={{ alignItems: "flex-end", gap: 4 }}>
+                                {item.isEquipped && (
+                                  <View style={styles.equippedChip}>
+                                    <Text style={styles.equippedChipText}>EQUIPPED</Text>
+                                  </View>
+                                )}
+                                {item.displaySlot ? (
+                                  <View style={styles.displayedChip}>
+                                    <Ionicons name="home-outline" size={9} color="#00D4FF" />
+                                    <Text style={styles.displayedChipText}>
+                                      {SLOT_LABELS[item.displaySlot] ?? item.displaySlot}
+                                    </Text>
+                                  </View>
+                                ) : !item.isEquipped ? (
+                                  <Text style={styles.equipText}>Apply</Text>
+                                ) : null}
+                              </View>
                             </Pressable>
                           </Animated.View>
                         );
@@ -696,6 +732,47 @@ export default function RewardsScreen() {
 
               <Text style={styles.detailDesc}>{detailItem.description}</Text>
 
+              {/* ── APPLIES TO section (Phase 23) ── */}
+              {(() => {
+                const surfaces: string[] = detailItem.applicableSurfaces ?? [];
+                const mode: string = detailItem.applicationMode ?? "passive";
+                const slots: string[] = detailItem.slotEligibility ?? [];
+                if (surfaces.length === 0 && mode === "passive") return null;
+                return (
+                  <View style={styles.appliesToBlock}>
+                    <Text style={styles.appliesToLabel}>APPLIES TO</Text>
+                    <View style={styles.appliesToRow}>
+                      {surfaces.map((s) => {
+                        const meta = SURFACE_META[s];
+                        if (!meta) return null;
+                        return (
+                          <View key={s} style={[styles.surfaceChip, { backgroundColor: meta.color + "18", borderColor: meta.color + "40" }]}>
+                            <Ionicons name={meta.icon as any} size={12} color={meta.color} />
+                            <Text style={[styles.surfaceChipText, { color: meta.color }]}>{meta.label}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                    <Text style={styles.appModeText}>
+                      {APPLICATION_MODE_DESC[mode] ?? mode}
+                    </Text>
+                    {slots.length > 0 && (
+                      <Text style={styles.slotHintText}>
+                        Eligible slots: {slots.map(s => SLOT_LABELS[s] ?? s).join(", ")}
+                      </Text>
+                    )}
+                    {detailItem.owned && detailItem.displaySlot && (
+                      <View style={styles.displayedInRow}>
+                        <Ionicons name="checkmark-circle" size={13} color={Colors.green} />
+                        <Text style={styles.displayedInText}>
+                          Displayed in: {SLOT_LABELS[detailItem.displaySlot] ?? detailItem.displaySlot}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })()}
+
               {/* State info */}
               <View style={styles.detailInfoRow}>
                 <View style={styles.detailInfoCell}>
@@ -708,7 +785,13 @@ export default function RewardsScreen() {
                 <View style={styles.detailInfoCell}>
                   <Text style={styles.detailInfoLabel}>Status</Text>
                   <Text style={[styles.detailInfoValue, { color: detailItem.owned ? Colors.green : Colors.textMuted }]}>
-                    {detailItem.owned ? (detailItem.isEquipped ? "Equipped" : "Owned") : "Not owned"}
+                    {detailItem.owned
+                      ? detailItem.displaySlot
+                        ? "Displayed"
+                        : detailItem.isEquipped
+                        ? "Equipped"
+                        : "Owned"
+                      : "Not owned"}
                   </Text>
                 </View>
                 {detailItem.sellBackValue > 0 && detailItem.owned && (
@@ -893,6 +976,17 @@ const styles = StyleSheet.create({
   cannotAffordText:    { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted },
   equippedChip:        { backgroundColor: Colors.accent + "20", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 },
   equippedChipText:    { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.accent },
+  displayedChip:       { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#00D4FF18", borderRadius: 6, borderWidth: 1, borderColor: "#00D4FF30", paddingHorizontal: 6, paddingVertical: 2 },
+  displayedChipText:   { fontFamily: "Inter_700Bold", fontSize: 9, color: "#00D4FF", letterSpacing: 0.3 },
+  appliesToBlock:      { backgroundColor: "#12122080", borderRadius: 10, padding: 12, gap: 8, marginBottom: 4, borderWidth: 1, borderColor: Colors.border },
+  appliesToLabel:      { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 1 },
+  appliesToRow:        { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  surfaceChip:         { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
+  surfaceChipText:     { fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 0.3 },
+  appModeText:         { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, lineHeight: 16 },
+  slotHintText:        { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, fontStyle: "italic" },
+  displayedInRow:      { flexDirection: "row", alignItems: "center", gap: 5 },
+  displayedInText:     { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.green },
   costBadge:           { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.goldDim, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
   costText:            { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.gold },
 

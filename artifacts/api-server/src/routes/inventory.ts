@@ -10,6 +10,32 @@ import { randomUUID } from "crypto";
 import { emitActivityForUser } from "../lib/circle-activity.js";
 import { dispatchWebhookEvent } from "../lib/webhook-dispatcher.js";
 
+// ─── Slot eligibility map (mirrors world.ts) ────────────────────────────────
+const SLOT_ELIGIBILITY_BY_TYPE: Record<string, string[]> = {
+  room:     ["room_theme"],
+  trophy:   ["trophy_shelf_1", "trophy_shelf_2", "trophy_shelf_3", "centerpiece"],
+  prestige: ["prestige_marker", "centerpiece"],
+};
+
+function getApplicableSurfaces(item: any): string[] {
+  const surfaces: string[] = [];
+  if (item.isEquippable) surfaces.push("character");
+  if (item.isWorldItem)  surfaces.push("world");
+  if (item.isProfileItem) surfaces.push("profile");
+  return surfaces;
+}
+
+function getApplicationMode(item: any): string {
+  if (item.isEquippable && item.isDisplayable) return "equip_and_display";
+  if (item.isEquippable) return "equip";
+  if (item.isDisplayable) return "display";
+  return "passive";
+}
+
+function getSlotEligibility(item: any): string[] {
+  return SLOT_ELIGIBILITY_BY_TYPE[item.itemType] ?? SLOT_ELIGIBILITY_BY_TYPE[item.category] ?? [];
+}
+
 const router = Router();
 
 const DEFAULT_BADGES = [
@@ -248,6 +274,121 @@ router.get("/assets", requireAuth, async (req: any, res) => {
         })),
         ...milestoneTrophies,
       ],
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── GET /inventory/applied-state ─────────────────────────────────────────
+// Returns a consolidated view of how items are applied across all surfaces.
+router.get("/applied-state", requireAuth, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Load full inventory with shop item metadata
+    const inventory = await db.select({
+      invId:       userInventoryTable.id,
+      itemId:      userInventoryTable.itemId,
+      isEquipped:  userInventoryTable.isEquipped,
+      displaySlot: userInventoryTable.displaySlot,
+      source:      userInventoryTable.source,
+      name:        shopItemsTable.name,
+      icon:        shopItemsTable.icon,
+      rarity:      shopItemsTable.rarity,
+      itemType:    shopItemsTable.itemType,
+      category:    shopItemsTable.category,
+      isEquippable:  shopItemsTable.isEquippable,
+      isDisplayable: shopItemsTable.isDisplayable,
+      isWorldItem:   shopItemsTable.isWorldItem,
+      isProfileItem: shopItemsTable.isProfileItem,
+    })
+      .from(userInventoryTable)
+      .innerJoin(shopItemsTable, eq(userInventoryTable.itemId, shopItemsTable.id))
+      .where(eq(userInventoryTable.userId, userId));
+
+    // Active title
+    const userTitles = await db.select({
+      titleId:  userTitlesTable.titleId,
+      isActive: userTitlesTable.isActive,
+      name:     titlesTable.name,
+      rarity:   titlesTable.rarity,
+    })
+      .from(userTitlesTable)
+      .innerJoin(titlesTable, eq(userTitlesTable.titleId, titlesTable.id))
+      .where(eq(userTitlesTable.userId, userId));
+
+    const activeTitle = userTitles.find(t => t.isActive) ?? null;
+
+    // Earned badges (top 3 for profile)
+    const earnedBadges = await db.select({
+      badgeId: userBadgesTable.badgeId,
+      name:    badgesTable.name,
+      icon:    badgesTable.icon,
+      rarity:  badgesTable.rarity,
+    })
+      .from(userBadgesTable)
+      .innerJoin(badgesTable, eq(userBadgesTable.badgeId, badgesTable.id))
+      .where(eq(userBadgesTable.userId, userId));
+
+    // Classify items by surface
+    const characterItems = inventory.filter(i => i.isEquipped && i.isEquippable);
+    const worldSlottedItems = inventory.filter(i => i.displaySlot != null);
+    const profileItems = inventory.filter(i => i.isEquipped && i.isProfileItem);
+    const storedItems = inventory.filter(i =>
+      !i.isEquipped && i.displaySlot == null
+    );
+
+    // Build slot map for world surface
+    const worldSlots: Record<string, any> = {};
+    for (const inv of worldSlottedItems) {
+      if (inv.displaySlot) {
+        worldSlots[inv.displaySlot] = {
+          itemId: inv.itemId, name: inv.name, icon: inv.icon,
+          rarity: inv.rarity, itemType: inv.itemType,
+        };
+      }
+    }
+
+    const enrichInv = (inv: any) => ({
+      itemId:    inv.itemId,
+      name:      inv.name,
+      icon:      inv.icon,
+      rarity:    inv.rarity,
+      itemType:  inv.itemType,
+      category:  inv.category,
+      surfaces:  getApplicableSurfaces(inv),
+      applicationMode: getApplicationMode(inv),
+      slotEligibility: getSlotEligibility(inv),
+      displaySlot: inv.displaySlot ?? null,
+      isEquipped:  inv.isEquipped,
+    });
+
+    return res.json({
+      character: {
+        activeTitle: activeTitle ? { id: activeTitle.titleId, name: activeTitle.name, rarity: activeTitle.rarity } : null,
+        equippedItems: characterItems.map(enrichInv),
+      },
+      world: {
+        slots: worldSlots,
+        slottedCount: worldSlottedItems.length,
+      },
+      profile: {
+        equippedItems: profileItems.map(enrichInv),
+        activeTitle:   activeTitle ? { id: activeTitle.titleId, name: activeTitle.name, rarity: activeTitle.rarity } : null,
+        featuredBadges: earnedBadges.slice(0, 3).map(b => ({
+          id: b.badgeId, name: b.name, icon: b.icon, rarity: b.rarity,
+        })),
+      },
+      storage: storedItems.map(enrichInv),
+      summary: {
+        totalOwned:    inventory.length,
+        totalEquipped: characterItems.length,
+        totalDisplayed: worldSlottedItems.length,
+        totalStored:   storedItems.length,
+        hasActiveTitle: !!activeTitle,
+        totalBadges:   earnedBadges.length,
+      },
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

@@ -127,8 +127,34 @@ export default function ShowcaseScreen() {
               </Animated.View>
             )}
 
+            {/* Equipped profile items (Phase 23) */}
+            {data?.equippedProfileItems?.length > 0 && (
+              <Animated.View entering={FadeInDown.delay(240).springify()} style={styles.card}>
+                <Text style={styles.cardTitle}>Profile Items</Text>
+                <View style={{ gap: 8 }}>
+                  {data.equippedProfileItems.map((item: any) => {
+                    const rarityColor = RARITY_COLORS[item.rarity] ?? Colors.textSecondary;
+                    return (
+                      <View key={item.id} style={styles.profileItemRow}>
+                        <View style={[styles.profileItemIcon, { backgroundColor: rarityColor + "18" }]}>
+                          <Ionicons name={(item.icon ?? "gift") as any} size={18} color={rarityColor} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.profileItemName}>{item.name}</Text>
+                          <Text style={[styles.profileItemRarity, { color: rarityColor }]}>
+                            {item.rarity?.toUpperCase()} {item.itemType}
+                          </Text>
+                        </View>
+                        <Ionicons name="checkmark-circle" size={16} color={Colors.green} />
+                      </View>
+                    );
+                  })}
+                </View>
+              </Animated.View>
+            )}
+
             {/* Nothing shared note */}
-            {!data?.activeTitle && !data?.currentArc && !data?.topSkills?.length && !data?.recentBadges?.length && !data?.level && (
+            {!data?.activeTitle && !data?.currentArc && !data?.topSkills?.length && !data?.recentBadges?.length && !data?.level && !data?.equippedProfileItems?.length && (
               <View style={styles.emptyCard}>
                 <Ionicons name="eye-off-outline" size={28} color={Colors.textMuted} />
                 <Text style={styles.emptyTitle}>Nothing shared yet</Text>

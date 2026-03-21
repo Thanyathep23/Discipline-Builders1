@@ -186,15 +186,29 @@ router.get("/", requireAuth, async (req: any, res) => {
       .where(eq(catalogCategoriesTable.isActive, true))
       .orderBy(asc(catalogCategoriesTable.sortOrder));
 
-    const enrichItem = (item: typeof allItems[0]) => ({
-      ...item,
-      tags: (() => { try { return JSON.parse(item.tags ?? "[]"); } catch { return []; } })(),
-      owned: ownedMap.has(item.id),
-      isEquipped: ownedMap.get(item.id)?.isEquipped ?? false,
-      canAfford: balance >= item.cost,
-      isSellable: item.sellBackValue > 0,
-      premiumLocked: item.isPremiumOnly && !isPremium,
-    });
+    const enrichItem = (item: typeof allItems[0]) => {
+      const ownership = ownedMap.get(item.id);
+      const applicableSurfaces: string[] = [];
+      if (item.isEquippable) applicableSurfaces.push("character");
+      if (item.isWorldItem)  applicableSurfaces.push("world");
+      if (item.isProfileItem) applicableSurfaces.push("profile");
+      let applicationMode = "passive";
+      if (item.isEquippable && item.isDisplayable) applicationMode = "equip_and_display";
+      else if (item.isEquippable) applicationMode = "equip";
+      else if (item.isDisplayable) applicationMode = "display";
+      return {
+        ...item,
+        tags: (() => { try { return JSON.parse(item.tags ?? "[]"); } catch { return []; } })(),
+        owned: ownedMap.has(item.id),
+        isEquipped: ownership?.isEquipped ?? false,
+        displaySlot: ownership?.displaySlot ?? null,
+        canAfford: balance >= item.cost,
+        isSellable: item.sellBackValue > 0,
+        premiumLocked: item.isPremiumOnly && !isPremium,
+        applicableSurfaces,
+        applicationMode,
+      };
+    };
 
     return res.json({
       items: visible.map(enrichItem),
@@ -231,11 +245,33 @@ router.get("/:itemId", requireAuth, async (req: any, res) => {
     const now = new Date();
     const visible = isStorefrontVisible(item, now);
 
+    // Compute application model fields
+    const applicableSurfaces: string[] = [];
+    if (item.isEquippable) applicableSurfaces.push("character");
+    if (item.isWorldItem)  applicableSurfaces.push("world");
+    if (item.isProfileItem) applicableSurfaces.push("profile");
+
+    let applicationMode = "passive";
+    if (item.isEquippable && item.isDisplayable) applicationMode = "equip_and_display";
+    else if (item.isEquippable) applicationMode = "equip";
+    else if (item.isDisplayable) applicationMode = "display";
+
+    const SLOT_BY_TYPE: Record<string, string[]> = {
+      room:     ["room_theme"],
+      trophy:   ["trophy_shelf_1", "trophy_shelf_2", "trophy_shelf_3", "centerpiece"],
+      prestige: ["prestige_marker", "centerpiece"],
+    };
+    const slotEligibility = SLOT_BY_TYPE[item.itemType] ?? SLOT_BY_TYPE[item.category] ?? [];
+
+    // Current display slot if owned
+    const displaySlot = ownership?.displaySlot ?? null;
+
     return res.json({
       ...item,
       tags: (() => { try { return JSON.parse(item.tags ?? "[]"); } catch { return []; } })(),
       owned: !!ownership,
       isEquipped: ownership?.isEquipped ?? false,
+      displaySlot,
       acquiredAt: ownership?.redeemedAt ?? null,
       source: ownership?.source ?? null,
       canAfford: balance >= item.cost,
@@ -243,6 +279,9 @@ router.get("/:itemId", requireAuth, async (req: any, res) => {
       coinBalance: balance,
       premiumLocked: item.isPremiumOnly && !isPremium,
       isVisible: visible,
+      applicableSurfaces,
+      applicationMode,
+      slotEligibility,
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

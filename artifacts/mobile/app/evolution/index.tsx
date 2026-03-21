@@ -8,8 +8,16 @@ import { router } from "expo-router";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
-import { useSkills, useEndgame, useIdentity, useInventoryTitles } from "@/hooks/useApi";
-import { computeCharacterState, type CharacterState, type DimensionScore } from "@/lib/characterEngine";
+import { useSkills, useEndgame, useIdentity, useInventoryTitles, useAppliedState } from "@/hooks/useApi";
+import { computeCharacterState, type CharacterState, type DimensionScore, type EquippedGearItem } from "@/lib/characterEngine";
+
+const RARITY_COLORS: Record<string, string> = {
+  common:    "#9E9E9E",
+  uncommon:  "#4CAF50",
+  rare:      "#2196F3",
+  epic:      "#9C27B0",
+  legendary: "#FF9800",
+};
 
 // ─── Character Figure ────────────────────────────────────────────────────────
 
@@ -280,13 +288,19 @@ export default function CharacterEvolutionScreen() {
   const { data: endgameData, isLoading: endgameLoading } = useEndgame();
   const { data: identityData } = useIdentity();
   const { data: titlesData } = useInventoryTitles();
+  const { data: appliedState } = useAppliedState();
 
   const isLoading = skillsLoading || endgameLoading;
 
+  const equippedCharacterItems = useMemo(() => {
+    const charItems = appliedState?.character ?? [];
+    return charItems;
+  }, [appliedState]);
+
   const characterState = useMemo<CharacterState | null>(() => {
     if (!skillsData?.skills || !endgameData) return null;
-    return computeCharacterState(skillsData.skills, endgameData, identityData);
-  }, [skillsData, endgameData, identityData]);
+    return computeCharacterState(skillsData.skills, endgameData, identityData, equippedCharacterItems);
+  }, [skillsData, endgameData, identityData, equippedCharacterItems]);
 
   const activeTitle = (titlesData?.titles ?? []).find((t: any) => t.isActive);
 
@@ -377,6 +391,23 @@ export default function CharacterEvolutionScreen() {
                 </View>
               )}
             </View>
+
+            {/* ── Equipped gear row (Phase 23) ── */}
+            {characterState.equippedGear.length > 0 && (
+              <View style={styles.gearRow}>
+                <Text style={styles.gearLabel}>EQUIPPED</Text>
+                <View style={styles.gearChips}>
+                  {characterState.equippedGear.map((g: EquippedGearItem) => (
+                    <View key={g.itemId} style={[styles.gearChip, { borderColor: RARITY_COLORS[g.rarity] + "50" }]}>
+                      <Ionicons name={(g.icon ?? "gift") as any} size={11} color={RARITY_COLORS[g.rarity] ?? "#9E9E9E"} />
+                      <Text style={[styles.gearChipText, { color: RARITY_COLORS[g.rarity] ?? "#9E9E9E" }]} numberOfLines={1}>
+                        {g.name}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
           </Animated.View>
 
           {/* ── Overall score ── */}
@@ -581,6 +612,11 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.accentDim,
   },
   masteryBadgeText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.accent },
+  gearRow: { gap: 6, paddingTop: 8, borderTopWidth: 1, borderTopColor: Colors.border },
+  gearLabel: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 1 },
+  gearChips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  gearChip: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#FFFFFF08", borderRadius: 8, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 4 },
+  gearChipText: { fontFamily: "Inter_600SemiBold", fontSize: 11 },
 
   // ── Score card ─────────────────────────────────────────────────────────────
   scoreCard: {

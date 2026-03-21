@@ -28,6 +28,15 @@ export interface EvolutionHint {
   urgency: "high" | "medium" | "low";
 }
 
+export interface EquippedGearItem {
+  itemId: string;
+  name: string;
+  icon: string;
+  rarity: string;
+  itemType: string;
+  surface: string;
+}
+
 export interface CharacterState {
   statusTier: StatusTier;
   statusTierIndex: number;          // 0–4
@@ -52,6 +61,12 @@ export interface CharacterState {
   prestigeTier: number;
   arcLabel: string | null;
   arcStageLabel: string | null;
+
+  // Phase 23 — equipped item influence
+  equippedGear: EquippedGearItem[];
+  hasEquippedPrestige: boolean;
+  hasEquippedCosmetic: boolean;
+  itemPrestigeBoost: number;        // 0–0.5 bonus added to overallScore display
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────
@@ -181,6 +196,7 @@ export function computeCharacterState(
   skills: any[],
   endgame: any,
   identity: any,
+  equippedItems?: any[],
 ): CharacterState {
   // ── Dimension raw scores ─────────────────────────────────────────────────
   const fitnessRaw    = clamp(skillLevel(skills, "fitness"), 0, 10);
@@ -309,11 +325,32 @@ export function computeCharacterState(
     });
   }
 
+  // ── Phase 23: Equipped item influence ───────────────────────────────────
+  const equipped = equippedItems ?? [];
+  const equippedGear: EquippedGearItem[] = equipped.map((item: any) => ({
+    itemId:   item.itemId ?? item.id,
+    name:     item.name,
+    icon:     item.icon ?? "gift",
+    rarity:   item.rarity ?? "common",
+    itemType: item.itemType ?? item.category ?? "cosmetic",
+    surface:  item.isProfileItem ? "profile" : item.isWorldItem ? "world" : "character",
+  }));
+
+  const hasEquippedPrestige = equippedGear.some(g => g.itemType === "prestige");
+  const hasEquippedCosmetic = equippedGear.some(g => g.itemType === "cosmetic");
+
+  // Small additive boost from equipping prestige/cosmetic items
+  // These amplify but do not replace real progression
+  const itemPrestigeBoost = clamp(
+    (hasEquippedPrestige ? 0.3 : 0) + (hasEquippedCosmetic ? 0.15 : 0),
+    0, 0.5,
+  );
+
   return {
     statusTier,
     statusTierIndex: tierConfig.index,
     tierColor: tierConfig.color,
-    overallScore: Math.round(overallScore * 10) / 10,
+    overallScore: Math.round((overallScore + itemPrestigeBoost) * 10) / 10,
 
     dimensions,
     topStrengths,
@@ -332,5 +369,10 @@ export function computeCharacterState(
     prestigeTier,
     arcLabel: currentArc,
     arcStageLabel,
+
+    equippedGear,
+    hasEquippedPrestige,
+    hasEquippedCosmetic,
+    itemPrestigeBoost,
   };
 }

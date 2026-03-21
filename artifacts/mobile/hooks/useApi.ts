@@ -483,6 +483,8 @@ export function useEquipItem() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["marketplace"] });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory", "applied-state"] });
+      queryClient.invalidateQueries({ queryKey: ["showcase"] });
     },
   });
 }
@@ -496,6 +498,8 @@ export function useUnequipItem() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["marketplace"] });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory", "applied-state"] });
+      queryClient.invalidateQueries({ queryKey: ["showcase"] });
     },
   });
 }
@@ -520,6 +524,27 @@ export function useMilestones() {
     queryKey: ["inventory", "milestones"],
     queryFn: () => request<any>("/inventory/milestones"),
     staleTime: 60000,
+  });
+}
+
+// Phase 23 — Applied State (consolidated item application view)
+export function useAppliedState() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["inventory", "applied-state"],
+    queryFn: () => request<any>("/inventory/applied-state"),
+    staleTime: 30000,
+  });
+}
+
+// Phase 23 — Item detail (enriched with application model)
+export function useItemDetail(itemId: string | null) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["marketplace", "detail", itemId],
+    queryFn: () => request<any>(`/marketplace/${itemId}`),
+    enabled: !!itemId,
+    staleTime: 30000,
   });
 }
 
