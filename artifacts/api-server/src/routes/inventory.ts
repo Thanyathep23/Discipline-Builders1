@@ -7,6 +7,7 @@ import {
 import { eq, and, desc } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 import { randomUUID } from "crypto";
+import { emitActivityForUser } from "../lib/circle-activity.js";
 
 const router = Router();
 
@@ -362,6 +363,18 @@ export async function awardBadge(userId: string, badgeId: string): Promise<boole
     .where(and(eq(userBadgesTable.userId, userId), eq(userBadgesTable.badgeId, badgeId))).limit(1);
   if (existing.length > 0) return false;
   await db.insert(userBadgesTable).values({ id: randomUUID(), userId, badgeId });
+
+  // Emit to circles (fire-and-forget)
+  const [badgeDef] = await db.select().from(badgesTable).where(eq(badgesTable.id, badgeId)).limit(1).catch(() => [null]);
+  if (badgeDef) {
+    emitActivityForUser(userId, "badge_earned", {
+      label: badgeDef.name,
+      icon: badgeDef.icon ?? "ribbon",
+      color: "#F5C842",
+      rarity: badgeDef.rarity,
+    }).catch(() => {});
+  }
+
   return true;
 }
 
@@ -378,6 +391,18 @@ export async function awardTitle(userId: string, titleId: string): Promise<boole
     titleId,
     isActive: hasActive.length === 0,
   });
+
+  // Emit to circles (fire-and-forget)
+  const [titleDef] = await db.select().from(titlesTable).where(eq(titlesTable.id, titleId)).limit(1).catch(() => [null]);
+  if (titleDef) {
+    emitActivityForUser(userId, "title_unlocked", {
+      label: titleDef.name,
+      icon: "ribbon",
+      color: "#9C27B0",
+      rarity: titleDef.rarity,
+    }).catch(() => {});
+  }
+
   return true;
 }
 

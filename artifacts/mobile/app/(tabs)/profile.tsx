@@ -450,6 +450,8 @@ export default function ProfileScreen() {
           <Text style={styles.sectionTitle}>Quick Access</Text>
           <View style={styles.menuList}>
             <MenuItem icon="share-outline" label="Share Progress" onPress={() => router.push("/share")} accent />
+            <MenuItem icon="people" label="Accountability Circles" onPress={() => router.push("/circles")} accent />
+            <MenuItem icon="eye-outline" label="Prestige Showcase" onPress={() => router.push("/settings/showcase")} />
             <MenuItem icon="people-outline" label="Invite Friends" onPress={() => router.push("/invite")} />
             <MenuItem icon="sparkles-outline" label="AI Mission Board" onPress={() => router.push("/(tabs)/missions")} />
             <MenuItem icon="stats-chart-outline" label="Skill Tree" onPress={() => router.push("/skills")} />

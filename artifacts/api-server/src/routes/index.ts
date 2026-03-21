@@ -23,6 +23,8 @@ import feedbackRouter from "./feedback.js";
 import invitesRouter from "./invites.js";
 import endgameRouter from "./endgame.js";
 import { adminLiveOpsRouter, userLiveOpsRouter } from "./live-ops.js";
+import circlesRouter from "./circles.js";
+import showcaseRouter from "./showcase.js";
 
 const router: IRouter = Router();
 
@@ -51,5 +53,7 @@ router.use("/invites", invitesRouter);
 router.use("/endgame", endgameRouter);
 router.use("/admin/live-ops", adminLiveOpsRouter);
 router.use("/live-ops", userLiveOpsRouter);
+router.use("/circles", circlesRouter);
+router.use("/showcase", showcaseRouter);
 
 export default router;
