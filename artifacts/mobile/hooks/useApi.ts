@@ -438,3 +438,118 @@ export function useStartCycle() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["endgame"] }),
   });
 }
+
+// ─── Live Ops (User) ─────────────────────────────────────────────────────────
+
+export function useLiveOps() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["live-ops", "active"],
+    queryFn: () => request<{ packs: any[]; events: any[] }>("/live-ops/active"),
+    staleTime: 60_000,
+  });
+}
+
+export function useVariant(variantId: string | null) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["variant", variantId],
+    queryFn: () => request<{ variantKey: string; label: string; content: string; surface: string }>(`/live-ops/variant/${variantId}`),
+    enabled: !!variantId,
+    staleTime: 5 * 60_000,
+  });
+}
+
+// ─── Live Ops (Admin) ────────────────────────────────────────────────────────
+
+export function useAdminLiveOpsPacks() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin", "live-ops", "packs"],
+    queryFn: () => request<any[]>("/admin/live-ops/packs"),
+  });
+}
+
+export function useAdminLiveOpsEvents() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin", "live-ops", "events"],
+    queryFn: () => request<any[]>("/admin/live-ops/events"),
+  });
+}
+
+export function useAdminLiveOpsVariants() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin", "live-ops", "variants"],
+    queryFn: () => request<any[]>("/admin/live-ops/variants"),
+  });
+}
+
+export function useAdminLiveOpsMetrics() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin", "live-ops", "metrics"],
+    queryFn: () => request<any>("/admin/live-ops/metrics"),
+  });
+}
+
+export function useAdminUpdatePack() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      request<any>(`/admin/live-ops/packs/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "live-ops"] }),
+  });
+}
+
+export function useAdminCreatePack() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) =>
+      request<any>("/admin/live-ops/packs", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "live-ops"] }),
+  });
+}
+
+export function useAdminUpdateEvent() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      request<any>(`/admin/live-ops/events/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "live-ops"] }),
+  });
+}
+
+export function useAdminCreateEvent() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) =>
+      request<any>("/admin/live-ops/events", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "live-ops"] }),
+  });
+}
+
+export function useAdminUpdateVariant() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      request<any>(`/admin/live-ops/variants/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "live-ops"] }),
+  });
+}
+
+export function useAdminSeedLiveOps() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      request<any>("/admin/live-ops/seed-samples", { method: "POST" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "live-ops"] }),
+  });
+}

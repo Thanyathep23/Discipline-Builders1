@@ -22,6 +22,7 @@ import shareRouter from "./share.js";
 import feedbackRouter from "./feedback.js";
 import invitesRouter from "./invites.js";
 import endgameRouter from "./endgame.js";
+import { adminLiveOpsRouter, userLiveOpsRouter } from "./live-ops.js";
 
 const router: IRouter = Router();
 
@@ -48,5 +49,7 @@ router.use("/share", shareRouter);
 router.use("/feedback", feedbackRouter);
 router.use("/invites", invitesRouter);
 router.use("/endgame", endgameRouter);
+router.use("/admin/live-ops", adminLiveOpsRouter);
+router.use("/live-ops", userLiveOpsRouter);
 
 export default router;

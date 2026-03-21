@@ -10,7 +10,7 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
-import { useDashboard, useActiveChain, useDailyContext, useEndgame, useStartCycle } from "@/hooks/useApi";
+import { useDashboard, useActiveChain, useDailyContext, useEndgame, useStartCycle, useLiveOps } from "@/hooks/useApi";
 
 function StatCard({ label, value, icon, color, delay }: any) {
   return (
@@ -218,6 +218,92 @@ const horizonStyles = StyleSheet.create({
   startCycleBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.accent },
 });
 
+function LiveContentBanner({ events, packs }: { events: any[]; packs: any[] }) {
+  const topEvent = events[0] ?? null;
+  const topPack = packs[0] ?? null;
+  if (!topEvent && !topPack) return null;
+
+  if (topEvent) {
+    const color = topEvent.bannerColor ?? Colors.accent;
+    const hasEndsAt = !!topEvent.endsAt;
+    const daysLeft = hasEndsAt
+      ? Math.max(0, Math.ceil((new Date(topEvent.endsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+      : null;
+    return (
+      <Animated.View entering={FadeInDown.delay(190).springify()} style={[liveStyles.card, { borderColor: color + "35" }]}>
+        <View style={liveStyles.header}>
+          <View style={[liveStyles.iconBox, { backgroundColor: color + "20" }]}>
+            <Ionicons name="calendar-outline" size={14} color={color} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[liveStyles.label, { color }]}>LIVE EVENT</Text>
+            <Text style={liveStyles.name}>{topEvent.name}</Text>
+          </View>
+          {daysLeft !== null && (
+            <View style={[liveStyles.timerChip, { backgroundColor: color + "18" }]}>
+              <Ionicons name="timer-outline" size={10} color={color} />
+              <Text style={[liveStyles.timerText, { color }]}>{daysLeft}d left</Text>
+            </View>
+          )}
+        </View>
+        {!!topEvent.description && (
+          <Text style={liveStyles.desc} numberOfLines={2}>{topEvent.description}</Text>
+        )}
+        {topEvent.rewardCoins > 0 && (
+          <View style={liveStyles.rewardRow}>
+            <Ionicons name="flash" size={11} color={Colors.gold} />
+            <Text style={liveStyles.rewardText}>{topEvent.rewardCoins} bonus coins on completion</Text>
+          </View>
+        )}
+      </Animated.View>
+    );
+  }
+
+  if (topPack) {
+    return (
+      <Animated.View entering={FadeInDown.delay(190).springify()} style={[liveStyles.card, { borderColor: Colors.cyan + "35" }]}>
+        <View style={liveStyles.header}>
+          <View style={[liveStyles.iconBox, { backgroundColor: Colors.cyan + "18" }]}>
+            <Ionicons name="layers-outline" size={14} color={Colors.cyan} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[liveStyles.label, { color: Colors.cyan }]}>CHALLENGE PACK</Text>
+            <Text style={liveStyles.name}>{topPack.name}</Text>
+          </View>
+        </View>
+        {!!topPack.description && (
+          <Text style={liveStyles.desc} numberOfLines={2}>{topPack.description}</Text>
+        )}
+        {(topPack.missionTemplates ?? []).length > 0 && (
+          <Text style={liveStyles.packMeta}>{topPack.missionTemplates.length} curated missions available</Text>
+        )}
+      </Animated.View>
+    );
+  }
+
+  return null;
+}
+
+const liveStyles = StyleSheet.create({
+  card: {
+    backgroundColor: "#FFFFFF06", borderRadius: 16, padding: 14,
+    borderWidth: 1, gap: 8,
+  },
+  header: { flexDirection: "row", alignItems: "center", gap: 10 },
+  iconBox: { width: 30, height: 30, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  label: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.2 },
+  name: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary, marginTop: 1 },
+  timerChip: {
+    flexDirection: "row", alignItems: "center", gap: 3,
+    paddingHorizontal: 7, paddingVertical: 4, borderRadius: 7,
+  },
+  timerText: { fontFamily: "Inter_700Bold", fontSize: 9 },
+  desc: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
+  rewardRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  rewardText: { fontFamily: "Inter_500Medium", fontSize: 11, color: Colors.gold },
+  packMeta: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
+});
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -225,6 +311,7 @@ export default function HomeScreen() {
   const { data: chainData } = useActiveChain();
   const { data: dailyData } = useDailyContext();
   const { data: endgameData } = useEndgame();
+  const { data: liveOpsData } = useLiveOps();
   const startCycle = useStartCycle();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
@@ -307,6 +394,11 @@ export default function HomeScreen() {
             suggestedAction={dailyData.suggestedAction}
             daysSinceLast={dailyData.daysSinceLast}
           />
+        )}
+
+        {/* Live Event / Challenge Pack Banner */}
+        {liveOpsData && (liveOpsData.events.length > 0 || liveOpsData.packs.length > 0) && (
+          <LiveContentBanner events={liveOpsData.events} packs={liveOpsData.packs} />
         )}
 
         {/* Progression Horizon */}

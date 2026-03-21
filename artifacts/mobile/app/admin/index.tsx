@@ -53,6 +53,7 @@ export default function AdminScreen() {
     { label: "User Feedback", icon: "chatbubble-outline" as const, route: "/admin/feedback", color: Colors.amber },
     { label: "Feature Flags", icon: "toggle-outline" as const, route: "/admin/flags", color: Colors.accent },
     { label: "Growth Funnel", icon: "trending-up-outline" as const, route: "/admin/growth", color: Colors.cyan },
+    { label: "Live Ops", icon: "calendar-outline" as const, route: "/admin/live-ops", color: Colors.amber },
   ];
 
   return (
