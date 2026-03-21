@@ -185,6 +185,7 @@ export function useRewardBalance() {
     queryKey: ["rewards", "balance"],
     queryFn: () => request<any>("/rewards/balance"),
     staleTime: 15000,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -397,6 +398,81 @@ export function useInventoryAssets() {
     queryKey: ["inventory", "assets"],
     queryFn: () => request<any>("/inventory/assets"),
     staleTime: 30000,
+  });
+}
+
+// ─── Phase 17 — Marketplace ───────────────────────────────────────────────────
+
+export function useMarketplace(category?: string) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["marketplace", category ?? "all"],
+    queryFn: () => request<any>(`/marketplace${category && category !== "all" ? `?category=${category}` : ""}`),
+    staleTime: 30000,
+  });
+}
+
+export function useMarketplaceItem(itemId: string | null) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["marketplace", "item", itemId],
+    queryFn: () => request<any>(`/marketplace/${itemId}`),
+    enabled: !!itemId,
+    staleTime: 30000,
+  });
+}
+
+export function useBuyItem() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (itemId: string) =>
+      request<any>(`/marketplace/${itemId}/buy`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+      queryClient.invalidateQueries({ queryKey: ["rewards", "balance"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
+  });
+}
+
+export function useEquipItem() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (itemId: string) =>
+      request<any>(`/marketplace/${itemId}/equip`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
+  });
+}
+
+export function useUnequipItem() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (itemId: string) =>
+      request<any>(`/marketplace/${itemId}/unequip`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
+  });
+}
+
+export function useSellItem() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (itemId: string) =>
+      request<any>(`/marketplace/${itemId}/sell`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+      queryClient.invalidateQueries({ queryKey: ["rewards", "balance"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
   });
 }
 

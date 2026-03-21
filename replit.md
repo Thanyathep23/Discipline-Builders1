@@ -632,3 +632,59 @@ Six premium shareable card components, all screenshot-optimized with dark premiu
 - `webhook_subscriptions` — id, userId, label, endpointUrl, events (JSON), secret, isActive, failureCount, lastDeliveredAt, createdAt, updatedAt
 - `webhook_deliveries` — id, subscriptionId, eventName, payload, httpStatus, responseBody, success, attemptCount, deliveredAt
 - All exported from `lib/db/src/schema/index.ts`
+
+## Phase 17 — Economy / Marketplace / Trading Layer Lite
+
+### Marketplace / Storefront
+- `GET /api/marketplace` — browse all items with owned state, affordability state, featured strip, and optional `?category=` filter
+- `GET /api/marketplace/:itemId` — item detail with acquisition history, equip state, sell-back value
+- `POST /api/marketplace/:itemId/buy` — purchase item with server-side balance check + duplicate prevention
+- `POST /api/marketplace/:itemId/equip` — equip owned item (exclusive for cosmetic/prestige categories)
+- `POST /api/marketplace/:itemId/unequip` — unequip item
+- `POST /api/marketplace/:itemId/sell` — sell back sellable items at conservative value (not for exclusive/limited/prestige)
+- Route file: `artifacts/api-server/src/routes/marketplace.ts`
+
+### Economy Safety & Anti-Abuse
+- **Duplicate purchase prevention**: check existing ownership before every buy (both legacy redeem + new buy)
+- **Race condition protection**: PostgreSQL UNIQUE constraint on `(user_id, item_id)` in `user_inventory` catches concurrent double-spends
+- **Negative balance prevention**: server-side check before all purchases
+- **Sell-back exploit prevention**: sell-back value hard-capped < item cost; exclusive/limited/prestige items non-sellable
+- All purchases, equips, and sells logged to `audit_log` table and `reward_transactions`
+
+### Item Classification (shop_items table additions)
+- `rarity`: common, uncommon, rare, epic, legendary
+- `item_type`: trophy, room, cosmetic, prestige
+- `is_limited`: limited-time availability flag
+- `is_exclusive`: exclusive items (non-sellable)
+- `featured_order`: integer for featured strip ordering (null = not featured)
+- `sell_back_value`: coins refunded on sell (0 = not sellable)
+- `sort_order`: display ordering within category
+- `acquisition_source`: purchase, mission, chain, milestone
+
+### Inventory Improvements (user_inventory table additions)
+- `is_equipped`: per-item equipped state
+- `source`: acquisition source tracking (purchase, mission, etc.)
+
+### Marketplace Catalog (14 items across 4 categories)
+- **Trophies**: Focus Trophy, Discipline Medal, Proof Vault, Chain Breaker, Iron Log (limited)
+- **Room**: Focus Shrine, Command Terminal, War Room (limited/legendary)
+- **Cosmetics**: Gold Ribbon, Silver Frame, Command Badge
+- **Prestige**: Prestige Seal, Apex Marker (limited), Operator Sigil (exclusive/limited)
+
+### Admin Economy Controls
+- `GET /api/marketplace/admin/items` — all items with purchase/equipped counts per item
+- `PATCH /api/marketplace/admin/items/:itemId` — tune cost, availability, limited/exclusive flags, featuredOrder, sellBackValue
+- `GET /api/marketplace/admin/stats` — economy overview: total purchases, coins spent, category breakdown
+
+### Mobile UI — Rewards Screen (full rewrite)
+- **Overview tab**: balance card, streak stats, active title, marketplace shortcut, recent badges
+- **Marketplace tab**: coin balance strip, category filter chips (All/Trophies/Room/Cosmetic/Prestige), featured items horizontal scroll, full item list with owned/affordability/equipped state, rarity chips, limited/exclusive tags
+- **Item Detail Modal**: large icon, rarity/category/limited/exclusive chips, description, cost/status/sell-back info cells, context note, buy/equip/unequip/sell actions
+- **Sell Confirm Modal**: warning before sell, coin refund preview
+- **Inventory tab**: owned marketplace items with equip/unequip, titles with activate, earned/locked badges
+- **History tab**: full transaction log
+- Screen file: `artifacts/mobile/app/(tabs)/rewards.tsx`
+
+### DB Migration
+- File: `lib/db/drizzle/0004_phase17_economy.sql`
+- Additive columns only; unique constraint added safely with `DO $$ ... IF NOT EXISTS`

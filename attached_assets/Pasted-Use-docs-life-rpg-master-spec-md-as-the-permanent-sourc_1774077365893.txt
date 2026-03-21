@@ -1,0 +1,295 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 17 — Economy / Marketplace / Trading Layer Lite.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Proof intelligence works
+- Adaptive challenge, quest chains, rarity, identity layer, telemetry, growth, endgame, live-ops, community/accountability, and integrations are complete
+- The next highest-value gap is the economic layer: users can progress and earn, but the buy/sell/storefront loop is still too shallow
+- The product now needs a real game economy surface so rewards, assets, and progression feel materially meaningful
+
+Your task:
+Build only the smallest high-impact economy / marketplace / trading layer.
+
+==================================================
+PHASE 17 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Marketplace / storefront structure
+2. Asset categories and ownership model improvements
+3. Buy / sell / equip / active-use flows lite
+4. Economy balance and anti-abuse rules lite
+5. Minimal UI for marketplace, inventory, and item detail
+6. Lightweight admin/internal controls for economy tuning if needed
+
+Do NOT build:
+- real-money trading marketplace
+- player-to-player open economy
+- auction house
+- speculative token systems
+- gambling mechanics
+- lootbox-style monetization
+- giant crafting/equipment trees
+- full housing/world-builder
+- redesign of the whole product
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current inventory lite, titles, badges, symbolic assets, shop items, reward transactions, wallets, prestige/mastery systems, and share/profile surfaces
+2. identify what already exists that can support a real storefront/economy loop
+3. identify what is missing for a meaningful buy/sell/equip experience
+4. implement only the minimum set of systems needed
+5. avoid broad refactors
+
+==================================================
+A. MARKETPLACE / STOREFRONT STRUCTURE
+==================================================
+
+Build a real game-storefront layer on top of the current lite systems.
+
+Purpose:
+Give earned currency meaningful sinks and make progression feel tangible.
+
+Requirements:
+- marketplace page / storefront structure
+- item browsing by category
+- featured items / recommended items if feasible
+- item detail view
+- purchase confirmation
+- owned vs not-owned state
+- price visibility
+- affordability state
+- clean empty/error states
+
+Suggested marketplace categories:
+- Titles
+- Badges / Trophies
+- Command Center / Room upgrades
+- Profile cosmetics
+- Prestige markers
+- Utility-style symbolic unlocks
+- Limited-time event items if already easy to connect
+
+Rules:
+- keep the storefront premium and game-like
+- do not turn it into a cluttered ecommerce app
+- use current dark premium / command-center style
+
+==================================================
+B. ASSET OWNERSHIP MODEL IMPROVEMENTS
+==================================================
+
+Strengthen the asset model so owned items feel real and usable.
+
+Requirements:
+- clear ownership state
+- item type classification
+- item rarity classification if useful
+- acquisition source (purchase, mission, chain, event, milestone, prestige)
+- active/equipped state where relevant
+- owned history or acquisition timestamp if useful
+
+Support at least these asset behaviors:
+- own
+- equip / set active (for titles, cosmetics, selected markers)
+- display in inventory/profile
+- mark limited or exclusive items where relevant
+
+Do not overbuild a giant item system.
+Keep it tactical and extensible.
+
+==================================================
+C. BUY / SELL / EQUIP / ACTIVE-USE FLOWS LITE
+==================================================
+
+Add the core economy actions.
+
+Requirements:
+- buy item with in-game currency
+- equip/set active for supported item types
+- unequip/switch active item
+- optional lightweight sell-back flow or recycle flow if appropriate and safe
+- if sell-back exists, keep values conservative and non-exploitable
+- preserve transaction logging server-side
+- all currency changes remain server-side only
+
+Rules:
+- prefer system-owned economy, not player-to-player trading
+- if a sell-back mechanic exists, prevent abuse and reward inflation
+- not every item must be sellable
+- titles/badges/prestige unlocks may be non-sellable
+- decorative/profile items can be equip-only
+- some assets can be purchase-only, some unlock-only, some both
+
+==================================================
+D. ECONOMY BALANCE / ANTI-ABUSE RULES LITE
+==================================================
+
+Add only the minimum economy safety rules needed.
+
+Requirements:
+- server-side validation for purchases and sell-backs
+- prevent duplicate purchases where item should be unique
+- prevent race-condition double spends
+- prevent negative balances
+- prevent exploit loops with sell-back values
+- keep reward and economy logs auditable
+- keep rules explainable and simple
+
+If needed:
+- improve transaction metadata
+- improve item uniqueness rules
+- improve wallet consistency safeguards
+
+Do NOT redesign the whole economy in this phase.
+
+==================================================
+E. INVENTORY / ITEM DETAIL / PROFILE CONNECTION
+==================================================
+
+Make purchased/unlocked assets visible and usable.
+
+Requirements:
+- inventory should clearly show:
+  - owned items
+  - equipped/active items
+  - item source if useful
+  - rarity/category
+- item detail should explain:
+  - what the item is
+  - how it is obtained
+  - whether it can be equipped, sold, or is permanent
+- profile/character summary should reflect active equipped items where relevant
+- marketplace and inventory should feel connected, not separate silos
+
+==================================================
+F. ADMIN / INTERNAL ECONOMY CONTROLS LITE
+==================================================
+
+Add only minimal internal tools if needed.
+
+Possible controls:
+- activate/deactivate items
+- mark item as limited/exclusive
+- adjust item prices
+- inspect purchase/sell activity
+- inspect economy sink/source balance for major item classes
+
+Requirements:
+- admin-only
+- use existing admin/tuning surfaces where possible
+- keep tools tactical, not a giant economy console
+
+==================================================
+G. USER-FACING UI MVP
+==================================================
+
+Build only minimal UI needed.
+
+Possible screens/surfaces:
+- Marketplace home
+- Category tabs/filters
+- Item detail modal/page
+- Inventory upgraded view
+- Equipped items section
+- Recent acquisition strip if useful
+
+Requirements:
+- dark premium
+- command-center prestige
+- serious, aspirational, not childish
+- items should feel collectible and status-relevant
+- do not redesign the whole app
+
+==================================================
+H. BACKEND / SECURITY RULES
+==================================================
+
+- all purchases, equip actions, sell-back actions, and ownership checks must be server-side
+- preserve JSON-only APIs
+- do not trust client-provided price, ownership, or item state
+- keep schema changes additive and minimal
+- preserve existing mission/proof/reward/community flows
+- keep reward/economy transaction history auditable
+
+==================================================
+I. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. marketplace/storefront structure exists
+2. users can browse and purchase items with in-game currency
+3. supported item types can be equipped / set active
+4. inventory clearly shows owned and active items
+5. item detail explains state and acquisition/use clearly
+6. server-side economy validation prevents duplicate or invalid purchases
+7. transaction logging remains auditable
+8. minimal admin economy controls exist if needed
+9. existing mission/proof/reward flow still works
+10. no oversized player-to-player or real-money trading scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what economy/storefront capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Marketplace/storefront system added
+- structure
+- categories
+- browsing flow
+
+4. Ownership / inventory model changes
+- what item states now exist
+- how active/equipped state works
+
+5. Buy/sell/equip flows added
+- what actions are supported
+- which item types are sellable vs not
+- anti-abuse rules applied
+
+6. Economy validation / audit changes
+- purchase validation
+- wallet safeguards
+- transaction logging improvements
+
+7. User-facing UI added
+- marketplace
+- item detail
+- inventory/equipped state
+- profile linkage
+
+8. End-to-end verification results for:
+- browse marketplace
+- purchase item
+- equip item
+- sell/recycle item if supported
+- admin item control if added
+- existing app flow unchanged
+
+9. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable, rewardTransactionsTable, shopItemsTable, userInventoryTable, auditLogTable } from "@workspace/db";
-import { eq, desc, sum } from "drizzle-orm";
+import { eq, desc, sum, and } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, generateId } from "../lib/auth.js";
 import { xpForLevel } from "../lib/rewards.js";
@@ -77,6 +77,16 @@ router.post("/shop/:itemId/redeem", async (req, res) => {
   }
 
   const item = items[0];
+
+  // Phase 17: prevent duplicate purchases
+  const existing = await db.select().from(userInventoryTable)
+    .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.itemId, item.id)))
+    .limit(1);
+  if (existing.length > 0) {
+    res.status(409).json({ error: "You already own this item" });
+    return;
+  }
+
   const users = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   if (!users[0]) {
     res.status(404).json({ error: "User not found" });

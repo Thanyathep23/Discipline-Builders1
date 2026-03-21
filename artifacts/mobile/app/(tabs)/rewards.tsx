@@ -9,45 +9,121 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import {
-  useRewardBalance, useRewardHistory, useShopItems, useRedeemItem,
+  useRewardBalance, useRewardHistory,
   useInventoryBadges, useInventoryTitles, useActivateTitle,
   useInventoryAssets,
+  useMarketplace, useBuyItem, useEquipItem, useUnequipItem, useSellItem,
 } from "@/hooks/useApi";
 import { router } from "expo-router";
 
 const RARITY_COLORS: Record<string, string> = {
-  common:   "#9E9E9E",
-  uncommon: "#4CAF50",
-  rare:     "#2196F3",
-  epic:     "#9C27B0",
-  legendary:"#F5C842",
+  common:    "#9E9E9E",
+  uncommon:  "#4CAF50",
+  rare:      "#2196F3",
+  epic:      "#9C27B0",
+  legendary: "#F5C842",
 };
+
+const CATEGORY_LABELS: Record<string, string> = {
+  all:      "All",
+  trophy:   "Trophies",
+  room:     "Room",
+  cosmetic: "Cosmetic",
+  prestige: "Prestige",
+};
+
+const CATEGORY_ICONS: Record<string, string> = {
+  all:      "grid-outline",
+  trophy:   "trophy-outline",
+  room:     "home-outline",
+  cosmetic: "color-palette-outline",
+  prestige: "star-outline",
+};
+
+type MainTab = "overview" | "marketplace" | "inventory" | "history";
 
 export default function RewardsScreen() {
   const insets = useSafeAreaInsets();
-  const [tab, setTab] = useState<"overview" | "history" | "shop" | "inventory">("overview");
+  const [tab, setTab] = useState<MainTab>("overview");
+  const [marketCategory, setMarketCategory] = useState("all");
+  const [detailItem, setDetailItem] = useState<any>(null);
+  const [sellConfirmItem, setSellConfirmItem] = useState<any>(null);
+
   const { data: balance, isLoading } = useRewardBalance();
   const { data: history } = useRewardHistory();
-  const { data: shopItems } = useShopItems();
-  const redeemItem = useRedeemItem();
-  const [confirmItem, setConfirmItem] = useState<any>(null);
+  const { data: marketData, isLoading: marketLoading } = useMarketplace(marketCategory);
+  const { data: allMarketData } = useMarketplace("all");
+  const buyItem = useBuyItem();
+  const equipItem = useEquipItem();
+  const unequipItem = useUnequipItem();
+  const sellItem = useSellItem();
 
   const { data: badgesData } = useInventoryBadges();
   const { data: titlesData } = useInventoryTitles();
   const activateTitle = useActivateTitle();
+  const { data: assetsData } = useInventoryAssets();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
   const xpPercent = balance ? Math.min(100, Math.round((balance.xp / balance.xpToNextLevel) * 100)) : 0;
 
-  async function handleRedeem(item: any) {
-    setConfirmItem(null);
+  const badges = badgesData?.badges ?? [];
+  const titles = titlesData?.titles ?? [];
+  const earnedBadges = badges.filter((b: any) => b.earned);
+  const lockedBadges = badges.filter((b: any) => !b.earned);
+  const earnedTitles = titles.filter((t: any) => t.earned);
+  const activeTitle = titles.find((t: any) => t.isActive);
+  const ownedAssets = (assetsData?.assets ?? []).filter((a: any) => a.owned);
+
+  const marketItems: any[] = marketData?.items ?? [];
+  const allMarketItems: any[] = allMarketData?.items ?? [];
+  const featuredItems: any[] = marketData?.featured ?? [];
+  const coinBalance: number = marketData?.coinBalance ?? balance?.coinBalance ?? 0;
+  const categories: string[] = marketData?.categories ?? ["all", "trophy", "room", "cosmetic", "prestige"];
+
+  async function handleBuy(item: any) {
+    setDetailItem(null);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      await redeemItem.mutateAsync(item.id);
+      await buyItem.mutateAsync(item.id);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Purchased!", `${item.name} is now in your inventory.`);
+    } catch (err: any) {
+      Alert.alert("Cannot Purchase", err.message);
+    }
+  }
+
+  async function handleEquip(item: any) {
+    setDetailItem(null);
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await equipItem.mutateAsync(item.id);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err: any) {
-      Alert.alert("Cannot redeem", err.message);
+      Alert.alert("Error", err.message);
+    }
+  }
+
+  async function handleUnequip(item: any) {
+    setDetailItem(null);
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await unequipItem.mutateAsync(item.id);
+    } catch (err: any) {
+      Alert.alert("Error", err.message);
+    }
+  }
+
+  async function handleSell(item: any) {
+    setSellConfirmItem(null);
+    setDetailItem(null);
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await sellItem.mutateAsync(item.id);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Sold", `Received ${item.sellBackValue} coins.`);
+    } catch (err: any) {
+      Alert.alert("Cannot Sell", err.message);
     }
   }
 
@@ -60,15 +136,10 @@ export default function RewardsScreen() {
     }
   }
 
-  const { data: assetsData } = useInventoryAssets();
-
-  const badges = badgesData?.badges ?? [];
-  const titles = titlesData?.titles ?? [];
-  const earnedBadges = badges.filter((b: any) => b.earned);
-  const lockedBadges = badges.filter((b: any) => !b.earned);
-  const earnedTitles = titles.filter((t: any) => t.earned);
-  const activeTitle = titles.find((t: any) => t.isActive);
-  const ownedAssets = (assetsData?.assets ?? []).filter((a: any) => a.owned);
+  function openDetail(item: any) {
+    Haptics.selectionAsync();
+    setDetailItem(item);
+  }
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
@@ -76,20 +147,21 @@ export default function RewardsScreen() {
         <Text style={styles.title}>Rewards</Text>
       </View>
 
+      {/* Main tab row */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.tabRow}
         contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
       >
-        {(["overview", "inventory", "shop", "history"] as const).map((t) => (
+        {(["overview", "marketplace", "inventory", "history"] as const).map((t) => (
           <Pressable
             key={t}
             style={[styles.tab, tab === t && styles.tabActive]}
             onPress={() => { setTab(t); Haptics.selectionAsync(); }}
           >
             <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+              {t === "marketplace" ? "Marketplace" : t.charAt(0).toUpperCase() + t.slice(1)}
             </Text>
           </Pressable>
         ))}
@@ -99,6 +171,7 @@ export default function RewardsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
       >
+        {/* ─── OVERVIEW ─────────────────────────────────────────────── */}
         {tab === "overview" && (
           <>
             {isLoading ? (
@@ -158,8 +231,19 @@ export default function RewardsScreen() {
                   </Pressable>
                 </Animated.View>
 
+                <Animated.View entering={FadeInDown.delay(200).springify()}>
+                  <Pressable
+                    style={styles.marketplaceShortcut}
+                    onPress={() => { setTab("marketplace"); Haptics.selectionAsync(); }}
+                  >
+                    <Ionicons name="storefront-outline" size={16} color={Colors.accent} />
+                    <Text style={styles.shareSnapshotText}>Browse Marketplace</Text>
+                    <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
+                  </Pressable>
+                </Animated.View>
+
                 {earnedBadges.length > 0 && (
-                  <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.recentBadgesCard}>
+                  <Animated.View entering={FadeInDown.delay(220).springify()} style={styles.recentBadgesCard}>
                     <Text style={styles.sectionLabel}>Recent Badges</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
                       <View style={{ flexDirection: "row", gap: 12 }}>
@@ -180,31 +264,214 @@ export default function RewardsScreen() {
           </>
         )}
 
-        {tab === "inventory" && (
+        {/* ─── MARKETPLACE ──────────────────────────────────────────── */}
+        {tab === "marketplace" && (
           <>
-            {ownedAssets.length > 0 && (
+            {/* Balance strip */}
+            <View style={styles.marketBalanceStrip}>
+              <Ionicons name="flash" size={14} color={Colors.gold} />
+              <Text style={styles.marketBalanceText}>{coinBalance.toLocaleString()} coins available</Text>
+            </View>
+
+            {/* Category tabs */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoryRow}
+              contentContainerStyle={{ gap: 8 }}
+            >
+              {categories.map((cat) => (
+                <Pressable
+                  key={cat}
+                  style={[styles.catChip, marketCategory === cat && styles.catChipActive]}
+                  onPress={() => { setMarketCategory(cat); Haptics.selectionAsync(); }}
+                >
+                  <Ionicons
+                    name={(CATEGORY_ICONS[cat] ?? "grid-outline") as any}
+                    size={13}
+                    color={marketCategory === cat ? "#fff" : Colors.textSecondary}
+                  />
+                  <Text style={[styles.catChipText, marketCategory === cat && styles.catChipTextActive]}>
+                    {CATEGORY_LABELS[cat] ?? cat}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            {/* Featured strip */}
+            {marketCategory === "all" && featuredItems.length > 0 && (
               <>
-                <Text style={styles.sectionLabel}>Symbolic Assets</Text>
-                <View style={styles.badgesGrid}>
-                  {ownedAssets.map((a: any, i: number) => {
-                    const catColor = a.category === "trophy" ? Colors.gold : a.category === "room" ? Colors.accent : "#E040FB";
-                    return (
-                      <Animated.View key={a.id} entering={FadeInDown.delay(i * 50).springify()} style={[styles.badgeCard, { borderColor: catColor + "40" }]}>
-                        <View style={[styles.badgeIcon, { backgroundColor: catColor + "18" }]}>
-                          <Ionicons name={(a.icon ?? "trophy-outline") as any} size={26} color={catColor} />
-                        </View>
-                        <Text style={styles.badgeName} numberOfLines={2}>{a.name}</Text>
-                        <View style={[styles.rarityChip, { backgroundColor: catColor + "18" }]}>
-                          <Text style={[styles.rarityText, { color: catColor }]}>{(a.category ?? "asset").toUpperCase()}</Text>
-                        </View>
-                      </Animated.View>
-                    );
-                  })}
-                </View>
+                <Text style={styles.sectionLabel}>Featured</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={{ flexDirection: "row", gap: 12, paddingRight: 4 }}>
+                    {featuredItems.map((item: any, i: number) => {
+                      const rarityColor = RARITY_COLORS[item.rarity] ?? "#9E9E9E";
+                      return (
+                        <Animated.View key={item.id} entering={FadeInDown.delay(i * 60).springify()}>
+                          <Pressable
+                            style={[styles.featuredCard, { borderColor: rarityColor + "50" }]}
+                            onPress={() => openDetail(item)}
+                          >
+                            {item.isLimited && (
+                              <View style={styles.limitedBadge}>
+                                <Text style={styles.limitedBadgeText}>LIMITED</Text>
+                              </View>
+                            )}
+                            <View style={[styles.featuredIcon, { backgroundColor: rarityColor + "18" }]}>
+                              <Ionicons name={(item.icon ?? "gift") as any} size={28} color={rarityColor} />
+                            </View>
+                            <Text style={styles.featuredName} numberOfLines={1}>{item.name}</Text>
+                            <View style={styles.featuredMeta}>
+                              <View style={[styles.rarityChip, { backgroundColor: rarityColor + "20" }]}>
+                                <Text style={[styles.rarityText, { color: rarityColor }]}>{item.rarity.toUpperCase()}</Text>
+                              </View>
+                            </View>
+                            <View style={styles.featuredCost}>
+                              <Ionicons name="flash" size={11} color={Colors.gold} />
+                              <Text style={[styles.featuredCostText, !item.canAfford && { color: Colors.textMuted }]}>
+                                {item.cost.toLocaleString()}
+                              </Text>
+                            </View>
+                            {item.owned ? (
+                              <View style={styles.ownedChip}>
+                                <Text style={styles.ownedChipText}>OWNED</Text>
+                              </View>
+                            ) : !item.canAfford ? (
+                              <Text style={styles.cannotAffordText}>Can't afford</Text>
+                            ) : null}
+                          </Pressable>
+                        </Animated.View>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
               </>
             )}
 
-            <Text style={[styles.sectionLabel, { marginTop: ownedAssets.length > 0 ? 8 : 0 }]}>Titles</Text>
+            {/* Main item list */}
+            {marketLoading ? (
+              <ActivityIndicator color={Colors.accent} style={{ marginTop: 40 }} />
+            ) : marketItems.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Ionicons name="storefront-outline" size={48} color={Colors.textMuted} />
+                <Text style={styles.emptyTitle}>No items in this category</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={[styles.sectionLabel, { marginTop: 4 }]}>
+                  {CATEGORY_LABELS[marketCategory] ?? "All Items"} ({marketItems.length})
+                </Text>
+                {marketItems.map((item: any, i: number) => {
+                  const rarityColor = RARITY_COLORS[item.rarity] ?? "#9E9E9E";
+                  return (
+                    <Animated.View key={item.id} entering={FadeInDown.delay(i * 40).springify()}>
+                      <Pressable
+                        style={[
+                          styles.marketCard,
+                          item.owned && { borderColor: rarityColor + "50" },
+                          !item.canAfford && !item.owned && { opacity: 0.7 },
+                        ]}
+                        onPress={() => openDetail(item)}
+                      >
+                        <View style={[styles.marketIconBox, { backgroundColor: rarityColor + "15" }]}>
+                          <Ionicons name={(item.icon ?? "gift") as any} size={24} color={rarityColor} />
+                        </View>
+                        <View style={{ flex: 1, gap: 3 }}>
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                            <Text style={styles.marketName} numberOfLines={1}>{item.name}</Text>
+                            {item.isLimited && (
+                              <View style={styles.limitedChip}>
+                                <Text style={styles.limitedChipText}>LTD</Text>
+                              </View>
+                            )}
+                            {item.isExclusive && (
+                              <View style={[styles.limitedChip, { backgroundColor: Colors.gold + "20" }]}>
+                                <Text style={[styles.limitedChipText, { color: Colors.gold }]}>EXCL</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.marketDesc} numberOfLines={1}>{item.description}</Text>
+                          <View style={[styles.rarityChip, { backgroundColor: rarityColor + "15", alignSelf: "flex-start" }]}>
+                            <Text style={[styles.rarityText, { color: rarityColor }]}>{item.rarity.toUpperCase()}</Text>
+                          </View>
+                        </View>
+                        <View style={{ alignItems: "flex-end", gap: 6 }}>
+                          {item.owned ? (
+                            <View style={styles.ownedBadge}>
+                              <Ionicons name="checkmark" size={12} color={Colors.green} />
+                              <Text style={styles.ownedBadgeText}>Owned</Text>
+                            </View>
+                          ) : (
+                            <View style={[styles.costBadge, !item.canAfford && { backgroundColor: Colors.bgElevated }]}>
+                              <Ionicons name="flash" size={12} color={item.canAfford ? Colors.gold : Colors.textMuted} />
+                              <Text style={[styles.costText, !item.canAfford && { color: Colors.textMuted }]}>
+                                {item.cost.toLocaleString()}
+                              </Text>
+                            </View>
+                          )}
+                          {item.owned && item.isEquipped && (
+                            <View style={styles.equippedChip}>
+                              <Text style={styles.equippedChipText}>EQUIPPED</Text>
+                            </View>
+                          )}
+                        </View>
+                      </Pressable>
+                    </Animated.View>
+                  );
+                })}
+              </>
+            )}
+          </>
+        )}
+
+        {/* ─── INVENTORY ────────────────────────────────────────────── */}
+        {tab === "inventory" && (
+          <>
+            {/* Marketplace-sourced owned assets */}
+            {(() => {
+              const marketOwned = allMarketItems.filter((i: any) => i.owned);
+              if (marketOwned.length === 0 && ownedAssets.length === 0) return null;
+              return (
+                <>
+                  <Text style={styles.sectionLabel}>Owned Items</Text>
+                  {marketOwned.length > 0 && (
+                    <View style={styles.ownedGrid}>
+                      {marketOwned.map((item: any, i: number) => {
+                        const rarityColor = RARITY_COLORS[item.rarity] ?? "#9E9E9E";
+                        return (
+                          <Animated.View key={item.id} entering={FadeInDown.delay(i * 40).springify()}>
+                            <Pressable
+                              style={[styles.invCard, item.isEquipped && { borderColor: rarityColor + "60" }]}
+                              onPress={() => openDetail(item)}
+                            >
+                              <View style={[styles.invIcon, { backgroundColor: rarityColor + "15" }]}>
+                                <Ionicons name={(item.icon ?? "gift") as any} size={22} color={rarityColor} />
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <Text style={styles.invName} numberOfLines={1}>{item.name}</Text>
+                                <View style={[styles.rarityChip, { backgroundColor: rarityColor + "15", alignSelf: "flex-start" }]}>
+                                  <Text style={[styles.rarityText, { color: rarityColor }]}>{item.rarity.toUpperCase()}</Text>
+                                </View>
+                              </View>
+                              {item.isEquipped ? (
+                                <View style={styles.equippedChip}>
+                                  <Text style={styles.equippedChipText}>EQUIPPED</Text>
+                                </View>
+                              ) : (
+                                <Text style={styles.equipText}>Equip</Text>
+                              )}
+                            </Pressable>
+                          </Animated.View>
+                        );
+                      })}
+                    </View>
+                  )}
+                </>
+              );
+            })()}
+
+            {/* Titles */}
+            <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Titles</Text>
             {earnedTitles.length === 0 ? (
               <View style={styles.emptySmall}>
                 <Text style={styles.emptySmallText}>No titles earned yet. Complete milestones to unlock them.</Text>
@@ -243,6 +510,7 @@ export default function RewardsScreen() {
               })
             )}
 
+            {/* Earned Badges */}
             <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Badges Earned</Text>
             {earnedBadges.length === 0 ? (
               <View style={styles.emptySmall}>
@@ -286,38 +554,7 @@ export default function RewardsScreen() {
           </>
         )}
 
-        {tab === "shop" && (
-          <>
-            {!shopItems?.length ? (
-              <View style={styles.emptyBox}>
-                <Ionicons name="storefront-outline" size={48} color={Colors.textMuted} />
-                <Text style={styles.emptyTitle}>Shop coming soon</Text>
-              </View>
-            ) : (
-              shopItems.map((item: any, i: number) => (
-                <Animated.View key={item.id} entering={FadeInDown.delay(i * 60).springify()}>
-                  <Pressable
-                    style={({ pressed }) => [styles.shopCard, pressed && { opacity: 0.9 }]}
-                    onPress={() => setConfirmItem(item)}
-                  >
-                    <View style={styles.shopIconBox}>
-                      <Ionicons name={(item.icon ?? "gift") as any} size={24} color={Colors.accent} />
-                    </View>
-                    <View style={{ flex: 1, gap: 4 }}>
-                      <Text style={styles.shopName}>{item.name}</Text>
-                      <Text style={styles.shopDesc}>{item.description}</Text>
-                    </View>
-                    <View style={styles.costBadge}>
-                      <Ionicons name="flash" size={12} color={Colors.gold} />
-                      <Text style={styles.costText}>{item.cost}</Text>
-                    </View>
-                  </Pressable>
-                </Animated.View>
-              ))
-            )}
-          </>
-        )}
-
+        {/* ─── HISTORY ──────────────────────────────────────────────── */}
         {tab === "history" && (
           <>
             {!history?.length ? (
@@ -348,30 +585,166 @@ export default function RewardsScreen() {
         )}
       </ScrollView>
 
-      {confirmItem && (
-        <Modal transparent animationType="fade" onRequestClose={() => setConfirmItem(null)}>
-          <Pressable style={styles.modalOverlay} onPress={() => setConfirmItem(null)}>
-            <View style={styles.confirmModal}>
-              <Text style={styles.confirmTitle}>Redeem Item</Text>
-              <Text style={styles.confirmName}>{confirmItem.name}</Text>
-              <Text style={styles.confirmDesc}>{confirmItem.description}</Text>
-              <View style={styles.confirmCost}>
-                <Ionicons name="flash" size={16} color={Colors.gold} />
-                <Text style={styles.confirmCostText}>{confirmItem.cost} coins</Text>
+      {/* ─── ITEM DETAIL MODAL ──────────────────────────────────────── */}
+      {detailItem && (
+        <Modal transparent animationType="slide" onRequestClose={() => setDetailItem(null)}>
+          <Pressable style={styles.modalOverlay} onPress={() => setDetailItem(null)}>
+            <View style={styles.detailModal}>
+              {/* Header */}
+              <View style={styles.detailHeader}>
+                {(() => {
+                  const rc = RARITY_COLORS[detailItem.rarity] ?? "#9E9E9E";
+                  return (
+                    <>
+                      <View style={[styles.detailIconBig, { backgroundColor: rc + "18" }]}>
+                        <Ionicons name={(detailItem.icon ?? "gift") as any} size={40} color={rc} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.detailName}>{detailItem.name}</Text>
+                        <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
+                          <View style={[styles.rarityChip, { backgroundColor: rc + "18" }]}>
+                            <Text style={[styles.rarityText, { color: rc }]}>{detailItem.rarity.toUpperCase()}</Text>
+                          </View>
+                          <View style={[styles.rarityChip, { backgroundColor: Colors.bgElevated }]}>
+                            <Text style={[styles.rarityText, { color: Colors.textMuted }]}>{(detailItem.category ?? "").toUpperCase()}</Text>
+                          </View>
+                          {detailItem.isLimited && (
+                            <View style={[styles.rarityChip, { backgroundColor: Colors.crimson + "20" }]}>
+                              <Text style={[styles.rarityText, { color: Colors.crimson }]}>LIMITED</Text>
+                            </View>
+                          )}
+                          {detailItem.isExclusive && (
+                            <View style={[styles.rarityChip, { backgroundColor: Colors.gold + "20" }]}>
+                              <Text style={[styles.rarityText, { color: Colors.gold }]}>EXCLUSIVE</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </>
+                  );
+                })()}
               </View>
-              <Text style={styles.confirmBalance}>
-                Balance: {balance?.coinBalance ?? 0} coins
+
+              <Text style={styles.detailDesc}>{detailItem.description}</Text>
+
+              {/* State info */}
+              <View style={styles.detailInfoRow}>
+                <View style={styles.detailInfoCell}>
+                  <Text style={styles.detailInfoLabel}>Cost</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Ionicons name="flash" size={14} color={Colors.gold} />
+                    <Text style={styles.detailInfoValue}>{detailItem.cost?.toLocaleString()}</Text>
+                  </View>
+                </View>
+                <View style={styles.detailInfoCell}>
+                  <Text style={styles.detailInfoLabel}>Status</Text>
+                  <Text style={[styles.detailInfoValue, { color: detailItem.owned ? Colors.green : Colors.textMuted }]}>
+                    {detailItem.owned ? (detailItem.isEquipped ? "Equipped" : "Owned") : "Not owned"}
+                  </Text>
+                </View>
+                {detailItem.sellBackValue > 0 && detailItem.owned && (
+                  <View style={styles.detailInfoCell}>
+                    <Text style={styles.detailInfoLabel}>Sell Back</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <Ionicons name="flash" size={14} color={Colors.textSecondary} />
+                      <Text style={styles.detailInfoValue}>{detailItem.sellBackValue}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              {/* Acquisition note */}
+              <Text style={styles.detailAcqNote}>
+                {detailItem.isExclusive
+                  ? "Exclusive — not available to all users."
+                  : detailItem.isLimited
+                  ? "Limited item — may not always be available."
+                  : detailItem.sellBackValue > 0
+                  ? `Can be sold back for ${detailItem.sellBackValue} coins.`
+                  : "This item is permanent once purchased."}
+              </Text>
+
+              {/* Actions */}
+              <View style={styles.detailActions}>
+                {!detailItem.owned ? (
+                  <>
+                    <Pressable style={styles.cancelBtn} onPress={() => setDetailItem(null)}>
+                      <Text style={styles.cancelBtnText}>Cancel</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.buyBtn, !detailItem.canAfford && { opacity: 0.4 }]}
+                      disabled={!detailItem.canAfford || buyItem.isPending}
+                      onPress={() => handleBuy(detailItem)}
+                    >
+                      <Ionicons name="flash" size={15} color="#000" />
+                      <Text style={styles.buyBtnText}>
+                        {buyItem.isPending ? "Buying..." : `Buy for ${detailItem.cost?.toLocaleString()}`}
+                      </Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <>
+                    <Pressable style={styles.cancelBtn} onPress={() => setDetailItem(null)}>
+                      <Text style={styles.cancelBtnText}>Close</Text>
+                    </Pressable>
+                    <View style={{ flexDirection: "row", gap: 8, flex: 1 }}>
+                      {detailItem.isEquipped ? (
+                        <Pressable
+                          style={[styles.equipBtn, { flex: 1 }]}
+                          onPress={() => handleUnequip(detailItem)}
+                          disabled={unequipItem.isPending}
+                        >
+                          <Text style={styles.equipBtnText}>Unequip</Text>
+                        </Pressable>
+                      ) : (
+                        <Pressable
+                          style={[styles.equipBtn, { flex: 1 }]}
+                          onPress={() => handleEquip(detailItem)}
+                          disabled={equipItem.isPending}
+                        >
+                          <Text style={styles.equipBtnText}>Equip</Text>
+                        </Pressable>
+                      )}
+                      {detailItem.sellBackValue > 0 && !detailItem.isExclusive && !detailItem.isLimited && (
+                        <Pressable
+                          style={styles.sellBtn}
+                          onPress={() => { setDetailItem(null); setSellConfirmItem(detailItem); }}
+                        >
+                          <Text style={styles.sellBtnText}>Sell</Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  </>
+                )}
+              </View>
+            </View>
+          </Pressable>
+        </Modal>
+      )}
+
+      {/* ─── SELL CONFIRM MODAL ─────────────────────────────────────── */}
+      {sellConfirmItem && (
+        <Modal transparent animationType="fade" onRequestClose={() => setSellConfirmItem(null)}>
+          <Pressable style={styles.modalOverlay} onPress={() => setSellConfirmItem(null)}>
+            <View style={styles.confirmModal}>
+              <Ionicons name="warning-outline" size={32} color={Colors.crimson} style={{ marginBottom: 8 }} />
+              <Text style={styles.confirmTitle}>Sell Item?</Text>
+              <Text style={styles.confirmName}>{sellConfirmItem.name}</Text>
+              <Text style={styles.confirmDesc}>
+                You will receive {sellConfirmItem.sellBackValue} coins. This action cannot be undone.
               </Text>
               <View style={styles.confirmActions}>
-                <Pressable style={styles.cancelBtn} onPress={() => setConfirmItem(null)}>
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                <Pressable style={styles.cancelBtn} onPress={() => setSellConfirmItem(null)}>
+                  <Text style={styles.cancelBtnText}>Keep</Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.redeemBtn, (balance?.coinBalance ?? 0) < confirmItem.cost && { opacity: 0.4 }]}
-                  onPress={() => handleRedeem(confirmItem)}
-                  disabled={(balance?.coinBalance ?? 0) < confirmItem.cost}
+                  style={[styles.redeemBtn, { backgroundColor: Colors.crimson }]}
+                  onPress={() => handleSell(sellConfirmItem)}
+                  disabled={sellItem.isPending}
                 >
-                  <Text style={styles.redeemBtnText}>Redeem</Text>
+                  <Text style={styles.redeemBtnText}>
+                    {sellItem.isPending ? "Selling..." : `Sell (+${sellConfirmItem.sellBackValue})`}
+                  </Text>
                 </Pressable>
               </View>
             </View>
@@ -383,81 +756,138 @@ export default function RewardsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:          { flex: 1, backgroundColor: Colors.bg },
-  header:             { paddingHorizontal: 20, paddingBottom: 12 },
-  title:              { fontFamily: "Inter_700Bold", fontSize: 28, color: Colors.textPrimary, letterSpacing: -0.5 },
-  tabRow:             { flexGrow: 0, marginBottom: 14 },
-  tab:                { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
-  tabActive:          { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  tabText:            { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.textSecondary },
-  tabTextActive:      { color: "#fff" },
-  scroll:             { paddingHorizontal: 20, gap: 12 },
-  balanceCard:        { backgroundColor: Colors.bgCard, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: Colors.border, gap: 14 },
-  balanceRow:         { flexDirection: "row", alignItems: "center", gap: 14 },
-  balanceLabel:       { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
-  balanceAmount:      { fontFamily: "Inter_700Bold", fontSize: 32, color: Colors.textPrimary },
-  divider:            { height: 1, backgroundColor: Colors.border },
-  xpRow:              { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  xpLabel:            { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
-  xpPct:              { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.accent },
-  xpBarBg:            { height: 8, backgroundColor: Colors.border, borderRadius: 4, overflow: "hidden" },
-  xpBarFill:          { height: "100%", backgroundColor: Colors.accent, borderRadius: 4 },
-  xpSub:              { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, textAlign: "right" },
-  statsGrid:          { flexDirection: "row", gap: 12 },
-  statCard:           { flex: 1, backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, alignItems: "center", gap: 6, borderWidth: 1, borderColor: Colors.border },
-  statValue:          { fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.textPrimary },
-  statLabel:          { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
-  activeTitleCard:    { backgroundColor: Colors.gold + "12", borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: Colors.gold + "30" },
-  activeTitleLabel:   { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
-  activeTitleValue:   { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.gold },
-  recentBadgesCard:   { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border },
-  badgeMini:          { alignItems: "center", gap: 6, width: 68 },
-  badgeMiniIcon:      { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  badgeMiniName:      { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted, textAlign: "center" },
-  sectionLabel:       { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.textMuted, letterSpacing: 1.2, textTransform: "uppercase" },
-  titleCard:          { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", alignItems: "center", gap: 12 },
-  titleIconBox:       { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  titleName:          { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.textPrimary },
-  titleDesc:          { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
-  rarityChip:         { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  rarityText:         { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 0.8 },
-  activeChip:         { backgroundColor: Colors.gold + "18", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  activeChipText:     { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.gold, letterSpacing: 0.8 },
-  equipText:          { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.accent },
-  badgesGrid:         { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  badgeCard:          { width: "30%", backgroundColor: Colors.bgCard, borderRadius: 16, padding: 12, alignItems: "center", gap: 8, borderWidth: 1 },
-  badgeCardLocked:    { borderColor: Colors.border, opacity: 0.55 },
-  badgeIcon:          { width: 50, height: 50, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  badgeName:          { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textPrimary, textAlign: "center" },
-  badgeDesc:          { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted, textAlign: "center" },
-  shopCard:           { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", alignItems: "center", gap: 12 },
-  shopIconBox:        { width: 48, height: 48, borderRadius: 14, backgroundColor: Colors.accentGlow, alignItems: "center", justifyContent: "center" },
-  shopName:           { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.textPrimary },
-  shopDesc:           { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
-  costBadge:          { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.goldDim, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
-  costText:           { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.gold },
-  txRow:              { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  txDot:              { width: 8, height: 8, borderRadius: 4 },
-  txReason:           { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textPrimary },
-  txDate:             { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
-  txAmount:           { fontFamily: "Inter_700Bold", fontSize: 15 },
-  emptyBox:           { alignItems: "center", paddingTop: 60, gap: 12 },
-  emptyTitle:         { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.textSecondary },
-  emptySmall:         { paddingVertical: 16, alignItems: "center" },
-  emptySmallText:     { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textMuted, textAlign: "center" },
-  modalOverlay:       { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", alignItems: "center", padding: 24 },
-  confirmModal:       { backgroundColor: Colors.bgCard, borderRadius: 24, padding: 24, width: "100%", gap: 12, borderWidth: 1, borderColor: Colors.border },
-  confirmTitle:       { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.textPrimary },
-  confirmName:        { fontFamily: "Inter_600SemiBold", fontSize: 16, color: Colors.textAccent },
-  confirmDesc:        { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary },
-  confirmCost:        { flexDirection: "row", alignItems: "center", gap: 6 },
-  confirmCostText:    { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.gold },
-  confirmBalance:     { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textMuted },
-  confirmActions:     { flexDirection: "row", gap: 12, marginTop: 4 },
-  cancelBtn:          { flex: 1, paddingVertical: 12, backgroundColor: Colors.bgElevated, borderRadius: 12, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
-  cancelBtnText:      { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textSecondary },
-  redeemBtn:          { flex: 1, paddingVertical: 12, backgroundColor: Colors.accent, borderRadius: 12, alignItems: "center" },
-  redeemBtnText:      { fontFamily: "Inter_700Bold", fontSize: 14, color: "#fff" },
-  shareSnapshotBtn:   { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.accentGlow, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.accent + "40" },
-  shareSnapshotText:  { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.accent, flex: 1 },
+  container:           { flex: 1, backgroundColor: Colors.bg },
+  header:              { paddingHorizontal: 20, paddingBottom: 12 },
+  title:               { fontFamily: "Inter_700Bold", fontSize: 28, color: Colors.textPrimary, letterSpacing: -0.5 },
+  tabRow:              { flexGrow: 0, marginBottom: 14 },
+  tab:                 { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
+  tabActive:           { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  tabText:             { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.textSecondary },
+  tabTextActive:       { color: "#fff" },
+  scroll:              { paddingHorizontal: 20, gap: 12 },
+
+  // Overview
+  balanceCard:         { backgroundColor: Colors.bgCard, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: Colors.border, gap: 14 },
+  balanceRow:          { flexDirection: "row", alignItems: "center", gap: 14 },
+  balanceLabel:        { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
+  balanceAmount:       { fontFamily: "Inter_700Bold", fontSize: 32, color: Colors.textPrimary },
+  divider:             { height: 1, backgroundColor: Colors.border },
+  xpRow:               { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  xpLabel:             { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
+  xpPct:               { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.accent },
+  xpBarBg:             { height: 8, backgroundColor: Colors.border, borderRadius: 4, overflow: "hidden" },
+  xpBarFill:           { height: "100%", backgroundColor: Colors.accent, borderRadius: 4 },
+  xpSub:               { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, textAlign: "right" },
+  statsGrid:           { flexDirection: "row", gap: 12 },
+  statCard:            { flex: 1, backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, alignItems: "center", gap: 6, borderWidth: 1, borderColor: Colors.border },
+  statValue:           { fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.textPrimary },
+  statLabel:           { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
+  activeTitleCard:     { backgroundColor: Colors.gold + "12", borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: Colors.gold + "30" },
+  activeTitleLabel:    { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
+  activeTitleValue:    { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.gold },
+  shareSnapshotBtn:    { backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: Colors.border },
+  marketplaceShortcut: { backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: Colors.accent + "30" },
+  shareSnapshotText:   { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary, flex: 1 },
+  recentBadgesCard:    { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border },
+  badgeMini:           { alignItems: "center", gap: 6, width: 68 },
+  badgeMiniIcon:       { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  badgeMiniName:       { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted, textAlign: "center" },
+
+  // Marketplace
+  marketBalanceStrip:  { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: Colors.goldDim, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  marketBalanceText:   { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.gold },
+  categoryRow:         { flexGrow: 0 },
+  catChip:             { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
+  catChipActive:       { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  catChipText:         { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.textSecondary },
+  catChipTextActive:   { color: "#fff" },
+
+  featuredCard:        { width: 150, backgroundColor: Colors.bgCard, borderRadius: 18, padding: 14, borderWidth: 1, gap: 8 },
+  featuredIcon:        { width: 52, height: 52, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  featuredName:        { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.textPrimary },
+  featuredMeta:        { flexDirection: "row" },
+  featuredCost:        { flexDirection: "row", alignItems: "center", gap: 3 },
+  featuredCostText:    { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.gold },
+  limitedBadge:        { position: "absolute", top: 8, right: 8, backgroundColor: Colors.crimson, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 },
+  limitedBadgeText:    { fontFamily: "Inter_700Bold", fontSize: 8, color: "#fff", letterSpacing: 0.5 },
+  limitedChip:         { backgroundColor: Colors.crimson + "20", borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 },
+  limitedChipText:     { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.crimson, letterSpacing: 0.5 },
+
+  marketCard:          { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", alignItems: "center", gap: 12 },
+  marketIconBox:       { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  marketName:          { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
+  marketDesc:          { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
+  ownedBadge:          { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.green + "18", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  ownedBadgeText:      { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.green },
+  ownedChip:           { backgroundColor: Colors.green + "20", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 },
+  ownedChipText:       { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.green },
+  cannotAffordText:    { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted },
+  equippedChip:        { backgroundColor: Colors.accent + "20", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 },
+  equippedChipText:    { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.accent },
+  costBadge:           { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.goldDim, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
+  costText:            { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.gold },
+
+  // Inventory
+  sectionLabel:        { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.textMuted, letterSpacing: 1.2, textTransform: "uppercase" },
+  ownedGrid:           { gap: 8 },
+  invCard:             { backgroundColor: Colors.bgCard, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", alignItems: "center", gap: 10 },
+  invIcon:             { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  invName:             { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.textPrimary, marginBottom: 3 },
+  equipText:           { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.accent },
+  titleCard:           { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", alignItems: "center", gap: 12 },
+  titleIconBox:        { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  titleName:           { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.textPrimary },
+  titleDesc:           { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
+  activeChip:          { backgroundColor: Colors.gold + "18", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  activeChipText:      { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.gold, letterSpacing: 0.8 },
+  badgesGrid:          { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  badgeCard:           { width: "30%", backgroundColor: Colors.bgCard, borderRadius: 16, padding: 12, alignItems: "center", gap: 8, borderWidth: 1 },
+  badgeCardLocked:     { borderColor: Colors.border, opacity: 0.55 },
+  badgeIcon:           { width: 50, height: 50, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  badgeName:           { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textPrimary, textAlign: "center" },
+  badgeDesc:           { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted, textAlign: "center" },
+  rarityChip:          { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  rarityText:          { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 0.8 },
+
+  // History
+  txRow:               { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  txDot:               { width: 8, height: 8, borderRadius: 4 },
+  txReason:            { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textPrimary },
+  txDate:              { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
+  txAmount:            { fontFamily: "Inter_700Bold", fontSize: 15 },
+
+  // Shared
+  emptyBox:            { alignItems: "center", paddingTop: 60, gap: 12 },
+  emptyTitle:          { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.textSecondary },
+  emptySmall:          { backgroundColor: Colors.bgCard, borderRadius: 12, padding: 16, alignItems: "center" },
+  emptySmallText:      { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textMuted, textAlign: "center" },
+
+  // Modals
+  modalOverlay:        { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
+  detailModal:         { backgroundColor: Colors.bgCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 14 },
+  detailHeader:        { flexDirection: "row", alignItems: "center", gap: 14 },
+  detailIconBig:       { width: 68, height: 68, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  detailName:          { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.textPrimary },
+  detailDesc:          { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
+  detailInfoRow:       { flexDirection: "row", gap: 12 },
+  detailInfoCell:      { flex: 1, backgroundColor: Colors.bgElevated, borderRadius: 12, padding: 12, gap: 4 },
+  detailInfoLabel:     { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
+  detailInfoValue:     { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.textPrimary },
+  detailAcqNote:       { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, fontStyle: "italic" },
+  detailActions:       { flexDirection: "row", gap: 10, marginTop: 4 },
+  cancelBtn:           { paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14, backgroundColor: Colors.bgElevated, alignItems: "center", justifyContent: "center" },
+  cancelBtnText:       { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textSecondary },
+  buyBtn:              { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: Colors.gold, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 6 },
+  buyBtnText:          { fontFamily: "Inter_700Bold", fontSize: 14, color: "#000" },
+  equipBtn:            { paddingVertical: 14, borderRadius: 14, backgroundColor: Colors.accent, alignItems: "center", justifyContent: "center" },
+  equipBtnText:        { fontFamily: "Inter_700Bold", fontSize: 14, color: "#fff" },
+  sellBtn:             { paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14, backgroundColor: Colors.crimson + "20", alignItems: "center", justifyContent: "center" },
+  sellBtnText:         { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.crimson },
+  confirmModal:        { backgroundColor: Colors.bgCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 12, alignItems: "center" },
+  confirmTitle:        { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.textPrimary },
+  confirmName:         { fontFamily: "Inter_600SemiBold", fontSize: 16, color: Colors.textPrimary },
+  confirmDesc:         { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, textAlign: "center" },
+  confirmActions:      { flexDirection: "row", gap: 10, width: "100%", marginTop: 4 },
+  redeemBtn:           { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: Colors.accent, alignItems: "center", justifyContent: "center" },
+  redeemBtnText:       { fontFamily: "Inter_700Bold", fontSize: 14, color: "#fff" },
 });

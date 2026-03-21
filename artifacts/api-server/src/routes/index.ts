@@ -32,6 +32,8 @@ import webhooksRouter from "./webhooks.js";
 import calendarRouter from "./calendar.js";
 import dataExportRouter from "./data-export.js";
 import integrationsRouter from "./integrations.js";
+// Phase 17 — Marketplace / Economy
+import marketplaceRouter from "./marketplace.js";
 
 const router: IRouter = Router();
 
@@ -62,6 +64,8 @@ router.use("/admin/live-ops", adminLiveOpsRouter);
 router.use("/live-ops", userLiveOpsRouter);
 router.use("/circles", circlesRouter);
 router.use("/showcase", showcaseRouter);
+// Phase 17 — Marketplace / Economy
+router.use("/marketplace", marketplaceRouter);
 // Phase 16 — Platformization routes
 router.use("/v1", platformApiRouter);
 router.use("/platform", apiKeysRouter);
