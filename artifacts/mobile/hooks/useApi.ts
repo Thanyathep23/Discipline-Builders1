@@ -460,6 +460,24 @@ export function useVariant(variantId: string | null) {
   });
 }
 
+export function useVariantBySurface(surface: string | null, enabled = true) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["variant-by-surface", surface],
+    queryFn: () => request<{ variantId: string | null; variantKey: string; label: string | null; content: string | null; surface: string }>(`/live-ops/variant-by-surface/${surface}`),
+    enabled: !!surface && enabled,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useTrackVariantOutcome() {
+  const { request } = useApiClient();
+  return useMutation({
+    mutationFn: (data: { variantId: string; variantKey: string; action: string; surface?: string }) =>
+      request<{ ok: boolean }>("/live-ops/variant-outcome", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
 // ─── Live Ops (Admin) ────────────────────────────────────────────────────────
 
 export function useAdminLiveOpsPacks() {

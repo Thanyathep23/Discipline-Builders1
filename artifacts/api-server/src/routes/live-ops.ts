@@ -11,12 +11,30 @@ import {
   focusSessionsTable,
   auditLogTable,
 } from "@workspace/db";
-import { eq, and, desc, count, inArray } from "drizzle-orm";
+import { eq, and, or, desc, count, inArray, lte } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, requireAdmin, generateId } from "../lib/auth.js";
 import { trackEvent } from "../lib/telemetry.js";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Resolved effective status from DB record + current time.
+ * "scheduled" items past startsAt are treated as "active".
+ * "active" items past endsAt are treated as "expired".
+ */
+function resolveEffectiveStatus(status: string, startsAt: Date | null, endsAt: Date | null): string {
+  const now = new Date();
+  if (status === "scheduled") {
+    if (startsAt && now >= startsAt) return "active";
+    return "scheduled";
+  }
+  if (status === "active") {
+    if (endsAt && now > endsAt) return "expired";
+    return "active";
+  }
+  return status;
+}
 
 function isTimeActive(startsAt: Date | null, endsAt: Date | null, isLimitedTime: boolean): boolean {
   const now = new Date();
@@ -90,7 +108,7 @@ adminLiveOpsRouter.post("/packs", async (req, res) => {
     sortOrder:       z.number().int().default(0),
   });
   const parsed = schema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Validation failed", issues: parsed.error.flatten() });
+  if (!parsed.success) { res.status(400).json({ error: "Validation failed", issues: parsed.error.flatten() }); return; }
 
   try {
     const id = generateId();
@@ -136,7 +154,7 @@ adminLiveOpsRouter.patch("/packs/:id", async (req, res) => {
     sortOrder:        z.number().int().optional(),
   });
   const parsed = schema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Validation failed" });
+  if (!parsed.success) { res.status(400).json({ error: "Validation failed" }); return; }
 
   try {
     const d = parsed.data;
@@ -159,7 +177,7 @@ adminLiveOpsRouter.patch("/packs/:id", async (req, res) => {
 
     await db.update(contentPacksTable).set(upd).where(eq(contentPacksTable.id, req.params.id));
     const [pack] = await db.select().from(contentPacksTable).where(eq(contentPacksTable.id, req.params.id)).limit(1);
-    if (!pack) return res.status(404).json({ error: "Pack not found" });
+    if (!pack) { res.status(404).json({ error: "Pack not found" }); return; }
 
     await db.insert(auditLogTable).values({
       id: generateId(), actorId: (req as any).user?.id ?? null, actorRole: "admin",
@@ -205,7 +223,7 @@ adminLiveOpsRouter.post("/events", async (req, res) => {
     sortOrder:       z.number().int().default(0),
   });
   const parsed = schema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Validation failed", issues: parsed.error.flatten() });
+  if (!parsed.success) { res.status(400).json({ error: "Validation failed", issues: parsed.error.flatten() }); return; }
 
   try {
     const id = generateId();
@@ -252,7 +270,7 @@ adminLiveOpsRouter.patch("/events/:id", async (req, res) => {
     sortOrder:       z.number().int().optional(),
   });
   const parsed = schema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Validation failed" });
+  if (!parsed.success) { res.status(400).json({ error: "Validation failed" }); return; }
 
   try {
     const d = parsed.data;
@@ -274,7 +292,7 @@ adminLiveOpsRouter.patch("/events/:id", async (req, res) => {
 
     await db.update(liveEventsTable).set(upd).where(eq(liveEventsTable.id, req.params.id));
     const [evt] = await db.select().from(liveEventsTable).where(eq(liveEventsTable.id, req.params.id)).limit(1);
-    if (!evt) return res.status(404).json({ error: "Event not found" });
+    if (!evt) { res.status(404).json({ error: "Event not found" }); return; }
 
     await db.insert(auditLogTable).values({
       id: generateId(), actorId: (req as any).user?.id ?? null, actorRole: "admin",
@@ -311,7 +329,7 @@ adminLiveOpsRouter.post("/variants", async (req, res) => {
     assignmentMode: z.enum(["user_id_mod", "random"]).default("user_id_mod"),
   });
   const parsed = schema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Validation failed", issues: parsed.error.flatten() });
+  if (!parsed.success) { res.status(400).json({ error: "Validation failed", issues: parsed.error.flatten() }); return; }
 
   try {
     const id = generateId();
@@ -335,7 +353,7 @@ adminLiveOpsRouter.patch("/variants/:id", async (req, res) => {
     assignmentMode: z.enum(["user_id_mod", "random"]).optional(),
   });
   const parsed = schema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Validation failed" });
+  if (!parsed.success) { res.status(400).json({ error: "Validation failed" }); return; }
 
   try {
     const d = parsed.data;
@@ -347,7 +365,7 @@ adminLiveOpsRouter.patch("/variants/:id", async (req, res) => {
 
     await db.update(contentVariantsTable).set(upd).where(eq(contentVariantsTable.id, req.params.id));
     const [v] = await db.select().from(contentVariantsTable).where(eq(contentVariantsTable.id, req.params.id)).limit(1);
-    if (!v) return res.status(404).json({ error: "Variant not found" });
+    if (!v) { res.status(404).json({ error: "Variant not found" }); return; }
     res.json(parseVariant(v));
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -500,18 +518,25 @@ userLiveOpsRouter.get("/active", async (req: any, res) => {
     const userId = req.user.id;
     const now = new Date();
 
-    // Fetch active packs (time-aware)
+    // Fetch active packs: explicit "active" status OR "scheduled" items whose startsAt has passed.
+    // Expired content (past endsAt) is filtered below at runtime.
     const allPacks = await db
       .select()
       .from(contentPacksTable)
-      .where(eq(contentPacksTable.status, "active"))
+      .where(or(
+        eq(contentPacksTable.status, "active"),
+        and(eq(contentPacksTable.status, "scheduled"), lte(contentPacksTable.startsAt, now)),
+      ))
       .orderBy(contentPacksTable.sortOrder);
 
-    // Fetch active events (time-aware)
+    // Fetch active events: same auto-promotion for "scheduled" items.
     const allEvents = await db
       .select()
       .from(liveEventsTable)
-      .where(eq(liveEventsTable.status, "active"))
+      .where(or(
+        eq(liveEventsTable.status, "active"),
+        and(eq(liveEventsTable.status, "scheduled"), lte(liveEventsTable.startsAt, now)),
+      ))
       .orderBy(liveEventsTable.sortOrder);
 
     // Get user context for eligibility
@@ -581,6 +606,84 @@ userLiveOpsRouter.get("/active", async (req: any, res) => {
   }
 });
 
+// GET /live-ops/variant-by-surface/:surface — resolve variant assignment by surface name
+userLiveOpsRouter.get("/variant-by-surface/:surface", async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const { surface } = req.params;
+
+    // Find the first active variant for this surface
+    const allVariants = await db.select().from(contentVariantsTable)
+      .where(and(eq(contentVariantsTable.surface, surface), eq(contentVariantsTable.status, "active")))
+      .orderBy(desc(contentVariantsTable.createdAt))
+      .limit(1);
+
+    const variant = allVariants[0];
+    if (!variant) { res.json({ variantKey: "control", content: null, label: null, surface, variantId: null }); return; }
+
+    const variants: { key: string; label: string; content: string }[] = JSON.parse(variant.variants || "[]");
+    if (variants.length === 0) { res.json({ variantKey: "control", content: null, label: null, surface, variantId: variant.id }); return; }
+
+    // Check existing assignment
+    const [existing] = await db.select().from(userVariantAssignmentsTable)
+      .where(and(eq(userVariantAssignmentsTable.userId, userId), eq(userVariantAssignmentsTable.variantId, variant.id)))
+      .limit(1);
+
+    let assignedKey: string;
+    if (existing) {
+      assignedKey = existing.assignedKey;
+    } else {
+      if (variant.assignmentMode === "user_id_mod") {
+        assignedKey = assignVariantByUserId(userId, variants);
+      } else {
+        assignedKey = variants[Math.floor(Math.random() * variants.length)].key;
+      }
+      await db.insert(userVariantAssignmentsTable).values({
+        id: generateId(), userId, variantId: variant.id, assignedKey,
+      });
+    }
+
+    const assignedVariant = variants.find(v => v.key === assignedKey) ?? variants[0];
+
+    trackEvent("variant_exposed", userId, {
+      variantId: variant.id, variantName: variant.name, surface, assignedKey,
+    }).catch(() => {});
+
+    res.json({
+      variantId: variant.id,
+      variantKey: assignedKey,
+      label: assignedVariant.label,
+      content: assignedVariant.content,
+      surface,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /live-ops/variant-outcome — record a meaningful user action under a variant assignment
+userLiveOpsRouter.post("/variant-outcome", async (req: any, res) => {
+  const schema = z.object({
+    variantId:  z.string(),
+    variantKey: z.string(),
+    action:     z.string().max(80),
+    surface:    z.string().max(60).optional(),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Validation failed" }); return; }
+
+  try {
+    const userId = req.user.id;
+    const { variantId, variantKey, action, surface } = parsed.data;
+
+    trackEvent("variant_outcome", userId, { variantId, variantKey, action, surface }).catch(() => {});
+
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /live-ops/variant/:variantId — get (or assign) a variant for this user
 userLiveOpsRouter.get("/variant/:variantId", async (req: any, res) => {
   try {
@@ -590,10 +693,10 @@ userLiveOpsRouter.get("/variant/:variantId", async (req: any, res) => {
     const [variant] = await db.select().from(contentVariantsTable)
       .where(and(eq(contentVariantsTable.id, variantId), eq(contentVariantsTable.status, "active"))).limit(1);
 
-    if (!variant) return res.status(404).json({ error: "Variant not found or not active" });
+    if (!variant) { res.status(404).json({ error: "Variant not found or not active" }); return; }
 
     const variants: { key: string; label: string; content: string }[] = JSON.parse(variant.variants || "[]");
-    if (variants.length === 0) return res.json({ variantKey: "control", content: null });
+    if (variants.length === 0) { res.json({ variantKey: "control", content: null }); return; }
 
     // Check existing assignment
     const [existing] = await db.select().from(userVariantAssignmentsTable)
@@ -634,12 +737,16 @@ userLiveOpsRouter.get("/variant/:variantId", async (req: any, res) => {
 // ─── Parsers ──────────────────────────────────────────────────────────────────
 
 function parsePack(p: any) {
+  const startsAt = p.startsAt instanceof Date ? p.startsAt : (p.startsAt ? new Date(p.startsAt) : null);
+  const endsAt   = p.endsAt   instanceof Date ? p.endsAt   : (p.endsAt   ? new Date(p.endsAt)   : null);
   return {
     id: p.id, slug: p.slug, name: p.name, description: p.description,
     theme: p.theme, targetSkill: p.targetSkill, targetArc: p.targetArc,
-    status: p.status, isLimitedTime: p.isLimitedTime,
-    startsAt: p.startsAt?.toISOString() ?? null,
-    endsAt: p.endsAt?.toISOString() ?? null,
+    status: p.status,
+    effectiveStatus: resolveEffectiveStatus(p.status, startsAt, endsAt),
+    isLimitedTime: p.isLimitedTime,
+    startsAt: startsAt?.toISOString() ?? null,
+    endsAt: endsAt?.toISOString() ?? null,
     missionTemplates: JSON.parse(p.missionTemplates || "[]"),
     rewardTitle: p.rewardTitle, rewardBadge: p.rewardBadge,
     rewardCoins: p.rewardCoins, eligibilityRule: p.eligibilityRule,
@@ -649,11 +756,14 @@ function parsePack(p: any) {
 }
 
 function parseEvent(e: any) {
+  const startsAt = e.startsAt instanceof Date ? e.startsAt : (e.startsAt ? new Date(e.startsAt) : null);
+  const endsAt   = e.endsAt   instanceof Date ? e.endsAt   : (e.endsAt   ? new Date(e.endsAt)   : null);
   return {
     id: e.id, slug: e.slug, name: e.name, description: e.description,
     status: e.status,
-    startsAt: e.startsAt?.toISOString() ?? null,
-    endsAt: e.endsAt?.toISOString() ?? null,
+    effectiveStatus: resolveEffectiveStatus(e.status, startsAt, endsAt),
+    startsAt: startsAt?.toISOString() ?? null,
+    endsAt: endsAt?.toISOString() ?? null,
     contentPackId: e.contentPackId,
     bonusMultiplier: parseFloat(e.bonusMultiplier ?? "1.0"),
     rewardTitle: e.rewardTitle, rewardBadge: e.rewardBadge,

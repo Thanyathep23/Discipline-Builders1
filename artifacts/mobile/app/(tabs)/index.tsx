@@ -10,7 +10,7 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
-import { useDashboard, useActiveChain, useDailyContext, useEndgame, useStartCycle, useLiveOps } from "@/hooks/useApi";
+import { useDashboard, useActiveChain, useDailyContext, useEndgame, useStartCycle, useLiveOps, useVariantBySurface, useTrackVariantOutcome } from "@/hooks/useApi";
 
 function StatCard({ label, value, icon, color, delay }: any) {
   return (
@@ -66,17 +66,21 @@ function ActiveChainCard({ chain }: { chain: any }) {
   );
 }
 
-function DailyDirectiveCard({ state, message, suggestedAction, daysSinceLast }: {
+function DailyDirectiveCard({ state, message, suggestedAction, daysSinceLast, variantContent, onCTA }: {
   state: string; message: string; suggestedAction: string; daysSinceLast: number | null;
+  variantContent?: string | null;
+  onCTA?: () => void;
 }) {
   const isComeback = state === "comeback";
   const isOverloaded = state === "overloaded";
   const accentColor = isComeback ? Colors.amber : isOverloaded ? "#FF6B6B" : Colors.accent;
   const iconName = isComeback ? "alert-circle-outline" : isOverloaded ? "warning-outline" : "radio-outline";
   const label = isComeback ? "WELCOME BACK" : isOverloaded ? "PACE YOURSELF" : "DAILY DIRECTIVE";
+  const displayMessage = (isComeback && variantContent) ? variantContent : message;
 
   function handleCTA() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onCTA?.();
     if (suggestedAction === "review_pending") {
       router.push("/mission/ai");
     } else {
@@ -97,7 +101,7 @@ function DailyDirectiveCard({ state, message, suggestedAction, daysSinceLast }: 
           )}
         </View>
       </View>
-      <Text style={directiveStyles.message}>{message}</Text>
+      <Text style={directiveStyles.message}>{displayMessage}</Text>
       <Pressable
         onPress={handleCTA}
         style={({ pressed }) => [directiveStyles.cta, { opacity: pressed ? 0.8 : 1 }]}
@@ -312,7 +316,21 @@ export default function HomeScreen() {
   const { data: dailyData } = useDailyContext();
   const { data: endgameData } = useEndgame();
   const { data: liveOpsData } = useLiveOps();
+  const isComeback = dailyData?.state === "comeback";
+  const { data: comebackVariant } = useVariantBySurface("comeback_copy", isComeback);
+  const trackOutcome = useTrackVariantOutcome();
   const startCycle = useStartCycle();
+
+  function handleComebackCTA() {
+    if (comebackVariant?.variantId && comebackVariant.variantKey !== "control") {
+      trackOutcome.mutate({
+        variantId: comebackVariant.variantId,
+        variantKey: comebackVariant.variantKey,
+        action: "directive_cta_pressed",
+        surface: "comeback_copy",
+      });
+    }
+  }
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
@@ -393,6 +411,8 @@ export default function HomeScreen() {
             message={dailyData.message}
             suggestedAction={dailyData.suggestedAction}
             daysSinceLast={dailyData.daysSinceLast}
+            variantContent={comebackVariant?.content}
+            onCTA={handleComebackCTA}
           />
         )}
 
