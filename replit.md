@@ -494,3 +494,61 @@ Six premium shareable card components, all screenshot-optimized with dark premiu
 - `app/(tabs)/profile.tsx` — "Invite Friends" Quick Access item added
 - `app/share/index.tsx` — "Invite a Friend" CTA card appended
 - `app/admin/index.tsx` — "Growth Funnel" nav card added
+
+## Phase 15 — Controlled Community / Accountability Layer Lite (COMPLETE)
+
+### DB schema additions (lib/db/src/schema/)
+- `circles.ts` — 6 new tables:
+  - `circles` — private invite-only pods (max 8 members, owner-controlled)
+  - `circle_members` — membership with role (owner/member) + status (active/left/removed)
+  - `circle_activity` — high-signal moments (badge, title, chain, challenge) surfaced inside a circle
+  - `circle_reports` — minimal moderation: flag a member or content
+  - `circle_challenges` — time-boxed shared challenges created by circle owner
+  - `circle_challenge_participants` — per-user join/complete state
+- `showcase.ts` — `showcase_settings` table: 6 opt-in visibility flags all defaulting to `false`
+- All tables applied to DB via `pnpm --filter @workspace/db push`
+
+### Backend additions (artifacts/api-server/src/)
+- `routes/circles.ts` — full circles API:
+  - `POST /circles` — create (owner limit: 3, member limit: 8, unique `POD-XXXXX` invite code)
+  - `GET /circles` — list my active circles with member counts and roles
+  - `GET /circles/:id` — circle detail: member snapshots (showcase-gated), recent activity, active challenges
+  - `POST /circles/join` — join via invite code (capacity-checked, re-join blocked)
+  - `POST /circles/:id/leave` — leave (owners blocked from leaving)
+  - `DELETE /circles/:id/members/:userId` — remove member (owner-only)
+  - `POST /circles/:id/report` — flag member/content (membership required)
+  - `POST /circles/:id/challenges` — create shared challenge (owner-only, 1–30 days)
+  - `POST /circles/:id/challenges/:cid/:action` — join or complete a challenge
+- `routes/showcase.ts` — showcase API:
+  - `GET /showcase/settings` — my opt-in settings (all false by default)
+  - `PUT /showcase/settings` — update showcase flags
+  - `GET /showcase/:userId` — view a member's showcase (shared-circle gate enforced, own profile always full)
+- Route registration: both registered in `routes/index.ts`
+
+### Circle activity emissions (lib/)
+- `lib/circle-activity.ts` — `emitActivityForUser()`: emits to ALL circles the user is in
+- Emitted from `routes/inventory.ts` for: `badge_earned`, `title_unlocked`
+- Emitted from `lib/quest-chains.ts` for: `chain_completed` (added this run)
+- Circle-local `emitCircleActivity()` in `routes/circles.ts` for: `challenge_completed`
+
+### Mobile screens (artifacts/mobile/app/)
+- `circles/index.tsx` — list circles + create/join action row + info card
+- `circles/create.tsx` — create form with name/description + rules card
+- `circles/join.tsx` — join by invite code input
+- `circles/[id].tsx` — circle detail: invite code (owner), challenges, members, activity feed, leave/report
+- `circles/[id]/challenge.tsx` — create shared challenge: presets + custom label/description/skill/duration
+- `settings/showcase.tsx` — per-field opt-in toggles with privacy explanation
+- `showcase/[userId].tsx` — view member showcase: identity, top skills, recent badges (circle-gated)
+- Profile tab Quick Access links: "Accountability Circles" → `/circles`, "Prestige Showcase" → `/settings/showcase`
+
+### Privacy model
+- All showcase fields default to `false` (private by default, opt-in only)
+- Showcase visible only to members of a shared active circle — never public
+- No public profile created. No raw proof files, financial data, or profile answers exposed
+- Circle data (activity, members) visible only to active circle members
+
+### Safety / moderation controls
+- Leave circle: member-only (owners must transfer/delete)
+- Remove member: owner-only
+- Report/flag: any active member can report; stored in `circle_reports` table with `pending` status
+- Telemetry events: `circle_created`, `circle_joined`, `circle_left`, `circle_member_removed`, `circle_report_submitted`, `circle_challenge_created`, `circle_challenge_joined`, `circle_challenge_completed`

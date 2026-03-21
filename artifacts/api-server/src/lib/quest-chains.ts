@@ -1,6 +1,7 @@
 import { db, userQuestChainsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import type { GeneratedAiMission } from "./mission-generator.js";
+import { emitActivityForUser } from "./circle-activity.js";
 
 export interface ChainDefinition {
   id: string;
@@ -317,6 +318,14 @@ export async function advanceChainStep(
       updatedAt: new Date(),
     })
     .where(eq(userQuestChainsTable.id, userChainId));
+
+  if (isComplete) {
+    emitActivityForUser(userId, "chain_completed", {
+      label: `Completed quest chain: ${chain.chainName}`,
+      icon: "git-branch",
+      color: "#00E676",
+    });
+  }
 
   return {
     completed: isComplete,

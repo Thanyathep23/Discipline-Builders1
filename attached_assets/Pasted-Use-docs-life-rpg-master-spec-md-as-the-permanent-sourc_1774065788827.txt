@@ -1,0 +1,186 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Resume Phase 15 only: Controlled Community / Accountability Layer Lite.
+
+Important:
+- Do NOT restart the project.
+- Do NOT re-implement finished Phase 15 work.
+- Do NOT broaden scope beyond Phase 15.
+- First audit the current codebase and determine exactly what from Phase 15 is already complete vs still incomplete.
+- Then implement only the remaining unfinished items.
+- If all Phase 15 acceptance criteria are already met, do NOT make unnecessary changes — only run final verification, update docs, and return the completion report.
+
+Current context:
+The previous Phase 15 run already appears to have completed much of the heavy lifting:
+- circles / showcase schema
+- migrations
+- circles API route
+- showcase settings API route
+- route registration
+- circle activity helper
+- badge/title -> circle activity hooks
+- multiple mobile screens for circles/showcase/challenges
+The run was interrupted before final verification, route/log checks, full mobile wiring confirmation, and end-to-end completion.
+
+Treat the current working tree as the source of truth and continue from there.
+
+==================================================
+PHASE 15 SCOPE ONLY
+==================================================
+
+Finish only:
+
+1. backend verification / cleanup for circles + showcase
+2. mobile wiring / navigation / hooks completion
+3. shared challenge and circle flow completion
+4. missing safety / moderation / privacy controls
+5. final Phase 15 verification and docs
+
+Do NOT build:
+- public social feed
+- likes/comments system
+- full chat
+- public profiles by default
+- global leaderboard
+- large community platform
+- new gameplay systems
+- Phase 16 work
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect all current Phase 15 files
+2. list which Phase 15 acceptance criteria are already satisfied
+3. identify only the remaining gaps
+4. make the minimum changes needed
+
+Specifically inspect:
+- circles schema/models
+- showcase settings schema/models
+- circles route
+- showcase route
+- route registration / ordering
+- circle activity helper and emissions
+- audit log integration
+- mobile navigation/router registration
+- profile tab links
+- circles list/create/join/detail screens
+- shared challenge create/detail flow
+- member showcase screen
+- privacy defaults and visibility rules
+- leave/remove/report controls
+
+==================================================
+STEP 2 — COMPLETE ONLY THE REMAINING GAPS
+==================================================
+
+A. Backend verification / cleanup
+- confirm all new routes compile and are registered cleanly
+- confirm no duplicate helper logic remains
+- confirm auth/ownership/role checks are enforced
+- confirm circle activity emissions are not duplicated
+- confirm JSON-only API responses
+
+B. Mobile wiring
+- register any missing screens/routes
+- ensure profile links navigate correctly
+- add/fix missing hooks for circles/showcase/challenges
+- ensure circle detail and showcase screens load real API data
+- fix only what is necessary
+
+C. Shared challenge / circle flow completion
+- ensure create circle flow works end to end
+- ensure invite/join flow works end to end
+- ensure circle detail shows members and meaningful progress/activity
+- ensure shared challenge creation and viewing works for allowed roles
+- ensure circle members can see appropriate shared progress without exposing private data
+
+D. Missing safety / moderation / privacy controls
+Implement only what is still missing from Phase 15:
+- leave circle
+- remove member (owner/admin only)
+- basic report/flag action for inappropriate shared content or circle content if applicable
+- audit logging for circle management actions
+- explicit privacy defaults for showcase visibility
+- opt-in showcase exposure only
+
+==================================================
+STEP 3 — IF EVERYTHING IS ALREADY COMPLETE
+==================================================
+
+If your audit shows all Phase 15 acceptance criteria are already met:
+- do not refactor working code
+- do not add extra scope
+- only:
+  1. run final verification
+  2. update docs/replit.md or equivalent notes
+  3. produce the final Phase 15 completion report
+
+==================================================
+PHASE 15 ACCEPTANCE CRITERIA
+==================================================
+
+Phase 15 is complete only if:
+
+1. private invite-only accountability circles exist
+2. users can join/share within circles in a controlled way
+3. opt-in prestige showcase surfaces exist
+4. lightweight shared challenges or accountability events exist for circles
+5. meaningful progress can be surfaced inside a circle without becoming a spammy feed
+6. privacy and visibility controls are explicit and safe
+7. minimal moderation/safety controls exist
+8. existing mission/proof/reward flow still works
+9. no oversized public social platform scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- which Phase 15 criteria were already complete before this run
+- which items were unfinished
+- what was done in this run
+
+2. Files changed in this run only
+
+3. Circle/accountability system status
+- data model
+- invite/join logic
+- visibility model
+
+4. Showcase/privacy status
+- what users can show
+- what remains private by default
+- how opt-in visibility works
+
+5. Shared challenge status
+- what exists
+- what was completed/fixed
+- how it connects to existing systems
+
+6. Safety/moderation controls added or verified
+- leave circle
+- remove member
+- report/flag
+- audit logging
+
+7. End-to-end verification results for:
+- create circle
+- invite/join circle
+- circle detail visibility
+- showcase visibility
+- shared challenge participation
+- leave/remove/report flows
+- existing app flow unchanged
+
+8. Confirmation that no Phase 16 or unrelated scope was touched
+
+Important:
+Preserve the existing working app.
+Do not repeat finished work.
+Do not expand scope.
+Only finish Phase 15 cleanly.
