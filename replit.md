@@ -811,3 +811,49 @@ Theme auto-resolves: if no `room_theme` slot set, shows highest-tier owned room 
 - Current implementation: simulated purchase stub (provider: "simulated")
 - Real billing (Stripe/Apple/Google): clearly marked TODO boundary in code
 - Entitlement model and purchase records are designed to support real provider sync
+
+## Phase 21 — Character Evolution / Status Visualization
+
+### Character Engine (`artifacts/mobile/lib/characterEngine.ts`)
+- Deterministic, client-side engine — no new backend endpoints needed
+- Inputs: skills[], endgame (prestige, mastery, arcStage), identity data
+- Outputs: structured `CharacterState` with all visual/status dimensions
+
+**Dimension Scores (0–10):**
+- Fitness: direct fitness skill level
+- Discipline: avg(discipline, focus)
+- Lifestyle: avg(trading, sleep)
+- Specialist: learning skill + mastery bonus
+- Prestige: (prestige.tier / 3 × 8) + (masteryCount / 6 × 2)
+
+**Status Tier System (Starter → Hustle → Rising → Refined → Elite):**
+- Weighted overall score: fitness 20%, discipline 25%, lifestyle 20%, specialist 15%, prestige 20%
+- 0–2: Starter (gray), 2–4: Hustle (green), 4–6: Rising (blue), 6–8: Refined (purple), 8–10: Elite (gold)
+
+**Visual Descriptors (deterministic):**
+- bodyState: derived from fitness score
+- postureState: derived from discipline score
+- outfitTier: derived from lifestyle score
+- energyTone: derived from arc stage + overall score
+- specialistRole: derived from top skill
+
+### Character Evolution Screen (`artifacts/mobile/app/evolution/index.tsx`)
+- Entry: Profile tab → Character Summary → "Evolution" button
+- Route: `/evolution`
+
+**Sections:**
+1. Hero card with layered character figure (aura rings, tier glyph, specialist badge, prestige accent, active title)
+2. Visual descriptor row (body / posture / outfit)
+3. Arc + prestige badges
+4. Evolution score card (X.X/10, tier progress dots)
+5. Progression Dimensions (all 5 bars with strength/focus tags + descriptors)
+6. Powering Your Evolution (top 2 strength dimensions)
+7. Limiting Your Evolution (bottom weak zones)
+8. Next Evolution (generated actionable hints per weak zone)
+9. Action shortcuts (Skills, Command Center, Marketplace)
+
+### Linkage
+- Profile → Evolution button in Character Summary section
+- Evolution → links to Skills, World, Marketplace
+- All data read from existing `useSkills`, `useEndgame`, `useIdentity`, `useInventoryTitles` hooks
+- No new backend routes added

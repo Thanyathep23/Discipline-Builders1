@@ -207,9 +207,18 @@ export default function ProfileScreen() {
           <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.characterCard}>
             <View style={styles.sectionRow}>
               <Text style={styles.sectionTitle}>Character Summary</Text>
-              <Pressable onPress={() => { Haptics.selectionAsync(); router.push("/skills"); }}>
-                <Text style={styles.seeAllText}>Full Tree</Text>
-              </Pressable>
+              <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+                <Pressable onPress={() => { Haptics.selectionAsync(); router.push("/skills"); }}>
+                  <Text style={styles.seeAllText}>Full Tree</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => { Haptics.selectionAsync(); router.push("/evolution"); }}
+                  style={evolutionBtnStyle.btn}
+                >
+                  <Ionicons name="person-circle-outline" size={13} color={Colors.accent} />
+                  <Text style={evolutionBtnStyle.text}>Evolution</Text>
+                </Pressable>
+              </View>
             </View>
 
             {skillsData?.currentArc && (
@@ -661,4 +670,14 @@ const endgameProfileStyles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   readinessPct: { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.accent },
+});
+
+const evolutionBtnStyle = StyleSheet.create({
+  btn: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: Colors.accentGlow, borderRadius: 8,
+    paddingHorizontal: 9, paddingVertical: 4,
+    borderWidth: 1, borderColor: Colors.accentDim,
+  },
+  text: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.accent },
 });
