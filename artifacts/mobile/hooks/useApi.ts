@@ -850,3 +850,14 @@ export function useAdminUpdateCatalogCategory() {
     },
   });
 }
+
+// Phase 24 — Guidance / Smart Onboarding
+
+export function useNextAction() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["guidance", "next-action"],
+    queryFn: () => request<{ nextAction: any; coachCards: any[] }>("/guidance/next-action"),
+    staleTime: 60000,
+  });
+}

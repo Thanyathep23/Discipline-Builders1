@@ -161,6 +161,31 @@ export default function CommandCenterScreen() {
           )}
         </Animated.View>
 
+        {/* First-Time Guidance — no items displayed and none to place */}
+        {!isLoading && ownedNotDisplayed.length === 0 && Object.values(slots).every((s) => !s) && (
+          <Animated.View entering={FadeInDown.delay(50).springify()} style={worldGuideStyles.card}>
+            <View style={worldGuideStyles.row}>
+              <View style={worldGuideStyles.iconBox}>
+                <Ionicons name="home-outline" size={18} color="#00D4FF" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={worldGuideStyles.eyebrow}>YOUR COMMAND CENTER</Text>
+                <Text style={worldGuideStyles.title}>Customize your space</Text>
+              </View>
+            </View>
+            <Text style={worldGuideStyles.body}>
+              As you earn rewards and collect items in the marketplace, you can display them here — trophies, themes, and prestige markers that reflect your real progress.
+            </Text>
+            <Pressable
+              style={({ pressed }) => [worldGuideStyles.cta, pressed && { opacity: 0.75 }]}
+              onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/rewards"); }}
+            >
+              <Ionicons name="storefront-outline" size={13} color="#00D4FF" />
+              <Text style={worldGuideStyles.ctaText}>Browse Marketplace</Text>
+            </Pressable>
+          </Animated.View>
+        )}
+
         {/* Identity Zone */}
         <Animated.View entering={FadeInDown.delay(60).springify()} style={styles.identityZone}>
           <View style={styles.zoneLabelRow}>
@@ -722,4 +747,26 @@ const styles = StyleSheet.create({
   pickerItemIcon: { width: 40, height: 40, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   pickerItemName: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
   pickerItemRarity: { fontFamily: "Inter_500Medium", fontSize: 11, textTransform: "capitalize", marginTop: 2 },
+});
+
+const worldGuideStyles = StyleSheet.create({
+  card: {
+    backgroundColor: "#00D4FF08",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#00D4FF30",
+    padding: 14,
+    gap: 10,
+  },
+  row:     { flexDirection: "row", alignItems: "center", gap: 12 },
+  iconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#00D4FF18", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  eyebrow: { fontFamily: "Inter_700Bold", fontSize: 9, color: "#00D4FF", letterSpacing: 1.2 },
+  title:   { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.textPrimary, marginTop: 1 },
+  body:    { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
+  cta: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 7,
+    borderRadius: 10, borderWidth: 1, borderColor: "#00D4FF40", backgroundColor: "#00D4FF15",
+  },
+  ctaText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: "#00D4FF" },
 });

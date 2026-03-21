@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
+import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useSaveLifeProfile, useLifeProfile } from "@/hooks/useApi";
 
@@ -54,9 +55,16 @@ type FormState = {
   strictnessPreference: string;
 };
 
+const FIRST_STEPS = [
+  { icon: "add-circle-outline", color: "#7C5CFC", label: "Create a Mission", desc: "Name a real goal with a time target." },
+  { icon: "timer-outline", color: "#00D4FF", label: "Start a Focus Session", desc: "Lock in and work. The clock tracks you." },
+  { icon: "document-text-outline", color: "#4CAF50", label: "Submit Proof", desc: "The AI reviews your work and awards XP." },
+];
+
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState(0);
+  const [completed, setCompleted] = useState(false);
   const [form, setForm] = useState<FormState>({
     mainGoal: "",
     mainProblem: "",
@@ -145,7 +153,59 @@ export default function OnboardingScreen() {
       });
     } catch {
     }
-    router.replace("/(tabs)");
+    setCompleted(true);
+  }
+
+  if (completed) {
+    return (
+      <View style={[completionStyles.container, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 32 }]}>
+        <ScrollView contentContainerStyle={completionStyles.scroll} showsVerticalScrollIndicator={false}>
+          <Animated.View entering={FadeIn.duration(500)} style={completionStyles.iconWrap}>
+            <Ionicons name="checkmark-circle" size={64} color="#4CAF50" />
+          </Animated.View>
+          <Animated.Text entering={FadeInDown.delay(100).springify()} style={completionStyles.headline}>
+            You're in.
+          </Animated.Text>
+          <Animated.Text entering={FadeInDown.delay(160).springify()} style={completionStyles.sub}>
+            Your profile is set. The AI Game Master now knows what to build for you.
+          </Animated.Text>
+
+          <Animated.View entering={FadeInDown.delay(220).springify()} style={completionStyles.stepsCard}>
+            <Text style={completionStyles.stepsLabel}>HOW THIS WORKS</Text>
+            {FIRST_STEPS.map((s, i) => (
+              <View key={s.label} style={[completionStyles.stepRow, i < FIRST_STEPS.length - 1 && completionStyles.stepRowBorder]}>
+                <View style={[completionStyles.stepIconBox, { backgroundColor: s.color + "20" }]}>
+                  <Ionicons name={s.icon as any} size={18} color={s.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={completionStyles.stepLabel}>{s.label}</Text>
+                  <Text style={completionStyles.stepDesc}>{s.desc}</Text>
+                </View>
+                {i < FIRST_STEPS.length - 1 && (
+                  <Ionicons name="arrow-forward" size={14} color="#FFFFFF20" />
+                )}
+              </View>
+            ))}
+          </Animated.View>
+
+          <Animated.View entering={FadeInDown.delay(300).springify()} style={{ gap: 12 }}>
+            <Pressable
+              style={({ pressed }) => [completionStyles.primaryBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); router.replace("/mission/new"); }}
+            >
+              <Ionicons name="add-circle-outline" size={20} color="#fff" />
+              <Text style={completionStyles.primaryBtnText}>Create Your First Mission</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [completionStyles.secondaryBtn, pressed && { opacity: 0.75 }]}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.replace("/(tabs)"); }}
+            >
+              <Text style={completionStyles.secondaryBtnText}>Explore the app first</Text>
+            </Pressable>
+          </Animated.View>
+        </ScrollView>
+      </View>
+    );
   }
 
   return (
@@ -333,4 +393,23 @@ const styles = StyleSheet.create({
   nextBtn:               { flex: 1, height: 52, borderRadius: 14, backgroundColor: Colors.accent, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   nextBtnDisabled:       { opacity: 0.4 },
   nextBtnText:           { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.bg },
+});
+
+const completionStyles = StyleSheet.create({
+  container:    { flex: 1, backgroundColor: Colors.bg },
+  scroll:       { paddingHorizontal: 24, paddingBottom: 40, gap: 28, alignItems: "stretch" },
+  iconWrap:     { alignItems: "center", paddingTop: 16 },
+  headline:     { fontFamily: "Inter_700Bold", fontSize: 36, color: Colors.textPrimary, textAlign: "center", letterSpacing: -1 },
+  sub:          { fontFamily: "Inter_400Regular", fontSize: 15, color: Colors.textSecondary, textAlign: "center", lineHeight: 22 },
+  stepsCard:    { backgroundColor: Colors.bgCard, borderRadius: 18, borderWidth: 1, borderColor: Colors.border, padding: 16, gap: 0 },
+  stepsLabel:   { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.2, marginBottom: 14 },
+  stepRow:      { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
+  stepRowBorder:{ borderBottomWidth: 1, borderBottomColor: Colors.border + "60" },
+  stepIconBox:  { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  stepLabel:    { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
+  stepDesc:     { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  primaryBtn:   { height: 54, borderRadius: 14, backgroundColor: Colors.accent, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  primaryBtnText: { fontFamily: "Inter_700Bold", fontSize: 16, color: "#fff" },
+  secondaryBtn: { height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  secondaryBtnText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textMuted },
 });

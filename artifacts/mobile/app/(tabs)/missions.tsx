@@ -289,11 +289,19 @@ export default function MissionsScreen() {
               <View style={styles.emptyBox}>
                 <Ionicons name="telescope-outline" size={48} color={Colors.textMuted} />
                 <Text style={styles.emptyTitle}>No {missionTab} missions</Text>
-                <Text style={styles.emptyText}>Create a mission to get started.</Text>
-                {missionTab === "active" && (
-                  <Pressable style={styles.emptyBtn} onPress={() => router.push("/mission/new")}>
-                    <Text style={styles.emptyBtnText}>Create Mission</Text>
-                  </Pressable>
+                {missionTab === "active" ? (
+                  <>
+                    <Text style={styles.emptyText}>
+                      A mission is a committed task with a time target. Start one, run a focus session, submit proof — that's the loop that builds your character and earns rewards.
+                    </Text>
+                    <Pressable style={styles.emptyBtn} onPress={() => router.push("/mission/new")}>
+                      <Text style={styles.emptyBtnText}>Create Mission</Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <Text style={styles.emptyText}>
+                    {missionTab === "completed" ? "Complete missions by finishing focus sessions and submitting proof." : "No missions here yet."}
+                  </Text>
                 )}
               </View>
             ) : (
@@ -373,15 +381,25 @@ export default function MissionsScreen() {
             <ActivityIndicator color={Colors.accent} style={{ marginTop: 60 }} />
           ) : aiMissions.length === 0 ? (
             <View style={styles.emptyBox}>
-              <Ionicons name="flash-outline" size={48} color={Colors.textMuted} />
+              <View style={styles.aiEmptyIcon}>
+                <Ionicons name="flash" size={28} color="#7C5CFC" />
+              </View>
               <Text style={styles.emptyTitle}>No directives issued</Text>
               <Text style={styles.emptyText}>
-                Generate missions calibrated to your current skill levels and goals.
+                The AI Game Master analyzes your profile, skill levels, and goals to generate missions built specifically for you. These are not generic — they target your weak zones.
               </Text>
+              <View style={styles.aiFeatureList}>
+                {["Calibrated to your available time", "Targets your weakest skill areas", "Adaptive — gets harder as you level up"].map((f) => (
+                  <View key={f} style={styles.aiFeatureRow}>
+                    <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
+                    <Text style={styles.aiFeatureText}>{f}</Text>
+                  </View>
+                ))}
+              </View>
               <Pressable style={styles.emptyBtn} onPress={handleGenerate}>
                 {generateAiMissions.isPending
                   ? <ActivityIndicator size="small" color="#fff" />
-                  : <Text style={styles.emptyBtnText}>Generate Missions</Text>
+                  : <Text style={styles.emptyBtnText}>Generate My Directives</Text>
                 }
               </Pressable>
             </View>
@@ -620,4 +638,8 @@ const styles = StyleSheet.create({
   whySkillText:       { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
   whyClose:           { backgroundColor: Colors.accent, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
   whyCloseText:       { fontFamily: "Inter_700Bold", fontSize: 14, color: "#fff" },
+  aiEmptyIcon:        { width: 60, height: 60, borderRadius: 18, backgroundColor: "#7C5CFC20", alignItems: "center", justifyContent: "center" },
+  aiFeatureList:      { gap: 8, alignSelf: "stretch", paddingHorizontal: 8 },
+  aiFeatureRow:       { flexDirection: "row", alignItems: "center", gap: 8 },
+  aiFeatureText:      { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
 });

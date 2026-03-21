@@ -39,6 +39,8 @@ import worldRouter from "./world.js";
 // Phase 19 — Premium / Monetization
 import premiumRouter from "./premium.js";
 import adminPremiumRouter from "./admin-premium.js";
+// Phase 24 — UX Guidance / Smart Onboarding
+import guidanceRouter from "./guidance.js";
 
 const router: IRouter = Router();
 
@@ -83,5 +85,7 @@ router.use("/platform", webhooksRouter);
 router.use("/calendar", calendarRouter);
 router.use("/platform", dataExportRouter);
 router.use("/platform/integrations", integrationsRouter);
+// Phase 24 — UX Guidance
+router.use("/guidance", guidanceRouter);
 
 export default router;

@@ -10,7 +10,9 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
-import { useDashboard, useActiveChain, useDailyContext, useEndgame, useStartCycle, useLiveOps, useVariantBySurface, useTrackVariantOutcome } from "@/hooks/useApi";
+import { useDashboard, useActiveChain, useDailyContext, useEndgame, useStartCycle, useLiveOps, useVariantBySurface, useTrackVariantOutcome, useNextAction } from "@/hooks/useApi";
+import { NextActionCard } from "@/components/guidance/NextActionCard";
+import { CoachCard } from "@/components/guidance/CoachCard";
 
 function StatCard({ label, value, icon, color, delay }: any) {
   return (
@@ -308,6 +310,11 @@ const liveStyles = StyleSheet.create({
   packMeta: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
 });
 
+const HIGH_PRIORITY_ACTIONS = new Set([
+  "complete_profile", "create_first_mission", "start_first_session",
+  "submit_first_proof", "answer_followup", "return_to_session", "recover_rejection",
+]);
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -316,10 +323,16 @@ export default function HomeScreen() {
   const { data: dailyData } = useDailyContext();
   const { data: endgameData } = useEndgame();
   const { data: liveOpsData } = useLiveOps();
+  const { data: guidanceData } = useNextAction();
+  const [dismissedCards, setDismissedCards] = React.useState<string[]>([]);
   const isComeback = dailyData?.state === "comeback";
   const { data: comebackVariant } = useVariantBySurface("comeback_copy", isComeback);
   const trackOutcome = useTrackVariantOutcome();
   const startCycle = useStartCycle();
+
+  const nextAction = guidanceData?.nextAction ?? null;
+  const coachCards = (guidanceData?.coachCards ?? []).filter((c: any) => !dismissedCards.includes(c.id));
+  const showNextAction = nextAction && HIGH_PRIORITY_ACTIONS.has(nextAction.action);
 
   function handleComebackCTA() {
     if (comebackVariant?.variantId && comebackVariant.variantKey !== "control") {
@@ -371,6 +384,11 @@ export default function HomeScreen() {
               <Ionicons name="arrow-forward" size={18} color={Colors.green} />
             </Pressable>
           </Animated.View>
+        )}
+
+        {/* Next Action Guidance (high-priority, new-user flows) */}
+        {showNextAction && (
+          <NextActionCard action={nextAction} delay={60} />
         )}
 
         {/* Stats Grid */}
@@ -455,6 +473,20 @@ export default function HomeScreen() {
           </View>
         </Animated.View>
 
+        {/* Coach Cards */}
+        {coachCards.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(220).springify()} style={{ gap: 10 }}>
+            {coachCards.map((card: any, i: number) => (
+              <CoachCard
+                key={card.id}
+                card={card}
+                delay={i * 40}
+                onDismiss={(id) => setDismissedCards((prev) => [...prev, id])}
+              />
+            ))}
+          </Animated.View>
+        )}
+
         {/* Pending Follow-ups */}
         {data?.pendingProofs?.length > 0 && (
           <Animated.View entering={FadeInDown.delay(300).springify()}>
@@ -490,7 +522,16 @@ export default function HomeScreen() {
             <View style={styles.emptyBox}>
               <Ionicons name="telescope-outline" size={40} color={Colors.textMuted} />
               <Text style={styles.emptyTitle}>No missions yet</Text>
-              <Text style={styles.emptyText}>Create your first mission to begin.</Text>
+              <Text style={styles.emptyText}>
+                A mission is a committed task — you set the goal, start a focus session, and submit proof. That loop is how you earn XP, rewards, and build your character.
+              </Text>
+              <Pressable
+                style={styles.emptyActionBtn}
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/mission/new"); }}
+              >
+                <Ionicons name="add-circle-outline" size={16} color={Colors.accent} />
+                <Text style={styles.emptyActionBtnText}>Create Your First Mission</Text>
+              </Pressable>
             </View>
           ) : (
             data.recentMissions.map((m: any, i: number) => (
@@ -614,5 +655,11 @@ const styles = StyleSheet.create({
 
   emptyBox: { alignItems: "center", padding: 32, gap: 12 },
   emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: Colors.textSecondary },
-  emptyText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textMuted, textAlign: "center" },
+  emptyText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textMuted, textAlign: "center", lineHeight: 20 },
+  emptyActionBtn: {
+    flexDirection: "row", alignItems: "center", gap: 7,
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12,
+    borderWidth: 1, borderColor: Colors.accent + "50", backgroundColor: Colors.accent + "15",
+  },
+  emptyActionBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.accent },
 });

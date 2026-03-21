@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withRepeat, withTiming } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeIn, FadeOutUp, useSharedValue, useAnimatedStyle, withRepeat, withTiming } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useActiveSession, usePauseSession, useResumeSession, useStopSession, useHeartbeat } from "@/hooks/useApi";
 
@@ -33,6 +33,7 @@ export default function ActiveFocusScreen() {
   const stopSession = useStopSession();
   const heartbeat = useHeartbeat();
   const [localElapsed, setLocalElapsed] = useState(0);
+  const [showTip, setShowTip] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const heartbeatRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
@@ -207,6 +208,24 @@ export default function ActiveFocusScreen() {
         ))}
       </Animated.View>
 
+      {/* First-Session Guidance Tip */}
+      {showTip && localElapsed < 30 && (
+        <Animated.View entering={FadeIn.duration(400)} exiting={FadeOutUp.duration(300)} style={tipStyles.card}>
+          <View style={tipStyles.header}>
+            <Ionicons name="bulb-outline" size={14} color={Colors.cyan} />
+            <Text style={tipStyles.label}>WHAT HAPPENS NEXT</Text>
+            <Pressable onPress={() => setShowTip(false)} hitSlop={10}>
+              <Ionicons name="close" size={14} color={Colors.textMuted} />
+            </Pressable>
+          </View>
+          <Text style={tipStyles.body}>
+            Stay focused and do the work. When done, tap{" "}
+            <Text style={{ color: Colors.green, fontFamily: "Inter_600SemiBold" }}>End Session</Text>
+            {" "}and you'll be taken to submit proof — a short summary of what you accomplished.
+          </Text>
+        </Animated.View>
+      )}
+
       {/* Controls */}
       <Animated.View entering={FadeInDown.delay(250).springify()} style={styles.controls}>
         {isActive && (
@@ -303,4 +322,20 @@ const styles = StyleSheet.create({
   controlBtnText: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.textPrimary },
   emergencyBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 16 },
   emergencyText: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.crimson },
+});
+
+const tipStyles = StyleSheet.create({
+  card: {
+    backgroundColor: Colors.cyan + "10",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.cyan + "30",
+    padding: 12,
+    gap: 8,
+    marginBottom: 16,
+    marginHorizontal: 24,
+  },
+  header: { flexDirection: "row", alignItems: "center", gap: 8 },
+  label: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.cyan, letterSpacing: 1.2, flex: 1 },
+  body:  { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
 });
