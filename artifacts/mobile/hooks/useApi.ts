@@ -876,3 +876,14 @@ export function useRecommendations() {
     staleTime: 90000,
   });
 }
+
+export function useTrackRecommendationEvent() {
+  const { request } = useApiClient();
+  return useMutation({
+    mutationFn: (data: { event: "clicked" | "dismissed" | "not_relevant"; type: string; itemId?: string }) =>
+      request<{ ok: boolean }>("/guidance/recommendations/event", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  });
+}

@@ -12,7 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   useRewardBalance, useDailyAnalytics, useSkills,
   useLifeProfile, useInventoryBadges, useInventoryTitles, useStreaks,
-  useIdentity, useEndgame, useRecommendations,
+  useIdentity, useEndgame, useRecommendations, useTrackRecommendationEvent,
 } from "@/hooks/useApi";
 import { ProgressionTipCard } from "@/components/guidance/RecommendationPanel";
 
@@ -43,6 +43,7 @@ export default function ProfileScreen() {
   const { data: identityData } = useIdentity();
   const { data: endgameData } = useEndgame();
   const { data: recData } = useRecommendations();
+  const trackRec = useTrackRecommendationEvent();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
@@ -208,7 +209,11 @@ export default function ProfileScreen() {
         {/* Best Next Move — progression recommendation (intermediate/advanced) */}
         {recData?.progressionTip && recData.userTier !== "new" && (
           <Animated.View entering={FadeInDown.delay(60).springify()}>
-            <ProgressionTipCard tip={recData.progressionTip} delay={0} />
+            <ProgressionTipCard
+              tip={recData.progressionTip}
+              delay={0}
+              onDismiss={() => trackRec.mutate({ event: "dismissed", type: "progression" })}
+            />
           </Animated.View>
         )}
 

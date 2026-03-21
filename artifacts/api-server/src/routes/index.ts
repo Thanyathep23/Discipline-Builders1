@@ -41,6 +41,8 @@ import premiumRouter from "./premium.js";
 import adminPremiumRouter from "./admin-premium.js";
 // Phase 24 — UX Guidance / Smart Onboarding
 import guidanceRouter from "./guidance.js";
+// Phase 25 — Recommendation admin inspector
+import adminRecommendationsRouter from "./admin-recommendations.js";
 
 const router: IRouter = Router();
 
@@ -87,5 +89,7 @@ router.use("/platform", dataExportRouter);
 router.use("/platform/integrations", integrationsRouter);
 // Phase 24 — UX Guidance
 router.use("/guidance", guidanceRouter);
+// Phase 25 — Recommendation admin inspector
+router.use("/admin/recommendations", adminRecommendationsRouter);
 
 export default router;

@@ -69,4 +69,9 @@ export const Events = {
   // Growth / Invites
   INVITE_CODE_GENERATED:         "invite_code_generated",
   INVITE_CODE_USED:              "invite_code_used",
+  // Recommendations (Phase 25)
+  RECOMMENDATION_SHOWN:          "recommendation_shown",
+  RECOMMENDATION_CLICKED:        "recommendation_clicked",
+  RECOMMENDATION_DISMISSED:      "recommendation_dismissed",
+  RECOMMENDATION_NOT_RELEVANT:   "recommendation_not_relevant",
 } as const;

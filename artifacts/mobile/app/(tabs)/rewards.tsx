@@ -13,7 +13,7 @@ import {
   useInventoryBadges, useInventoryTitles, useActivateTitle,
   useInventoryAssets, useAppliedState,
   useMarketplace, useCatalogCategories, useBuyItem, useEquipItem, useUnequipItem, useSellItem,
-  useRecommendations,
+  useRecommendations, useTrackRecommendationEvent,
 } from "@/hooks/useApi";
 import { StoreRecommendationCard } from "@/components/guidance/RecommendationPanel";
 import { router } from "expo-router";
@@ -100,6 +100,7 @@ export default function RewardsScreen() {
   const { data: assetsData } = useInventoryAssets();
   const { data: appliedState } = useAppliedState();
   const { data: recData } = useRecommendations();
+  const trackRec = useTrackRecommendationEvent();
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const bottomPad = insets.bottom + (Platform.OS === "web" ? 34 : 84);
@@ -349,7 +350,12 @@ export default function RewardsScreen() {
             {/* Recommended for You — smart store card */}
             {recData?.storeRecommendation && (
               <Animated.View entering={FadeInDown.delay(30).springify()} style={{ paddingHorizontal: 20, marginBottom: 6 }}>
-                <StoreRecommendationCard rec={recData.storeRecommendation} delay={0} />
+                <StoreRecommendationCard
+                  rec={recData.storeRecommendation}
+                  delay={0}
+                  onDismiss={() => trackRec.mutate({ event: "dismissed", type: "store", itemId: recData.storeRecommendation?.itemId })}
+                  onCTAPress={() => trackRec.mutate({ event: "clicked", type: "store", itemId: recData.storeRecommendation?.itemId })}
+                />
               </Animated.View>
             )}
 

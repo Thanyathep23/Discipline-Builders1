@@ -10,6 +10,7 @@ import { getUserSkills } from "../lib/skill-engine.js";
 import { resolveArc } from "../lib/arc-resolver.js";
 import { computePrestigeState } from "../lib/prestige-engine.js";
 import { computeAdaptiveChallenge, ChallengeProfile } from "../lib/adaptive-challenge.js";
+import { trackEvent, Events } from "../lib/telemetry.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -671,13 +672,44 @@ router.get("/recommendations", async (req, res) => {
     });
   }
 
-  res.json({
+  const payload = {
     userTier,
     recommendedMission,
     storeRecommendation,
     progressionTip,
     secondaryActions: secondaryActions.slice(0, 2),
-  });
+  };
+
+  res.json(payload);
+
+  // ── Impression telemetry (fire-and-forget, non-blocking) ──────────────────
+  const shownTypes: string[] = [];
+  if (recommendedMission)   shownTypes.push("mission");
+  if (storeRecommendation)  shownTypes.push("store");
+  if (progressionTip)       shownTypes.push("progression");
+  secondaryActions.forEach((a) => shownTypes.push(a.type));
+  trackEvent(Events.RECOMMENDATION_SHOWN, userId, { userTier, types: shownTypes });
+});
+
+// ── POST /guidance/recommendations/event — user-initiated event tracking ─────
+router.post("/recommendations/event", async (req, res) => {
+  const userId = (req as any).userId;
+  const { event, type, itemId } = req.body ?? {};
+
+  const eventMap: Record<string, string> = {
+    clicked:      Events.RECOMMENDATION_CLICKED,
+    dismissed:    Events.RECOMMENDATION_DISMISSED,
+    not_relevant: Events.RECOMMENDATION_NOT_RELEVANT,
+  };
+
+  const eventName = eventMap[event];
+  if (!eventName || !type) {
+    res.status(400).json({ error: "Invalid event or type" });
+    return;
+  }
+
+  await trackEvent(eventName, userId, { type, ...(itemId ? { itemId } : {}) });
+  res.json({ ok: true });
 });
 
 export default router;

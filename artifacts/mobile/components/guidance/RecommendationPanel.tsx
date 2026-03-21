@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -8,10 +8,21 @@ import { Colors } from "@/constants/colors";
 
 // ── Progression Tip ──────────────────────────────────────────────────────────
 
-export function ProgressionTipCard({ tip, delay = 0 }: { tip: any; delay?: number }) {
-  if (!tip) return null;
+export function ProgressionTipCard({
+  tip, delay = 0, onDismiss,
+}: {
+  tip: any; delay?: number; onDismiss?: () => void;
+}) {
+  const [dismissed, setDismissed] = useState(false);
+  if (!tip || dismissed) return null;
   const color = tip.accentColor ?? Colors.cyan;
   const pct = Math.min(100, Math.max(0, tip.progressPct ?? 0));
+
+  const handleDismiss = () => {
+    Haptics.selectionAsync();
+    setDismissed(true);
+    onDismiss?.();
+  };
 
   return (
     <Animated.View entering={FadeInDown.delay(delay).springify()} style={[progStyles.card, { borderColor: color + "30" }]}>
@@ -28,6 +39,9 @@ export function ProgressionTipCard({ tip, delay = 0 }: { tip: any; delay?: numbe
             <Text style={[progStyles.pctText, { color }]}>{pct}%</Text>
           </View>
         )}
+        <Pressable onPress={handleDismiss} hitSlop={10} style={progStyles.dismissBtn}>
+          <Ionicons name="close" size={13} color={Colors.textMuted} />
+        </Pressable>
       </View>
       <Text style={progStyles.body} numberOfLines={3}>{tip.body}</Text>
       {pct > 0 && (
@@ -54,8 +68,9 @@ const progStyles = StyleSheet.create({
   body:    { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
   pctBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, flexShrink: 0 },
   pctText:  { fontFamily: "Inter_700Bold", fontSize: 11 },
-  barTrack: { height: 3, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden" },
-  barFill:  { height: 3, borderRadius: 2 },
+  barTrack:   { height: 3, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden" },
+  barFill:    { height: 3, borderRadius: 2 },
+  dismissBtn: { padding: 4, marginLeft: 4 },
 });
 
 // ── Store Recommendation ──────────────────────────────────────────────────────
@@ -68,10 +83,27 @@ const RARITY_COLORS: Record<string, string> = {
   legendary: Colors.gold,
 };
 
-export function StoreRecommendationCard({ rec, delay = 0 }: { rec: any; delay?: number }) {
-  if (!rec) return null;
+export function StoreRecommendationCard({
+  rec, delay = 0, onDismiss, onCTAPress,
+}: {
+  rec: any; delay?: number; onDismiss?: () => void; onCTAPress?: () => void;
+}) {
+  const [dismissed, setDismissed] = useState(false);
+  if (!rec || dismissed) return null;
   const rarityColor = RARITY_COLORS[rec.rarity] ?? Colors.textMuted;
   const accentColor = rec.canAfford ? Colors.green : "#9C27B0";
+
+  const handleDismiss = () => {
+    Haptics.selectionAsync();
+    setDismissed(true);
+    onDismiss?.();
+  };
+
+  const handleCTA = () => {
+    Haptics.selectionAsync();
+    onCTAPress?.();
+    router.push("/(tabs)/rewards");
+  };
 
   return (
     <Animated.View entering={FadeInDown.delay(delay).springify()} style={[storeStyles.card, { borderColor: accentColor + "28" }]}>
@@ -90,11 +122,14 @@ export function StoreRecommendationCard({ rec, delay = 0 }: { rec: any; delay?: 
             <Text style={storeStyles.cost}>{rec.cost.toLocaleString()}</Text>
           </View>
         </View>
+        <Pressable onPress={handleDismiss} hitSlop={10} style={storeStyles.dismissBtn}>
+          <Ionicons name="close" size={13} color={Colors.textMuted} />
+        </Pressable>
       </View>
       <Text style={storeStyles.why} numberOfLines={2}>{rec.why}</Text>
       <Pressable
         style={({ pressed }) => [storeStyles.cta, { backgroundColor: accentColor + "18", borderColor: accentColor + "40" }, pressed && { opacity: 0.7 }]}
-        onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/rewards"); }}
+        onPress={handleCTA}
       >
         <Ionicons name={rec.canAfford ? "cart-outline" : "eye-outline"} size={13} color={accentColor} />
         <Text style={[storeStyles.ctaText, { color: accentColor }]}>
@@ -126,7 +161,8 @@ const storeStyles = StyleSheet.create({
     alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 7,
     borderRadius: 10, borderWidth: 1,
   },
-  ctaText: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
+  ctaText:    { fontFamily: "Inter_600SemiBold", fontSize: 12 },
+  dismissBtn: { padding: 4, marginLeft: 4 },
 });
 
 // ── Recommended Mission Badge ─────────────────────────────────────────────────
@@ -153,13 +189,17 @@ const badgeStyles = StyleSheet.create({
 
 // ── Secondary Action Card ─────────────────────────────────────────────────────
 
-export function SecondaryActionCard({ action, delay = 0 }: { action: any; delay?: number }) {
+export function SecondaryActionCard({
+  action, delay = 0, onCTAPress,
+}: {
+  action: any; delay?: number; onCTAPress?: () => void;
+}) {
   if (!action) return null;
   const color = action.accentColor ?? Colors.accent;
   return (
     <Pressable
       style={({ pressed }) => [secStyles.card, { borderColor: color + "28" }, pressed && { opacity: 0.8 }]}
-      onPress={() => { Haptics.selectionAsync(); router.push(action.route); }}
+      onPress={() => { Haptics.selectionAsync(); onCTAPress?.(); router.push(action.route); }}
     >
       <View style={[secStyles.icon, { backgroundColor: color + "18" }]}>
         <Ionicons name={action.icon ?? "arrow-forward-circle-outline"} size={16} color={color} />
