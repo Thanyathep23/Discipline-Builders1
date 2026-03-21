@@ -41,6 +41,7 @@ Before going live, verify the following:
 - [ ] `/api/admin/observability` returns metrics without error
 - [ ] `/api/admin/support/stuck-proofs` returns (may be empty — that's fine)
 - [ ] Feature flags screen loads in admin mobile app
+- [ ] Kill Switches screen loads in admin mobile app — all switches show `LIVE` (green)
 
 ---
 
@@ -107,7 +108,7 @@ curl -X POST /api/admin/kill-switches/kill_ai_missions/revive \
 ```
 
 ### Via Mobile Admin
-Admin app → Feature Flags screen → Find `kill_*` flag → Set to `true` to kill, `false` to revive.
+Admin app → **Kill Switches** screen (first item in Inspection Tools) → tap **Kill** to disable a subsystem or **Revive** to re-enable it. Each action requires confirmation and is audit-logged automatically.
 
 ---
 
