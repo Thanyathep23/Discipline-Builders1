@@ -5,6 +5,7 @@ import { awardBadge, awardTitle, recordMilestone } from "./inventory.js";
 import { z } from "zod";
 import { requireAuth, generateId } from "../lib/auth.js";
 import { trackEvent, Events } from "../lib/telemetry.js";
+import { dispatchWebhookEvent } from "../lib/webhook-dispatcher.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -257,6 +258,16 @@ router.post("/:sessionId/stop", async (req, res) => {
 
   const evt = finalStatus === "completed" ? Events.FOCUS_COMPLETED : Events.FOCUS_ABANDONED;
   trackEvent(evt, userId, { sessionId: req.params.sessionId, durationSeconds, reason: parsed.data.reason }).catch(() => {});
+
+  // Phase 16 — Webhook dispatch
+  if (finalStatus === "completed") {
+    dispatchWebhookEvent(userId, "focus.completed", {
+      sessionId: req.params.sessionId,
+      missionId: data.session.missionId,
+      durationSeconds,
+      strictnessMode: data.session.strictnessMode,
+    }).catch(() => {});
+  }
 
   if (finalStatus === "completed") {
     try {

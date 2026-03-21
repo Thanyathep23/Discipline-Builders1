@@ -8,6 +8,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 import { randomUUID } from "crypto";
 import { emitActivityForUser } from "../lib/circle-activity.js";
+import { dispatchWebhookEvent } from "../lib/webhook-dispatcher.js";
 
 const router = Router();
 
@@ -373,6 +374,13 @@ export async function awardBadge(userId: string, badgeId: string): Promise<boole
       color: "#F5C842",
       rarity: badgeDef.rarity,
     }).catch(() => {});
+    // Phase 16 — Webhook dispatch
+    dispatchWebhookEvent(userId, "badge.unlocked", {
+      badgeId,
+      name: badgeDef.name,
+      rarity: badgeDef.rarity,
+      icon: badgeDef.icon ?? "ribbon",
+    }).catch(() => {});
   }
 
   return true;
@@ -399,6 +407,12 @@ export async function awardTitle(userId: string, titleId: string): Promise<boole
       label: titleDef.name,
       icon: "ribbon",
       color: "#9C27B0",
+      rarity: titleDef.rarity,
+    }).catch(() => {});
+    // Phase 16 — Webhook dispatch
+    dispatchWebhookEvent(userId, "title.unlocked", {
+      titleId,
+      name: titleDef.name,
       rarity: titleDef.rarity,
     }).catch(() => {});
   }

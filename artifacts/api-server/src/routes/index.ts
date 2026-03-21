@@ -25,6 +25,13 @@ import endgameRouter from "./endgame.js";
 import { adminLiveOpsRouter, userLiveOpsRouter } from "./live-ops.js";
 import circlesRouter from "./circles.js";
 import showcaseRouter from "./showcase.js";
+// Phase 16 — Platformization
+import platformApiRouter from "./platform-api.js";
+import apiKeysRouter from "./api-keys.js";
+import webhooksRouter from "./webhooks.js";
+import calendarRouter from "./calendar.js";
+import dataExportRouter from "./data-export.js";
+import integrationsRouter from "./integrations.js";
 
 const router: IRouter = Router();
 
@@ -55,5 +62,12 @@ router.use("/admin/live-ops", adminLiveOpsRouter);
 router.use("/live-ops", userLiveOpsRouter);
 router.use("/circles", circlesRouter);
 router.use("/showcase", showcaseRouter);
+// Phase 16 — Platformization routes
+router.use("/v1", platformApiRouter);
+router.use("/platform", apiKeysRouter);
+router.use("/platform", webhooksRouter);
+router.use("/calendar", calendarRouter);
+router.use("/platform", dataExportRouter);
+router.use("/platform/integrations", integrationsRouter);
 
 export default router;

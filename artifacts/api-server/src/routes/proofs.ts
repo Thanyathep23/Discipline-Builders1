@@ -12,6 +12,7 @@ import { incrementCycleProgress, markCycleRewardClaimed } from "../lib/cycle-eng
 import { auditLogTable } from "@workspace/db";
 import { awardBadge, awardTitle } from "./inventory.js";
 import { trackEvent, Events } from "../lib/telemetry.js";
+import { dispatchWebhookEvent } from "../lib/webhook-dispatcher.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -295,6 +296,31 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     judgeResult.verdict === "followup_needed" ? Events.PROOF_FOLLOWUP_REQUIRED : null;
   if (verdictEvent) {
     trackEvent(verdictEvent, userId, { submissionId, verdict: judgeResult.verdict, coins: coinsAwarded }).catch(() => {});
+  }
+
+  // Phase 16 — Webhook dispatch (fire-and-forget, never breaks main flow)
+  if (judgeResult.verdict === "approved" || judgeResult.verdict === "partial") {
+    dispatchWebhookEvent(userId, "proof.approved", {
+      submissionId,
+      missionId: mission.id,
+      missionTitle: mission.title,
+      coinsAwarded,
+      verdict: judgeResult.verdict,
+      confidenceScore: judgeResult.confidenceScore,
+    }).catch(() => {});
+    dispatchWebhookEvent(userId, "mission.completed", {
+      missionId: mission.id,
+      title: mission.title,
+      category: mission.category,
+      coinsAwarded,
+    }).catch(() => {});
+  }
+  if (judgeResult.verdict === "rejected") {
+    dispatchWebhookEvent(userId, "proof.rejected", {
+      submissionId,
+      missionId: mission.id,
+      missionTitle: mission.title,
+    }).catch(() => {});
   }
 }
 

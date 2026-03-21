@@ -5,6 +5,7 @@ import { generateMissionsWithAI } from "../lib/mission-generator.js";
 import { resolveArcWithEvidenceGating } from "../lib/arc-resolver.js";
 import { requireAuth } from "../lib/auth.js";
 import { trackEvent, Events } from "../lib/telemetry.js";
+import { dispatchWebhookEvent } from "../lib/webhook-dispatcher.js";
 import { randomUUID } from "crypto";
 import {
   getMissionBriefing,
@@ -459,6 +460,13 @@ router.post("/:missionId/respond", requireAuth, async (req: any, res) => {
       } catch {}
 
       trackEvent(Events.AI_MISSION_ACCEPTED, userId, { missionId, relatedSkill: mission.relatedSkill }).catch(() => {});
+      dispatchWebhookEvent(userId, "ai_mission.accepted", {
+        missionId,
+        title: mission.title,
+        relatedSkill: mission.relatedSkill,
+        rarity: mission.rarity,
+        chainId: mission.chainId ?? null,
+      }).catch(() => {});
       const gmNote = getAcceptNote(mission);
       return res.json({
         status: "accepted",
