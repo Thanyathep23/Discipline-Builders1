@@ -406,9 +406,29 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Quick Actions — primary CTA near the top */}
+        <Animated.View entering={FadeInDown.delay(180).springify()}>
+          <View style={styles.quickActions}>
+            <Pressable
+              style={({ pressed }) => [styles.quickBtn, styles.quickBtnPrimary, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/mission/new"); }}
+            >
+              <Ionicons name="add-circle" size={20} color="#fff" />
+              <Text style={styles.quickBtnTextPrimary}>New Mission</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.quickBtn, styles.quickBtnSecondary, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/(tabs)/missions"); }}
+            >
+              <Ionicons name="list" size={20} color={Colors.textPrimary} />
+              <Text style={styles.quickBtnTextSecondary}>View Missions</Text>
+            </Pressable>
+          </View>
+        </Animated.View>
+
         {/* Current Arc */}
         {data?.currentArc && (
-          <Animated.View entering={FadeInDown.delay(175).springify()} style={styles.arcBanner}>
+          <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.arcBanner}>
             <View style={styles.arcBannerIcon}>
               <Ionicons name={(data.currentArc.icon ?? "navigate") as any} size={18} color={Colors.accent} />
             </View>
@@ -436,45 +456,6 @@ export default function HomeScreen() {
             onCTA={handleComebackCTA}
           />
         )}
-
-        {/* Live Event / Challenge Pack Banner */}
-        {liveOpsData && (liveOpsData.events.length > 0 || liveOpsData.packs.length > 0) && (
-          <LiveContentBanner events={liveOpsData.events} packs={liveOpsData.packs} />
-        )}
-
-        {/* Progression Horizon */}
-        {endgameData?.nextHorizon && endgameData.nextHorizon.length > 0 && (
-          <NextHorizonCard
-            items={endgameData.nextHorizon}
-            cycleData={endgameData.cycle}
-            onStartCycle={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              const suggested = endgameData.cycle?.suggestedCycleType ?? "focus_season";
-              startCycle.mutate(suggested);
-            }}
-          />
-        )}
-
-        {/* Quick Actions */}
-        <Animated.View entering={FadeInDown.delay(200).springify()}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActions}>
-            <Pressable
-              style={({ pressed }) => [styles.quickBtn, styles.quickBtnPrimary, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/mission/new"); }}
-            >
-              <Ionicons name="add-circle" size={20} color="#fff" />
-              <Text style={styles.quickBtnTextPrimary}>New Mission</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.quickBtn, styles.quickBtnSecondary, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/(tabs)/missions"); }}
-            >
-              <Ionicons name="list" size={20} color={Colors.textPrimary} />
-              <Text style={styles.quickBtnTextSecondary}>View Missions</Text>
-            </Pressable>
-          </View>
-        </Animated.View>
 
         {/* Coach Cards */}
         {coachCards.length > 0 && (
@@ -517,6 +498,35 @@ export default function HomeScreen() {
                 onCTAPress={() => trackRec.mutate({ event: "clicked", type: action.type })}
               />
             ))}
+          </Animated.View>
+        )}
+
+        {/* Live Event / Challenge Pack Banner */}
+        {liveOpsData && (liveOpsData.events.length > 0 || liveOpsData.packs.length > 0) && (
+          <LiveContentBanner events={liveOpsData.events} packs={liveOpsData.packs} />
+        )}
+
+        {/* Progression Horizon — first item only to reduce noise; see full list in Evolution */}
+        {endgameData?.nextHorizon && endgameData.nextHorizon.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(260).springify()} style={{ gap: 8 }}>
+            <NextHorizonCard
+              items={endgameData.nextHorizon.slice(0, 1)}
+              cycleData={endgameData.cycle}
+              onStartCycle={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                const suggested = endgameData.cycle?.suggestedCycleType ?? "focus_season";
+                startCycle.mutate(suggested);
+              }}
+            />
+            {endgameData.nextHorizon.length > 1 && (
+              <Pressable
+                style={styles.seeAllHorizon}
+                onPress={() => { Haptics.selectionAsync(); router.push("/evolution"); }}
+              >
+                <Text style={styles.seeAllHorizonText}>+{endgameData.nextHorizon.length - 1} more milestones in Evolution</Text>
+                <Ionicons name="chevron-forward" size={12} color={Colors.textMuted} />
+              </Pressable>
+            )}
           </Animated.View>
         )}
 
@@ -695,4 +705,10 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.accent + "50", backgroundColor: Colors.accent + "15",
   },
   emptyActionBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.accent },
+
+  seeAllHorizon: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4,
+    paddingVertical: 8,
+  },
+  seeAllHorizonText: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
 });

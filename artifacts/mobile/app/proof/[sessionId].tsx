@@ -441,7 +441,56 @@ export default function ProofSubmissionScreen() {
             )}
 
             {isFinalized && (
-              <Animated.View entering={FadeInDown.delay(200).springify()}>
+              <Animated.View entering={FadeInDown.delay(200).springify()} style={{ gap: 12 }}>
+                {/* What Next */}
+                {["approved", "partial"].includes(proof?.status ?? "") ? (
+                  <View style={styles.whatNextBox}>
+                    <Text style={styles.whatNextTitle}>What to do next</Text>
+                    <View style={styles.whatNextRow}>
+                      <Pressable
+                        style={({ pressed }) => [styles.whatNextBtn, { borderColor: Colors.gold + "50", backgroundColor: Colors.gold + "12" }, pressed && { opacity: 0.8 }]}
+                        onPress={() => { Haptics.selectionAsync(); router.replace("/(tabs)/rewards"); }}
+                      >
+                        <Ionicons name="flash" size={15} color={Colors.gold} />
+                        <Text style={[styles.whatNextBtnText, { color: Colors.gold }]}>Spend Coins</Text>
+                      </Pressable>
+                      <Pressable
+                        style={({ pressed }) => [styles.whatNextBtn, { borderColor: Colors.accent + "50", backgroundColor: Colors.accent + "12" }, pressed && { opacity: 0.8 }]}
+                        onPress={() => { Haptics.selectionAsync(); router.replace("/evolution"); }}
+                      >
+                        <Ionicons name="person-outline" size={15} color={Colors.accent} />
+                        <Text style={[styles.whatNextBtnText, { color: Colors.accent }]}>View Evolution</Text>
+                      </Pressable>
+                      <Pressable
+                        style={({ pressed }) => [styles.whatNextBtn, { borderColor: Colors.green + "50", backgroundColor: Colors.green + "12" }, pressed && { opacity: 0.8 }]}
+                        onPress={() => { Haptics.selectionAsync(); router.replace("/mission/new"); }}
+                      >
+                        <Ionicons name="add-circle-outline" size={15} color={Colors.green} />
+                        <Text style={[styles.whatNextBtnText, { color: Colors.green }]}>New Mission</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : proof?.status === "rejected" ? (
+                  <View style={styles.whatNextBox}>
+                    <Text style={styles.whatNextTitle}>Next steps</Text>
+                    <View style={styles.whatNextRow}>
+                      <Pressable
+                        style={({ pressed }) => [styles.whatNextBtn, { borderColor: Colors.accent + "50", backgroundColor: Colors.accent + "12" }, pressed && { opacity: 0.8 }]}
+                        onPress={() => { Haptics.selectionAsync(); router.replace("/mission/new"); }}
+                      >
+                        <Ionicons name="add-circle-outline" size={15} color={Colors.accent} />
+                        <Text style={[styles.whatNextBtnText, { color: Colors.accent }]}>New Mission</Text>
+                      </Pressable>
+                      <Pressable
+                        style={({ pressed }) => [styles.whatNextBtn, { borderColor: Colors.cyan + "50", backgroundColor: Colors.cyan + "12" }, pressed && { opacity: 0.8 }]}
+                        onPress={() => { Haptics.selectionAsync(); router.replace("/evolution"); }}
+                      >
+                        <Ionicons name="trending-up-outline" size={15} color={Colors.cyan} />
+                        <Text style={[styles.whatNextBtnText, { color: Colors.cyan }]}>Check Status</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : null}
                 <Pressable
                   style={({ pressed }) => [styles.homeBtn, pressed && { opacity: 0.85 }]}
                   onPress={() => router.replace("/(tabs)")}
@@ -575,10 +624,22 @@ const styles = StyleSheet.create({
   },
   followupBtnText: { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.bg },
   homeBtn: {
-    backgroundColor: Colors.accent, borderRadius: 14, height: 54,
+    backgroundColor: Colors.bgCard, borderRadius: 14, height: 54,
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    borderWidth: 1, borderColor: Colors.border,
   },
-  homeBtnText: { fontFamily: "Inter_700Bold", fontSize: 16, color: "#fff" },
+  homeBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: Colors.textSecondary },
+  whatNextBox: {
+    backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, gap: 12,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  whatNextTitle: { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.textMuted, letterSpacing: 1, textTransform: "uppercase" },
+  whatNextRow: { flexDirection: "row", gap: 8 },
+  whatNextBtn: {
+    flex: 1, flexDirection: "column", alignItems: "center", justifyContent: "center",
+    gap: 6, borderWidth: 1, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 6,
+  },
+  whatNextBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 12, textAlign: "center" },
 });
 
 const bonusBreakdownStyles = StyleSheet.create({

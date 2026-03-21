@@ -1,0 +1,377 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 26 — Cohesion / Polish / Performance Pass for v2.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Proof intelligence works
+- Adaptive challenge, quest chains, rarity, identity layer, telemetry, growth, endgame, live-ops, community/accountability, integrations, economy/marketplace, world/room/lifestyle presentation, premium, launch-readiness, character evolution/status visualization, catalog/admin merchandising, asset application/equip/world connection, UX guidance/smart onboarding/app coach, and recommendation systems are complete
+- The next highest-value gap is cohesion:
+  the product now has many powerful systems, but it needs a full v2 pass so the experience feels unified, smooth, premium, performant, and emotionally coherent instead of like many good systems attached together
+- This phase must focus on product quality, integration quality, UX clarity, performance, polish, and consistency
+
+Your task:
+Build only the smallest high-impact Cohesion / Polish / Performance Pass for v2.
+
+==================================================
+PHASE 26 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Cross-system cohesion pass
+2. UX friction cleanup
+3. Visual and interaction polish
+4. Performance and rendering optimization
+5. State consistency / integration cleanup
+6. v2 readiness pass across the highest-value flows
+7. Minimal internal diagnostics only if strictly needed
+
+Do NOT build:
+- new gameplay systems
+- new economy systems
+- new social/community systems
+- new monetization architecture
+- large redesign from scratch
+- giant motion system
+- brand-new navigation model
+- broad infrastructure rewrites unless absolutely necessary
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current end-to-end user experience across:
+   - onboarding
+   - home / command center
+   - mission flow
+   - focus flow
+   - proof flow
+   - reward/result flow
+   - status/character evolution
+   - marketplace/store
+   - inventory/equip/apply
+   - room/world
+   - profile/showcase
+   - community/accountability
+   - premium/upgrade surfaces
+   - recommendation surfaces
+2. identify where the product still feels inconsistent, fragmented, awkward, slow, or cognitively heavy
+3. identify the minimum high-impact fixes needed to make the app feel like a cohesive premium product
+4. implement only the minimum set of changes needed
+5. avoid broad refactors and avoid adding new systems
+
+==================================================
+A. CROSS-SYSTEM COHESION PASS
+==================================================
+
+Unify how the major product systems feel together.
+
+Purpose:
+The app should feel like one coherent Life RPG product, not separate modules.
+
+Areas to align:
+- mission language
+- reward language
+- progression language
+- status tier language
+- title/badge/asset language
+- marketplace and world terminology
+- guidance/recommendation terminology
+- premium/upgrade terminology
+- challenge/arc/chain/cycle terminology
+
+Requirements:
+- remove conflicting terms and duplicated concepts where practical
+- standardize labels, status chips, and meaning across surfaces
+- ensure item states such as owned / active / equipped / displayed / locked / premium / limited are consistent everywhere
+- ensure mission states and progression states are presented consistently everywhere
+- ensure reward explanation language feels unified across result views, marketplace, and identity/world surfaces
+
+Do not rewrite the whole IA.
+Focus on cohesion and clarity.
+
+==================================================
+B. UX FRICTION CLEANUP
+==================================================
+
+Reduce the most important moments of confusion, hesitation, or friction.
+
+Audit and improve:
+- first-time use of major surfaces
+- transition from mission -> proof -> reward -> next step
+- transition from reward -> store/world/status
+- equip/apply/display flows
+- category/store browsing friction
+- recommendation visibility and trust
+- circle/community visibility clutter if present
+- premium/upgrade surfaces if they feel too detached or too salesy
+
+Requirements:
+- reduce unnecessary taps or hidden next steps where practical
+- improve “what just happened?” clarity after important actions
+- improve recovery after failed uploads, rejected proof, or interrupted flows
+- improve discoverability of high-value screens without overwhelming users
+- improve consistency of CTA placement and decision hierarchy
+
+==================================================
+C. VISUAL POLISH / INTERACTION POLISH
+==================================================
+
+Add targeted polish to make the product feel premium and complete.
+
+Possible areas:
+- better spacing and hierarchy
+- stronger card consistency
+- cleaner section grouping
+- improved motion/microinteractions for key success moments
+- stronger active/equipped/displayed states
+- smoother transitions between status/world/store/reward flows
+- better loading/skeleton/empty states
+- cleaner feedback after actions like:
+  - mission accepted
+  - proof approved
+  - item purchased
+  - item equipped
+  - world updated
+  - title unlocked
+  - mastery/prestige progression
+
+Requirements:
+- polish should reinforce clarity, not add noise
+- keep motion tasteful and premium
+- avoid over-animation
+- focus polish on high-emotion and high-friction moments
+- preserve the dark premium / command-center style
+
+==================================================
+D. PERFORMANCE / RENDERING OPTIMIZATION
+==================================================
+
+Optimize the most important performance hotspots.
+
+Audit and improve where necessary:
+- home/dashboard rendering
+- status/character evolution rendering
+- room/world rendering
+- marketplace/catalog lists
+- inventory/equip views
+- heavy image/media usage
+- admin/internal heavy tables if relevant
+- repeated data fetching or unnecessary rerenders
+- slow combined queries in high-value flows
+- loading behavior for recommendation/guidance-heavy screens
+
+Requirements:
+- improve obvious bottlenecks
+- use pagination/lazy loading where appropriate
+- reduce oversized payloads where practical
+- cache or memoize only where justified
+- keep correctness and maintainability
+- do not do speculative over-optimization
+
+If useful, include lightweight performance notes for remaining known hotspots.
+
+==================================================
+E. STATE CONSISTENCY / INTEGRATION CLEANUP
+==================================================
+
+Ensure the major systems stay in sync and feel trustworthy.
+
+Audit and improve consistency between:
+- rewards and wallet state
+- owned items and applied/equipped/displayed state
+- character/status visual state and real progression data
+- marketplace/storefront state and inventory state
+- profile/showcase state and world/room state
+- recommendations and current user state
+- guidance cards and actual available actions
+- circle/shared visibility and actual current profile/world identity
+- premium entitlements and gated surfaces
+
+Requirements:
+- fix any stale-state or contradictory-state UX
+- ensure post-action refreshes are coherent
+- keep server-side authority intact
+- preserve JSON-only APIs and ownership checks
+- if small recompute/reconciliation helpers are needed, keep them minimal and safe
+
+==================================================
+F. INFORMATION HIERARCHY / PRODUCT CLARITY
+==================================================
+
+Because the product is now deep, improve clarity of what matters most.
+
+Requirements:
+- strengthen “what matters now” hierarchy on the highest-value screens
+- prevent too many equally-loud cards competing for attention
+- make primary actions easier to identify
+- make secondary and advanced systems visible but not overwhelming
+- ensure premium/store/community/world systems support the core progression fantasy rather than distracting from it
+
+Examples:
+- home should clearly answer: what should I do next?
+- status should clearly answer: who am I becoming?
+- store should clearly answer: what matters to buy next?
+- world should clearly answer: how is my life/status changing visually?
+- reward/result should clearly answer: what changed, and what should I do now?
+
+==================================================
+G. EMPTY / ERROR / DEGRADED EXPERIENCE POLISH
+==================================================
+
+Polish empty, loading, failure, and degraded states.
+
+Requirements:
+- empty states should remain useful and encouraging
+- failed states should provide recovery, not dead ends
+- AI-unavailable states should remain usable and understandable
+- image/file/media failures should degrade cleanly
+- premium/integration/community/live content failures should not poison the rest of the app
+- every important screen should have at least a respectable empty/loading/error treatment
+
+==================================================
+H. MINIMAL INTERNAL / QA SUPPORT TOOLS
+==================================================
+
+Add only minimal internal support tools if strictly needed for this phase.
+
+Possible examples:
+- UI/debug flags for cohesion/polish testing
+- state reconciliation/recompute helper for display inconsistencies
+- lightweight performance diagnostics for key screens
+- consistency checker for owned/equipped/displayed state
+- admin QA notes or quick validation view
+
+Requirements:
+- admin/internal only
+- lightweight
+- use current admin/tuning surfaces where possible
+- do not build a giant QA platform
+
+==================================================
+I. V2 READINESS PASS
+==================================================
+
+Treat this as a v2 product pass, not a feature pass.
+
+Requirements:
+- identify the top 5-10 highest-value screens/flows
+- ensure those feel coherent, smooth, and premium
+- prioritize the flows users will touch most:
+  - home
+  - mission board
+  - proof submission/result
+  - status/character evolution
+  - store/inventory
+  - world/room
+- reduce rough edges that make the product feel “unfinished” even if the logic is already powerful
+
+Do not try to perfect every obscure screen.
+Prioritize the core emotional and commercial flows.
+
+==================================================
+J. UI / UX DIRECTION
+==================================================
+
+Design direction:
+- dark premium
+- coherent command-center prestige
+- aspirational but not gaudy
+- emotionally rewarding
+- smoother and more legible than before
+- should feel like a polished premium v2 product
+
+The product after this phase should feel:
+- more unified
+- more intentional
+- more expensive
+- more stable
+- easier to use
+- more worthy of long-term engagement
+
+==================================================
+K. BACKEND / SECURITY RULES
+==================================================
+
+- preserve JSON-only APIs
+- preserve ownership and entitlement checks
+- preserve server-side authority for progression, rewards, economy, inventory, display state, premium, and community visibility
+- keep schema changes additive and minimal
+- do not introduce risky rewrites just for polish
+- maintain auditability where it already exists
+- preserve all existing high-value product flows
+
+==================================================
+L. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. the product feels meaningfully more cohesive across major systems
+2. major high-friction flows are clearer and smoother
+3. visual and interaction polish is improved in the highest-value moments
+4. key performance/rendering bottlenecks are reduced or documented
+5. important cross-system state inconsistencies are reduced
+6. information hierarchy is clearer on major surfaces
+7. empty/error/degraded states feel more complete
+8. the app feels more like one polished product, not many attached systems
+9. existing app behavior still works
+10. no unrelated new feature scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what already felt strong
+- what felt fragmented, rough, or slow
+- what was improved
+
+2. Files changed in this run only
+
+3. Cross-system cohesion changes
+- what terminology/state/model presentation was unified
+- what inconsistencies were removed
+
+4. UX friction cleanup changes
+- what key flows became smoother
+- what confusing moments were improved
+
+5. Visual/interaction polish changes
+- what high-value moments got polish
+- what motion/feedback/loading improvements were added
+
+6. Performance/rendering changes
+- what bottlenecks were addressed
+- what optimizations were added
+- any remaining known hotspots
+
+7. State consistency/integration cleanup changes
+- what stale/conflicting state problems were fixed
+- how cross-system coherence improved
+
+8. End-to-end verification results for:
+- home / next action clarity
+- mission -> proof -> reward flow
+- status/character evolution screen
+- store/inventory/equip flow
+- world/room update visibility
+- recommendation/guidance usefulness
+- existing app flow unchanged
+
+9. Remaining gaps after v2 cohesion pass
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

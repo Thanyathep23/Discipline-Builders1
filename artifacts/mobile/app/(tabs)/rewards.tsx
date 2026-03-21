@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { Colors } from "@/constants/colors";
+import { Colors, RARITY_COLORS } from "@/constants/colors";
 import {
   useRewardBalance, useRewardHistory,
   useInventoryBadges, useInventoryTitles, useActivateTitle,
@@ -17,14 +17,6 @@ import {
 } from "@/hooks/useApi";
 import { StoreRecommendationCard } from "@/components/guidance/RecommendationPanel";
 import { router } from "expo-router";
-
-const RARITY_COLORS: Record<string, string> = {
-  common:    "#9E9E9E",
-  uncommon:  "#4CAF50",
-  rare:      "#2196F3",
-  epic:      "#9C27B0",
-  legendary: "#F5C842",
-};
 
 const CATEGORY_LABELS: Record<string, string> = {
   all:      "All",

@@ -43,4 +43,12 @@ export const Colors = {
   strictExtreme: "#FF3D71",
 };
 
+export const RARITY_COLORS: Record<string, string> = {
+  common:    "#9E9E9E",
+  uncommon:  "#4CAF50",
+  rare:      "#2196F3",
+  epic:      "#9C27B0",
+  legendary: "#F5C842",
+};
+
 export default Colors;

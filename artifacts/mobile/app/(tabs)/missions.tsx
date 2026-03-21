@@ -302,10 +302,21 @@ export default function MissionsScreen() {
                       <Text style={styles.emptyBtnText}>Create Mission</Text>
                     </Pressable>
                   </>
-                ) : (
+                ) : missionTab === "completed" ? (
+                  <>
+                    <Text style={styles.emptyText}>
+                      Finish a focus session and submit proof to see completed missions here.
+                    </Text>
+                    <Pressable style={styles.emptyBtn} onPress={() => router.push("/mission/new")}>
+                      <Text style={styles.emptyBtnText}>Create Mission</Text>
+                    </Pressable>
+                  </>
+                ) : missionTab === "draft" ? (
                   <Text style={styles.emptyText}>
-                    {missionTab === "completed" ? "Complete missions by finishing focus sessions and submitting proof." : "No missions here yet."}
+                    Drafts you save while creating a mission will appear here.
                   </Text>
+                ) : (
+                  <Text style={styles.emptyText}>No missions here yet.</Text>
                 )}
               </View>
             ) : (

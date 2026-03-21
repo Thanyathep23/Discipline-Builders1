@@ -6,18 +6,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
-import { Colors } from "@/constants/colors";
+import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
 import { useSkills, useEndgame, useIdentity, useInventoryTitles, useAppliedState } from "@/hooks/useApi";
 import { computeCharacterState, type CharacterState, type DimensionScore, type EquippedGearItem } from "@/lib/characterEngine";
-
-const RARITY_COLORS: Record<string, string> = {
-  common:    "#9E9E9E",
-  uncommon:  "#4CAF50",
-  rare:      "#2196F3",
-  epic:      "#9C27B0",
-  legendary: "#FF9800",
-};
 
 // ─── Character Figure ────────────────────────────────────────────────────────
 

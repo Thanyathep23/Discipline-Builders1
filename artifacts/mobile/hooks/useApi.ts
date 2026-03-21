@@ -131,6 +131,10 @@ export function useSubmitProof() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proofs"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["skills"] });
+      queryClient.invalidateQueries({ queryKey: ["endgame"] });
+      queryClient.invalidateQueries({ queryKey: ["guidance"] });
+      queryClient.invalidateQueries({ queryKey: ["rewards"] });
     },
   });
 }

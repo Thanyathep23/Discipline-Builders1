@@ -8,21 +8,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
-import { Colors } from "@/constants/colors";
+import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
 import {
   useWorldRoom, useWorldEligibility,
   useAssignDisplaySlot, useClearDisplaySlot,
   useSkills, useEndgame, useIdentity,
 } from "@/hooks/useApi";
-
-const RARITY_COLORS: Record<string, string> = {
-  common:    "#9E9E9E",
-  uncommon:  "#4CAF50",
-  rare:      "#2196F3",
-  epic:      "#9C27B0",
-  legendary: "#F5C842",
-};
 
 const SLOT_LABELS: Record<string, string> = {
   room_theme:      "Room Theme",
