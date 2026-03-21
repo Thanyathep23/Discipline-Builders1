@@ -29,6 +29,7 @@ export const userInventoryTable = pgTable("user_inventory", {
   isEquipped: boolean("is_equipped").notNull().default(false),
   source: text("source").notNull().default("purchase"),
   redeemedAt: timestamp("redeemed_at").notNull().defaultNow(),
+  displaySlot: text("display_slot"),
 });
 
 export const insertShopItemSchema = createInsertSchema(shopItemsTable).omit({ createdAt: true });

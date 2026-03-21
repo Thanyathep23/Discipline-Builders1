@@ -34,6 +34,8 @@ import dataExportRouter from "./data-export.js";
 import integrationsRouter from "./integrations.js";
 // Phase 17 — Marketplace / Economy
 import marketplaceRouter from "./marketplace.js";
+// Phase 18 — World / Room / Lifestyle
+import worldRouter from "./world.js";
 
 const router: IRouter = Router();
 
@@ -66,6 +68,8 @@ router.use("/circles", circlesRouter);
 router.use("/showcase", showcaseRouter);
 // Phase 17 — Marketplace / Economy
 router.use("/marketplace", marketplaceRouter);
+// Phase 18 — World / Room / Lifestyle
+router.use("/world", worldRouter);
 // Phase 16 — Platformization routes
 router.use("/v1", platformApiRouter);
 router.use("/platform", apiKeysRouter);

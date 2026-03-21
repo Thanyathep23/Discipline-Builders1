@@ -446,6 +446,26 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
+        {/* Phase 18 — Command Center entry point */}
+        <Animated.View entering={FadeInDown.delay(195).springify()} style={styles.commandCenterBanner}>
+          <View style={styles.commandCenterLeft}>
+            <View style={styles.commandCenterIcon}>
+              <Ionicons name="grid-outline" size={20} color={Colors.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.commandCenterTitle}>Command Center</Text>
+              <Text style={styles.commandCenterSub}>Display your trophies, titles, and room upgrades</Text>
+            </View>
+          </View>
+          <Pressable
+            style={styles.commandCenterBtn}
+            onPress={() => { Haptics.selectionAsync(); router.push("/world"); }}
+          >
+            <Text style={styles.commandCenterBtnText}>Enter</Text>
+            <Ionicons name="arrow-forward" size={13} color={Colors.bg} />
+          </Pressable>
+        </Animated.View>
+
         <Animated.View entering={FadeInDown.delay(200).springify()}>
           <Text style={styles.sectionTitle}>Quick Access</Text>
           <View style={styles.menuList}>
@@ -594,6 +614,24 @@ const styles = StyleSheet.create({
   completionLayerLabelDone: { color: Colors.accent, fontFamily: "Inter_600SemiBold" },
   completionConnector:      { flex: 1, height: 2, backgroundColor: Colors.border, marginTop: 5 },
   completionConnectorDone:  { backgroundColor: Colors.accent },
+  // Phase 18 — Command Center banner
+  commandCenterBanner: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14,
+    borderWidth: 1, borderColor: Colors.accent + "40",
+  },
+  commandCenterLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
+  commandCenterIcon: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: Colors.accentGlow, alignItems: "center", justifyContent: "center",
+  },
+  commandCenterTitle: { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.textPrimary, marginBottom: 2 },
+  commandCenterSub: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
+  commandCenterBtn: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    backgroundColor: Colors.accent, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9,
+  },
+  commandCenterBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.bg },
 });
 
 const endgameProfileStyles = StyleSheet.create({

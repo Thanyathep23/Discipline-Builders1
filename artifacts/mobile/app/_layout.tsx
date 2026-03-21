@@ -57,6 +57,7 @@ function RootLayoutNav() {
         <Stack.Screen name="ai-missions/index" />
         <Stack.Screen name="invite/index" />
         <Stack.Screen name="admin/growth" />
+        <Stack.Screen name="world/index" />
       </Stack>
     </AuthGuard>
   );

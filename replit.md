@@ -688,3 +688,66 @@ Six premium shareable card components, all screenshot-optimized with dark premiu
 ### DB Migration
 - File: `lib/db/drizzle/0004_phase17_economy.sql`
 - Additive columns only; unique constraint added safely with `DO $$ ... IF NOT EXISTS`
+
+---
+
+## Phase 18 — World / Room / Lifestyle Presentation Layer
+
+### Overview
+A lightweight but premium "Command Center" presentation layer where progression, ownership, and identity live visually. Slot-based item display, room theme progression, and profile-world linkage.
+
+### Command Center Screen
+- File: `artifacts/mobile/app/world/index.tsx`
+- Entry point from Profile tab via "Command Center" banner card
+- Zones:
+  - **Room Theme Hero** — shows active room theme (tier, accent color, description). Upgrade button if no theme set.
+  - **Identity Zone** — avatar, username, active title pill with rarity color, identity summary line
+  - **Arc / Season Zone** — current arc, arc stage progress, prestige tier badge
+  - **Room Theme Slot** — assign a purchased room upgrade item
+  - **Trophy Shelf** — 3 numbered slots for trophy-category items
+  - **Featured Display** — centerpiece slot (trophies/prestige) + prestige marker slot
+  - **Earned Badges** — horizontal scroll of all earned badges
+  - **In Storage** — owned items not yet displayed in any slot, with equip state indicator
+
+### Slot-Based Display System
+- 6 slot types: `room_theme`, `centerpiece`, `trophy_shelf_1`, `trophy_shelf_2`, `trophy_shelf_3`, `prestige_marker`
+- Slot eligibility by `itemType`:
+  - `room_theme` → room items only
+  - `centerpiece` → trophy or prestige items
+  - `trophy_shelf_*` → trophy items only
+  - `prestige_marker` → prestige items only
+- Tap any slot to open item picker modal showing only eligible owned items
+- Current slot items show a clear button; users can swap/clear freely
+- Display state stored server-side in `user_inventory.display_slot`
+
+### Theme / Environment Progression
+4 tiers of room environment:
+- **Standard Base** (Tier 0, default) — accent violet, no room item required
+- **Focus Shrine** (Tier 1) — cyan accent, `asset-focus-shrine` item required
+- **Command Terminal** (Tier 2) — gold accent, `asset-command-terminal` item required
+- **War Room** (Tier 3) — crimson accent, `asset-war-room` item required
+
+Theme auto-resolves: if no `room_theme` slot set, shows highest-tier owned room item as active theme.
+
+### Profile-World Linkage
+- Profile tab shows a Command Center entry banner card (accent colored, always visible)
+- Active title shown both on profile header and in Command Center identity zone
+- Prestige tier visible in both arc/season zone and Command Center
+- Identity summary line pulled from `/inventory/identity` in both surfaces
+- Stats (owned count, displayed count) shown in Command Center header chip
+
+### API Endpoints Added
+- `GET /api/world/room` — full room state: theme, slots, activeTitle, earnedBadges, ownedNotDisplayed, stats, profileDepth
+- `GET /api/world/room/eligibility` — per-slot eligible owned items for assignment picker
+- `POST /api/world/room/slots` — assign item to slot (validates ownership + eligibility server-side)
+- `DELETE /api/world/room/slots/:slot` — clear a slot
+- `GET /api/world/admin/stats` — admin view of slot usage, item display frequency
+
+### Security
+- Ownership verified server-side before any slot assignment
+- Slot eligibility enforced server-side (item type must match slot's allowed types)
+- All slot assignments audited in `audit_log` table with action `world_slot_assigned`
+
+### DB Migration
+- File: `lib/db/drizzle/0005_phase18_world.sql`
+- Additive: `ALTER TABLE user_inventory ADD COLUMN IF NOT EXISTS display_slot text`

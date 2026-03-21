@@ -647,3 +647,49 @@ export function useAdminSeedLiveOps() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "live-ops"] }),
   });
 }
+
+// ─── Phase 18 — World / Room / Lifestyle ──────────────────────────────────────
+
+export function useWorldRoom() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["world", "room"],
+    queryFn: () => request<any>("/world/room"),
+    staleTime: 30000,
+  });
+}
+
+export function useWorldEligibility() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["world", "eligibility"],
+    queryFn: () => request<any>("/world/room/eligibility"),
+    staleTime: 30000,
+  });
+}
+
+export function useAssignDisplaySlot() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slot, itemId }: { slot: string; itemId: string }) =>
+      request<any>("/world/room/slots", { method: "POST", body: JSON.stringify({ slot, itemId }) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["world"] });
+      queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+    },
+  });
+}
+
+export function useClearDisplaySlot() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (slot: string) =>
+      request<any>(`/world/room/slots/${slot}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["world"] });
+      queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+    },
+  });
+}
