@@ -24,6 +24,10 @@ export const usersTable = pgTable("users", {
   invitedBy: text("invited_by"),
   prestigeTier: integer("prestige_tier").notNull().default(0),
   prestigeReadyAt: timestamp("prestige_ready_at"),
+  // Phase 19 — Premium membership
+  isPremium: boolean("is_premium").notNull().default(false),
+  premiumGrantedAt: timestamp("premium_granted_at"),
+  premiumExpiresAt: timestamp("premium_expires_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

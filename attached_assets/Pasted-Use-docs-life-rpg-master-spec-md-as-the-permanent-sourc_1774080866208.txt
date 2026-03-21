@@ -1,0 +1,356 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 19 — Premium / Monetization / Offer Architecture.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Proof intelligence works
+- Adaptive challenge, quest chains, rarity, identity layer, telemetry, growth, endgame, live-ops, controlled community, integrations, economy/marketplace, and world/room/lifestyle presentation are complete
+- The next highest-value step is to add a monetization layer that feels premium, fair, and strategically aligned with the product’s psychology
+
+Your task:
+Build only the smallest high-impact monetization / premium layer:
+1. premium membership architecture
+2. premium cosmetic / prestige offer surfaces
+3. content packs / expansion packs lite
+4. non-pay-to-win convenience/value offers
+5. pricing/offer visibility and entitlement handling
+6. minimal admin/internal controls for offers
+
+Do NOT build:
+- pay-to-win mechanics
+- lootboxes
+- gambling mechanics
+- player-to-player real-money trading
+- aggressive manipulative monetization
+- giant billing platform from scratch
+- full subscription analytics suite
+- redesign of the whole app
+
+==================================================
+PHASE 19 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Premium membership / subscription layer lite
+2. Premium cosmetic / prestige offer layer
+3. Content / challenge pack monetization lite
+4. Convenience/value offers that do not damage fairness
+5. Offer management / entitlement handling
+6. Minimal UI for paywall / premium surfaces / upgrades
+7. Minimal admin/internal controls for offers
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current identity layer, marketplace, room/world presentation, challenge packs, live events, mastery/prestige systems, admin controls, and growth surfaces
+2. identify what users could reasonably pay for without damaging the integrity of the game
+3. identify what should remain core/free forever to preserve trust
+4. implement only the minimum monetization systems needed
+5. avoid broad refactors
+
+==================================================
+A. MONETIZATION PRINCIPLES
+==================================================
+
+This product must monetize in a way that preserves trust, fairness, and long-term retention.
+
+Core rules:
+- do NOT sell fake progress
+- do NOT sell proof approval
+- do NOT sell reward multipliers that break the economy
+- do NOT sell direct competitive unfairness
+- do NOT make the game feel manipulative
+- preserve the seriousness and premium feel of the product
+
+Allowed premium value areas:
+- cosmetic identity upgrades
+- prestige presentation upgrades
+- exclusive themes / room environments
+- premium challenge packs / curated content packs
+- convenience features
+- deeper personalization
+- advanced insights
+- premium export/share presentation
+- premium integrations if appropriate
+- premium community/circle capacity or advanced controls if fair
+
+==================================================
+B. PREMIUM MEMBERSHIP / SUBSCRIPTION LITE
+==================================================
+
+Add a lightweight premium membership layer.
+
+Purpose:
+Give users a coherent premium tier with meaningful benefits.
+
+Possible premium benefits:
+- premium room/themes
+- premium prestige/profile cosmetics
+- premium share card styles
+- premium challenge packs / content packs
+- enhanced integrations / exports
+- deeper analytics/insight summaries if already easy to connect
+- expanded circle/community tools if fair
+- extra customization, not raw power
+
+Requirements:
+- premium should feel aspirational and valuable
+- premium should not grant unfair gameplay advantage
+- premium entitlements must be enforceable server-side
+- premium state should be inspectable
+- premium UI should be elegant, not spammy
+
+Support at least:
+- free tier
+- premium tier
+- entitlement checks for premium-only surfaces/content
+
+==================================================
+C. PREMIUM COSMETIC / PRESTIGE OFFERS
+==================================================
+
+Add premium offers that are status/value-driven, not power-driven.
+
+Examples:
+- premium room themes
+- prestige display accents
+- premium title frames / profile cosmetics
+- premium command center variants
+- elite showcase styles
+- premium milestone display surfaces
+
+Requirements:
+- cosmetics should integrate with the existing marketplace/world/profile systems
+- ownership and premium access must be server-side enforced
+- some items may be premium-exclusive
+- some items may be purchasable with earned currency after premium unlock
+- keep the system elegant and premium
+
+==================================================
+D. CONTENT / CHALLENGE PACK MONETIZATION LITE
+==================================================
+
+Add a monetization layer for curated content packs.
+
+Examples:
+- Focus Mastery Pack
+- Trading Review Pro Pack
+- Recovery Rebuild Pack
+- Prestige Sprint Pack
+- Deep Work Elite Pack
+
+Requirements:
+- premium content packs should feel like high-quality guided experiences
+- packs can unlock curated challenges, themes, cosmetic rewards, or advanced mission sets
+- packs should use the existing mission/pack/event architecture where possible
+- pack ownership must be tracked and enforceable
+- do not create bloated DLC infrastructure
+
+Rules:
+- premium content should add depth and curation, not raw unfair advantage
+- free users should still have a strong core experience
+- premium packs should feel like “better crafted paths,” not “buy power”
+
+==================================================
+E. CONVENIENCE / VALUE OFFERS (NON-PAY-TO-WIN)
+==================================================
+
+Add only tasteful, fair convenience/value offers.
+
+Possible examples:
+- extra save/loadout slots for room/profile/showcase
+- advanced export formats
+- premium planning templates
+- premium calendar/integration limits
+- premium archive/history depth
+- premium admin-like self-inspection summaries for personal use
+- premium circle customization or extra private slots if fair
+
+Requirements:
+- convenience offers must not destroy fairness
+- core gameplay loop remains intact for free users
+- offers should feel like enhancement, not coercion
+- no hard paywalls around the product’s basic promise
+
+==================================================
+F. OFFER / ENTITLEMENT ARCHITECTURE
+==================================================
+
+Build a lightweight entitlement system.
+
+Requirements:
+- track premium state
+- track owned premium items/packs
+- enforce access server-side
+- expose entitlement status to the UI safely
+- support:
+  - active subscription/premium membership
+  - owned premium packs
+  - premium-exclusive cosmetics/themes
+- keep implementation minimal and extensible
+
+Suggested concepts:
+- products
+- offers
+- entitlements
+- purchase records
+- subscription status
+- premium flags
+- offer visibility rules
+
+Do NOT build a giant billing abstraction unless needed.
+
+==================================================
+G. PAYWALL / UPGRADE SURFACES
+==================================================
+
+Add minimal, high-quality premium surfaces.
+
+Possible surfaces:
+- premium overview page
+- upgrade modal/screen
+- premium badges/markers in marketplace
+- locked premium theme preview
+- upgrade CTA in premium-only sections
+- premium comparison card (Free vs Premium)
+
+Requirements:
+- dark premium
+- aspirational, sharp, calm
+- no spammy popups everywhere
+- paywall should explain value clearly
+- should reinforce why premium exists and what it unlocks
+- should preserve trust and seriousness
+
+==================================================
+H. ADMIN / INTERNAL OFFER CONTROLS
+==================================================
+
+Add minimal internal controls for offers.
+
+Possible controls:
+- activate/deactivate offers
+- mark products as premium-only
+- price/config fields if appropriate
+- inspect entitlement assignments
+- inspect premium content pack usage
+- limited-time premium offers if already easy to support
+
+Requirements:
+- admin-only
+- lightweight
+- use existing admin/tuning surfaces where possible
+- keep offer operations auditable
+
+==================================================
+I. BILLING / CHECKOUT STRATEGY
+==================================================
+
+Keep this phase realistic and lightweight.
+
+If real billing is already easy/safe to integrate in the current stack, support a minimal real purchase path.
+If not, implement:
+- clean offer architecture
+- entitlement model
+- upgrade UI
+- purchase simulation/stub layer for now
+- clear TODO boundary for real payment integration
+
+Do NOT build a fragile payment system just to claim it exists.
+
+If real billing is added:
+- keep it minimal
+- keep entitlement sync safe
+- handle failure states clearly
+- preserve auditability
+
+==================================================
+J. BACKEND / SECURITY RULES
+==================================================
+
+- all entitlements must be enforced server-side
+- preserve ownership checks
+- preserve JSON-only APIs
+- do not trust client-side premium flags
+- keep schema changes additive and minimal
+- preserve existing mission/proof/reward/community/marketplace/world flows
+- premium must not bypass proof fairness or integrity systems
+
+==================================================
+K. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a premium membership / entitlement layer exists
+2. premium-only or premium-enhanced cosmetic/prestige/world items exist
+3. premium content/challenge packs exist in a lightweight form
+4. convenience/value offers exist without making the game pay-to-win
+5. offer/paywall/upgrade surfaces exist and feel premium
+6. entitlement enforcement is server-side and safe
+7. admin/internal offer controls exist in a lightweight form
+8. existing mission/proof/reward/marketplace/world flow still works
+9. no manipulative or oversized monetization scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what monetization/premium capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Premium membership / entitlement layer added
+- model
+- how entitlements are stored
+- how access is enforced
+
+4. Premium cosmetic / prestige / world offers added
+- what categories now exist
+- how they are surfaced
+
+5. Premium content/challenge pack monetization added
+- what packs/offers exist
+- how ownership/access works
+
+6. Convenience/value offers added
+- what they are
+- why they are fair
+
+7. Paywall / upgrade surfaces added
+- where they appear
+- what they communicate
+
+8. Admin/internal offer controls added
+- what can be managed
+- how it is audited
+
+9. End-to-end verification results for:
+- premium entitlement check
+- premium offer visibility
+- premium pack access
+- premium cosmetic/world item access
+- free user core flow unchanged
+- existing app flow unchanged
+
+10. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

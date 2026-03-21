@@ -469,6 +469,8 @@ export default function ProfileScreen() {
         <Animated.View entering={FadeInDown.delay(200).springify()}>
           <Text style={styles.sectionTitle}>Quick Access</Text>
           <View style={styles.menuList}>
+            <MenuItem icon="star-outline" label="Premium Membership" onPress={() => { Haptics.selectionAsync(); router.push("/premium"); }} accent />
+            <MenuItem icon="cube-outline" label="Content Packs" onPress={() => { Haptics.selectionAsync(); router.push("/premium/packs"); }} />
             <MenuItem icon="share-outline" label="Share Progress" onPress={() => router.push("/share")} accent />
             <MenuItem icon="people" label="Accountability Circles" onPress={() => router.push("/circles")} accent />
             <MenuItem icon="eye-outline" label="Prestige Showcase" onPress={() => router.push("/settings/showcase")} />

@@ -36,6 +36,9 @@ import integrationsRouter from "./integrations.js";
 import marketplaceRouter from "./marketplace.js";
 // Phase 18 — World / Room / Lifestyle
 import worldRouter from "./world.js";
+// Phase 19 — Premium / Monetization
+import premiumRouter from "./premium.js";
+import adminPremiumRouter from "./admin-premium.js";
 
 const router: IRouter = Router();
 
@@ -70,6 +73,9 @@ router.use("/showcase", showcaseRouter);
 router.use("/marketplace", marketplaceRouter);
 // Phase 18 — World / Room / Lifestyle
 router.use("/world", worldRouter);
+// Phase 19 — Premium / Monetization
+router.use("/premium", premiumRouter);
+router.use("/admin/premium", adminPremiumRouter);
 // Phase 16 — Platformization routes
 router.use("/v1", platformApiRouter);
 router.use("/platform", apiKeysRouter);

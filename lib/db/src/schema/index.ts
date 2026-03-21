@@ -25,3 +25,4 @@ export * from "./live-ops";
 export * from "./circles";
 export * from "./showcase";
 export * from "./platform";
+export * from "./premium";

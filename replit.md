@@ -751,3 +751,63 @@ Theme auto-resolves: if no `room_theme` slot set, shows highest-tier owned room 
 ### DB Migration
 - File: `lib/db/drizzle/0005_phase18_world.sql`
 - Additive: `ALTER TABLE user_inventory ADD COLUMN IF NOT EXISTS display_slot text`
+
+---
+
+## Phase 19 — Premium / Monetization / Offer Architecture
+
+### What Was Added
+
+#### DB Schema Changes (additive, pushed)
+- `users` table: `is_premium` (bool), `premium_granted_at` (timestamp), `premium_expires_at` (timestamp)
+- `shop_items` table: `is_premium_only` (bool, default false)
+- `premium_packs` table: curated content pack catalog (id, name, tagline, description, icon, category, accessModel, coinPrice, isActive, isFeatured, sortOrder)
+- `user_premium_packs` table: user-owned pack records (userId, packId, grantedBy, grantedAt)
+- `purchase_records` table: full audit trail for premium purchases (userId, productType, productId, amountCents, provider, providerRef, status, metadata)
+
+#### Backend Routes
+- `GET /api/premium/status` — active premium state, owned pack IDs, benefit list (server-side computed)
+- `GET /api/premium/offers` — full offer listing: tier, free/premium benefit comparison, packs, premium-only items, pricing hint
+- `POST /api/premium/activate` — simulated purchase, sets premium flag + expiry, auto-grants all packs, creates purchase record, audits
+- `GET /api/premium/packs` — browse all packs with access state per user
+- `GET /api/premium/entitlement/:feature` — single feature entitlement check (server-side)
+- `GET /api/premium/purchases` — user purchase history
+- `GET /api/marketplace` — now includes `isPremium` flag and `premiumLocked` per item
+- `POST /api/marketplace/:itemId/buy` — now enforces `isPremiumOnly` server-side (403 if locked)
+- **Admin Premium routes** (`/api/admin/premium/*`, admin-only):
+  - `GET /overview` — stats: premiumUsers, totalPurchases, packGrants, premiumItems; recent purchases, packs
+  - `GET /users` — list all premium users
+  - `POST /grant` — grant premium to user (with duration days)
+  - `POST /revoke` — revoke premium from user
+  - `GET /packs` — list packs with grant counts
+  - `PATCH /packs/:packId` — activate/deactivate/feature packs
+  - `GET /items` — all marketplace items with premium-only flag
+  - `PATCH /items/:itemId` — toggle isPremiumOnly, isAvailable, isLimited on items
+  - `GET /purchases` — all purchase records
+
+#### Mobile Screens
+- `app/premium/index.tsx` — Premium upgrade screen: hero, free vs premium comparison card, plan selector (monthly/annual), upgrade CTA, packs CTA, premium promise section
+- `app/premium/packs.tsx` — Content packs browser: 5 seeded packs with highlights, lock CTAs for free users, ownership state
+- `app/admin/offers.tsx` — Admin offer controls: 5-tab panel (overview, packs, items, users, purchases), grant/revoke premium, toggle pack active/featured, toggle item isPremiumOnly
+
+#### Profile Integration
+- "Premium Membership" and "Content Packs" menu items added to profile Quick Access section
+
+### Seeded Premium Packs
+1. Focus Mastery Pack (featured) — 30-day deep-work program
+2. Trading Review Pro Pack (featured) — precision trading missions
+3. Recovery Rebuild Pack — comeback arc missions
+4. Prestige Sprint Pack (featured) — prestige acceleration
+5. Deep Work Elite Pack — 45-day elite operator program
+
+### Monetization Principles Enforced
+- No pay-to-win: premium items are cosmetic/prestige/presentation only
+- Proof validation, mission integrity, reward economy unchanged for all users
+- All entitlement checks are server-side (never trust client-side premium flags)
+- Purchase records are auditable (purchase_records table)
+- Admin actions (grant/revoke/item toggle) all logged to audit_log
+
+### Billing Strategy
+- Current implementation: simulated purchase stub (provider: "simulated")
+- Real billing (Stripe/Apple/Google): clearly marked TODO boundary in code
+- Entitlement model and purchase records are designed to support real provider sync

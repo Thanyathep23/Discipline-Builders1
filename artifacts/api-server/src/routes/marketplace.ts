@@ -3,6 +3,7 @@ import {
   db, usersTable, shopItemsTable, userInventoryTable,
   rewardTransactionsTable, auditLogTable,
 } from "@workspace/db";
+import { checkUserPremium } from "./premium.js";
 import { eq, and, asc, isNotNull } from "drizzle-orm";
 import { requireAuth, requireAdmin, generateId } from "../lib/auth.js";
 
@@ -59,6 +60,7 @@ router.get("/", requireAuth, async (req: any, res) => {
       .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
 
     const balance = user?.coinBalance ?? 0;
+    const isPremium = await checkUserPremium(userId);
 
     let itemsQuery = db.select().from(shopItemsTable)
       .where(eq(shopItemsTable.isAvailable, true))
@@ -77,24 +79,20 @@ router.get("/", requireAuth, async (req: any, res) => {
       .filter(i => i.featuredOrder !== null && i.featuredOrder !== undefined)
       .sort((a, b) => (a.featuredOrder ?? 99) - (b.featuredOrder ?? 99));
 
-    const items = filtered.map(item => ({
+    const enrichItem = (item: typeof allItems[0]) => ({
       ...item,
       owned: ownedMap.has(item.id),
       isEquipped: ownedMap.get(item.id)?.isEquipped ?? false,
       canAfford: balance >= item.cost,
       isSellable: item.sellBackValue > 0,
-    }));
+      premiumLocked: item.isPremiumOnly && !isPremium,
+    });
 
     return res.json({
-      items,
-      featured: featured.map(item => ({
-        ...item,
-        owned: ownedMap.has(item.id),
-        isEquipped: ownedMap.get(item.id)?.isEquipped ?? false,
-        canAfford: balance >= item.cost,
-        isSellable: item.sellBackValue > 0,
-      })),
+      items: filtered.map(enrichItem),
+      featured: featured.map(enrichItem),
       coinBalance: balance,
+      isPremium,
       categories: ["all", "trophy", "room", "cosmetic", "prestige"],
     });
   } catch (err: any) {
@@ -148,6 +146,14 @@ router.post("/:itemId/buy", requireAuth, async (req: any, res) => {
       .where(eq(shopItemsTable.id, itemId)).limit(1);
     if (!item || !item.isAvailable) {
       return res.status(400).json({ error: "Item not available" });
+    }
+
+    // Premium-only gate — enforce server-side
+    if (item.isPremiumOnly) {
+      const isPremium = await checkUserPremium(userId);
+      if (!isPremium) {
+        return res.status(403).json({ error: "premium_required", message: "This item requires an active premium membership." });
+      }
     }
 
     // Duplicate purchase prevention

@@ -19,6 +19,8 @@ export const shopItemsTable = pgTable("shop_items", {
   sellBackValue: integer("sell_back_value").notNull().default(0),
   sortOrder: integer("sort_order").notNull().default(0),
   acquisitionSource: text("acquisition_source").notNull().default("purchase"),
+  // Phase 19 — Premium
+  isPremiumOnly: boolean("is_premium_only").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
