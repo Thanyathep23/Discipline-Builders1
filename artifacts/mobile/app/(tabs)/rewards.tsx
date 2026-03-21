@@ -519,6 +519,32 @@ export default function RewardsScreen() {
         {/* ─── INVENTORY ────────────────────────────────────────────── */}
         {tab === "inventory" && (
           <>
+            {/* Applied state summary */}
+            {appliedState?.summary && (appliedState.summary.totalOwned > 0 || appliedState.summary.hasActiveTitle) && (
+              <Animated.View entering={FadeInDown.springify()} style={styles.appliedSummaryCard}>
+                <Text style={styles.appliedSummaryTitle}>APPLIED STATE</Text>
+                <View style={styles.appliedSummaryRow}>
+                  {[
+                    { label: "Owned",     value: appliedState.summary.totalOwned,    color: Colors.textSecondary },
+                    { label: "Equipped",  value: appliedState.summary.totalEquipped,  color: "#7C5CFC" },
+                    { label: "Displayed", value: appliedState.summary.totalDisplayed, color: "#00D4FF" },
+                    { label: "Stored",    value: appliedState.summary.totalStored,    color: Colors.textMuted },
+                  ].map((stat) => (
+                    <View key={stat.label} style={styles.appliedStat}>
+                      <Text style={[styles.appliedStatValue, { color: stat.color }]}>{stat.value}</Text>
+                      <Text style={styles.appliedStatLabel}>{stat.label}</Text>
+                    </View>
+                  ))}
+                </View>
+                {appliedState.summary.hasActiveTitle && (
+                  <View style={styles.appliedTitleRow}>
+                    <Ionicons name="ribbon" size={11} color={Colors.gold} />
+                    <Text style={styles.appliedTitleText}>Active title equipped</Text>
+                  </View>
+                )}
+              </Animated.View>
+            )}
+
             {/* Marketplace-sourced owned assets */}
             {(() => {
               const marketOwned = allMarketItems.filter((i: any) => i.owned);
@@ -989,6 +1015,16 @@ const styles = StyleSheet.create({
   displayedInText:     { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.green },
   costBadge:           { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.goldDim, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
   costText:            { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.gold },
+
+  // Inventory — Applied state summary
+  appliedSummaryCard:  { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border, gap: 10 },
+  appliedSummaryTitle: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 1.2 },
+  appliedSummaryRow:   { flexDirection: "row", justifyContent: "space-between" },
+  appliedStat:         { alignItems: "center", gap: 2 },
+  appliedStatValue:    { fontFamily: "Inter_700Bold", fontSize: 18 },
+  appliedStatLabel:    { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted },
+  appliedTitleRow:     { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: Colors.gold + "12", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+  appliedTitleText:    { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.gold },
 
   // Inventory
   sectionLabel:        { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.textMuted, letterSpacing: 1.2, textTransform: "uppercase" },

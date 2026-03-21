@@ -293,8 +293,7 @@ export default function CharacterEvolutionScreen() {
   const isLoading = skillsLoading || endgameLoading;
 
   const equippedCharacterItems = useMemo(() => {
-    const charItems = appliedState?.character ?? [];
-    return charItems;
+    return appliedState?.character?.equippedItems ?? [];
   }, [appliedState]);
 
   const characterState = useMemo<CharacterState | null>(() => {
@@ -526,7 +525,7 @@ export default function CharacterEvolutionScreen() {
             </Pressable>
             <Pressable
               style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.7 }]}
-              onPress={() => router.push("/marketplace")}
+              onPress={() => router.push("/(tabs)/rewards")}
             >
               <Ionicons name="storefront-outline" size={16} color={Colors.accent} />
               <Text style={styles.actionBtnText}>Marketplace</Text>

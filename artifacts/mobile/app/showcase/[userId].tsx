@@ -210,6 +210,11 @@ const styles = StyleSheet.create({
   badgeName:       { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textPrimary, textAlign: "center" },
   badgeRarity:     { fontFamily: "Inter_400Regular", fontSize: 10, textTransform: "capitalize" },
 
+  profileItemRow:    { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4 },
+  profileItemIcon:   { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  profileItemName:   { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.textPrimary },
+  profileItemRarity: { fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 0.8, textTransform: "uppercase" },
+
   emptyCard:       { alignItems: "center", gap: 10, padding: 32 },
   emptyTitle:      { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.textSecondary },
   emptyText:       { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textMuted, textAlign: "center" },
