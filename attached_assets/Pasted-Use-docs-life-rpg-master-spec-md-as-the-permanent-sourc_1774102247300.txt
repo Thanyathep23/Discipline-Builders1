@@ -1,0 +1,404 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 22 — Product Catalog / Admin Merchandising System.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Proof intelligence works
+- Adaptive challenge, quest chains, rarity, identity layer, telemetry, growth, endgame, live-ops, community/accountability, integrations, economy/marketplace, world/room/lifestyle presentation, premium, launch-readiness, and character evolution/status visualization are complete
+- The next highest-value gap is the merchandising and catalog layer:
+  the product needs a real product system for the store so new items can be added, managed, categorized, previewed, priced, activated, and merchandised without hardcoding each one
+- The app now needs a proper catalog-driven store and admin merchandising workflow
+
+Your task:
+Build only the smallest high-impact Product Catalog / Admin Merchandising System.
+
+==================================================
+PHASE 22 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Product catalog data model
+2. Category / subcategory / tag system
+3. Admin merchandising workflow
+4. Storefront browsing and filtering improvements
+5. Product media / preview support
+6. Product availability / exclusivity / limited-time controls
+7. Minimal admin/internal controls and validation for catalog operations
+
+Do NOT build:
+- full ecommerce backend
+- real-money checkout here unless already part of the current premium architecture
+- giant CMS
+- auction house
+- player-to-player trading
+- advanced recommendation engine in this phase
+- redesign of the whole app
+- a giant content studio system
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current marketplace, inventory, equipped items, premium offers, room/world item display, admin tools, live-ops/content pack systems, and item ownership models
+2. identify what currently exists for products/items and what is still hardcoded or too shallow
+3. identify the minimum catalog + merchandising system needed so the store can scale cleanly
+4. implement only the minimum systems needed
+5. avoid broad refactors
+
+==================================================
+A. PRODUCT CATALOG DATA MODEL
+==================================================
+
+Build a proper catalog-driven item/product system.
+
+Purpose:
+Allow the product/store to scale without hardcoding individual items or item cards.
+
+Each product/item should support at minimum:
+- id
+- name
+- slug
+- short description
+- full description if useful
+- product type
+- category
+- subcategory
+- tags
+- rarity
+- status / availability state
+- price(s) or acquisition mode
+- currency type if relevant
+- premium flag if relevant
+- limited/exclusive flags if relevant
+- display/equip eligibility
+- world/status/profile relevance flags if useful
+- preview/media references
+- visibility order / merchandising priority
+- created/updated timestamps
+
+Suggested product types:
+- title
+- badge/trophy
+- cosmetic
+- room/world item
+- accessory
+- watch
+- jewelry
+- vehicle
+- command-center upgrade
+- lifestyle item
+- prestige marker
+- premium content unlock
+- event item
+- utility-style identity item
+
+Rules:
+- keep schema normalized but practical
+- do not overbuild polymorphism
+- make the system easy to extend
+
+==================================================
+B. CATEGORY / SUBCATEGORY / TAG SYSTEM
+==================================================
+
+Add a clean merchandising taxonomy.
+
+Minimum requirements:
+- top-level categories
+- optional subcategories
+- tags for flexible grouping and merchandising
+
+Recommended top-level categories:
+- Watches
+- Cars
+- Jewelry
+- Fashion / Style
+- Room / Command Center
+- Prestige / Identity
+- Lifestyle
+- Trophies / Badges
+- Limited / Event
+- Premium / Exclusive
+
+Requirements:
+- categories should work both in admin and storefront
+- support filtering and sorting
+- tags should allow lightweight campaign/season/arc/category cross-grouping
+- avoid taxonomy bloat
+
+==================================================
+C. ADMIN MERCHANDISING WORKFLOW
+==================================================
+
+Build the minimum admin flow to add and manage products properly.
+
+Admin must be able to:
+- create product
+- edit product
+- archive / deactivate product
+- set category / subcategory / tags
+- set price / acquisition mode
+- upload or assign preview/media
+- set rarity / exclusivity / limited flags
+- mark whether the product is:
+  - purchasable
+  - premium-only
+  - unlock-only
+  - displayable in room/world
+  - displayable in profile/status
+  - equippable
+- control visibility order / featured state
+- optionally connect product to:
+  - event
+  - content pack
+  - season/cycle
+  - prestige/mastery gate
+  - arc relevance
+  - admin-only test state if needed
+
+Requirements:
+- admin-only
+- validation must be server-side
+- all admin changes should be audit-logged where appropriate
+- keep UI tactical and efficient
+- do not build a bloated merchandising suite
+
+==================================================
+D. STOREFRONT BROWSING / FILTERING
+==================================================
+
+Upgrade the storefront so it behaves like a real, curated premium catalog.
+
+Requirements:
+- browse by category
+- filter by subcategory / rarity / premium / limited / owned / not-owned if useful
+- sort by:
+  - featured
+  - newest
+  - price
+  - rarity
+  - relevance if already cheap to support
+- search by product name/tag if feasible
+- show product cards with:
+  - image/preview
+  - price
+  - rarity
+  - category
+  - premium/limited labels if relevant
+  - owned/equipped state if relevant
+
+Rules:
+- storefront should feel premium and aspirational
+- not cluttered
+- not like generic ecommerce
+- keep the game/status fantasy intact
+
+==================================================
+E. PRODUCT MEDIA / PREVIEW SUPPORT
+==================================================
+
+Add lightweight product media support.
+
+Requirements:
+- support preview image/media assignment for products
+- admin can set or upload media for products
+- storefront/product detail can render media cleanly
+- keep media handling safe and practical
+- if there is already a media/upload system, reuse it
+- if new upload support is needed, keep it minimal and secure
+
+Possible preview needs:
+- product image
+- room/world preview
+- status/profile preview
+- premium/limited visual marker
+
+Do NOT build a full media pipeline studio.
+Keep it lightweight.
+
+==================================================
+F. AVAILABILITY / EXCLUSIVITY / LIMITED-TIME CONTROLS
+==================================================
+
+Add proper product availability states.
+
+Each product should support lightweight lifecycle states such as:
+- draft
+- active
+- inactive
+- scheduled
+- expired
+- archived
+
+Also support flags such as:
+- featured
+- premium-only
+- limited
+- exclusive
+- event-bound
+- unlock-only
+- hidden/internal
+
+Requirements:
+- availability rules are enforced server-side
+- storefront only shows what is supposed to be visible
+- admin can control timing/status without code edits
+- scheduled or limited items integrate cleanly with existing live-ops/event systems if already present
+
+==================================================
+G. PRODUCT DETAIL / ITEM DETAIL IMPROVEMENTS
+==================================================
+
+Upgrade item detail pages or modals so users understand what they are buying or unlocking.
+
+Product detail should clearly show:
+- what this item is
+- category/type
+- rarity
+- price or acquisition method
+- whether it is premium / limited / exclusive
+- whether it affects:
+  - status visualization
+  - room/world display
+  - profile/showcase
+  - prestige identity
+- whether it can be equipped or displayed
+- whether it is owned / active / locked
+- what makes it aspirational or special
+
+Requirements:
+- copy should be premium and concise
+- product detail should support decision-making
+- no cluttered ecommerce-style overload
+
+==================================================
+H. VALIDATION / CONSISTENCY / ANTI-ERROR RULES
+==================================================
+
+Because catalog operations will affect the whole product, add strong validation.
+
+Requirements:
+- server-side validation for all admin product writes
+- reject invalid category/type/state combinations
+- reject impossible price/value states
+- validate media references
+- validate scheduling windows
+- validate uniqueness where needed (slug, certain exclusive items, etc.)
+- keep data consistency between:
+  - product catalog
+  - inventory ownership
+  - room/world display eligibility
+  - status/profile eligibility
+  - premium entitlement checks
+
+Do not over-engineer, but do make the system trustworthy.
+
+==================================================
+I. USER-FACING UI MVP
+==================================================
+
+Build only the minimum UI needed.
+
+Possible surfaces:
+- upgraded storefront
+- category tabs/filter bar
+- product detail page/modal
+- admin catalog list
+- admin product editor
+- admin product media/availability controls
+
+Requirements:
+- dark premium
+- aspirational
+- prestige-driven
+- clean and modular
+- not childish
+- not generic ecommerce
+- no redesign of the whole app
+
+==================================================
+J. BACKEND / SECURITY RULES
+==================================================
+
+- all product visibility, purchase eligibility, entitlement checks, equip/display eligibility, and admin catalog writes must be server-side
+- preserve JSON-only APIs
+- preserve ownership checks
+- do not trust client-provided product state or price
+- keep schema changes additive and minimal
+- audit-log admin catalog changes where appropriate
+- preserve existing mission/proof/reward/economy/world/community/premium flows
+
+==================================================
+K. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a real catalog-driven product system exists
+2. categories/subcategories/tags are supported in both admin and storefront
+3. admin can create/edit/activate/archive products without code edits
+4. storefront supports real browsing/filtering of products
+5. product detail clearly explains product purpose, state, and eligibility
+6. preview/media support exists in a lightweight but practical way
+7. product availability / premium / limited / exclusivity states are controlled server-side
+8. validation prevents invalid catalog configurations
+9. existing purchase/inventory/world/status flows still work
+10. no oversized ecommerce/CMS scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what catalog/store capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Product catalog system added
+- data model
+- product types
+- how catalog entries are stored and surfaced
+
+4. Category / subcategory / tag system added
+- taxonomy structure
+- how filtering works
+
+5. Admin merchandising workflow added
+- what admin can now manage
+- what validation/audit logging exists
+
+6. Storefront and product detail changes
+- browsing/filtering improvements
+- detail surfaces
+- media/preview support
+
+7. Availability / exclusivity / limited-time controls added
+- states/flags
+- how they are enforced
+
+8. End-to-end verification results for:
+- create/edit product
+- category filtering
+- media/preview display
+- availability/premium/limited item visibility
+- purchase/inventory/world linkage unchanged
+
+9. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

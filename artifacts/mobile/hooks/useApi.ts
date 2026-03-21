@@ -403,12 +403,50 @@ export function useInventoryAssets() {
 
 // ─── Phase 17 — Marketplace ───────────────────────────────────────────────────
 
-export function useMarketplace(category?: string) {
+export interface MarketplaceFilters {
+  category?: string;
+  subcategory?: string;
+  tag?: string;
+  sort?: "featured" | "price_asc" | "price_desc" | "rarity" | "newest";
+  search?: string;
+  rarity?: string;
+  premiumOnly?: boolean;
+  limitedOnly?: boolean;
+}
+
+export function useMarketplace(filters?: string | MarketplaceFilters) {
+  const { request } = useApiClient();
+  const key = typeof filters === "string" ? filters : JSON.stringify(filters ?? {});
+  const buildQs = () => {
+    if (!filters) return "";
+    if (typeof filters === "string") {
+      return filters && filters !== "all" ? `?category=${filters}` : "";
+    }
+    const params = new URLSearchParams();
+    if (filters.category && filters.category !== "all") params.set("category", filters.category);
+    if (filters.subcategory)  params.set("subcategory", filters.subcategory);
+    if (filters.tag)          params.set("tag", filters.tag);
+    if (filters.sort)         params.set("sort", filters.sort);
+    if (filters.search)       params.set("search", filters.search);
+    if (filters.rarity)       params.set("rarity", filters.rarity);
+    if (filters.premiumOnly)  params.set("premiumOnly", "true");
+    if (filters.limitedOnly)  params.set("limitedOnly", "true");
+    const qs = params.toString();
+    return qs ? `?${qs}` : "";
+  };
+  return useQuery({
+    queryKey: ["marketplace", key],
+    queryFn: () => request<any>(`/marketplace${buildQs()}`),
+    staleTime: 30000,
+  });
+}
+
+export function useCatalogCategories() {
   const { request } = useApiClient();
   return useQuery({
-    queryKey: ["marketplace", category ?? "all"],
-    queryFn: () => request<any>(`/marketplace${category && category !== "all" ? `?category=${category}` : ""}`),
-    staleTime: 30000,
+    queryKey: ["marketplace", "catalog-categories"],
+    queryFn: () => request<{ categories: any[] }>("/marketplace/catalog/categories"),
+    staleTime: 120000,
   });
 }
 
@@ -690,6 +728,100 @@ export function useClearDisplaySlot() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["world"] });
       queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+    },
+  });
+}
+
+// ─── Phase 22 — Catalog Admin ─────────────────────────────────────────────────
+
+export function useAdminCatalogItems() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin", "catalog", "items"],
+    queryFn: () => request<{ items: any[] }>("/marketplace/admin/items"),
+    staleTime: 0,
+  });
+}
+
+export function useAdminCatalogStats() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin", "catalog", "stats"],
+    queryFn: () => request<any>("/marketplace/admin/stats"),
+    staleTime: 0,
+  });
+}
+
+export function useAdminCatalogCategories() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin", "catalog", "categories"],
+    queryFn: () => request<{ categories: any[] }>("/marketplace/admin/categories"),
+    staleTime: 0,
+  });
+}
+
+export function useAdminCreateCatalogItem() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) =>
+      request<any>("/marketplace/admin/items", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "catalog"] });
+      queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+    },
+  });
+}
+
+export function useAdminUpdateCatalogItem() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      request<any>(`/marketplace/admin/items/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "catalog"] });
+      queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+    },
+  });
+}
+
+export function useAdminArchiveCatalogItem() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      request<any>(`/marketplace/admin/items/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "catalog"] });
+      queryClient.invalidateQueries({ queryKey: ["marketplace"] });
+    },
+  });
+}
+
+export function useAdminCreateCatalogCategory() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) =>
+      request<any>("/marketplace/admin/categories", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "catalog"] });
+      queryClient.invalidateQueries({ queryKey: ["marketplace", "catalog-categories"] });
+    },
+  });
+}
+
+export function useAdminUpdateCatalogCategory() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      request<any>(`/marketplace/admin/categories/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "catalog"] });
+      queryClient.invalidateQueries({ queryKey: ["marketplace", "catalog-categories"] });
     },
   });
 }

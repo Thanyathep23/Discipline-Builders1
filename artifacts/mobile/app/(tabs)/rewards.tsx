@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet, Platform,
-  ActivityIndicator, Alert, Modal,
+  ActivityIndicator, Alert, Modal, TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,7 +12,7 @@ import {
   useRewardBalance, useRewardHistory,
   useInventoryBadges, useInventoryTitles, useActivateTitle,
   useInventoryAssets,
-  useMarketplace, useBuyItem, useEquipItem, useUnequipItem, useSellItem,
+  useMarketplace, useCatalogCategories, useBuyItem, useEquipItem, useUnequipItem, useSellItem,
 } from "@/hooks/useApi";
 import { router } from "expo-router";
 
@@ -46,12 +46,24 @@ export default function RewardsScreen() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<MainTab>("overview");
   const [marketCategory, setMarketCategory] = useState("all");
+  const [marketSort, setMarketSort] = useState<"featured" | "price_asc" | "price_desc" | "rarity" | "newest">("featured");
+  const [marketSearch, setMarketSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const [limitedOnly, setLimitedOnly] = useState(false);
+  const [premiumOnly, setPremiumOnly] = useState(false);
   const [detailItem, setDetailItem] = useState<any>(null);
   const [sellConfirmItem, setSellConfirmItem] = useState<any>(null);
 
   const { data: balance, isLoading } = useRewardBalance();
   const { data: history } = useRewardHistory();
-  const { data: marketData, isLoading: marketLoading } = useMarketplace(marketCategory);
+  const { data: catalogCatData } = useCatalogCategories();
+  const { data: marketData, isLoading: marketLoading } = useMarketplace({
+    category: marketCategory,
+    sort: marketSort,
+    search: marketSearch || undefined,
+    limitedOnly: limitedOnly || undefined,
+    premiumOnly: premiumOnly || undefined,
+  });
   const { data: allMarketData } = useMarketplace("all");
   const buyItem = useBuyItem();
   const equipItem = useEquipItem();
@@ -79,7 +91,19 @@ export default function RewardsScreen() {
   const allMarketItems: any[] = allMarketData?.items ?? [];
   const featuredItems: any[] = marketData?.featured ?? [];
   const coinBalance: number = marketData?.coinBalance ?? balance?.coinBalance ?? 0;
-  const categories: string[] = marketData?.categories ?? ["all", "trophy", "room", "cosmetic", "prestige"];
+  // Use catalog categories from DB if available, else fall back to API response
+  const rawCatalogCats: any[] = catalogCatData?.categories ?? marketData?.categories ?? [];
+  const categories: string[] = rawCatalogCats.length > 0
+    ? rawCatalogCats.map((c: any) => typeof c === "string" ? c : c.slug)
+    : ["all", "trophy", "room", "cosmetic", "prestige"];
+  const categoryLabel = (slug: string) => {
+    if (rawCatalogCats.length > 0) {
+      const found = rawCatalogCats.find((c: any) => (typeof c === "string" ? c : c.slug) === slug);
+      if (found && typeof found !== "string") return found.name;
+    }
+    return (CATEGORY_LABELS as any)[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1);
+  };
+  const categoryIcon = (slug: string) => (CATEGORY_ICONS as any)[slug] ?? "grid-outline";
 
   async function handleBuy(item: any) {
     setDetailItem(null);
@@ -267,11 +291,34 @@ export default function RewardsScreen() {
         {/* ─── MARKETPLACE ──────────────────────────────────────────── */}
         {tab === "marketplace" && (
           <>
-            {/* Balance strip */}
+            {/* Balance strip + search toggle */}
             <View style={styles.marketBalanceStrip}>
               <Ionicons name="flash" size={14} color={Colors.gold} />
-              <Text style={styles.marketBalanceText}>{coinBalance.toLocaleString()} coins available</Text>
+              <Text style={[styles.marketBalanceText, { flex: 1 }]}>{coinBalance.toLocaleString()} coins available</Text>
+              <Pressable onPress={() => { setShowSearch(s => !s); Haptics.selectionAsync(); }} style={{ padding: 4 }}>
+                <Ionicons name={showSearch ? "close-outline" : "search-outline"} size={18} color={Colors.textSecondary} />
+              </Pressable>
             </View>
+
+            {/* Search bar */}
+            {showSearch && (
+              <View style={styles.searchBar}>
+                <Ionicons name="search-outline" size={15} color={Colors.textMuted} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search items, tags..."
+                  placeholderTextColor={Colors.textMuted}
+                  value={marketSearch}
+                  onChangeText={setMarketSearch}
+                  autoFocus
+                />
+                {marketSearch.length > 0 && (
+                  <Pressable onPress={() => setMarketSearch("")}>
+                    <Ionicons name="close-circle" size={16} color={Colors.textMuted} />
+                  </Pressable>
+                )}
+              </View>
+            )}
 
             {/* Category tabs */}
             <ScrollView
@@ -287,15 +334,37 @@ export default function RewardsScreen() {
                   onPress={() => { setMarketCategory(cat); Haptics.selectionAsync(); }}
                 >
                   <Ionicons
-                    name={(CATEGORY_ICONS[cat] ?? "grid-outline") as any}
+                    name={categoryIcon(cat) as any}
                     size={13}
                     color={marketCategory === cat ? "#fff" : Colors.textSecondary}
                   />
                   <Text style={[styles.catChipText, marketCategory === cat && styles.catChipTextActive]}>
-                    {CATEGORY_LABELS[cat] ?? cat}
+                    {categoryLabel(cat)}
                   </Text>
                 </Pressable>
               ))}
+            </ScrollView>
+
+            {/* Sort + filter chips */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}
+              style={{ marginBottom: 4 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 2 }}>
+              {(["featured", "newest", "rarity", "price_asc", "price_desc"] as const).map(s => (
+                <Pressable key={s}
+                  style={[styles.sortChip, marketSort === s && styles.sortChipActive]}
+                  onPress={() => { setMarketSort(s); Haptics.selectionAsync(); }}>
+                  <Text style={[styles.sortChipText, marketSort === s && { color: "#fff" }]}>
+                    {{ featured: "Featured", newest: "Newest", rarity: "Rarity", price_asc: "Cheapest", price_desc: "Priciest" }[s]}
+                  </Text>
+                </Pressable>
+              ))}
+              <Pressable style={[styles.sortChip, limitedOnly && styles.sortChipActive]}
+                onPress={() => { setLimitedOnly(v => !v); Haptics.selectionAsync(); }}>
+                <Text style={[styles.sortChipText, limitedOnly && { color: "#fff" }]}>Limited</Text>
+              </Pressable>
+              <Pressable style={[styles.sortChip, premiumOnly && { backgroundColor: Colors.gold + "30", borderColor: Colors.gold }]}
+                onPress={() => { setPremiumOnly(v => !v); Haptics.selectionAsync(); }}>
+                <Text style={[styles.sortChipText, premiumOnly && { color: Colors.gold }]}>Premium</Text>
+              </Pressable>
             </ScrollView>
 
             {/* Featured strip */}
@@ -890,4 +959,11 @@ const styles = StyleSheet.create({
   confirmActions:      { flexDirection: "row", gap: 10, width: "100%", marginTop: 4 },
   redeemBtn:           { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: Colors.accent, alignItems: "center", justifyContent: "center" },
   redeemBtnText:       { fontFamily: "Inter_700Bold", fontSize: 14, color: "#fff" },
+
+  // Phase 22 — search + sort
+  searchBar:           { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.bgElevated, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 8, borderWidth: 1, borderColor: Colors.border },
+  searchInput:         { flex: 1, color: Colors.textPrimary, fontSize: 14 },
+  sortChip:            { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16, backgroundColor: Colors.bgElevated, borderWidth: 1, borderColor: Colors.border },
+  sortChipActive:      { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  sortChipText:        { color: Colors.textMuted, fontSize: 12 },
 });

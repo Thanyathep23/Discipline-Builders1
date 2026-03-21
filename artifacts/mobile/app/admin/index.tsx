@@ -45,6 +45,7 @@ export default function AdminScreen() {
   };
 
   const NAV_ITEMS = [
+    { label: "Product Catalog", icon: "storefront-outline" as const, route: "/admin/catalog", color: Colors.accent },
     { label: "Kill Switches", icon: "power-outline" as const, route: "/admin/kill-switches", color: Colors.crimson },
     { label: "Rewards Audit", icon: "cash-outline" as const, route: "/admin/rewards", color: Colors.gold },
     { label: "Mission Inspection", icon: "flash-outline" as const, route: "/admin/missions", color: Colors.cyan },
