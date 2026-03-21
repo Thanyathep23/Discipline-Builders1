@@ -101,6 +101,9 @@ export default function ActiveFocusScreen() {
   const pauseLimit = STRICTNESS_PAUSE_LIMITS[session?.strictnessMode ?? "normal"] ?? 3;
   const pausesLeft = Math.max(0, pauseLimit - (session?.pauseCount ?? 0));
 
+  // Eligible to complete = target duration reached (or no target set)
+  const isEligibleToComplete = targetSeconds === 0 || localElapsed >= targetSeconds;
+
   async function handlePause() {
     if (pausesLeft === 0) {
       Alert.alert("No pauses left", `${session?.strictnessMode} mode doesn't allow more pauses.`);
@@ -117,31 +120,71 @@ export default function ActiveFocusScreen() {
     refetch();
   }
 
-  async function handleStop(reason: "completed" | "abandoned" | "emergency") {
-    const messages: Record<string, string> = {
-      completed: "Mark this session as completed and proceed to proof submission?",
-      abandoned: "Abandon this session? You may receive a penalty.",
-      emergency: "Emergency stop? This will apply a penalty.",
-    };
+  // Executes the actual stop API call and navigates
+  async function confirmStop(reason: "completed" | "abandoned") {
+    try {
+      await Haptics.notificationAsync(
+        reason === "completed"
+          ? Haptics.NotificationFeedbackType.Success
+          : Haptics.NotificationFeedbackType.Warning
+      );
+      await stopSession.mutateAsync({ sessionId: session!.id, reason });
+      if (reason === "completed") {
+        router.replace(`/proof/${session!.id}`);
+      } else {
+        router.replace("/(tabs)");
+      }
+    } catch (e: any) {
+      Alert.alert("Error", e?.message ?? "Could not stop session. Please try again.");
+    }
+  }
+
+  // Handles button taps — shows the right confirmation dialog first
+  function handleComplete() {
+    if (!isEligibleToComplete) {
+      // Session is short — warn the user before allowing early finish
+      const pct = Math.round(progress * 100);
+      const elapsed = formatTime(localElapsed);
+      const target = formatTime(targetSeconds);
+      Alert.alert(
+        "End Early?",
+        `You've only completed ${pct}% of your target time (${elapsed} of ${target}).\n\nEnding early may result in a partial verdict and reduced rewards. Are you sure?`,
+        [
+          { text: "Keep Going", style: "cancel" },
+          {
+            text: "End Early & Submit Proof",
+            style: "default",
+            onPress: () => confirmStop("completed"),
+          },
+        ]
+      );
+      return;
+    }
+    // Full completion — simple confirmation
     Alert.alert(
-      reason === "completed" ? "Complete Session" : "Stop Session",
-      messages[reason],
+      "Complete Session",
+      "Mark this session as complete and proceed to proof submission?",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: reason === "completed" ? "Complete & Submit Proof" : "Stop",
-          style: reason === "completed" ? "default" : "destructive",
-          onPress: async () => {
-            await Haptics.notificationAsync(
-              reason === "completed" ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning
-            );
-            await stopSession.mutateAsync({ sessionId: session!.id, reason });
-            if (reason === "completed") {
-              router.replace(`/proof/${session!.id}`);
-            } else {
-              router.replace("/(tabs)");
-            }
-          },
+          text: "Complete & Submit Proof",
+          style: "default",
+          onPress: () => confirmStop("completed"),
+        },
+      ]
+    );
+  }
+
+  function handleAbandon() {
+    Alert.alert(
+      "Abandon Session",
+      "Abandon this session? You may receive a penalty and no rewards will be awarded.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Abandon",
+          style: "destructive",
+          onPress: () => confirmStop("abandoned"),
         },
       ]
     );
@@ -187,7 +230,7 @@ export default function ActiveFocusScreen() {
           </View>
         </Animated.View>
 
-        {/* Progress Ring overlay text */}
+        {/* Progress % */}
         <View style={styles.progressText}>
           <Text style={[styles.progressPercent, { color: strictColor }]}>{Math.round(progress * 100)}%</Text>
         </View>
@@ -228,11 +271,12 @@ export default function ActiveFocusScreen() {
 
       {/* Controls */}
       <Animated.View entering={FadeInDown.delay(250).springify()} style={styles.controls}>
+        {/* Pause / Resume */}
         {isActive && (
           <Pressable
             style={({ pressed }) => [styles.controlBtn, styles.pauseBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] }]}
             onPress={handlePause}
-            disabled={pauseSession.isPending}
+            disabled={pauseSession.isPending || stopSession.isPending}
           >
             <Ionicons name="pause" size={22} color={Colors.textPrimary} />
             <Text style={styles.controlBtnText}>Pause</Text>
@@ -243,27 +287,56 @@ export default function ActiveFocusScreen() {
           <Pressable
             style={({ pressed }) => [styles.controlBtn, styles.resumeBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] }]}
             onPress={handleResume}
-            disabled={resumeSession.isPending}
+            disabled={resumeSession.isPending || stopSession.isPending}
           >
             <Ionicons name="play" size={22} color="#fff" />
             <Text style={[styles.controlBtnText, { color: "#fff" }]}>Resume</Text>
           </Pressable>
         )}
 
-        <Pressable
-          style={({ pressed }) => [styles.controlBtn, styles.completeBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] }]}
-          onPress={() => handleStop("completed")}
-          disabled={stopSession.isPending}
-        >
-          <Ionicons name="checkmark" size={22} color="#fff" />
-          <Text style={[styles.controlBtnText, { color: "#fff" }]}>Done — Submit Proof</Text>
-        </Pressable>
+        {/* Completion CTA — varies by eligibility */}
+        {isEligibleToComplete ? (
+          <Pressable
+            style={({ pressed }) => [styles.controlBtn, styles.completeBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] }]}
+            onPress={handleComplete}
+            disabled={stopSession.isPending}
+          >
+            {stopSession.isPending ? (
+              <Text style={[styles.controlBtnText, { color: "#fff" }]}>Finishing...</Text>
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle" size={22} color="#fff" />
+                <Text style={[styles.controlBtnText, { color: "#fff" }]}>Done — Submit Proof</Text>
+              </>
+            )}
+          </Pressable>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [styles.controlBtn, styles.earlyBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] }]}
+            onPress={handleComplete}
+            disabled={stopSession.isPending}
+          >
+            <Ionicons name="exit-outline" size={20} color={Colors.amber} />
+            <Text style={[styles.controlBtnText, { color: Colors.amber }]}>End Early</Text>
+          </Pressable>
+        )}
       </Animated.View>
 
-      {/* Emergency Stop */}
+      {/* Progress hint when not yet eligible */}
+      {!isEligibleToComplete && targetSeconds > 0 && (
+        <Animated.View entering={FadeIn.delay(300)} style={styles.progressHint}>
+          <Ionicons name="time-outline" size={13} color={Colors.textMuted} />
+          <Text style={styles.progressHintText}>
+            {formatTime(Math.max(0, targetSeconds - localElapsed))} remaining to reach your target
+          </Text>
+        </Animated.View>
+      )}
+
+      {/* Abandon Session */}
       <Pressable
         style={({ pressed }) => [styles.emergencyBtn, pressed && { opacity: 0.7 }]}
-        onPress={() => handleStop("abandoned")}
+        onPress={handleAbandon}
+        disabled={stopSession.isPending}
       >
         <Ionicons name="stop-circle-outline" size={16} color={Colors.crimson} />
         <Text style={styles.emergencyText}>Abandon Session</Text>
@@ -317,10 +390,24 @@ const styles = StyleSheet.create({
     height: 54, borderRadius: 16,
   },
   pauseBtn: { backgroundColor: Colors.bgElevated, borderWidth: 1, borderColor: Colors.border },
-  resumeBtn: { backgroundColor: Colors.green, shadowColor: Colors.green, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 5 },
-  completeBtn: { backgroundColor: Colors.accent, shadowColor: Colors.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 },
+  resumeBtn: {
+    backgroundColor: Colors.green,
+    shadowColor: Colors.green, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 5,
+  },
+  completeBtn: {
+    backgroundColor: Colors.accent,
+    shadowColor: Colors.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
+  },
+  earlyBtn: {
+    backgroundColor: Colors.amberDim, borderWidth: 1, borderColor: Colors.amber + "50",
+  },
   controlBtnText: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.textPrimary },
-  emergencyBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 16 },
+  progressHint: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, marginTop: 4, paddingBottom: 8,
+  },
+  progressHintText: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
+  emergencyBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 16, marginTop: 4 },
   emergencyText: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.crimson },
 });
 
