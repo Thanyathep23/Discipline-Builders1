@@ -2,9 +2,9 @@ import { Router } from "express";
 import { requireAuth, generateId } from "../lib/auth.js";
 import {
   db, shopItemsTable, userInventoryTable, usersTable,
-  rewardTransactionsTable, auditLogTable, badgesTable, userBadgesTable,
+  rewardTransactionsTable, auditLogTable,
 } from "@workspace/db";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { awardBadge } from "./inventory.js";
 
 const router = Router();

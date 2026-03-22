@@ -364,6 +364,8 @@ router.get("/status", requireAuth, async (req: any, res) => {
     }
 
     const adjustedPrestigeScore = Math.min(100, prestigeScore + carPrestigeBonus);
+    const adjustedOverallScore = Math.round((fitnessScore + disciplineScore + financeScore + adjustedPrestigeScore) / 4);
+    const adjustedTierData = getStatusTier(adjustedOverallScore);
 
     return res.json({
       dimensions: {
@@ -388,14 +390,14 @@ router.get("/status", requireAuth, async (req: any, res) => {
           icon: "diamond-outline", color: "#00D4FF",
         },
       },
-      statusTier: tierData.tier,
-      statusTierColor: tierData.color,
-      statusTierDescription: tierData.description,
-      overallScore,
+      statusTier: adjustedTierData.tier,
+      statusTierColor: adjustedTierData.color,
+      statusTierDescription: adjustedTierData.description,
+      overallScore: adjustedOverallScore,
       nextEvolutionHint,
       character: {
         outfitLabel: visualState.outfitLabel,
-        tierLabel: overallScore >= 20 ? "On the Rise" : "Beginning Stage",
+        tierLabel: adjustedOverallScore >= 20 ? "On the Rise" : "Beginning Stage",
       },
       visualState,
       equippedWearables,
