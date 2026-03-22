@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet, Platform,
   ActivityIndicator, Modal, TextInput,
@@ -6,7 +6,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
 import {
   useRewardBalance, useRewardHistory,
@@ -15,7 +15,6 @@ import {
   useMarketplace, useCatalogCategories, useBuyItem, useEquipItem, useUnequipItem, useSellItem,
   useRecommendations, useTrackRecommendationEvent,
 } from "@/hooks/useApi";
-import { StoreRecommendationCard } from "@/components/guidance/RecommendationPanel";
 import { router } from "expo-router";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -36,6 +35,26 @@ const CATEGORY_ICONS: Record<string, string> = {
   prestige: "star-outline",
   vehicle:  "car-sport-outline",
   fashion:  "shirt-outline",
+};
+
+// Aspirational tagline per category
+const CATEGORY_TAGLINES: Record<string, string> = {
+  trophy:   "Earned through mastery — display your proof of discipline.",
+  room:     "Your Command Center is a reflection of your identity.",
+  cosmetic: "Shape how the world sees your character.",
+  prestige: "Reserved for those who've gone further than most.",
+  vehicle:  "Status that moves — earned, not bought with real money.",
+  fashion:  "Every outfit is a statement about where you're headed.",
+};
+
+// Why-you-want-this copy per rarity
+const RARITY_ASPIRATION: Record<string, string> = {
+  common:    "A solid foundation piece for any serious operator.",
+  uncommon:  "Above average. Most players never get this far.",
+  rare:      "Rare enough that people will notice.",
+  epic:      "Signals a level of commitment that commands respect.",
+  legendary: "Only a handful of players at this tier. You'd be one of them.",
+  mythic:    "The rarest designation in the catalog. Reserved for the exceptional.",
 };
 
 const SURFACE_META: Record<string, { label: string; icon: string; color: string }> = {
@@ -60,7 +79,282 @@ const SLOT_LABELS: Record<string, string> = {
   prestige_marker: "Prestige Marker",
 };
 
+const SORT_LABELS: Record<string, string> = {
+  featured:   "Featured",
+  newest:     "Newest",
+  rarity:     "Rarity",
+  price_asc:  "Cheapest",
+  price_desc: "Priciest",
+};
+
 type MainTab = "overview" | "marketplace" | "inventory" | "history";
+
+// ─── Item state helpers ───────────────────────────────────────────────────────
+
+function getItemState(item: any, coinBalance: number): "owned" | "equipped" | "affordable" | "almost" | "locked" | "cant_afford" {
+  if (item.isEquipped) return "equipped";
+  if (item.owned) return "owned";
+  if (item.levelLocked) return "locked";
+  if (item.canAfford) return "affordable";
+  if (coinBalance >= item.cost * 0.75) return "almost";
+  return "cant_afford";
+}
+
+function affordGap(item: any, coinBalance: number): number {
+  return Math.max(0, item.cost - coinBalance);
+}
+
+function affordPct(item: any, coinBalance: number): number {
+  return item.cost > 0 ? Math.min(100, Math.round((coinBalance / item.cost) * 100)) : 100;
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function BestNextUpgradeCard({ item, coinBalance, onPress }: { item: any; coinBalance: number; onPress: () => void }) {
+  const rc = RARITY_COLORS[item.rarity] ?? "#9E9E9E";
+  const pct = affordPct(item, coinBalance);
+  const gap = affordGap(item, coinBalance);
+  const canBuy = item.canAfford && !item.owned;
+
+  return (
+    <Animated.View entering={FadeInDown.delay(20).springify()}>
+      <Pressable style={[s.bestCard, { borderColor: rc + "50" }]} onPress={onPress}>
+        <View style={s.bestCardTop}>
+          <View style={s.bestCardLeft}>
+            <View style={[s.bestLabelChip, { backgroundColor: rc + "20" }]}>
+              <Ionicons name="sparkles" size={10} color={rc} />
+              <Text style={[s.bestLabelText, { color: rc }]}>BEST NEXT UPGRADE</Text>
+            </View>
+            <Text style={s.bestItemName} numberOfLines={1}>{item.name}</Text>
+            <Text style={s.bestItemWhy} numberOfLines={2}>
+              {RARITY_ASPIRATION[item.rarity] ?? "A meaningful upgrade to your catalog."}
+            </Text>
+          </View>
+          <View style={[s.bestIconBox, { backgroundColor: rc + "18" }]}>
+            <Ionicons name={(item.icon ?? "gift") as any} size={30} color={rc} />
+          </View>
+        </View>
+
+        {!item.owned && (
+          <View style={s.bestCardBottom}>
+            <View style={s.bestCostRow}>
+              <Ionicons name="flash" size={13} color={Colors.gold} />
+              <Text style={s.bestCostText}>{item.cost.toLocaleString()}</Text>
+              <Text style={s.bestBalanceText}>/ {coinBalance.toLocaleString()} available</Text>
+            </View>
+            <View style={s.bestBarBg}>
+              <View style={[s.bestBarFill, { width: `${pct}%` as any, backgroundColor: canBuy ? Colors.green : rc }]} />
+            </View>
+            {canBuy ? (
+              <Text style={[s.bestGapText, { color: Colors.green }]}>Ready to purchase</Text>
+            ) : (
+              <Text style={s.bestGapText}>Need {gap.toLocaleString()} more coins</Text>
+            )}
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function FeaturedItemCard({ item, coinBalance, onPress, index }: { item: any; coinBalance: number; onPress: () => void; index: number }) {
+  const rc = RARITY_COLORS[item.rarity] ?? "#9E9E9E";
+  const state = getItemState(item, coinBalance);
+  const gap = affordGap(item, coinBalance);
+
+  return (
+    <Animated.View entering={FadeInDown.delay(index * 60).springify()}>
+      <Pressable style={[s.featuredCard, { borderColor: rc + "50" }]} onPress={onPress}>
+        {/* Limited badge */}
+        {item.isLimited && (
+          <View style={s.limitedBadge}>
+            <Text style={s.limitedBadgeText}>LIMITED</Text>
+          </View>
+        )}
+        {/* Icon */}
+        <View style={[s.featuredIcon, { backgroundColor: rc + "18" }]}>
+          {state === "locked" ? (
+            <Ionicons name="lock-closed" size={26} color={Colors.textMuted} />
+          ) : (
+            <Ionicons name={(item.icon ?? "gift") as any} size={26} color={rc} />
+          )}
+        </View>
+        {/* Name */}
+        <Text style={[s.featuredName, state === "locked" && { color: Colors.textMuted }]} numberOfLines={1}>
+          {item.name}
+        </Text>
+        {/* Tagline */}
+        <Text style={s.featuredTagline} numberOfLines={2}>
+          {item.description ?? RARITY_ASPIRATION[item.rarity] ?? ""}
+        </Text>
+        {/* Rarity */}
+        <View style={[s.rarityChip, { backgroundColor: rc + "20" }]}>
+          <Text style={[s.rarityText, { color: rc }]}>{item.rarity.toUpperCase()}</Text>
+        </View>
+        {/* State indicator */}
+        {state === "owned" || state === "equipped" ? (
+          <View style={[s.featuredStateBadge, { backgroundColor: Colors.green + "20" }]}>
+            <Ionicons name="checkmark-circle" size={12} color={Colors.green} />
+            <Text style={[s.featuredStateBadgeText, { color: Colors.green }]}>
+              {state === "equipped" ? "EQUIPPED" : "OWNED"}
+            </Text>
+          </View>
+        ) : state === "locked" ? (
+          <View style={[s.featuredStateBadge, { backgroundColor: Colors.bgElevated }]}>
+            <Ionicons name="lock-closed" size={11} color={Colors.textMuted} />
+            <Text style={[s.featuredStateBadgeText, { color: Colors.textMuted }]}>
+              {item.levelRequired ? `LV. ${item.levelRequired}` : "LOCKED"}
+            </Text>
+          </View>
+        ) : state === "affordable" ? (
+          <View style={[s.featuredStateBadge, { backgroundColor: Colors.gold + "20" }]}>
+            <Ionicons name="flash" size={11} color={Colors.gold} />
+            <Text style={[s.featuredStateBadgeText, { color: Colors.gold }]}>
+              {item.cost.toLocaleString()}
+            </Text>
+          </View>
+        ) : state === "almost" ? (
+          <View style={[s.featuredStateBadge, { backgroundColor: Colors.amber + "20" }]}>
+            <Ionicons name="flash" size={11} color={Colors.amber} />
+            <Text style={[s.featuredStateBadgeText, { color: Colors.amber }]}>
+              {item.cost.toLocaleString()}
+            </Text>
+          </View>
+        ) : (
+          <View style={s.featuredStateBadge}>
+            <Text style={s.featuredStateBadgeText}>
+              Need {gap.toLocaleString()} more
+            </Text>
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function MarketListCard({ item, coinBalance, onPress, index }: { item: any; coinBalance: number; onPress: () => void; index: number }) {
+  const rc = RARITY_COLORS[item.rarity] ?? "#9E9E9E";
+  const state = getItemState(item, coinBalance);
+  const gap = affordGap(item, coinBalance);
+  const pct = affordPct(item, coinBalance);
+
+  const leftBorderColor =
+    state === "equipped" ? Colors.accent :
+    state === "owned"    ? Colors.green :
+    state === "almost"   ? Colors.amber :
+    "transparent";
+
+  return (
+    <Animated.View entering={FadeInDown.delay(index * 35).springify()}>
+      <Pressable
+        style={[
+          s.marketCard,
+          { borderLeftColor: leftBorderColor, borderLeftWidth: leftBorderColor !== "transparent" ? 3 : 1 },
+          state === "locked" && { opacity: 0.65 },
+        ]}
+        onPress={onPress}
+      >
+        {/* Icon */}
+        <View style={[s.marketIconBox, { backgroundColor: rc + "15" }]}>
+          {state === "locked" ? (
+            <Ionicons name="lock-closed" size={22} color={Colors.textMuted} />
+          ) : (
+            <Ionicons name={(item.icon ?? "gift") as any} size={22} color={rc} />
+          )}
+        </View>
+
+        {/* Info */}
+        <View style={{ flex: 1, gap: 3 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Text style={[s.marketName, state === "locked" && { color: Colors.textMuted }]} numberOfLines={1}>
+              {item.name}
+            </Text>
+            {item.isLimited && (
+              <View style={s.limitedChip}>
+                <Text style={s.limitedChipText}>LTD</Text>
+              </View>
+            )}
+            {item.isExclusive && (
+              <View style={[s.limitedChip, { backgroundColor: Colors.gold + "20" }]}>
+                <Text style={[s.limitedChipText, { color: Colors.gold }]}>EXCL</Text>
+              </View>
+            )}
+          </View>
+          <Text style={s.marketDesc} numberOfLines={1}>{item.description}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View style={[s.rarityChip, { backgroundColor: rc + "15", alignSelf: "flex-start" }]}>
+              <Text style={[s.rarityText, { color: rc }]}>{item.rarity.toUpperCase()}</Text>
+            </View>
+            {/* Near-unlock indicator */}
+            {state === "almost" && (
+              <View style={[s.nearChip]}>
+                <Ionicons name="trending-up" size={9} color={Colors.amber} />
+                <Text style={s.nearChipText}>ALMOST THERE</Text>
+              </View>
+            )}
+            {state === "locked" && item.levelRequired && (
+              <View style={s.lockedChip}>
+                <Ionicons name="lock-closed" size={9} color={Colors.textMuted} />
+                <Text style={s.lockedChipText}>LV. {item.levelRequired}</Text>
+              </View>
+            )}
+          </View>
+          {/* Affordability bar for near + cant_afford */}
+          {(state === "almost" || (state === "cant_afford" && pct >= 40)) && (
+            <View style={s.miniBarBg}>
+              <View style={[s.miniBarFill, { width: `${pct}%` as any, backgroundColor: state === "almost" ? Colors.amber : rc }]} />
+            </View>
+          )}
+        </View>
+
+        {/* Right state */}
+        <View style={{ alignItems: "flex-end", gap: 5 }}>
+          {state === "owned" || state === "equipped" ? (
+            <>
+              <View style={s.ownedBadge}>
+                <Ionicons name="checkmark" size={11} color={Colors.green} />
+                <Text style={s.ownedBadgeText}>{state === "equipped" ? "Equipped" : "Owned"}</Text>
+              </View>
+              {state === "equipped" && (
+                <View style={s.equippedChip}>
+                  <Text style={s.equippedChipText}>ACTIVE</Text>
+                </View>
+              )}
+            </>
+          ) : state === "locked" ? (
+            <View style={[s.costBadge, { backgroundColor: Colors.bgElevated }]}>
+              <Ionicons name="lock-closed" size={11} color={Colors.textMuted} />
+              <Text style={[s.costText, { color: Colors.textMuted }]}>{item.cost.toLocaleString()}</Text>
+            </View>
+          ) : state === "affordable" ? (
+            <View style={[s.costBadge, { backgroundColor: Colors.gold + "22", borderWidth: 1, borderColor: Colors.gold + "40" }]}>
+              <Ionicons name="flash" size={12} color={Colors.gold} />
+              <Text style={[s.costText, { color: Colors.gold }]}>{item.cost.toLocaleString()}</Text>
+            </View>
+          ) : state === "almost" ? (
+            <>
+              <View style={[s.costBadge, { backgroundColor: Colors.amber + "18" }]}>
+                <Ionicons name="flash" size={12} color={Colors.amber} />
+                <Text style={[s.costText, { color: Colors.amber }]}>{item.cost.toLocaleString()}</Text>
+              </View>
+              <Text style={s.gapText}>–{gap.toLocaleString()}</Text>
+            </>
+          ) : (
+            <>
+              <View style={[s.costBadge, { backgroundColor: Colors.bgElevated }]}>
+                <Ionicons name="flash" size={12} color={Colors.textMuted} />
+                <Text style={[s.costText, { color: Colors.textMuted }]}>{item.cost.toLocaleString()}</Text>
+              </View>
+              <Text style={s.gapText}>–{gap.toLocaleString()}</Text>
+            </>
+          )}
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function RewardsScreen() {
   const insets = useSafeAreaInsets();
@@ -69,6 +363,7 @@ export default function RewardsScreen() {
   const [marketSort, setMarketSort] = useState<"featured" | "price_asc" | "price_desc" | "rarity" | "newest">("featured");
   const [marketSearch, setMarketSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [showSortPicker, setShowSortPicker] = useState(false);
   const [limitedOnly, setLimitedOnly] = useState(false);
   const [premiumOnly, setPremiumOnly] = useState(false);
   const [detailItem, setDetailItem] = useState<any>(null);
@@ -123,7 +418,7 @@ export default function RewardsScreen() {
   const allMarketItems: any[] = allMarketData?.items ?? [];
   const featuredItems: any[] = marketData?.featured ?? [];
   const coinBalance: number = marketData?.coinBalance ?? balance?.coinBalance ?? 0;
-  // Use catalog categories from DB if available, else fall back to API response
+
   const rawCatalogCats: any[] = catalogCatData?.categories ?? marketData?.categories ?? [];
   const categories: string[] = rawCatalogCats.length > 0
     ? rawCatalogCats.map((c: any) => typeof c === "string" ? c : c.slug)
@@ -137,6 +432,26 @@ export default function RewardsScreen() {
   };
   const categoryIcon = (slug: string) => (CATEGORY_ICONS as any)[slug] ?? "grid-outline";
 
+  // ── Compute best next upgrade ──────────────────────────────────────────────
+  const bestNextUpgrade = useMemo<any | null>(() => {
+    const allItems = allMarketItems.length > 0 ? allMarketItems : marketItems;
+    if (allItems.length === 0) return null;
+    // Priority 1: affordable and not owned, highest rarity first, then cost desc
+    const rarityOrder: Record<string, number> = { mythic: 5, legendary: 4, epic: 3, rare: 2, uncommon: 1, common: 0 };
+    const affordable = allItems.filter((i: any) => i.canAfford && !i.owned && !i.levelLocked);
+    if (affordable.length > 0) {
+      return affordable.sort((a: any, b: any) => {
+        const rDiff = (rarityOrder[b.rarity] ?? 0) - (rarityOrder[a.rarity] ?? 0);
+        return rDiff !== 0 ? rDiff : b.cost - a.cost;
+      })[0];
+    }
+    // Priority 2: closest to affordable, not owned
+    const notOwned = allItems.filter((i: any) => !i.owned && !i.levelLocked);
+    if (notOwned.length === 0) return null;
+    return notOwned.sort((a: any, b: any) => a.cost - b.cost)[0];
+  }, [allMarketItems, marketItems, coinBalance]);
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
   async function handleBuy(item: any) {
     setDetailItem(null);
     try {
@@ -199,23 +514,35 @@ export default function RewardsScreen() {
   }
 
   function openDetail(item: any) {
-    Haptics.selectionAsync();
+    Haptics.selectionAsync().catch(() => {});
     setDetailItem(item);
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <View style={[styles.container, { paddingTop: topPad }]}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Rewards</Text>
+    <View style={[s.container, { paddingTop: topPad }]}>
+
+      {/* ── Premium store header ──────────────────────────────────────────── */}
+      <View style={s.header}>
+        <View style={s.headerLeft}>
+          <Text style={s.headerEyebrow}>YOUR</Text>
+          <Text style={s.title}>Rewards</Text>
+        </View>
+        {/* Coin balance chip — always visible */}
+        <View style={s.headerCoinChip}>
+          <Ionicons name="flash" size={14} color={Colors.gold} />
+          <Text style={s.headerCoinText}>{(coinBalance || balance?.coinBalance || 0).toLocaleString()}</Text>
+          <Text style={s.headerCoinLabel}>coins</Text>
+        </View>
       </View>
 
       {/* In-screen toast */}
       {toastMsg && (
-        <Pressable onPress={() => setToastMsg(null)} style={[styles.toast, toastMsg.type === "error" && styles.toastError]}>
+        <Pressable onPress={() => setToastMsg(null)} style={[s.toast, toastMsg.type === "error" && s.toastError]}>
           <Ionicons name={toastMsg.type === "success" ? "checkmark-circle" : "alert-circle"} size={16} color={toastMsg.type === "success" ? Colors.green : Colors.crimson} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.toastText}>{toastMsg.text}</Text>
-            {toastMsg.hint && <Text style={styles.toastHint}>{toastMsg.hint}</Text>}
+            <Text style={s.toastText}>{toastMsg.text}</Text>
+            {toastMsg.hint && <Text style={s.toastHint}>{toastMsg.hint}</Text>}
           </View>
           <Ionicons name="close" size={14} color={Colors.textMuted} />
         </Pressable>
@@ -225,17 +552,17 @@ export default function RewardsScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.tabRow}
+        style={s.tabRow}
         contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
       >
         {(["overview", "marketplace", "inventory", "history"] as const).map((t) => (
           <Pressable
             key={t}
-            style={[styles.tab, tab === t && styles.tabActive]}
-            onPress={() => { setTab(t); Haptics.selectionAsync(); }}
+            style={[s.tab, tab === t && s.tabActive]}
+            onPress={() => { setTab(t); Haptics.selectionAsync().catch(() => {}); }}
           >
-            <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
-              {t === "marketplace" ? "Marketplace" : t.charAt(0).toUpperCase() + t.slice(1)}
+            <Text style={[s.tabText, tab === t && s.tabTextActive]}>
+              {t === "marketplace" ? "Store" : t.charAt(0).toUpperCase() + t.slice(1)}
             </Text>
           </Pressable>
         ))}
@@ -243,114 +570,113 @@ export default function RewardsScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
+        contentContainerStyle={[s.scroll, { paddingBottom: bottomPad }]}
       >
-        {/* ─── OVERVIEW ─────────────────────────────────────────────── */}
+
+        {/* ──────────────────── OVERVIEW ────────────────────────────────── */}
         {tab === "overview" && (
           <>
             {isLoading ? (
               <ActivityIndicator color={Colors.accent} style={{ marginTop: 60 }} />
             ) : (
               <>
-                <Animated.View entering={FadeInDown.springify()} style={styles.balanceCard}>
-                  <View style={styles.balanceRow}>
-                    <Ionicons name="flash" size={28} color={Colors.gold} />
-                    <View>
-                      <Text style={styles.balanceLabel}>Coin Balance</Text>
-                      <Text style={styles.balanceAmount}>{balance?.coinBalance?.toLocaleString() ?? "0"}</Text>
+                <Animated.View entering={FadeInDown.springify()} style={s.balanceCard}>
+                  <View style={s.balanceRow}>
+                    <View style={s.balanceIconRing}>
+                      <Ionicons name="flash" size={22} color={Colors.gold} />
                     </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.balanceLabel}>Coin Balance</Text>
+                      <Text style={s.balanceAmount}>{balance?.coinBalance?.toLocaleString() ?? "0"}</Text>
+                    </View>
+                    <Pressable
+                      style={s.goStoreBtn}
+                      onPress={() => { setTab("marketplace"); Haptics.selectionAsync().catch(() => {}); }}
+                    >
+                      <Ionicons name="storefront-outline" size={13} color={Colors.accent} />
+                      <Text style={s.goStoreBtnText}>Store</Text>
+                    </Pressable>
                   </View>
-                  <View style={styles.divider} />
-                  <View style={styles.xpRow}>
-                    <Text style={styles.xpLabel}>Level {balance?.level ?? 1}</Text>
-                    <Text style={styles.xpPct}>{xpPercent}%</Text>
+                  <View style={s.divider} />
+                  <View style={s.xpRow}>
+                    <Text style={s.xpLabel}>Level {balance?.level ?? 1}</Text>
+                    <Text style={s.xpPct}>{xpPercent}%</Text>
                   </View>
-                  <View style={styles.xpBarBg}>
-                    <View style={[styles.xpBarFill, { width: `${xpPercent}%` }]} />
+                  <View style={s.xpBarBg}>
+                    <View style={[s.xpBarFill, { width: `${xpPercent}%` as any }]} />
                   </View>
-                  <Text style={styles.xpSub}>{balance?.xp ?? 0} / {balance?.xpToNextLevel ?? 100} XP</Text>
+                  <Text style={s.xpSub}>{balance?.xp ?? 0} / {balance?.xpToNextLevel ?? 100} XP to next level</Text>
                 </Animated.View>
 
-                <View style={styles.statsGrid}>
+                <View style={s.statsGrid}>
                   {[
                     { label: "Current Streak", value: `${balance?.currentStreak ?? 0}d`, icon: "flame", color: Colors.crimson },
                     { label: "Best Streak",    value: `${balance?.longestStreak ?? 0}d`, icon: "trophy", color: Colors.gold },
                   ].map((item, i) => (
-                    <Animated.View key={i} entering={FadeInDown.delay(i * 80).springify()} style={styles.statCard}>
+                    <Animated.View key={i} entering={FadeInDown.delay(i * 80).springify()} style={s.statCard}>
                       <Ionicons name={item.icon as any} size={22} color={item.color} />
-                      <Text style={styles.statValue}>{item.value}</Text>
-                      <Text style={styles.statLabel}>{item.label}</Text>
+                      <Text style={s.statValue}>{item.value}</Text>
+                      <Text style={s.statLabel}>{item.label}</Text>
                     </Animated.View>
                   ))}
                 </View>
 
                 {activeTitle && (
-                  <Animated.View entering={FadeInDown.delay(160).springify()} style={styles.activeTitleCard}>
+                  <Animated.View entering={FadeInDown.delay(160).springify()} style={s.activeTitleCard}>
                     <Ionicons name="ribbon" size={18} color={Colors.gold} />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.activeTitleLabel}>Active Title</Text>
-                      <Text style={styles.activeTitleValue}>{activeTitle.name}</Text>
+                      <Text style={s.activeTitleLabel}>Active Title</Text>
+                      <Text style={s.activeTitleValue}>{activeTitle.name}</Text>
                     </View>
                   </Animated.View>
                 )}
 
                 <Animated.View entering={FadeInDown.delay(180).springify()}>
                   <Pressable
-                    style={styles.shareSnapshotBtn}
-                    onPress={() => { Haptics.selectionAsync(); router.push("/share"); }}
+                    style={s.shareSnapshotBtn}
+                    onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/share"); }}
                   >
                     <Ionicons name="share-outline" size={16} color={Colors.accent} />
-                    <Text style={styles.shareSnapshotText}>Share Progress Cards</Text>
+                    <Text style={s.shareSnapshotText}>Share Progress Cards</Text>
                     <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
                   </Pressable>
                 </Animated.View>
 
-                <Animated.View entering={FadeInDown.delay(200).springify()}>
-                  <Pressable
-                    style={styles.marketplaceShortcut}
-                    onPress={() => { setTab("marketplace"); Haptics.selectionAsync(); }}
-                  >
-                    <Ionicons name="storefront-outline" size={16} color={Colors.accent} />
-                    <Text style={styles.shareSnapshotText}>Browse Marketplace</Text>
-                    <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
-                  </Pressable>
-                </Animated.View>
-
-                {/* Game Mode hub shortcuts */}
-                <Animated.View entering={FadeInDown.delay(220).springify()} style={styles.gameModeSection}>
-                  <Text style={styles.gameModeLabel}>GAME MODE</Text>
-                  <View style={styles.gameModeGrid}>
+                {/* Game mode hub */}
+                <Animated.View entering={FadeInDown.delay(220).springify()} style={s.gameModeSection}>
+                  <Text style={s.gameModeLabel}>GAME MODE</Text>
+                  <View style={s.gameModeGrid}>
                     {([
-                      { icon: "person-outline",    label: "Character",  route: "/character"       },
-                      { icon: "shirt-outline",     label: "Wardrobe",   route: "/wearables"       },
-                      { icon: "home-outline",      label: "Room",       route: "/world"            },
-                      { icon: "car-sport-outline", label: "Garage",     route: "/cars"             },
+                      { icon: "person-outline",    label: "Character",  route: "/character"  },
+                      { icon: "shirt-outline",     label: "Wardrobe",   route: "/wearables"  },
+                      { icon: "home-outline",      label: "Room",       route: "/world"      },
+                      { icon: "car-sport-outline", label: "Garage",     route: "/cars"       },
                     ] as const).map((item) => (
                       <Pressable
                         key={item.label}
-                        style={({ pressed }) => [styles.gameModeBtn, pressed && { opacity: 0.75, transform: [{ scale: 0.95 }] }]}
-                        onPress={() => { Haptics.selectionAsync(); router.push(item.route as any); }}
+                        style={({ pressed }) => [s.gameModeBtn, pressed && { opacity: 0.75, transform: [{ scale: 0.95 }] }]}
+                        onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push(item.route as any); }}
                       >
-                        <View style={styles.gameModeBtnIcon}>
+                        <View style={s.gameModeBtnIcon}>
                           <Ionicons name={item.icon} size={18} color={Colors.accent} />
                         </View>
-                        <Text style={styles.gameModeBtnLabel}>{item.label}</Text>
+                        <Text style={s.gameModeBtnLabel}>{item.label}</Text>
                       </Pressable>
                     ))}
                   </View>
                 </Animated.View>
 
                 {earnedBadges.length > 0 && (
-                  <Animated.View entering={FadeInDown.delay(220).springify()} style={styles.recentBadgesCard}>
-                    <Text style={styles.sectionLabel}>Recent Badges</Text>
+                  <Animated.View entering={FadeInDown.delay(240).springify()} style={s.recentBadgesCard}>
+                    <Text style={s.sectionLabel}>Recent Badges</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
                       <View style={{ flexDirection: "row", gap: 12 }}>
                         {earnedBadges.slice(0, 5).map((b: any) => (
-                          <View key={b.id} style={styles.badgeMini}>
-                            <View style={[styles.badgeMiniIcon, { backgroundColor: (RARITY_COLORS[b.rarity] ?? "#9E9E9E") + "18" }]}>
+                          <View key={b.id} style={s.badgeMini}>
+                            <View style={[s.badgeMiniIcon, { backgroundColor: (RARITY_COLORS[b.rarity] ?? "#9E9E9E") + "18" }]}>
                               <Ionicons name={(b.icon ?? "ribbon") as any} size={20} color={RARITY_COLORS[b.rarity] ?? "#9E9E9E"} />
                             </View>
-                            <Text style={styles.badgeMiniName} numberOfLines={1}>{b.name}</Text>
+                            <Text style={s.badgeMiniName} numberOfLines={1}>{b.name}</Text>
                           </View>
                         ))}
                       </View>
@@ -362,25 +688,16 @@ export default function RewardsScreen() {
           </>
         )}
 
-        {/* ─── MARKETPLACE ──────────────────────────────────────────── */}
+        {/* ──────────────────── MARKETPLACE / STORE ─────────────────────── */}
         {tab === "marketplace" && (
           <>
-            {/* Balance strip + search toggle */}
-            <View style={styles.marketBalanceStrip}>
-              <Ionicons name="flash" size={14} color={Colors.gold} />
-              <Text style={[styles.marketBalanceText, { flex: 1 }]}>{coinBalance.toLocaleString()} coins available</Text>
-              <Pressable onPress={() => { setShowSearch(s => !s); Haptics.selectionAsync(); }} style={{ padding: 4 }}>
-                <Ionicons name={showSearch ? "close-outline" : "search-outline"} size={18} color={Colors.textSecondary} />
-              </Pressable>
-            </View>
-
-            {/* Search bar */}
+            {/* Search bar — toggle */}
             {showSearch && (
-              <View style={styles.searchBar}>
+              <View style={s.searchBar}>
                 <Ionicons name="search-outline" size={15} color={Colors.textMuted} />
                 <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search items, tags..."
+                  style={s.searchInput}
+                  placeholder="Search catalog..."
                   placeholderTextColor={Colors.textMuted}
                   value={marketSearch}
                   onChangeText={setMarketSearch}
@@ -394,264 +711,233 @@ export default function RewardsScreen() {
               </View>
             )}
 
-            {/* Recommended for You — smart store card */}
-            {recData?.storeRecommendation && (
-              <Animated.View entering={FadeInDown.delay(30).springify()} style={{ paddingHorizontal: 20, marginBottom: 6 }}>
-                <StoreRecommendationCard
-                  rec={recData.storeRecommendation}
-                  delay={0}
-                  onDismiss={() => trackRec.mutate({ event: "dismissed", type: "store", itemId: recData.storeRecommendation?.itemId })}
-                  onCTAPress={() => trackRec.mutate({ event: "clicked", type: "store", itemId: recData.storeRecommendation?.itemId })}
-                />
-              </Animated.View>
+            {/* ── Store header strip ──────────────────────────────────── */}
+            <View style={s.storeHeaderStrip}>
+              <View style={s.storeHeaderLeft}>
+                <Ionicons name="storefront" size={15} color={Colors.accent} />
+                <Text style={s.storeHeaderTitle}>THE CATALOG</Text>
+              </View>
+              <View style={s.storeHeaderRight}>
+                <View style={s.storeBalanceChip}>
+                  <Ionicons name="flash" size={12} color={Colors.gold} />
+                  <Text style={s.storeBalanceText}>{coinBalance.toLocaleString()}</Text>
+                </View>
+                <Pressable onPress={() => { setShowSearch(v => !v); Haptics.selectionAsync().catch(() => {}); }} style={s.storeSearchBtn}>
+                  <Ionicons name={showSearch ? "close-outline" : "search-outline"} size={17} color={Colors.textSecondary} />
+                </Pressable>
+              </View>
+            </View>
+
+            {/* ── Best Next Upgrade card ──────────────────────────────── */}
+            {bestNextUpgrade && !marketSearch && (
+              <BestNextUpgradeCard
+                item={bestNextUpgrade}
+                coinBalance={coinBalance}
+                onPress={() => openDetail(bestNextUpgrade)}
+              />
             )}
 
-            {/* Category tabs */}
+            {/* ── Category tabs ───────────────────────────────────────── */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              style={styles.categoryRow}
+              style={s.categoryRow}
               contentContainerStyle={{ gap: 8 }}
             >
               {categories.map((cat) => (
                 <Pressable
                   key={cat}
-                  style={[styles.catChip, marketCategory === cat && styles.catChipActive]}
-                  onPress={() => { setMarketCategory(cat); Haptics.selectionAsync(); }}
+                  style={[s.catChip, marketCategory === cat && s.catChipActive]}
+                  onPress={() => { setMarketCategory(cat); Haptics.selectionAsync().catch(() => {}); }}
                 >
                   <Ionicons
                     name={categoryIcon(cat) as any}
                     size={13}
                     color={marketCategory === cat ? "#fff" : Colors.textSecondary}
                   />
-                  <Text style={[styles.catChipText, marketCategory === cat && styles.catChipTextActive]}>
+                  <Text style={[s.catChipText, marketCategory === cat && s.catChipTextActive]}>
                     {categoryLabel(cat)}
                   </Text>
                 </Pressable>
               ))}
             </ScrollView>
 
-            {/* Sort + filter chips */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}
-              style={{ marginBottom: 4 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 2 }}>
-              {(["featured", "newest", "rarity", "price_asc", "price_desc"] as const).map(s => (
-                <Pressable key={s}
-                  style={[styles.sortChip, marketSort === s && styles.sortChipActive]}
-                  onPress={() => { setMarketSort(s); Haptics.selectionAsync(); }}>
-                  <Text style={[styles.sortChipText, marketSort === s && { color: "#fff" }]}>
-                    {{ featured: "Featured", newest: "Newest", rarity: "Rarity", price_asc: "Cheapest", price_desc: "Priciest" }[s]}
-                  </Text>
-                </Pressable>
-              ))}
-              <Pressable style={[styles.sortChip, limitedOnly && styles.sortChipActive]}
-                onPress={() => { setLimitedOnly(v => !v); Haptics.selectionAsync(); }}>
-                <Text style={[styles.sortChipText, limitedOnly && { color: "#fff" }]}>Limited</Text>
-              </Pressable>
-              <Pressable style={[styles.sortChip, premiumOnly && { backgroundColor: Colors.gold + "30", borderColor: Colors.gold }]}
-                onPress={() => { setPremiumOnly(v => !v); Haptics.selectionAsync(); }}>
-                <Text style={[styles.sortChipText, premiumOnly && { color: Colors.gold }]}>Premium</Text>
-              </Pressable>
-            </ScrollView>
+            {/* Category tagline */}
+            {marketCategory !== "all" && CATEGORY_TAGLINES[marketCategory] && !marketSearch && (
+              <Animated.View entering={FadeIn.duration(200)}>
+                <Text style={s.categoryTagline}>{CATEGORY_TAGLINES[marketCategory]}</Text>
+              </Animated.View>
+            )}
 
-            {/* Featured strip */}
-            {marketCategory === "all" && featuredItems.length > 0 && (
+            {/* ── Sort / filter row ────────────────────────────────────── */}
+            <View style={s.filterRow}>
+              {/* Sort picker trigger */}
+              <Pressable
+                style={s.sortTrigger}
+                onPress={() => { setShowSortPicker(v => !v); Haptics.selectionAsync().catch(() => {}); }}
+              >
+                <Ionicons name="funnel-outline" size={12} color={Colors.textSecondary} />
+                <Text style={s.sortTriggerText}>{SORT_LABELS[marketSort]}</Text>
+                <Ionicons name={showSortPicker ? "chevron-up" : "chevron-down"} size={11} color={Colors.textMuted} />
+              </Pressable>
+              {/* Toggle chips */}
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                <Pressable
+                  style={[s.filterChip, limitedOnly && s.filterChipLimited]}
+                  onPress={() => { setLimitedOnly(v => !v); Haptics.selectionAsync().catch(() => {}); }}
+                >
+                  <Text style={[s.filterChipText, limitedOnly && { color: Colors.crimson }]}>Limited</Text>
+                </Pressable>
+                <Pressable
+                  style={[s.filterChip, premiumOnly && s.filterChipPremium]}
+                  onPress={() => { setPremiumOnly(v => !v); Haptics.selectionAsync().catch(() => {}); }}
+                >
+                  <Text style={[s.filterChipText, premiumOnly && { color: Colors.gold }]}>Premium</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Sort options dropdown */}
+            {showSortPicker && (
+              <Animated.View entering={FadeIn.duration(150)} style={s.sortDropdown}>
+                {(["featured", "newest", "rarity", "price_asc", "price_desc"] as const).map(opt => (
+                  <Pressable
+                    key={opt}
+                    style={[s.sortOption, marketSort === opt && s.sortOptionActive]}
+                    onPress={() => { setMarketSort(opt); setShowSortPicker(false); Haptics.selectionAsync().catch(() => {}); }}
+                  >
+                    <Text style={[s.sortOptionText, marketSort === opt && s.sortOptionTextActive]}>
+                      {SORT_LABELS[opt]}
+                    </Text>
+                    {marketSort === opt && <Ionicons name="checkmark" size={14} color={Colors.accent} />}
+                  </Pressable>
+                ))}
+              </Animated.View>
+            )}
+
+            {/* ── Featured strip ───────────────────────────────────────── */}
+            {marketCategory === "all" && featuredItems.length > 0 && !marketSearch && (
               <>
-                <Text style={styles.sectionLabel}>Featured</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={{ flexDirection: "row", gap: 12, paddingRight: 4 }}>
-                    {featuredItems.map((item: any, i: number) => {
-                      const rarityColor = RARITY_COLORS[item.rarity] ?? "#9E9E9E";
-                      return (
-                        <Animated.View key={item.id} entering={FadeInDown.delay(i * 60).springify()}>
-                          <Pressable
-                            style={[styles.featuredCard, { borderColor: rarityColor + "50" }]}
-                            onPress={() => openDetail(item)}
-                          >
-                            {item.isLimited && (
-                              <View style={styles.limitedBadge}>
-                                <Text style={styles.limitedBadgeText}>LIMITED</Text>
-                              </View>
-                            )}
-                            <View style={[styles.featuredIcon, { backgroundColor: rarityColor + "18" }]}>
-                              <Ionicons name={(item.icon ?? "gift") as any} size={28} color={rarityColor} />
-                            </View>
-                            <Text style={styles.featuredName} numberOfLines={1}>{item.name}</Text>
-                            <View style={styles.featuredMeta}>
-                              <View style={[styles.rarityChip, { backgroundColor: rarityColor + "20" }]}>
-                                <Text style={[styles.rarityText, { color: rarityColor }]}>{item.rarity.toUpperCase()}</Text>
-                              </View>
-                            </View>
-                            <View style={styles.featuredCost}>
-                              <Ionicons name="flash" size={11} color={Colors.gold} />
-                              <Text style={[styles.featuredCostText, !item.canAfford && { color: Colors.textMuted }]}>
-                                {item.cost.toLocaleString()}
-                              </Text>
-                            </View>
-                            {item.owned ? (
-                              <View style={styles.ownedChip}>
-                                <Text style={styles.ownedChipText}>OWNED</Text>
-                              </View>
-                            ) : !item.canAfford ? (
-                              <Text style={styles.cannotAffordText}>Can't afford</Text>
-                            ) : null}
-                          </Pressable>
-                        </Animated.View>
-                      );
-                    })}
-                  </View>
+                <View style={s.sectionHeaderRow}>
+                  <Text style={s.sectionLabel}>Featured</Text>
+                  <View style={s.sectionDot} />
+                  <Text style={s.sectionSub}>Curated picks</Text>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 4, gap: 12 }}>
+                  {featuredItems.map((item: any, i: number) => (
+                    <FeaturedItemCard
+                      key={item.id}
+                      item={item}
+                      coinBalance={coinBalance}
+                      onPress={() => openDetail(item)}
+                      index={i}
+                    />
+                  ))}
                 </ScrollView>
               </>
             )}
 
-            {/* Main item list */}
+            {/* ── Main list ────────────────────────────────────────────── */}
             {marketLoading ? (
               <ActivityIndicator color={Colors.accent} style={{ marginTop: 40 }} />
             ) : marketItems.length === 0 ? (
-              <View style={styles.emptyBox}>
+              <View style={s.emptyBox}>
                 <Ionicons name="storefront-outline" size={48} color={Colors.textMuted} />
-                <Text style={styles.emptyTitle}>No items in this category</Text>
+                <Text style={s.emptyTitle}>Nothing in this category</Text>
+                <Text style={s.emptySubtitle}>Try a different filter or search term.</Text>
               </View>
             ) : (
               <>
-                <Text style={[styles.sectionLabel, { marginTop: 4 }]}>
-                  {CATEGORY_LABELS[marketCategory] ?? "All Items"} ({marketItems.length})
-                </Text>
-                {marketItems.map((item: any, i: number) => {
-                  const rarityColor = RARITY_COLORS[item.rarity] ?? "#9E9E9E";
-                  return (
-                    <Animated.View key={item.id} entering={FadeInDown.delay(i * 40).springify()}>
-                      <Pressable
-                        style={[
-                          styles.marketCard,
-                          item.owned && { borderColor: rarityColor + "50" },
-                          !item.canAfford && !item.owned && { opacity: 0.7 },
-                        ]}
-                        onPress={() => openDetail(item)}
-                      >
-                        <View style={[styles.marketIconBox, { backgroundColor: rarityColor + "15" }]}>
-                          <Ionicons name={(item.icon ?? "gift") as any} size={24} color={rarityColor} />
-                        </View>
-                        <View style={{ flex: 1, gap: 3 }}>
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                            <Text style={styles.marketName} numberOfLines={1}>{item.name}</Text>
-                            {item.isLimited && (
-                              <View style={styles.limitedChip}>
-                                <Text style={styles.limitedChipText}>LTD</Text>
-                              </View>
-                            )}
-                            {item.isExclusive && (
-                              <View style={[styles.limitedChip, { backgroundColor: Colors.gold + "20" }]}>
-                                <Text style={[styles.limitedChipText, { color: Colors.gold }]}>EXCL</Text>
-                              </View>
-                            )}
-                          </View>
-                          <Text style={styles.marketDesc} numberOfLines={1}>{item.description}</Text>
-                          <View style={[styles.rarityChip, { backgroundColor: rarityColor + "15", alignSelf: "flex-start" }]}>
-                            <Text style={[styles.rarityText, { color: rarityColor }]}>{item.rarity.toUpperCase()}</Text>
-                          </View>
-                        </View>
-                        <View style={{ alignItems: "flex-end", gap: 6 }}>
-                          {item.owned ? (
-                            <View style={styles.ownedBadge}>
-                              <Ionicons name="checkmark" size={12} color={Colors.green} />
-                              <Text style={styles.ownedBadgeText}>Owned</Text>
-                            </View>
-                          ) : (
-                            <View style={[styles.costBadge, !item.canAfford && { backgroundColor: Colors.bgElevated }]}>
-                              <Ionicons name="flash" size={12} color={item.canAfford ? Colors.gold : Colors.textMuted} />
-                              <Text style={[styles.costText, !item.canAfford && { color: Colors.textMuted }]}>
-                                {item.cost.toLocaleString()}
-                              </Text>
-                            </View>
-                          )}
-                          {item.owned && item.isEquipped && (
-                            <View style={styles.equippedChip}>
-                              <Text style={styles.equippedChipText}>EQUIPPED</Text>
-                            </View>
-                          )}
-                        </View>
-                      </Pressable>
-                    </Animated.View>
-                  );
-                })}
+                <View style={s.sectionHeaderRow}>
+                  <Text style={s.sectionLabel}>
+                    {marketSearch ? `Results (${marketItems.length})` : `${categoryLabel(marketCategory)} (${marketItems.length})`}
+                  </Text>
+                </View>
+                {marketItems.map((item: any, i: number) => (
+                  <MarketListCard
+                    key={item.id}
+                    item={item}
+                    coinBalance={coinBalance}
+                    onPress={() => openDetail(item)}
+                    index={i}
+                  />
+                ))}
               </>
             )}
           </>
         )}
 
-        {/* ─── INVENTORY ────────────────────────────────────────────── */}
+        {/* ──────────────────── INVENTORY ───────────────────────────────── */}
         {tab === "inventory" && (
           <>
-            {/* Applied state summary */}
             {appliedState?.summary && (appliedState.summary.totalOwned > 0 || appliedState.summary.hasActiveTitle) && (
-              <Animated.View entering={FadeInDown.springify()} style={styles.appliedSummaryCard}>
-                <Text style={styles.appliedSummaryTitle}>APPLIED STATE</Text>
-                <View style={styles.appliedSummaryRow}>
+              <Animated.View entering={FadeInDown.springify()} style={s.appliedSummaryCard}>
+                <Text style={s.appliedSummaryTitle}>APPLIED STATE</Text>
+                <View style={s.appliedSummaryRow}>
                   {[
                     { label: "Owned",     value: appliedState.summary.totalOwned,    color: Colors.textSecondary },
                     { label: "Equipped",  value: appliedState.summary.totalEquipped,  color: "#7C5CFC" },
                     { label: "Displayed", value: appliedState.summary.totalDisplayed, color: "#00D4FF" },
                     { label: "Stored",    value: appliedState.summary.totalStored,    color: Colors.textMuted },
                   ].map((stat) => (
-                    <View key={stat.label} style={styles.appliedStat}>
-                      <Text style={[styles.appliedStatValue, { color: stat.color }]}>{stat.value}</Text>
-                      <Text style={styles.appliedStatLabel}>{stat.label}</Text>
+                    <View key={stat.label} style={s.appliedStat}>
+                      <Text style={[s.appliedStatValue, { color: stat.color }]}>{stat.value}</Text>
+                      <Text style={s.appliedStatLabel}>{stat.label}</Text>
                     </View>
                   ))}
                 </View>
                 {appliedState.summary.hasActiveTitle && (
-                  <View style={styles.appliedTitleRow}>
+                  <View style={s.appliedTitleRow}>
                     <Ionicons name="ribbon" size={11} color={Colors.gold} />
-                    <Text style={styles.appliedTitleText}>Active title equipped</Text>
+                    <Text style={s.appliedTitleText}>Active title equipped</Text>
                   </View>
                 )}
               </Animated.View>
             )}
 
-            {/* Marketplace-sourced owned assets */}
             {(() => {
               const marketOwned = allMarketItems.filter((i: any) => i.owned);
               if (marketOwned.length === 0 && ownedAssets.length === 0) return null;
               return (
                 <>
-                  <Text style={styles.sectionLabel}>Owned Items</Text>
+                  <Text style={s.sectionLabel}>Owned Items</Text>
                   {marketOwned.length > 0 && (
-                    <View style={styles.ownedGrid}>
+                    <View style={s.ownedGrid}>
                       {marketOwned.map((item: any, i: number) => {
                         const rarityColor = RARITY_COLORS[item.rarity] ?? "#9E9E9E";
                         return (
                           <Animated.View key={item.id} entering={FadeInDown.delay(i * 40).springify()}>
                             <Pressable
                               style={[
-                                styles.invCard,
+                                s.invCard,
                                 (item.isEquipped || item.displaySlot) && { borderColor: rarityColor + "60" },
                               ]}
                               onPress={() => openDetail(item)}
                             >
-                              <View style={[styles.invIcon, { backgroundColor: rarityColor + "15" }]}>
+                              <View style={[s.invIcon, { backgroundColor: rarityColor + "15" }]}>
                                 <Ionicons name={(item.icon ?? "gift") as any} size={22} color={rarityColor} />
                               </View>
                               <View style={{ flex: 1 }}>
-                                <Text style={styles.invName} numberOfLines={1}>{item.name}</Text>
-                                <View style={[styles.rarityChip, { backgroundColor: rarityColor + "15", alignSelf: "flex-start" }]}>
-                                  <Text style={[styles.rarityText, { color: rarityColor }]}>{item.rarity.toUpperCase()}</Text>
+                                <Text style={s.invName} numberOfLines={1}>{item.name}</Text>
+                                <View style={[s.rarityChip, { backgroundColor: rarityColor + "15", alignSelf: "flex-start" }]}>
+                                  <Text style={[s.rarityText, { color: rarityColor }]}>{item.rarity.toUpperCase()}</Text>
                                 </View>
                               </View>
                               <View style={{ alignItems: "flex-end", gap: 4 }}>
                                 {item.isEquipped && (
-                                  <View style={styles.equippedChip}>
-                                    <Text style={styles.equippedChipText}>EQUIPPED</Text>
+                                  <View style={s.equippedChip}>
+                                    <Text style={s.equippedChipText}>EQUIPPED</Text>
                                   </View>
                                 )}
                                 {item.displaySlot ? (
-                                  <View style={styles.displayedChip}>
+                                  <View style={s.displayedChip}>
                                     <Ionicons name="home-outline" size={9} color="#00D4FF" />
-                                    <Text style={styles.displayedChipText}>
+                                    <Text style={s.displayedChipText}>
                                       {SLOT_LABELS[item.displaySlot] ?? item.displaySlot}
                                     </Text>
                                   </View>
                                 ) : !item.isEquipped ? (
-                                  <Text style={styles.equipText}>Apply</Text>
+                                  <Text style={s.equipText}>Apply</Text>
                                 ) : null}
                               </View>
                             </Pressable>
@@ -664,11 +950,10 @@ export default function RewardsScreen() {
               );
             })()}
 
-            {/* Titles */}
-            <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Titles</Text>
+            <Text style={[s.sectionLabel, { marginTop: 8 }]}>Titles</Text>
             {earnedTitles.length === 0 ? (
-              <View style={styles.emptySmall}>
-                <Text style={styles.emptySmallText}>No titles earned yet. Complete milestones to unlock them.</Text>
+              <View style={s.emptySmall}>
+                <Text style={s.emptySmallText}>No titles earned yet. Complete milestones to unlock them.</Text>
               </View>
             ) : (
               earnedTitles.map((t: any, i: number) => {
@@ -676,27 +961,27 @@ export default function RewardsScreen() {
                 return (
                   <Animated.View key={t.id} entering={FadeInDown.delay(i * 60).springify()}>
                     <Pressable
-                      style={[styles.titleCard, t.isActive && { borderColor: Colors.gold + "60" }]}
+                      style={[s.titleCard, t.isActive && { borderColor: Colors.gold + "60" }]}
                       onPress={() => !t.isActive && handleActivateTitle(t.id)}
                     >
-                      <View style={[styles.titleIconBox, { backgroundColor: rarityColor + "18" }]}>
+                      <View style={[s.titleIconBox, { backgroundColor: rarityColor + "18" }]}>
                         <Ionicons name="ribbon" size={20} color={rarityColor} />
                       </View>
                       <View style={{ flex: 1, gap: 3 }}>
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                          <Text style={styles.titleName}>{t.name}</Text>
-                          <View style={[styles.rarityChip, { backgroundColor: rarityColor + "18" }]}>
-                            <Text style={[styles.rarityText, { color: rarityColor }]}>{t.rarity.toUpperCase()}</Text>
+                          <Text style={s.titleName}>{t.name}</Text>
+                          <View style={[s.rarityChip, { backgroundColor: rarityColor + "18" }]}>
+                            <Text style={[s.rarityText, { color: rarityColor }]}>{t.rarity.toUpperCase()}</Text>
                           </View>
                         </View>
-                        <Text style={styles.titleDesc}>{t.description}</Text>
+                        <Text style={s.titleDesc}>{t.description}</Text>
                       </View>
                       {t.isActive ? (
-                        <View style={styles.activeChip}>
-                          <Text style={styles.activeChipText}>ACTIVE</Text>
+                        <View style={s.activeChip}>
+                          <Text style={s.activeChipText}>ACTIVE</Text>
                         </View>
                       ) : (
-                        <Text style={styles.equipText}>Equip</Text>
+                        <Text style={s.equipText}>Equip</Text>
                       )}
                     </Pressable>
                   </Animated.View>
@@ -704,24 +989,23 @@ export default function RewardsScreen() {
               })
             )}
 
-            {/* Earned Badges */}
-            <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Badges Earned</Text>
+            <Text style={[s.sectionLabel, { marginTop: 8 }]}>Badges Earned</Text>
             {earnedBadges.length === 0 ? (
-              <View style={styles.emptySmall}>
-                <Text style={styles.emptySmallText}>No badges earned yet.</Text>
+              <View style={s.emptySmall}>
+                <Text style={s.emptySmallText}>No badges earned yet.</Text>
               </View>
             ) : (
-              <View style={styles.badgesGrid}>
+              <View style={s.badgesGrid}>
                 {earnedBadges.map((b: any, i: number) => {
                   const rColor = RARITY_COLORS[b.rarity] ?? "#9E9E9E";
                   return (
-                    <Animated.View key={b.id} entering={FadeInDown.delay(i * 50).springify()} style={[styles.badgeCard, { borderColor: rColor + "40" }]}>
-                      <View style={[styles.badgeIcon, { backgroundColor: rColor + "18" }]}>
+                    <Animated.View key={b.id} entering={FadeInDown.delay(i * 50).springify()} style={[s.badgeCard, { borderColor: rColor + "40" }]}>
+                      <View style={[s.badgeIcon, { backgroundColor: rColor + "18" }]}>
                         <Ionicons name={(b.icon ?? "ribbon") as any} size={26} color={rColor} />
                       </View>
-                      <Text style={styles.badgeName} numberOfLines={2}>{b.name}</Text>
-                      <View style={[styles.rarityChip, { backgroundColor: rColor + "18" }]}>
-                        <Text style={[styles.rarityText, { color: rColor }]}>{b.rarity.toUpperCase()}</Text>
+                      <Text style={s.badgeName} numberOfLines={2}>{b.name}</Text>
+                      <View style={[s.rarityChip, { backgroundColor: rColor + "18" }]}>
+                        <Text style={[s.rarityText, { color: rColor }]}>{b.rarity.toUpperCase()}</Text>
                       </View>
                     </Animated.View>
                   );
@@ -731,15 +1015,15 @@ export default function RewardsScreen() {
 
             {lockedBadges.length > 0 && (
               <>
-                <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Locked Badges</Text>
-                <View style={styles.badgesGrid}>
+                <Text style={[s.sectionLabel, { marginTop: 8 }]}>Locked Badges</Text>
+                <View style={s.badgesGrid}>
                   {lockedBadges.map((b: any, i: number) => (
-                    <Animated.View key={b.id} entering={FadeInDown.delay(i * 40).springify()} style={[styles.badgeCard, styles.badgeCardLocked]}>
-                      <View style={[styles.badgeIcon, { backgroundColor: Colors.bgElevated }]}>
+                    <Animated.View key={b.id} entering={FadeInDown.delay(i * 40).springify()} style={[s.badgeCard, s.badgeCardLocked]}>
+                      <View style={[s.badgeIcon, { backgroundColor: Colors.bgElevated }]}>
                         <Ionicons name="lock-closed" size={22} color={Colors.textMuted} />
                       </View>
-                      <Text style={[styles.badgeName, { color: Colors.textMuted }]} numberOfLines={2}>{b.name}</Text>
-                      <Text style={styles.badgeDesc} numberOfLines={2}>{b.description}</Text>
+                      <Text style={[s.badgeName, { color: Colors.textMuted }]} numberOfLines={2}>{b.name}</Text>
+                      <Text style={s.badgeDesc} numberOfLines={2}>{b.description}</Text>
                     </Animated.View>
                   ))}
                 </View>
@@ -748,26 +1032,27 @@ export default function RewardsScreen() {
           </>
         )}
 
-        {/* ─── HISTORY ──────────────────────────────────────────────── */}
+        {/* ──────────────────── HISTORY ─────────────────────────────────── */}
         {tab === "history" && (
           <>
             {!history?.length ? (
-              <View style={styles.emptyBox}>
+              <View style={s.emptyBox}>
                 <Ionicons name="receipt-outline" size={48} color={Colors.textMuted} />
-                <Text style={styles.emptyTitle}>No transactions yet</Text>
+                <Text style={s.emptyTitle}>No transactions yet</Text>
+                <Text style={s.emptySubtitle}>Coin activity will appear here as you earn and spend.</Text>
               </View>
             ) : (
               (history as any[]).map((tx: any, i: number) => {
                 const isEarned = tx.type === "earned" || tx.type === "bonus" || tx.type === "admin_grant";
                 return (
                   <Animated.View key={tx.id} entering={FadeInDown.delay(i * 40).springify()}>
-                    <View style={styles.txRow}>
-                      <View style={[styles.txDot, { backgroundColor: isEarned ? Colors.green : Colors.crimson }]} />
+                    <View style={s.txRow}>
+                      <View style={[s.txDot, { backgroundColor: isEarned ? Colors.green : Colors.crimson }]} />
                       <View style={{ flex: 1, gap: 2 }}>
-                        <Text style={styles.txReason} numberOfLines={1}>{tx.reason}</Text>
-                        <Text style={styles.txDate}>{new Date(tx.createdAt).toLocaleDateString()}</Text>
+                        <Text style={s.txReason} numberOfLines={1}>{tx.reason}</Text>
+                        <Text style={s.txDate}>{new Date(tx.createdAt).toLocaleDateString()}</Text>
                       </View>
-                      <Text style={[styles.txAmount, { color: isEarned ? Colors.green : Colors.crimson }]}>
+                      <Text style={[s.txAmount, { color: isEarned ? Colors.green : Colors.crimson }]}>
                         {isEarned ? "+" : ""}{tx.amount}
                       </Text>
                     </View>
@@ -779,211 +1064,242 @@ export default function RewardsScreen() {
         )}
       </ScrollView>
 
-      {/* ─── ITEM DETAIL MODAL ──────────────────────────────────────── */}
+      {/* ──────────────────── ITEM DETAIL MODAL ───────────────────────── */}
       {detailItem && (
         <Modal transparent animationType="slide" onRequestClose={() => setDetailItem(null)}>
-          <Pressable style={styles.modalOverlay} onPress={() => setDetailItem(null)}>
-            <View style={styles.detailModal}>
-              {/* Header */}
-              <View style={styles.detailHeader}>
-                {(() => {
-                  const rc = RARITY_COLORS[detailItem.rarity] ?? "#9E9E9E";
-                  return (
-                    <>
-                      <View style={[styles.detailIconBig, { backgroundColor: rc + "18" }]}>
-                        <Ionicons name={(detailItem.icon ?? "gift") as any} size={40} color={rc} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.detailName}>{detailItem.name}</Text>
-                        <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
-                          <View style={[styles.rarityChip, { backgroundColor: rc + "18" }]}>
-                            <Text style={[styles.rarityText, { color: rc }]}>{detailItem.rarity.toUpperCase()}</Text>
-                          </View>
-                          <View style={[styles.rarityChip, { backgroundColor: Colors.bgElevated }]}>
-                            <Text style={[styles.rarityText, { color: Colors.textMuted }]}>{(detailItem.category ?? "").toUpperCase()}</Text>
-                          </View>
-                          {detailItem.isLimited && (
-                            <View style={[styles.rarityChip, { backgroundColor: Colors.crimson + "20" }]}>
-                              <Text style={[styles.rarityText, { color: Colors.crimson }]}>LIMITED</Text>
-                            </View>
-                          )}
-                          {detailItem.isExclusive && (
-                            <View style={[styles.rarityChip, { backgroundColor: Colors.gold + "20" }]}>
-                              <Text style={[styles.rarityText, { color: Colors.gold }]}>EXCLUSIVE</Text>
-                            </View>
-                          )}
-                        </View>
-                      </View>
-                    </>
-                  );
-                })()}
-              </View>
-
-              <Text style={styles.detailDesc}>{detailItem.description}</Text>
-
-              {/* ── APPLIES TO section (Phase 23) ── */}
+          <Pressable style={s.modalOverlay} onPress={() => setDetailItem(null)}>
+            <View style={s.detailModal}>
               {(() => {
+                const rc = RARITY_COLORS[detailItem.rarity] ?? "#9E9E9E";
+                const itemState = getItemState(detailItem, coinBalance);
+                const gap = affordGap(detailItem, coinBalance);
+                const pct = affordPct(detailItem, coinBalance);
                 const surfaces: string[] = detailItem.applicableSurfaces ?? [];
                 const mode: string = detailItem.applicationMode ?? "passive";
                 const slots: string[] = detailItem.slotEligibility ?? [];
-                if (surfaces.length === 0 && mode === "passive") return null;
+
                 return (
-                  <View style={styles.appliesToBlock}>
-                    <Text style={styles.appliesToLabel}>APPLIES TO</Text>
-                    <View style={styles.appliesToRow}>
-                      {surfaces.map((s) => {
-                        const meta = SURFACE_META[s];
-                        if (!meta) return null;
-                        return (
-                          <View key={s} style={[styles.surfaceChip, { backgroundColor: meta.color + "18", borderColor: meta.color + "40" }]}>
-                            <Ionicons name={meta.icon as any} size={12} color={meta.color} />
-                            <Text style={[styles.surfaceChipText, { color: meta.color }]}>{meta.label}</Text>
+                  <>
+                    {/* ── Gradient hero ────────────────────────────────── */}
+                    <View style={[s.detailHero, { backgroundColor: rc + "14", borderColor: rc + "40" }]}>
+                      <View style={[s.detailIconBig, { backgroundColor: rc + "20" }]}>
+                        <Ionicons name={(detailItem.icon ?? "gift") as any} size={40} color={rc} />
+                      </View>
+                      <View style={{ flex: 1, gap: 6 }}>
+                        <Text style={s.detailName}>{detailItem.name}</Text>
+                        {/* Chips row */}
+                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
+                          <View style={[s.rarityChip, { backgroundColor: rc + "25" }]}>
+                            <Text style={[s.rarityText, { color: rc }]}>{detailItem.rarity.toUpperCase()}</Text>
                           </View>
-                        );
-                      })}
+                          <View style={[s.rarityChip, { backgroundColor: Colors.bgElevated }]}>
+                            <Text style={[s.rarityText, { color: Colors.textMuted }]}>{(detailItem.category ?? "").toUpperCase()}</Text>
+                          </View>
+                          {detailItem.isLimited && (
+                            <View style={[s.rarityChip, { backgroundColor: Colors.crimson + "20" }]}>
+                              <Text style={[s.rarityText, { color: Colors.crimson }]}>LIMITED</Text>
+                            </View>
+                          )}
+                          {detailItem.isExclusive && (
+                            <View style={[s.rarityChip, { backgroundColor: Colors.gold + "20" }]}>
+                              <Text style={[s.rarityText, { color: Colors.gold }]}>EXCLUSIVE</Text>
+                            </View>
+                          )}
+                        </View>
+                        {/* Ownership state */}
+                        {(itemState === "owned" || itemState === "equipped") ? (
+                          <View style={s.detailOwnedRow}>
+                            <Ionicons name="checkmark-circle" size={13} color={Colors.green} />
+                            <Text style={s.detailOwnedText}>
+                              {itemState === "equipped" ? "Equipped" : detailItem.displaySlot ? "Displayed" : "In your inventory"}
+                            </Text>
+                          </View>
+                        ) : itemState === "locked" ? (
+                          <View style={s.detailLockedRow}>
+                            <Ionicons name="lock-closed" size={13} color={Colors.textMuted} />
+                            <Text style={s.detailLockedText}>
+                              {detailItem.levelRequired ? `Unlocks at Level ${detailItem.levelRequired}` : "Locked"}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
                     </View>
-                    <Text style={styles.appModeText}>
-                      {APPLICATION_MODE_DESC[mode] ?? mode}
-                    </Text>
-                    {slots.length > 0 && (
-                      <Text style={styles.slotHintText}>
-                        Eligible slots: {slots.map(s => SLOT_LABELS[s] ?? s).join(", ")}
+
+                    {/* ── Why you want this ────────────────────────────── */}
+                    <View style={s.detailWhyBlock}>
+                      <Text style={s.detailWhyLabel}>WHY YOU WANT THIS</Text>
+                      <Text style={s.detailWhyText}>
+                        {RARITY_ASPIRATION[detailItem.rarity] ?? "A meaningful addition to your catalog."}
+                        {CATEGORY_TAGLINES[detailItem.category] ? " " + CATEGORY_TAGLINES[detailItem.category] : ""}
                       </Text>
-                    )}
-                    {detailItem.owned && detailItem.displaySlot && (
-                      <View style={styles.displayedInRow}>
-                        <Ionicons name="checkmark-circle" size={13} color={Colors.green} />
-                        <Text style={styles.displayedInText}>
-                          Displayed in: {SLOT_LABELS[detailItem.displaySlot] ?? detailItem.displaySlot}
-                        </Text>
+                    </View>
+
+                    {/* ── Description ──────────────────────────────────── */}
+                    {detailItem.description ? (
+                      <Text style={s.detailDesc}>{detailItem.description}</Text>
+                    ) : null}
+
+                    {/* ── Applies to ───────────────────────────────────── */}
+                    {(surfaces.length > 0 || mode !== "passive") && (
+                      <View style={s.appliesToBlock}>
+                        <Text style={s.appliesToLabel}>APPLIES TO</Text>
+                        {surfaces.length > 0 && (
+                          <View style={s.appliesToRow}>
+                            {surfaces.map((su) => {
+                              const meta = SURFACE_META[su];
+                              if (!meta) return null;
+                              return (
+                                <View key={su} style={[s.surfaceChip, { backgroundColor: meta.color + "18", borderColor: meta.color + "40" }]}>
+                                  <Ionicons name={meta.icon as any} size={12} color={meta.color} />
+                                  <Text style={[s.surfaceChipText, { color: meta.color }]}>{meta.label}</Text>
+                                </View>
+                              );
+                            })}
+                          </View>
+                        )}
+                        <Text style={s.appModeText}>{APPLICATION_MODE_DESC[mode] ?? mode}</Text>
+                        {slots.length > 0 && (
+                          <Text style={s.slotHintText}>
+                            Eligible slots: {slots.map(sl => SLOT_LABELS[sl] ?? sl).join(", ")}
+                          </Text>
+                        )}
+                        {detailItem.owned && detailItem.displaySlot && (
+                          <View style={s.displayedInRow}>
+                            <Ionicons name="checkmark-circle" size={13} color={Colors.green} />
+                            <Text style={s.displayedInText}>
+                              Displayed in: {SLOT_LABELS[detailItem.displaySlot] ?? detailItem.displaySlot}
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     )}
-                  </View>
+
+                    {/* ── Cost / affordability ─────────────────────────── */}
+                    {!detailItem.owned && (
+                      <View style={s.detailAffordCard}>
+                        <View style={s.detailAffordHeader}>
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                            <Ionicons name="flash" size={15} color={Colors.gold} />
+                            <Text style={s.detailCostBig}>{detailItem.cost?.toLocaleString()}</Text>
+                            <Text style={s.detailCostLabel}>coins</Text>
+                          </View>
+                          <Text style={[s.detailAffordStatus, { color: itemState === "affordable" ? Colors.green : itemState === "almost" ? Colors.amber : Colors.textMuted }]}>
+                            {itemState === "affordable" ? "You can buy this" : itemState === "almost" ? `Need ${gap.toLocaleString()} more` : itemState === "locked" ? "Locked" : `Need ${gap.toLocaleString()} more`}
+                          </Text>
+                        </View>
+                        {/* Progress bar toward cost */}
+                        <View style={s.detailBarBg}>
+                          <View style={[s.detailBarFill, {
+                            width: `${pct}%` as any,
+                            backgroundColor: itemState === "affordable" ? Colors.green : itemState === "almost" ? Colors.amber : Colors.accent,
+                          }]} />
+                        </View>
+                        <Text style={s.detailBarSub}>{coinBalance.toLocaleString()} of {detailItem.cost?.toLocaleString()} coins</Text>
+                        {detailItem.sellBackValue > 0 && (
+                          <Text style={s.detailSellbackNote}>Sell back value: {detailItem.sellBackValue} coins</Text>
+                        )}
+                      </View>
+                    )}
+
+                    {/* Owned: sell back info */}
+                    {detailItem.owned && detailItem.sellBackValue > 0 && (
+                      <View style={s.detailInfoRow}>
+                        <View style={s.detailInfoCell}>
+                          <Text style={s.detailInfoLabel}>Sell Back</Text>
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                            <Ionicons name="flash" size={13} color={Colors.textSecondary} />
+                            <Text style={s.detailInfoValue}>{detailItem.sellBackValue}</Text>
+                          </View>
+                        </View>
+                        <View style={s.detailInfoCell}>
+                          <Text style={s.detailInfoLabel}>Status</Text>
+                          <Text style={[s.detailInfoValue, { color: Colors.green }]}>
+                            {detailItem.displaySlot ? "Displayed" : detailItem.isEquipped ? "Equipped" : "Owned"}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Acquisition note */}
+                    <Text style={s.detailAcqNote}>
+                      {detailItem.isExclusive
+                        ? "Exclusive — not available to all players."
+                        : detailItem.isLimited
+                        ? "Limited availability — may not return to the catalog."
+                        : "Permanent once purchased."}
+                    </Text>
+
+                    {/* ── Actions ──────────────────────────────────────── */}
+                    <View style={s.detailActions}>
+                      {!detailItem.owned ? (
+                        <>
+                          <Pressable style={s.cancelBtn} onPress={() => setDetailItem(null)}>
+                            <Text style={s.cancelBtnText}>Cancel</Text>
+                          </Pressable>
+                          <Pressable
+                            style={[s.buyBtn, (!detailItem.canAfford || itemState === "locked") && { opacity: 0.4 }]}
+                            disabled={!detailItem.canAfford || buyItem.isPending || itemState === "locked"}
+                            onPress={() => handleBuy(detailItem)}
+                          >
+                            <Ionicons name="flash" size={15} color="#000" />
+                            <Text style={s.buyBtnText}>
+                              {buyItem.isPending ? "Buying..." : itemState === "locked" ? "Locked" : `Buy · ${detailItem.cost?.toLocaleString()}`}
+                            </Text>
+                          </Pressable>
+                        </>
+                      ) : (
+                        <>
+                          <Pressable style={s.cancelBtn} onPress={() => setDetailItem(null)}>
+                            <Text style={s.cancelBtnText}>Close</Text>
+                          </Pressable>
+                          <View style={{ flexDirection: "row", gap: 8, flex: 1 }}>
+                            {detailItem.isEquipped ? (
+                              <Pressable style={[s.equipBtn, { flex: 1 }]} onPress={() => handleUnequip(detailItem)} disabled={unequipItem.isPending}>
+                                <Text style={s.equipBtnText}>Unequip</Text>
+                              </Pressable>
+                            ) : (
+                              <Pressable style={[s.equipBtn, { flex: 1 }]} onPress={() => handleEquip(detailItem)} disabled={equipItem.isPending}>
+                                <Text style={s.equipBtnText}>Equip</Text>
+                              </Pressable>
+                            )}
+                            {detailItem.sellBackValue > 0 && !detailItem.isExclusive && !detailItem.isLimited && (
+                              <Pressable style={s.sellBtn} onPress={() => { setDetailItem(null); setSellConfirmItem(detailItem); }}>
+                                <Text style={s.sellBtnText}>Sell</Text>
+                              </Pressable>
+                            )}
+                          </View>
+                        </>
+                      )}
+                    </View>
+                  </>
                 );
               })()}
-
-              {/* State info */}
-              <View style={styles.detailInfoRow}>
-                <View style={styles.detailInfoCell}>
-                  <Text style={styles.detailInfoLabel}>Cost</Text>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                    <Ionicons name="flash" size={14} color={Colors.gold} />
-                    <Text style={styles.detailInfoValue}>{detailItem.cost?.toLocaleString()}</Text>
-                  </View>
-                </View>
-                <View style={styles.detailInfoCell}>
-                  <Text style={styles.detailInfoLabel}>Status</Text>
-                  <Text style={[styles.detailInfoValue, { color: detailItem.owned ? Colors.green : Colors.textMuted }]}>
-                    {detailItem.owned
-                      ? detailItem.displaySlot
-                        ? "Displayed"
-                        : detailItem.isEquipped
-                        ? "Equipped"
-                        : "Owned"
-                      : "Not owned"}
-                  </Text>
-                </View>
-                {detailItem.sellBackValue > 0 && detailItem.owned && (
-                  <View style={styles.detailInfoCell}>
-                    <Text style={styles.detailInfoLabel}>Sell Back</Text>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                      <Ionicons name="flash" size={14} color={Colors.textSecondary} />
-                      <Text style={styles.detailInfoValue}>{detailItem.sellBackValue}</Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-
-              {/* Acquisition note */}
-              <Text style={styles.detailAcqNote}>
-                {detailItem.isExclusive
-                  ? "Exclusive — not available to all users."
-                  : detailItem.isLimited
-                  ? "Limited item — may not always be available."
-                  : detailItem.sellBackValue > 0
-                  ? `Can be sold back for ${detailItem.sellBackValue} coins.`
-                  : "This item is permanent once purchased."}
-              </Text>
-
-              {/* Actions */}
-              <View style={styles.detailActions}>
-                {!detailItem.owned ? (
-                  <>
-                    <Pressable style={styles.cancelBtn} onPress={() => setDetailItem(null)}>
-                      <Text style={styles.cancelBtnText}>Cancel</Text>
-                    </Pressable>
-                    <Pressable
-                      style={[styles.buyBtn, !detailItem.canAfford && { opacity: 0.4 }]}
-                      disabled={!detailItem.canAfford || buyItem.isPending}
-                      onPress={() => handleBuy(detailItem)}
-                    >
-                      <Ionicons name="flash" size={15} color="#000" />
-                      <Text style={styles.buyBtnText}>
-                        {buyItem.isPending ? "Buying..." : `Buy for ${detailItem.cost?.toLocaleString()}`}
-                      </Text>
-                    </Pressable>
-                  </>
-                ) : (
-                  <>
-                    <Pressable style={styles.cancelBtn} onPress={() => setDetailItem(null)}>
-                      <Text style={styles.cancelBtnText}>Close</Text>
-                    </Pressable>
-                    <View style={{ flexDirection: "row", gap: 8, flex: 1 }}>
-                      {detailItem.isEquipped ? (
-                        <Pressable
-                          style={[styles.equipBtn, { flex: 1 }]}
-                          onPress={() => handleUnequip(detailItem)}
-                          disabled={unequipItem.isPending}
-                        >
-                          <Text style={styles.equipBtnText}>Unequip</Text>
-                        </Pressable>
-                      ) : (
-                        <Pressable
-                          style={[styles.equipBtn, { flex: 1 }]}
-                          onPress={() => handleEquip(detailItem)}
-                          disabled={equipItem.isPending}
-                        >
-                          <Text style={styles.equipBtnText}>Equip</Text>
-                        </Pressable>
-                      )}
-                      {detailItem.sellBackValue > 0 && !detailItem.isExclusive && !detailItem.isLimited && (
-                        <Pressable
-                          style={styles.sellBtn}
-                          onPress={() => { setDetailItem(null); setSellConfirmItem(detailItem); }}
-                        >
-                          <Text style={styles.sellBtnText}>Sell</Text>
-                        </Pressable>
-                      )}
-                    </View>
-                  </>
-                )}
-              </View>
             </View>
           </Pressable>
         </Modal>
       )}
 
-      {/* ─── SELL CONFIRM MODAL ─────────────────────────────────────── */}
+      {/* ──────────────────── SELL CONFIRM MODAL ──────────────────────── */}
       {sellConfirmItem && (
         <Modal transparent animationType="fade" onRequestClose={() => setSellConfirmItem(null)}>
-          <Pressable style={styles.modalOverlay} onPress={() => setSellConfirmItem(null)}>
-            <View style={styles.confirmModal}>
+          <Pressable style={s.modalOverlay} onPress={() => setSellConfirmItem(null)}>
+            <View style={s.confirmModal}>
               <Ionicons name="warning-outline" size={32} color={Colors.crimson} style={{ marginBottom: 8 }} />
-              <Text style={styles.confirmTitle}>Sell Item?</Text>
-              <Text style={styles.confirmName}>{sellConfirmItem.name}</Text>
-              <Text style={styles.confirmDesc}>
-                You will receive {sellConfirmItem.sellBackValue} coins. This action cannot be undone.
+              <Text style={s.confirmTitle}>Sell Item?</Text>
+              <Text style={s.confirmName}>{sellConfirmItem.name}</Text>
+              <Text style={s.confirmDesc}>
+                You will receive {sellConfirmItem.sellBackValue} coins. This cannot be undone.
               </Text>
-              <View style={styles.confirmActions}>
-                <Pressable style={styles.cancelBtn} onPress={() => setSellConfirmItem(null)}>
-                  <Text style={styles.cancelBtnText}>Keep</Text>
+              <View style={s.confirmActions}>
+                <Pressable style={s.cancelBtn} onPress={() => setSellConfirmItem(null)}>
+                  <Text style={s.cancelBtnText}>Keep</Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.redeemBtn, { backgroundColor: Colors.crimson }]}
+                  style={[s.redeemBtn, { backgroundColor: Colors.crimson }]}
                   onPress={() => handleSell(sellConfirmItem)}
                   disabled={sellItem.isPending}
                 >
-                  <Text style={styles.redeemBtnText}>
+                  <Text style={s.redeemBtnText}>
                     {sellItem.isPending ? "Selling..." : `Sell (+${sellConfirmItem.sellBackValue})`}
                   </Text>
                 </Pressable>
@@ -996,14 +1312,25 @@ export default function RewardsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const s = StyleSheet.create({
   container:           { flex: 1, backgroundColor: Colors.bg },
-  header:              { paddingHorizontal: 20, paddingBottom: 12 },
+
+  // Header
+  header:              { paddingHorizontal: 20, paddingBottom: 10, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
+  headerLeft:          { gap: 1 },
+  headerEyebrow:       { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 2 },
+  title:               { fontFamily: "Inter_700Bold", fontSize: 28, color: Colors.textPrimary, letterSpacing: -0.5 },
+  headerCoinChip:      { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: Colors.goldDim, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: Colors.gold + "30" },
+  headerCoinText:      { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.gold },
+  headerCoinLabel:     { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
+
   toast:               { flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginBottom: 8, backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: Colors.green + "40", padding: 12 },
   toastError:          { borderColor: Colors.crimson + "40" },
   toastText:           { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.textPrimary },
   toastHint:           { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
-  title:               { fontFamily: "Inter_700Bold", fontSize: 28, color: Colors.textPrimary, letterSpacing: -0.5 },
+
   tabRow:              { flexGrow: 0, marginBottom: 14 },
   tab:                 { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
   tabActive:           { backgroundColor: Colors.accent, borderColor: Colors.accent },
@@ -1014,8 +1341,11 @@ const styles = StyleSheet.create({
   // Overview
   balanceCard:         { backgroundColor: Colors.bgCard, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: Colors.border, gap: 14 },
   balanceRow:          { flexDirection: "row", alignItems: "center", gap: 14 },
+  balanceIconRing:     { width: 48, height: 48, borderRadius: 14, backgroundColor: Colors.goldDim, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.gold + "30" },
   balanceLabel:        { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
   balanceAmount:       { fontFamily: "Inter_700Bold", fontSize: 32, color: Colors.textPrimary },
+  goStoreBtn:          { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.accentGlow, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: Colors.accent + "40" },
+  goStoreBtnText:      { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.accent },
   divider:             { height: 1, backgroundColor: Colors.border },
   xpRow:               { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   xpLabel:             { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
@@ -1031,65 +1361,107 @@ const styles = StyleSheet.create({
   activeTitleLabel:    { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
   activeTitleValue:    { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.gold },
   shareSnapshotBtn:    { backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: Colors.border },
-  marketplaceShortcut: { backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: Colors.accent + "30" },
-  gameModeSection:     { marginBottom: 14, marginTop: 6 },
+  shareSnapshotText:   { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary, flex: 1 },
+  gameModeSection:     { marginBottom: 4, marginTop: 2 },
   gameModeLabel:       { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 1.5, marginBottom: 10 },
   gameModeGrid:        { flexDirection: "row", gap: 10 },
   gameModeBtn:         { flex: 1, alignItems: "center", gap: 7, backgroundColor: Colors.bgCard, borderRadius: 14, paddingVertical: 12, borderWidth: 1, borderColor: Colors.border },
   gameModeBtnIcon:     { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.accentGlow, alignItems: "center", justifyContent: "center" },
   gameModeBtnLabel:    { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textSecondary },
-  shareSnapshotText:   { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary, flex: 1 },
   recentBadgesCard:    { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border },
   badgeMini:           { alignItems: "center", gap: 6, width: 68 },
   badgeMiniIcon:       { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   badgeMiniName:       { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted, textAlign: "center" },
 
-  // Marketplace
-  marketBalanceStrip:  { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: Colors.goldDim, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
-  marketBalanceText:   { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.gold },
+  // Store header strip
+  storeHeaderStrip:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: Colors.bgCard, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: Colors.border },
+  storeHeaderLeft:     { flexDirection: "row", alignItems: "center", gap: 7 },
+  storeHeaderTitle:    { fontFamily: "Inter_700Bold", fontSize: 12, color: Colors.textPrimary, letterSpacing: 1.5 },
+  storeHeaderRight:    { flexDirection: "row", alignItems: "center", gap: 10 },
+  storeBalanceChip:    { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.goldDim, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
+  storeBalanceText:    { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.gold },
+  storeSearchBtn:      { padding: 2 },
+
+  // Best Next Upgrade card
+  bestCard:            { backgroundColor: Colors.bgCard, borderRadius: 18, padding: 16, borderWidth: 1, gap: 12 },
+  bestCardTop:         { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  bestCardLeft:        { flex: 1, gap: 6 },
+  bestLabelChip:       { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, alignSelf: "flex-start" },
+  bestLabelText:       { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.2 },
+  bestItemName:        { fontFamily: "Inter_700Bold", fontSize: 17, color: Colors.textPrimary },
+  bestItemWhy:         { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, lineHeight: 17 },
+  bestIconBox:         { width: 62, height: 62, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  bestCardBottom:      { gap: 7 },
+  bestCostRow:         { flexDirection: "row", alignItems: "center", gap: 5 },
+  bestCostText:        { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.gold },
+  bestBalanceText:     { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
+  bestBarBg:           { height: 6, backgroundColor: Colors.border, borderRadius: 3, overflow: "hidden" },
+  bestBarFill:         { height: "100%", borderRadius: 3 },
+  bestGapText:         { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
+
+  // Category
   categoryRow:         { flexGrow: 0 },
   catChip:             { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
   catChipActive:       { backgroundColor: Colors.accent, borderColor: Colors.accent },
   catChipText:         { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.textSecondary },
   catChipTextActive:   { color: "#fff" },
+  categoryTagline:     { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, fontStyle: "italic", lineHeight: 17 },
 
-  featuredCard:        { width: 150, backgroundColor: Colors.bgCard, borderRadius: 18, padding: 14, borderWidth: 1, gap: 8 },
+  // Filter / sort row
+  filterRow:           { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  sortTrigger:         { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: Colors.bgCard, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, borderWidth: 1, borderColor: Colors.border, flex: 1 },
+  sortTriggerText:     { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.textPrimary, flex: 1 },
+  filterChip:          { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
+  filterChipLimited:   { backgroundColor: Colors.crimson + "18", borderColor: Colors.crimson + "50" },
+  filterChipPremium:   { backgroundColor: Colors.gold + "18", borderColor: Colors.gold + "50" },
+  filterChipText:      { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.textSecondary },
+
+  // Sort dropdown
+  sortDropdown:        { backgroundColor: Colors.bgCard, borderRadius: 14, borderWidth: 1, borderColor: Colors.border, overflow: "hidden" },
+  sortOption:          { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  sortOptionActive:    { backgroundColor: Colors.accentGlow },
+  sortOptionText:      { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.textSecondary },
+  sortOptionTextActive:{ color: Colors.accent },
+
+  // Section header
+  sectionHeaderRow:    { flexDirection: "row", alignItems: "center", gap: 8 },
+  sectionDot:          { width: 3, height: 3, borderRadius: 2, backgroundColor: Colors.textMuted },
+  sectionSub:          { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
+
+  // Featured cards
+  featuredCard:        { width: 165, backgroundColor: Colors.bgCard, borderRadius: 18, padding: 14, borderWidth: 1, gap: 7 },
   featuredIcon:        { width: 52, height: 52, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   featuredName:        { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.textPrimary },
-  featuredMeta:        { flexDirection: "row" },
-  featuredCost:        { flexDirection: "row", alignItems: "center", gap: 3 },
-  featuredCostText:    { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.gold },
+  featuredTagline:     { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textSecondary, lineHeight: 15 },
+  featuredStateBadge:  { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.bgElevated, borderRadius: 7, paddingHorizontal: 7, paddingVertical: 4, alignSelf: "flex-start" },
+  featuredStateBadgeText: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 0.5 },
   limitedBadge:        { position: "absolute", top: 8, right: 8, backgroundColor: Colors.crimson, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 },
   limitedBadgeText:    { fontFamily: "Inter_700Bold", fontSize: 8, color: "#fff", letterSpacing: 0.5 },
   limitedChip:         { backgroundColor: Colors.crimson + "20", borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 },
   limitedChipText:     { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.crimson, letterSpacing: 0.5 },
 
+  // Market list cards
   marketCard:          { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", alignItems: "center", gap: 12 },
   marketIconBox:       { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   marketName:          { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
   marketDesc:          { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
+  nearChip:            { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: Colors.amber + "18", borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 },
+  nearChipText:        { fontFamily: "Inter_700Bold", fontSize: 8, color: Colors.amber, letterSpacing: 0.8 },
+  lockedChip:          { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: Colors.bgElevated, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 },
+  lockedChipText:      { fontFamily: "Inter_700Bold", fontSize: 8, color: Colors.textMuted, letterSpacing: 0.5 },
+  miniBarBg:           { height: 3, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden", marginTop: 2 },
+  miniBarFill:         { height: "100%", borderRadius: 2 },
   ownedBadge:          { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.green + "18", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   ownedBadgeText:      { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.green },
-  ownedChip:           { backgroundColor: Colors.green + "20", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 },
-  ownedChipText:       { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.green },
-  cannotAffordText:    { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted },
   equippedChip:        { backgroundColor: Colors.accent + "20", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 },
   equippedChipText:    { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.accent },
-  displayedChip:       { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#00D4FF18", borderRadius: 6, borderWidth: 1, borderColor: "#00D4FF30", paddingHorizontal: 6, paddingVertical: 2 },
-  displayedChipText:   { fontFamily: "Inter_700Bold", fontSize: 9, color: "#00D4FF", letterSpacing: 0.3 },
-  appliesToBlock:      { backgroundColor: "#12122080", borderRadius: 10, padding: 12, gap: 8, marginBottom: 4, borderWidth: 1, borderColor: Colors.border },
-  appliesToLabel:      { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 1 },
-  appliesToRow:        { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  surfaceChip:         { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
-  surfaceChipText:     { fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 0.3 },
-  appModeText:         { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, lineHeight: 16 },
-  slotHintText:        { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, fontStyle: "italic" },
-  displayedInRow:      { flexDirection: "row", alignItems: "center", gap: 5 },
-  displayedInText:     { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.green },
   costBadge:           { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.goldDim, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
   costText:            { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.gold },
+  gapText:             { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted },
+  displayedChip:       { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#00D4FF18", borderRadius: 6, borderWidth: 1, borderColor: "#00D4FF30", paddingHorizontal: 6, paddingVertical: 2 },
+  displayedChipText:   { fontFamily: "Inter_700Bold", fontSize: 9, color: "#00D4FF", letterSpacing: 0.3 },
 
-  // Inventory — Applied state summary
+  // Inventory
   appliedSummaryCard:  { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border, gap: 10 },
   appliedSummaryTitle: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 1.2 },
   appliedSummaryRow:   { flexDirection: "row", justifyContent: "space-between" },
@@ -1098,8 +1470,6 @@ const styles = StyleSheet.create({
   appliedStatLabel:    { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted },
   appliedTitleRow:     { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: Colors.gold + "12", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
   appliedTitleText:    { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.gold },
-
-  // Inventory
   sectionLabel:        { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.textMuted, letterSpacing: 1.2, textTransform: "uppercase" },
   ownedGrid:           { gap: 8 },
   invCard:             { backgroundColor: Colors.bgCard, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", alignItems: "center", gap: 10 },
@@ -1128,24 +1498,64 @@ const styles = StyleSheet.create({
   txDate:              { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
   txAmount:            { fontFamily: "Inter_700Bold", fontSize: 15 },
 
-  // Shared
+  // Shared empty states
   emptyBox:            { alignItems: "center", paddingTop: 60, gap: 12 },
   emptyTitle:          { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.textSecondary },
+  emptySubtitle:       { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textMuted, textAlign: "center" },
   emptySmall:          { backgroundColor: Colors.bgCard, borderRadius: 12, padding: 16, alignItems: "center" },
   emptySmallText:      { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textMuted, textAlign: "center" },
 
-  // Modals
-  modalOverlay:        { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
-  detailModal:         { backgroundColor: Colors.bgCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 14 },
-  detailHeader:        { flexDirection: "row", alignItems: "center", gap: 14 },
+  // Detail modal
+  modalOverlay:        { flex: 1, backgroundColor: "rgba(0,0,0,0.75)", justifyContent: "flex-end" },
+  detailModal:         { backgroundColor: Colors.bgCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, gap: 14, maxHeight: "92%" },
+
+  // Detail hero
+  detailHero:          { flexDirection: "row", alignItems: "flex-start", gap: 14, borderRadius: 18, padding: 16, borderWidth: 1 },
   detailIconBig:       { width: 68, height: 68, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  detailName:          { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.textPrimary },
+  detailName:          { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.textPrimary, lineHeight: 24 },
+  detailOwnedRow:      { flexDirection: "row", alignItems: "center", gap: 5 },
+  detailOwnedText:     { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.green },
+  detailLockedRow:     { flexDirection: "row", alignItems: "center", gap: 5 },
+  detailLockedText:    { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.textMuted },
+
+  // Why you want this
+  detailWhyBlock:      { backgroundColor: Colors.bgElevated, borderRadius: 12, padding: 12, gap: 5 },
+  detailWhyLabel:      { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 1.2 },
+  detailWhyText:       { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
+
   detailDesc:          { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
+
+  // Applies to
+  appliesToBlock:      { backgroundColor: Colors.bgElevated + "80", borderRadius: 10, padding: 12, gap: 8, borderWidth: 1, borderColor: Colors.border },
+  appliesToLabel:      { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 1 },
+  appliesToRow:        { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  surfaceChip:         { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
+  surfaceChipText:     { fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 0.3 },
+  appModeText:         { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, lineHeight: 16 },
+  slotHintText:        { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, fontStyle: "italic" },
+  displayedInRow:      { flexDirection: "row", alignItems: "center", gap: 5 },
+  displayedInText:     { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.green },
+
+  // Affordability card
+  detailAffordCard:    { backgroundColor: Colors.bgElevated, borderRadius: 14, padding: 14, gap: 8 },
+  detailAffordHeader:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  detailCostBig:       { fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.gold },
+  detailCostLabel:     { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textMuted },
+  detailAffordStatus:  { fontFamily: "Inter_600SemiBold", fontSize: 12 },
+  detailBarBg:         { height: 8, backgroundColor: Colors.border, borderRadius: 4, overflow: "hidden" },
+  detailBarFill:       { height: "100%", borderRadius: 4 },
+  detailBarSub:        { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
+  detailSellbackNote:  { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, fontStyle: "italic" },
+
+  // Owned info row
   detailInfoRow:       { flexDirection: "row", gap: 12 },
   detailInfoCell:      { flex: 1, backgroundColor: Colors.bgElevated, borderRadius: 12, padding: 12, gap: 4 },
   detailInfoLabel:     { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
   detailInfoValue:     { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.textPrimary },
+
   detailAcqNote:       { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, fontStyle: "italic" },
+
+  // Actions
   detailActions:       { flexDirection: "row", gap: 10, marginTop: 4 },
   cancelBtn:           { paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14, backgroundColor: Colors.bgElevated, alignItems: "center", justifyContent: "center" },
   cancelBtnText:       { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textSecondary },
@@ -1155,18 +1565,19 @@ const styles = StyleSheet.create({
   equipBtnText:        { fontFamily: "Inter_700Bold", fontSize: 14, color: "#fff" },
   sellBtn:             { paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14, backgroundColor: Colors.crimson + "20", alignItems: "center", justifyContent: "center" },
   sellBtnText:         { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.crimson },
-  confirmModal:        { backgroundColor: Colors.bgCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 12, alignItems: "center" },
+
+  // Sell confirm
+  confirmModal:        { backgroundColor: Colors.bgCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, gap: 12, alignItems: "center" },
   confirmTitle:        { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.textPrimary },
   confirmName:         { fontFamily: "Inter_600SemiBold", fontSize: 16, color: Colors.textPrimary },
   confirmDesc:         { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, textAlign: "center" },
   confirmActions:      { flexDirection: "row", gap: 10, width: "100%", marginTop: 4 },
   redeemBtn:           { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: Colors.accent, alignItems: "center", justifyContent: "center" },
   redeemBtnText:       { fontFamily: "Inter_700Bold", fontSize: 14, color: "#fff" },
+  ownedChip:           { backgroundColor: Colors.green + "20", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 },
+  ownedChipText:       { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.green },
 
-  // Phase 22 — search + sort
-  searchBar:           { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.bgElevated, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 8, borderWidth: 1, borderColor: Colors.border },
-  searchInput:         { flex: 1, color: Colors.textPrimary, fontSize: 14 },
-  sortChip:            { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16, backgroundColor: Colors.bgElevated, borderWidth: 1, borderColor: Colors.border },
-  sortChipActive:      { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  sortChipText:        { color: Colors.textMuted, fontSize: 12 },
+  // Search bar
+  searchBar:           { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.bgElevated, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: Colors.border },
+  searchInput:         { flex: 1, color: Colors.textPrimary, fontSize: 14, fontFamily: "Inter_400Regular" },
 });
