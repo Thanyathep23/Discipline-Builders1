@@ -326,21 +326,33 @@ router.get("/status", requireAuth, async (req: any, res) => {
     // ── Phase 28: Compute visual evolution state ──────────────────────────────
     const visualState = computeVisualState(fitnessScore, disciplineScore, financeScore, prestigeScore);
 
-    // ── Phase 33: Featured car + car prestige ────────────────────────────────
+    // ── Phase 33: Featured car + car prestige from all owned rare+ cars ────
     const { CAR_PRESTIGE_VALUES } = await import("./cars.js");
-    const [featuredCarInv] = await db
-      .select({ itemId: userInventoryTable.itemId, colorVariant: userInventoryTable.colorVariant })
+
+    const allOwnedItems = await db
+      .select({ itemId: userInventoryTable.itemId, colorVariant: userInventoryTable.colorVariant, displaySlot: userInventoryTable.displaySlot })
       .from(userInventoryTable)
-      .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.displaySlot, "featured_car")))
-      .limit(1);
-    let featuredCar: { id: string; name: string; rarity: string; carClass: string | null; prestigeValue: number; colorVariant: string | null } | null = null;
+      .where(eq(userInventoryTable.userId, userId));
+
+    const ownedItemIds = allOwnedItems.map(i => i.itemId);
+    const ownedVehicles = ownedItemIds.length > 0
+      ? await db.select({ id: shopItemsTable.id, name: shopItemsTable.name, rarity: shopItemsTable.rarity, subcategory: shopItemsTable.subcategory })
+          .from(shopItemsTable)
+          .where(and(eq(shopItemsTable.category, "vehicle"), eq(shopItemsTable.status, "active"), inArray(shopItemsTable.id, ownedItemIds)))
+      : [];
+
     let carPrestigeBonus = 0;
+    for (const v of ownedVehicles) {
+      if (["rare", "epic", "legendary"].includes(v.rarity)) {
+        carPrestigeBonus += CAR_PRESTIGE_VALUES[v.subcategory ?? "entry"] ?? 0;
+      }
+    }
+    carPrestigeBonus = Math.min(carPrestigeBonus, 50);
+
+    const featuredCarInv = allOwnedItems.find(i => i.displaySlot === "featured_car");
+    let featuredCar: { id: string; name: string; rarity: string; carClass: string | null; prestigeValue: number; colorVariant: string | null } | null = null;
     if (featuredCarInv) {
-      const [carRow] = await db
-        .select({ id: shopItemsTable.id, name: shopItemsTable.name, rarity: shopItemsTable.rarity, subcategory: shopItemsTable.subcategory })
-        .from(shopItemsTable)
-        .where(eq(shopItemsTable.id, featuredCarInv.itemId))
-        .limit(1);
+      const carRow = ownedVehicles.find(v => v.id === featuredCarInv.itemId);
       if (carRow) {
         const pv = CAR_PRESTIGE_VALUES[carRow.subcategory ?? "entry"] ?? 0;
         featuredCar = {
@@ -348,11 +360,10 @@ router.get("/status", requireAuth, async (req: any, res) => {
           carClass: carRow.subcategory, prestigeValue: pv,
           colorVariant: featuredCarInv.colorVariant,
         };
-        if (["rare", "epic", "legendary"].includes(carRow.rarity)) {
-          carPrestigeBonus = Math.min(pv, 20);
-        }
       }
     }
+
+    const adjustedPrestigeScore = Math.min(100, prestigeScore + carPrestigeBonus);
 
     return res.json({
       dimensions: {
@@ -372,8 +383,8 @@ router.get("/status", requireAuth, async (req: any, res) => {
           icon: "trending-up-outline", color: "#F5C842",
         },
         prestige: {
-          score: prestigeScore, label: getDimensionLabel(prestigeScore),
-          description: getDesc(prestigeScore, PRESTIGE_DESCS),
+          score: adjustedPrestigeScore, label: getDimensionLabel(adjustedPrestigeScore),
+          description: getDesc(adjustedPrestigeScore, PRESTIGE_DESCS),
           icon: "diamond-outline", color: "#00D4FF",
         },
       },
