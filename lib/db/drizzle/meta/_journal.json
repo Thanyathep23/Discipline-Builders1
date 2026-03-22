@@ -15,6 +15,41 @@
       "when": 1773989800000,
       "tag": "0001_arc_evidence_gating",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774000000000,
+      "tag": "0002_phase13_endgame",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774100000000,
+      "tag": "0003_phase16_platform",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774200000000,
+      "tag": "0004_phase17_economy",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774300000000,
+      "tag": "0005_phase18_world",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1742650000000,
+      "tag": "0006_character_appearance",
+      "breakpoints": true
     }
   ]
 }
