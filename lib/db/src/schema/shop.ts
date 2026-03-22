@@ -58,9 +58,12 @@ export const shopItemsTable = pgTable("shop_items", {
   eventId:         text("event_id"),
   contentPackId:   text("content_pack_id"),
   // Phase 29 — Wearables / Style / Identity
-  wearableSlot:    text("wearable_slot"),                      // "top" | "watch" | "accessory" | null
+  wearableSlot:    text("wearable_slot"),                      // "top" | "outerwear" | "bottom" | "watch" | "accessory" | null
   minLevel:        integer("min_level").notNull().default(0),  // minimum user level to equip
   styleEffect:     text("style_effect"),                       // human-readable style impact
+  // Phase 35 — Wardrobe Premium Catalog
+  series:          text("series"),                             // collection/series name
+  colorVariants:   text("color_variants"),                     // JSON array of {key, label, hex} objects
   // Phase 30 — Room Progression / Workspace Decor
   roomZone:        text("room_zone"),                          // "desk_setup" | "lifestyle_item" | null
   createdAt:       timestamp("created_at").notNull().defaultNow(),
