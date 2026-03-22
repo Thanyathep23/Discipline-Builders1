@@ -326,6 +326,34 @@ router.get("/status", requireAuth, async (req: any, res) => {
     // ── Phase 28: Compute visual evolution state ──────────────────────────────
     const visualState = computeVisualState(fitnessScore, disciplineScore, financeScore, prestigeScore);
 
+    // ── Phase 33: Featured car + car prestige ────────────────────────────────
+    const { CAR_PRESTIGE_VALUES } = await import("./cars.js");
+    const [featuredCarInv] = await db
+      .select({ itemId: userInventoryTable.itemId, colorVariant: userInventoryTable.colorVariant })
+      .from(userInventoryTable)
+      .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.displaySlot, "featured_car")))
+      .limit(1);
+    let featuredCar: { id: string; name: string; rarity: string; carClass: string | null; prestigeValue: number; colorVariant: string | null } | null = null;
+    let carPrestigeBonus = 0;
+    if (featuredCarInv) {
+      const [carRow] = await db
+        .select({ id: shopItemsTable.id, name: shopItemsTable.name, rarity: shopItemsTable.rarity, subcategory: shopItemsTable.subcategory })
+        .from(shopItemsTable)
+        .where(eq(shopItemsTable.id, featuredCarInv.itemId))
+        .limit(1);
+      if (carRow) {
+        const pv = CAR_PRESTIGE_VALUES[carRow.subcategory ?? "entry"] ?? 0;
+        featuredCar = {
+          id: carRow.id, name: carRow.name, rarity: carRow.rarity,
+          carClass: carRow.subcategory, prestigeValue: pv,
+          colorVariant: featuredCarInv.colorVariant,
+        };
+        if (["rare", "epic", "legendary"].includes(carRow.rarity)) {
+          carPrestigeBonus = Math.min(pv, 20);
+        }
+      }
+    }
+
     return res.json({
       dimensions: {
         fitness: {
@@ -365,6 +393,8 @@ router.get("/status", requireAuth, async (req: any, res) => {
       prestigeTier: userRow.prestigeTier ?? 0,
       badgeCount,
       totalSkillXp: totalXp,
+      featuredCar,
+      carPrestigeBonus,
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

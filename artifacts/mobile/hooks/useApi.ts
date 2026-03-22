@@ -964,6 +964,20 @@ export function useFeatureCar() {
   });
 }
 
+export function useSelectCarVariant() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ carId, colorVariant }: { carId: string; colorVariant: string }) =>
+      request<any>(`/cars/${carId}/variant`, { method: "PATCH", body: JSON.stringify({ colorVariant }) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cars"] });
+      qc.invalidateQueries({ queryKey: ["cars-photo"] });
+      qc.invalidateQueries({ queryKey: ["characterStatus"] });
+    },
+  });
+}
+
 export function useCarPhotoMode() {
   const { request } = useApiClient();
   return useQuery({

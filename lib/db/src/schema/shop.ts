@@ -68,13 +68,14 @@ export const shopItemsTable = pgTable("shop_items", {
 });
 
 export const userInventoryTable = pgTable("user_inventory", {
-  id:          text("id").primaryKey(),
-  userId:      text("user_id").notNull(),
-  itemId:      text("item_id").notNull(),
-  isEquipped:  boolean("is_equipped").notNull().default(false),
-  source:      text("source").notNull().default("purchase"),
-  redeemedAt:  timestamp("redeemed_at").notNull().defaultNow(),
-  displaySlot: text("display_slot"),
+  id:           text("id").primaryKey(),
+  userId:       text("user_id").notNull(),
+  itemId:       text("item_id").notNull(),
+  isEquipped:   boolean("is_equipped").notNull().default(false),
+  source:       text("source").notNull().default("purchase"),
+  redeemedAt:   timestamp("redeemed_at").notNull().defaultNow(),
+  displaySlot:  text("display_slot"),
+  colorVariant: text("color_variant"),
 });
 
 export const insertShopItemSchema = createInsertSchema(shopItemsTable).omit({ createdAt: true, updatedAt: true });

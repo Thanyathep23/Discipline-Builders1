@@ -482,6 +482,18 @@ router.get("/identity", requireAuth, async (req: any, res) => {
       Number(aiMissionsAcceptedCount),
     );
 
+    const { shopItemsTable: shopTbl } = await import("@workspace/db");
+    const [featuredCarInv] = await db
+      .select({ itemId: userInventoryTable.itemId })
+      .from(userInventoryTable)
+      .where(andOp(eqOp(userInventoryTable.userId, userId), eqOp(userInventoryTable.displaySlot, "featured_car")))
+      .limit(1);
+    let featuredCarName: string | null = null;
+    if (featuredCarInv) {
+      const [car] = await db.select({ name: shopTbl.name }).from(shopTbl).where(eqOp(shopTbl.id, featuredCarInv.itemId)).limit(1);
+      if (car) featuredCarName = car.name;
+    }
+
     return res.json({
       activeTitle,
       currentArc,
@@ -494,6 +506,7 @@ router.get("/identity", requireAuth, async (req: any, res) => {
       earnedTitleCount: earnedTitles.length,
       currentStreak: userRow?.currentStreak ?? 0,
       longestStreak: userRow?.longestStreak ?? 0,
+      featuredCarName,
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
