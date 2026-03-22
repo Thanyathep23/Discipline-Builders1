@@ -3,8 +3,11 @@ import { requireAuth } from "../lib/auth.js";
 import {
   db, usersTable, userBadgesTable, focusSessionsTable,
   userInventoryTable, shopItemsTable,
+  characterAppearanceTable,
+  SKIN_TONES, HAIR_STYLES, HAIR_COLORS, DEFAULT_APPEARANCE,
 } from "@workspace/db";
 import { eq, and, count, inArray, isNotNull } from "drizzle-orm";
+import { z } from "zod/v4";
 import { getUserSkills } from "../lib/skill-engine.js";
 import { getMasteryState } from "../lib/mastery-engine.js";
 import { computePrestigeState } from "../lib/prestige-engine.js";
@@ -180,7 +183,64 @@ const NEXT_HINTS: Record<string, { dimension: string; hint: string; action: stri
   prestige:   { dimension: "Prestige",          hint: "Earn badges and reach mastery levels to unlock elite identity markers.",          action: "View Skill Tree"         },
 };
 
-// ── Route ─────────────────────────────────────────────────────────────────────
+// ── Appearance helpers ────────────────────────────────────────────────────────
+
+const patchAppearanceSchema = z.object({
+  skinTone:  z.enum(SKIN_TONES  as unknown as [string, ...string[]]).optional(),
+  hairStyle: z.enum(HAIR_STYLES as unknown as [string, ...string[]]).optional(),
+  hairColor: z.enum(HAIR_COLORS as unknown as [string, ...string[]]).optional(),
+});
+
+async function getOrDefaultAppearance(userId: string) {
+  const [row] = await db
+    .select()
+    .from(characterAppearanceTable)
+    .where(eq(characterAppearanceTable.userId, userId))
+    .limit(1);
+  if (row) return { skinTone: row.skinTone, hairStyle: row.hairStyle, hairColor: row.hairColor };
+  return { ...DEFAULT_APPEARANCE };
+}
+
+// ── Routes ────────────────────────────────────────────────────────────────────
+
+router.get("/appearance", requireAuth, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const appearance = await getOrDefaultAppearance(userId);
+    return res.json(appearance);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch("/appearance", requireAuth, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const parsed = patchAppearanceSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid appearance values", details: parsed.error.issues });
+    }
+    const updates = parsed.data;
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: "No fields provided to update" });
+    }
+
+    const existing = await getOrDefaultAppearance(userId);
+    const merged = { ...existing, ...updates };
+
+    await db
+      .insert(characterAppearanceTable)
+      .values({ userId, skinTone: merged.skinTone, hairStyle: merged.hairStyle, hairColor: merged.hairColor })
+      .onConflictDoUpdate({
+        target: characterAppearanceTable.userId,
+        set: { ...updates, updatedAt: new Date() },
+      });
+
+    return res.json(merged);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 router.get("/status", requireAuth, async (req: any, res) => {
   try {
@@ -247,12 +307,15 @@ router.get("/status", requireAuth, async (req: any, res) => {
       .from(userInventoryTable)
       .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.isEquipped, true)));
     const equippedItemIds = equippedInv.map((r) => r.itemId);
-    const equippedWearableItems = equippedItemIds.length > 0
-      ? await db
-          .select()
-          .from(shopItemsTable)
-          .where(and(inArray(shopItemsTable.id, equippedItemIds), isNotNull(shopItemsTable.wearableSlot)))
-      : [];
+    const [equippedWearableItems, appearance] = await Promise.all([
+      equippedItemIds.length > 0
+        ? db
+            .select()
+            .from(shopItemsTable)
+            .where(and(inArray(shopItemsTable.id, equippedItemIds), isNotNull(shopItemsTable.wearableSlot)))
+        : Promise.resolve([]),
+      getOrDefaultAppearance(userId),
+    ]);
     const equippedWearables = computeEquippedWearableState(equippedWearableItems);
 
     // ── Phase 28: Compute visual evolution state ──────────────────────────────
@@ -292,6 +355,7 @@ router.get("/status", requireAuth, async (req: any, res) => {
       },
       visualState,
       equippedWearables,
+      appearance,
       completedSessions,
       prestigeTier: userRow.prestigeTier ?? 0,
       badgeCount,

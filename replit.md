@@ -1092,3 +1092,17 @@ Added: `useAdminDashboard`, `useAdminPlayers(params)`, `useAdminPlayerSnapshot(i
 - Navigation now grouped by section: Players | Store | Economy | Content | AI Ops | Analytics | Controls | Tools
 - 3 new sections added: Economy Console, Recommendations, Funnels
 - Nav items: 13 → 16 items across 8 sections
+
+## Phase 32 — Character Appearance Backend
+
+### Schema: `lib/db/src/schema/character-appearance.ts`
+- New table `character_appearance` with `userId` (PK), `skinTone`, `hairStyle`, `hairColor`, `updatedAt`
+- Exported constants: `SKIN_TONES` (5 values: tone-1…tone-5), `HAIR_STYLES` (6: low-fade, caesar, taper, waves, natural, bald), `HAIR_COLORS` (8: black, dark-brown, medium-brown, light-brown, dirty-blonde, blonde, auburn, platinum)
+- `DEFAULT_APPEARANCE` constant (`tone-3` / `low-fade` / `black`)
+- Exported from `lib/db/src/schema/index.ts`
+
+### Backend: `artifacts/api-server/src/routes/character.ts`
+- **`GET /api/character/appearance`** — Returns the user's saved appearance (or defaults if none saved); requires auth
+- **`PATCH /api/character/appearance`** — Validates skinTone / hairStyle / hairColor against allowed value lists (400 on invalid); upserts record; requires auth
+- **`GET /api/character/status`** — Now includes `appearance` object alongside `visualState` and `equippedWearables`; appearance and wearables are fetched concurrently via `Promise.all`
+- Zod validation on the PATCH body using `z.enum()` against the exported constant arrays

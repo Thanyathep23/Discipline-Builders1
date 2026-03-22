@@ -27,3 +27,4 @@ export * from "./showcase";
 export * from "./platform";
 export * from "./premium";
 export * from "./admin";
+export * from "./character-appearance";
