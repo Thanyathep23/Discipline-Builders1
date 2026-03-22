@@ -341,9 +341,10 @@ router.get("/status", requireAuth, async (req: any, res) => {
           .where(and(eq(shopItemsTable.category, "vehicle"), eq(shopItemsTable.status, "active"), inArray(shopItemsTable.id, ownedItemIds)))
       : [];
 
+    const PRESTIGE_ELIGIBLE_CLASSES = new Set(["performance", "grandtouring", "flagship", "hypercar"]);
     let carPrestigeBonus = 0;
     for (const v of ownedVehicles) {
-      if (["rare", "epic", "legendary"].includes(v.rarity)) {
+      if (PRESTIGE_ELIGIBLE_CLASSES.has(v.subcategory ?? "")) {
         carPrestigeBonus += CAR_PRESTIGE_VALUES[v.subcategory ?? "entry"] ?? 0;
       }
     }
