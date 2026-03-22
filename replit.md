@@ -857,3 +857,42 @@ Theme auto-resolves: if no `room_theme` slot set, shows highest-tier owned room 
 - Evolution → links to Skills, World, Marketplace
 - All data read from existing `useSkills`, `useEndgame`, `useIdentity`, `useInventoryTitles` hooks
 - No new backend routes added
+
+## Phase 27 — Character Status Hub
+
+### Backend: `GET /api/character/status`
+- Aggregates: fitness/sleep/discipline/focus sessions + trading/learning skill scores + prestige tier + badge count
+- Returns: 4 dimension scores, overall score, tier label, evolution hints, visual state, completedSessions, prestige, badges, totalSkillXp
+- Dimension scoring: Fitness=fitness*0.7+sleep*0.3; Discipline=discipline*0.6+focus*0.4; Finance=trading*0.6+learning*0.4; Prestige=prestigeTier*28+badges*5+min(sessions*2,16)
+- Tiers: Starter(<20), Hustle(<40), Rising(<60), Refined(<80), Elite(80+)
+
+### Frontend: `app/character/index.tsx`
+- Route: `/character` (Quick Access menu + profile banner)
+- Sections: tier ladder strip, 4 dimension cards, evolved character figure, evolution explanation layer
+
+## Phase 28 — Character Evolution Engine
+
+### Backend: `computeVisualState()` in `routes/character.ts`
+Maps 4 dimension scores to 6 visual axes: bodyTone (0-4), posture (0-2), outfitTier (0-4), grooming (0-3), prestigeAccent (0-3), confidenceFace (0-2)
+
+### Frontend: `EvolvedCharacter` 17-layer SVG renderer in `app/character/index.tsx`
+- Dynamic outfit/posture/grooming/prestige SVG layers
+- "WHY YOUR CHARACTER LOOKS LIKE THIS" explanation section
+
+## Phase 29 — Wearables / Style / Identity
+
+### Schema changes in `lib/db/src/schema/shop.ts`
+- Added columns: `wearableSlot` (text: top/watch/accessory), `minLevel` (integer, default 0), `styleEffect` (text)
+
+### Backend: `routes/wearables.ts`
+- Idempotent seed of 9 wearables: 4 tops (Executive White free, Premium Grey Lv3, Refined Charcoal Lv6, Elite Black Lv9), 3 watches (Classic Lv2, Refined Lv5, Elite Chronograph Lv8), 2 accessories (Gold Chain Lv4, Elite Lapel Pin Lv7)
+- `GET /wearables` — returns items grouped by slot with ownership/equipped/lock/affordability state per user
+- Slot mutual exclusivity enforced in the equip route (unequips same-slot item)
+- Level lock enforcement in equip route (403 if under-leveled)
+- `GET /character/status` now includes `equippedWearables: {top, watch, accessory}` with visual override metadata
+
+### Frontend
+- `EvolvedCharacter`: accepts `equippedWearables` prop; drives `effectiveOutfitTier`, `watchStyle` (basic/refined/elite), `accessoryStyle` (chain/pin/null); 3 distinct watch SVG renders
+- `EquippedStyleRow` component: 3 tappable slot cards (TOP/WATCH/ACCESSORY) shown on character screen; navigates to /wearables
+- `app/wearables/index.tsx`: Wardrobe screen with 3 slot sections, per-item buy/equip/unequip with confirm modal, level lock display, rarity color dots, style effect text
+- `useWearables()` hook in `hooks/useApi.ts`

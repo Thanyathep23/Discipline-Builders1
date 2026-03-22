@@ -396,8 +396,29 @@ router.post("/:itemId/equip", requireAuth, async (req: any, res) => {
       return res.status(400).json({ error: "This item cannot be equipped" });
     }
 
-    // For types that support only one equipped at a time, unequip others
-    if (["cosmetic", "prestige"].includes(item.itemType)) {
+    // Phase 29 — Level lock enforcement for wearable items
+    if ((item.minLevel ?? 0) > 0) {
+      const [userRow] = await db.select({ level: usersTable.level }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+      if ((userRow?.level ?? 1) < (item.minLevel ?? 0)) {
+        return res.status(403).json({ error: `This item requires level ${item.minLevel}.`, requiredLevel: item.minLevel });
+      }
+    }
+
+    // Phase 29 — Wearable slot mutual exclusivity: unequip same slot first
+    if (item.wearableSlot) {
+      const sameSlotItems = await db
+        .select({ id: shopItemsTable.id })
+        .from(shopItemsTable)
+        .where(eq(shopItemsTable.wearableSlot, item.wearableSlot));
+      const sameSlotIds = sameSlotItems.map((i) => i.id).filter((id) => id !== itemId);
+      if (sameSlotIds.length > 0) {
+        await db
+          .update(userInventoryTable)
+          .set({ isEquipped: false })
+          .where(and(eq(userInventoryTable.userId, userId), inArray(userInventoryTable.itemId, sameSlotIds)));
+      }
+    } else if (["cosmetic", "prestige"].includes(item.itemType)) {
+      // Legacy type-based mutual exclusivity for non-wearable cosmetics
       const sameTypeItems = await db.select({ id: userInventoryTable.id, itemId: userInventoryTable.itemId })
         .from(userInventoryTable).where(eq(userInventoryTable.userId, userId));
       const sameTypeItemIds = await db.select({ id: shopItemsTable.id })

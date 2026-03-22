@@ -45,6 +45,8 @@ import guidanceRouter from "./guidance.js";
 import adminRecommendationsRouter from "./admin-recommendations.js";
 // Phase 27 — Character Status Hub
 import characterRouter from "./character.js";
+// Phase 29 — Wearables / Style / Identity
+import wearablesRouter from "./wearables.js";
 
 const router: IRouter = Router();
 
@@ -94,5 +96,7 @@ router.use("/guidance", guidanceRouter);
 // Phase 25 — Recommendation admin inspector
 router.use("/admin/recommendations", adminRecommendationsRouter);
 router.use("/character", characterRouter);
+// Phase 29 — Wearables
+router.use("/wearables", wearablesRouter);
 
 export default router;

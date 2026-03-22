@@ -11,7 +11,14 @@ import Svg, { Circle, Ellipse, Rect, Path, G } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
-import { useCharacterStatus } from "@/hooks/useApi";
+import { useCharacterStatus, useEquipItem, useUnequipItem } from "@/hooks/useApi";
+
+// ─── Phase 29 — Wearable State Types ──────────────────────────────────────────
+
+type WearableTop = { id: string; slug: string; name: string; outfitTierOverride: number | null; styleEffect: string | null } | null;
+type WearableWatch = { id: string; slug: string; name: string; watchStyle: "basic" | "refined" | "elite"; styleEffect: string | null } | null;
+type WearableAccessory = { id: string; slug: string; name: string; accessoryStyle: "chain" | "pin"; styleEffect: string | null } | null;
+type EquippedWearableState = { top: WearableTop; watch: WearableWatch; accessory: WearableAccessory } | null;
 
 // ─── Phase 28 — Visual State Types ────────────────────────────────────────────
 
@@ -57,9 +64,15 @@ function browPaths(cf: number, hY: number): [string, string] {
 
 // ─── Evolved Character Renderer ───────────────────────────────────────────────
 
-function EvolvedCharacter({ visualState, size = 190 }: { visualState?: VisualState | null; size?: number }) {
+function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visualState?: VisualState | null; equippedWearables?: EquippedWearableState; size?: number }) {
   const v = visualState ?? DEFAULT_VS;
-  const oc = OC[Math.min(v.outfitTier, 4)];
+  // Phase 29 — wearable overrides
+  const effectiveOutfitTier = equippedWearables?.top?.outfitTierOverride != null
+    ? equippedWearables.top.outfitTierOverride
+    : v.outfitTier;
+  const watchStyle: "basic" | "refined" | "elite" = equippedWearables?.watch?.watchStyle ?? "basic";
+  const accessoryStyle: "chain" | "pin" | null = equippedWearables?.accessory?.accessoryStyle ?? null;
+  const oc = OC[Math.min(effectiveOutfitTier, 4)];
   const skin  = SKIN_C[Math.min(v.bodyTone, 4)];
   const skinS = SKIN_S[Math.min(v.bodyTone, 4)];
 
@@ -81,9 +94,9 @@ function EvolvedCharacter({ visualState, size = 190 }: { visualState?: VisualSta
 
   const [bl, br] = browPaths(Math.min(v.confidenceFace, 2), hCY);
   const mouth    = mouthPath(Math.min(v.confidenceFace, 2), hCY);
-  const hasWatch = v.prestigeAccent >= 1;
-  const hasChain = v.prestigeAccent >= 2;
-  const hasGold  = v.prestigeAccent >= 3;
+  const hasWatch = v.prestigeAccent >= 1 || equippedWearables?.watch != null;
+  const hasChain = v.prestigeAccent >= 2 || accessoryStyle === "chain";
+  const hasGold  = v.prestigeAccent >= 3 || accessoryStyle === "pin";
   const nBottom  = nY + nH;
 
   const aspect = 220 / 100;
@@ -152,13 +165,35 @@ function EvolvedCharacter({ visualState, size = 190 }: { visualState?: VisualSta
       <Ellipse cx={aLX + 2}           cy="106" rx="3" ry="2.5" fill={skinS} />
       <Ellipse cx={aRX + aW - 2}      cy="106" rx="3" ry="2.5" fill={skinS} />
 
-      {/* Layer 7 — Prestige: Watch on right wrist */}
-      {hasWatch && (
+      {/* Layer 7 — Watch on right wrist (style-driven) */}
+      {hasWatch && watchStyle === "basic" && (
         <G>
           <Rect x={aRX + 2} y="99" width="10" height="6" rx="1.5" fill="#7A6030" />
           <Rect x={aRX + 3} y="100" width="8" height="4" rx="1"   fill="#C0A030" />
           <Circle cx={aRX + 7} cy="102" r="1.5" fill="#1A1A28" />
           <Circle cx={aRX + 7} cy="102" r="0.7" fill="#C0A030" />
+        </G>
+      )}
+      {hasWatch && watchStyle === "refined" && (
+        <G>
+          <Rect x={aRX + 1} y="97" width="2" height="10" rx="1" fill="#7A6030" />
+          <Rect x={aRX + 11} y="97" width="2" height="10" rx="1" fill="#7A6030" />
+          <Rect x={aRX + 2} y="98" width="10" height="8" rx="2" fill="#8A7040" />
+          <Rect x={aRX + 3} y="99" width="8" height="6" rx="1.5" fill="#C0A030" />
+          <Circle cx={aRX + 7} cy="102" r="2.2" fill="#1A1A28" />
+          <Circle cx={aRX + 7} cy="102" r="1.1" fill="#2A2A40" />
+          <Circle cx={aRX + 8} cy="101.2" r="0.5" fill="#C0A030" />
+        </G>
+      )}
+      {hasWatch && watchStyle === "elite" && (
+        <G>
+          <Rect x={aRX + 1} y="96" width="2" height="12" rx="1" fill="#5A4020" />
+          <Rect x={aRX + 11} y="96" width="2" height="12" rx="1" fill="#5A4020" />
+          <Circle cx={aRX + 7} cy="102" r="7" fill="#8A7030" />
+          <Circle cx={aRX + 7} cy="102" r="5.5" fill="#C0A030" />
+          <Circle cx={aRX + 7} cy="102" r="3.8" fill="#0A0A18" />
+          <Circle cx={aRX + 7} cy="102" r="1.8" fill="#C0A030" />
+          <Circle cx={aRX + 7} cy="102" r="0.9" fill="#E8E8FF" />
         </G>
       )}
 
@@ -249,6 +284,68 @@ function EvolvedCharacter({ visualState, size = 190 }: { visualState?: VisualSta
 
 // ─── Dimension Card ───────────────────────────────────────────────────────────
 
+// ─── Phase 29 — Equipped Style Row ────────────────────────────────────────────
+
+const SLOT_ICONS: Record<string, any> = {
+  top:       "shirt-outline",
+  watch:     "watch-outline",
+  accessory: "diamond-outline",
+};
+const SLOT_LABELS: Record<string, string> = {
+  top:       "TOP",
+  watch:     "WATCH",
+  accessory: "ACCESSORY",
+};
+
+function EquippedStyleRow({ equippedWearables }: { equippedWearables: EquippedWearableState }) {
+  const slots = ["top", "watch", "accessory"] as const;
+  return (
+    <View style={{ flexDirection: "row", gap: 10, marginHorizontal: 16, marginBottom: 14 }}>
+      {slots.map((slot) => {
+        const item = equippedWearables?.[slot] ?? null;
+        return (
+          <Pressable
+            key={slot}
+            style={({ pressed }) => ({
+              flex: 1,
+              backgroundColor: Colors.bgCard,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: item ? Colors.accent + "40" : Colors.border,
+              padding: 10,
+              alignItems: "center",
+              gap: 6,
+              opacity: pressed ? 0.75 : 1,
+            })}
+            onPress={() => router.push("/wearables" as any)}
+          >
+            <Ionicons
+              name={SLOT_ICONS[slot]}
+              size={18}
+              color={item ? Colors.accent : Colors.textMuted}
+            />
+            <Text style={{ fontSize: 9, color: Colors.textMuted, fontFamily: "Inter_700Bold", letterSpacing: 0.8 }}>
+              {SLOT_LABELS[slot]}
+            </Text>
+            {item ? (
+              <>
+                <Text style={{ fontSize: 10, color: Colors.textPrimary, fontFamily: "Inter_700Bold", textAlign: "center" }} numberOfLines={2}>
+                  {item.name}
+                </Text>
+                <View style={{ backgroundColor: Colors.accent + "22", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2 }}>
+                  <Text style={{ fontSize: 8, color: Colors.accent, fontFamily: "Inter_700Bold" }}>EQUIPPED</Text>
+                </View>
+              </>
+            ) : (
+              <Text style={{ fontSize: 9, color: Colors.textMuted, fontFamily: "Inter_400Regular", fontStyle: "italic" }}>Empty</Text>
+            )}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 function DimensionCard({ dimension, delay = 0 }: { dimension: any; delay?: number }) {
   return (
     <Animated.View entering={FadeInDown.delay(delay).springify()} style={dimStyles.card}>
@@ -337,7 +434,11 @@ export default function CharacterStatusScreen() {
 
               {/* Character figure — layered evolved renderer */}
               <View style={styles.characterWrap}>
-                <EvolvedCharacter visualState={data?.visualState as VisualState | null} size={190} />
+                <EvolvedCharacter
+                  visualState={data?.visualState as VisualState | null}
+                  equippedWearables={(data as any)?.equippedWearables as EquippedWearableState ?? null}
+                  size={190}
+                />
               </View>
 
               {/* Name + outfit label */}
@@ -399,6 +500,16 @@ export default function CharacterStatusScreen() {
               );
             })}
           </Animated.View>
+
+          {/* ── Phase 29 — Equipped Style ── */}
+          <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.sectionHeader}>
+            <Ionicons name="shirt-outline" size={13} color={Colors.textMuted} />
+            <Text style={styles.sectionHeaderText}>EQUIPPED STYLE</Text>
+          </Animated.View>
+
+          <EquippedStyleRow
+            equippedWearables={(data as any)?.equippedWearables as EquippedWearableState ?? null}
+          />
 
           {/* ── Dimensions ── */}
           <Animated.View entering={FadeInDown.delay(160).springify()} style={styles.sectionHeader}>

@@ -2,8 +2,9 @@ import { Router } from "express";
 import { requireAuth } from "../lib/auth.js";
 import {
   db, usersTable, userBadgesTable, focusSessionsTable,
+  userInventoryTable, shopItemsTable,
 } from "@workspace/db";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, inArray, isNotNull } from "drizzle-orm";
 import { getUserSkills } from "../lib/skill-engine.js";
 import { getMasteryState } from "../lib/mastery-engine.js";
 import { computePrestigeState } from "../lib/prestige-engine.js";
@@ -70,6 +71,55 @@ const PRESTIGE_DESCS: Array<[number, string]> = [
   [80,  "Respected standing. Elite pathways are opening."],
   [101, "Maximum prestige. A legacy being written."],
 ];
+
+// ── Phase 29 — Wearable Visual State Mappings ─────────────────────────────────
+
+const WEARABLE_OUTFIT_TIER: Record<string, number> = {
+  "executive-white":  0,
+  "premium-grey":     2,
+  "refined-charcoal": 3,
+  "elite-black":      4,
+};
+
+const WEARABLE_WATCH_STYLE: Record<string, "basic" | "refined" | "elite"> = {
+  "classic-watch":     "basic",
+  "refined-timepiece": "refined",
+  "elite-chronograph": "elite",
+};
+
+const WEARABLE_ACCESSORY_STYLE: Record<string, "chain" | "pin"> = {
+  "gold-chain":      "chain",
+  "elite-lapel-pin": "pin",
+};
+
+function computeEquippedWearableState(equippedWearableItems: any[]) {
+  const top       = equippedWearableItems.find((i) => i.wearableSlot === "top")       ?? null;
+  const watch     = equippedWearableItems.find((i) => i.wearableSlot === "watch")     ?? null;
+  const accessory = equippedWearableItems.find((i) => i.wearableSlot === "accessory") ?? null;
+  return {
+    top: top ? {
+      id:               top.id,
+      slug:             top.slug,
+      name:             top.name,
+      outfitTierOverride: WEARABLE_OUTFIT_TIER[top.slug ?? ""] ?? null,
+      styleEffect:      top.styleEffect,
+    } : null,
+    watch: watch ? {
+      id:          watch.id,
+      slug:        watch.slug,
+      name:        watch.name,
+      watchStyle:  WEARABLE_WATCH_STYLE[watch.slug ?? ""] ?? "basic",
+      styleEffect: watch.styleEffect,
+    } : null,
+    accessory: accessory ? {
+      id:             accessory.id,
+      slug:           accessory.slug,
+      name:           accessory.name,
+      accessoryStyle: WEARABLE_ACCESSORY_STYLE[accessory.slug ?? ""] ?? "chain",
+      styleEffect:    accessory.styleEffect,
+    } : null,
+  };
+}
 
 // ── Phase 28 — Character Evolution State Engine ───────────────────────────────
 
@@ -191,6 +241,20 @@ router.get("/status", requireAuth, async (req: any, res) => {
     const lowestKey = dimScores[0].key;
     const nextEvolutionHint = NEXT_HINTS[lowestKey] ?? NEXT_HINTS.discipline;
 
+    // ── Phase 29: Equipped wearables ─────────────────────────────────────────
+    const equippedInv = await db
+      .select({ itemId: userInventoryTable.itemId })
+      .from(userInventoryTable)
+      .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.isEquipped, true)));
+    const equippedItemIds = equippedInv.map((r) => r.itemId);
+    const equippedWearableItems = equippedItemIds.length > 0
+      ? await db
+          .select()
+          .from(shopItemsTable)
+          .where(and(inArray(shopItemsTable.id, equippedItemIds), isNotNull(shopItemsTable.wearableSlot)))
+      : [];
+    const equippedWearables = computeEquippedWearableState(equippedWearableItems);
+
     // ── Phase 28: Compute visual evolution state ──────────────────────────────
     const visualState = computeVisualState(fitnessScore, disciplineScore, financeScore, prestigeScore);
 
@@ -227,6 +291,7 @@ router.get("/status", requireAuth, async (req: any, res) => {
         tierLabel: overallScore >= 20 ? "On the Rise" : "Beginning Stage",
       },
       visualState,
+      equippedWearables,
       completedSessions,
       prestigeTier: userRow.prestigeTier ?? 0,
       badgeCount,

@@ -901,3 +901,14 @@ export function useTrackRecommendationEvent() {
       }),
   });
 }
+
+// ─── Phase 29 — Wearables ────────────────────────────────────────────────────
+
+export function useWearables() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["wearables"],
+    queryFn: () => request<any>("/wearables"),
+    staleTime: 30000,
+  });
+}

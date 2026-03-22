@@ -1,0 +1,412 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 29 — Wearables / Style / Identity Application.
+
+Current context:
+- Phase 27 is complete: the app now has a mobile-first Game Mode / Character Status Hub with a starter character, status dimensions, tier/class, room preview, and next-evolution hints.
+- Phase 28 is complete: the app now has a Character Evolution Renderer that visually changes the character based on real progression across Fitness, Discipline, Finance/Lifestyle, and Prestige.
+- The next highest-value step is wearable identity:
+  users should now be able to own, equip, and visibly apply style items such as clothing, watches, and accessories to the character in a way that feels premium, meaningful, and tied to coin + level unlock progression.
+- This phase is NOT a full avatar editor.
+- This phase is the first real “style application” layer for the character.
+
+Your task:
+Build only the smallest high-impact Wearables / Style / Identity Application layer.
+
+==================================================
+PHASE 29 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Wearable slot model for character style
+2. Clothing / watch / accessory application system
+3. Equip / unequip / preview flows for wearable items
+4. Character renderer integration for wearable layers
+5. Style-aware item detail and inventory UX
+6. Coin + level unlock enforcement for wearable items
+7. Minimal internal/admin controls only if strictly needed
+
+Do NOT build:
+- full avatar customization suite
+- face editor
+- hairstyle editor
+- body sliders
+- giant wardrobe simulator
+- full outfit preset system with massive complexity
+- player-to-player style trading
+- redesign of the whole app
+- full car or room systems in this phase
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current marketplace/catalog from Phase 22, asset application/equip logic, Character Status Hub from Phase 27, Character Evolution Renderer from Phase 28, inventory, item detail, and existing ownership/equipped-state logic
+2. identify which product/item types already exist for clothing, watches, and accessories
+3. identify what currently exists for item ownership vs what is missing for visible wearable application
+4. identify the minimum wearable/equip layer needed to make style purchases feel real
+5. implement only the minimum systems needed
+6. avoid broad refactors
+
+==================================================
+A. CORE PRODUCT FANTASY FOR THIS PHASE
+==================================================
+
+This phase must make the user feel:
+
+“My character is not only evolving from life progress — I can now shape my style and identity with the items I earn and buy.”
+
+The user should feel:
+- clothes matter
+- watches/accessories matter
+- style upgrades feel premium
+- earned coins now have visible status value
+- level unlocks make luxury/stylish items feel aspirational
+- the character becomes more personal and more prestigious over time
+
+Important:
+This phase is not about unlimited fashion customization.
+It is about giving the user a controlled, premium, high-signal style progression system.
+
+==================================================
+B. WEARABLE SLOT MODEL
+==================================================
+
+Build a simple, elegant wearable slot model for the character.
+
+At minimum, support these slot families:
+1. Top / Outfit layer
+2. Outerwear layer (if practical)
+3. Watch slot
+4. Accessory slot
+5. Optional style-accent slot if useful and lightweight
+
+Recommended initial categories:
+- Tops
+- Jackets / Outerwear
+- Watches
+- Simple Accessories
+
+Requirements:
+- keep slot rules explicit and easy to understand
+- server-side validation must enforce slot compatibility
+- not every item needs to be wearable in this phase
+- some wearable categories can be mutually exclusive
+- keep the model tactical and extensible
+
+Rules:
+- one active watch at a time
+- one active main outfit/top state at a time
+- accessory rules should stay simple
+- avoid building an over-complicated fashion inventory system
+
+==================================================
+C. COIN + LEVEL UNLOCK LOGIC
+==================================================
+
+Wearables in this phase must use controlled game progression rules.
+
+Requirements:
+- wearable items can require:
+  - coin cost
+  - minimum level
+  - premium entitlement if appropriate
+  - limited/exclusive conditions if already supported by the catalog
+- item purchase eligibility must be enforced server-side
+- equip eligibility must also be enforced server-side
+- users should be able to see:
+  - whether an item is affordable
+  - whether an item is level-locked
+  - what level is required
+  - whether it is already owned
+  - whether it is already equipped
+
+Rules:
+- do not allow equipping non-owned items
+- do not allow bypassing level locks client-side
+- do not make the core style layer pay-to-win
+- style items should feel aspirational, not manipulative
+
+==================================================
+D. WEARABLE APPLICATION / EQUIP FLOWS
+==================================================
+
+Add the real wearable item flows.
+
+Support at minimum:
+- preview wearable item on character
+- equip wearable item
+- unequip wearable item
+- switch between owned wearable items
+- view current equipped wearable items
+- clearly show item state:
+  - locked
+  - available
+  - owned
+  - equipped
+  - premium
+  - limited/exclusive if relevant
+
+Requirements:
+- equip/unequip actions must be validated server-side
+- the UI should make it clear when the character appearance has changed
+- preview flow should be lightweight and not fragile
+- if true “temporary preview before purchase” is too heavy, use a safe simplified preview mode or preview card
+- keep actions predictable and fast
+
+==================================================
+E. CHARACTER RENDERER INTEGRATION
+==================================================
+
+Integrate wearable items directly into the Phase 28 Character Evolution Renderer.
+
+Purpose:
+Make wearable items visibly affect the rendered character.
+
+At minimum:
+- tops / outerwear influence outfit layer
+- watches influence accessory/lifestyle layer
+- accessories influence identity/style layer
+- wearables should combine with the existing evolution state rather than override it
+
+Rules:
+- progression still drives the base evolution
+- wearables refine and personalize the visible result
+- purchased style should not fake earned Prestige or Fitness
+- luxury/style items may enhance Finance/Lifestyle expression, but should not replace underlying progression logic
+
+Requirements:
+- the rendered character must remain coherent and premium
+- avoid combinatorial chaos
+- use the existing layered renderer approach
+- wearable influence must be deterministic and maintainable
+
+==================================================
+F. STYLE TIERS / VISUAL CLASS REFINEMENT
+==================================================
+
+Use this phase to refine the visible style class of the character.
+
+Purpose:
+Make clothes and accessories feel like a real extension of the status fantasy.
+
+Possible style influences:
+- basic / starter style
+- rising style
+- refined style
+- elite style
+
+Requirements:
+- style items should improve visible polish and identity
+- better items should feel visibly higher-tier
+- the result should remain tasteful and not overly flashy
+- the user should feel a difference between starter gear and upgraded style gear
+- visual class improvements should remain consistent with the status tier system from Phase 27/28
+
+==================================================
+G. INVENTORY / ITEM DETAIL / STYLE UX
+==================================================
+
+Upgrade inventory and item detail UX specifically for wearables.
+
+Requirements:
+- inventory should clearly separate wearable items from other assets
+- wearable items should show:
+  - slot/category
+  - required level
+  - price or acquisition type
+  - owned/equipped state
+  - style effect summary
+- item detail should explain:
+  - what slot it uses
+  - what it visually affects
+  - whether it changes character/status presentation
+  - whether it is premium/limited if relevant
+- character screen should make current equipped wearables easy to understand
+
+Possible surfaces:
+- wearable tab in inventory/store
+- equipped-items summary strip
+- “affects your style” section on item detail
+- quick equip button where appropriate
+
+==================================================
+H. GUIDANCE / STYLE RECOMMENDATION HOOKS
+==================================================
+
+Because this phase introduces the first visible wearable layer, add lightweight guidance.
+
+Examples:
+- “This watch improves your lifestyle presentation.”
+- “This jacket fits your current Rising tier.”
+- “Reach level X to unlock this refined style item.”
+- “Your current look is still starter-tier — a better top can improve your visible class.”
+
+Requirements:
+- guidance should be concise
+- it should help users understand why items matter
+- it should stay elegant, not salesy
+- it can reuse existing recommendation/guidance systems where practical
+
+==================================================
+I. MEDIA / PREVIEW RULES
+==================================================
+
+Wearable items should have useful visual previews.
+
+Requirements:
+- storefront and item detail should show product preview/media
+- wearable previews should be good enough to support buying decisions
+- if a full live character preview is too heavy in every context, use a mix of:
+  - item card preview
+  - item detail preview
+  - character status screen preview
+- keep performance mobile-friendly
+
+Do NOT build a giant fashion try-on studio.
+Keep preview practical and premium.
+
+==================================================
+J. CONSISTENCY / VALIDATION / ANTI-ERROR RULES
+==================================================
+
+Because wearable state connects store + inventory + renderer + progression, validation must be strong.
+
+Requirements:
+- server-side validation for purchase and equip
+- reject invalid slot/item combinations
+- reject non-owned equip attempts
+- reject under-level equip attempts
+- preserve consistency between:
+  - catalog state
+  - ownership state
+  - equipped state
+  - rendered character state
+  - inventory/store UI state
+- keep JSON-only APIs
+- preserve ownership checks
+
+If needed:
+- add small recompute/rebuild helpers for wearable application state
+- keep them safe and minimal
+
+==================================================
+K. MINIMAL INTERNAL / ADMIN CONTROLS
+==================================================
+
+Add only minimal internal controls if strictly needed.
+
+Possible examples:
+- mark items as wearable and assign slot
+- define wearable render layer impact
+- set item style tier/class influence
+- test visual state with specific wearable assignments
+
+Requirements:
+- admin-only
+- lightweight
+- use existing admin/tuning/catalog surfaces where possible
+- do not build a giant outfit configuration console
+
+==================================================
+L. UI / UX DIRECTION
+==================================================
+
+Design direction:
+- dark premium
+- serious, aspirational, stylish
+- high-status but not gaudy
+- mobile-first
+- character remains the hero
+- wearables should feel like meaningful status upgrades, not toy dress-up
+
+The user should feel:
+- “my character now looks more like my future self”
+- “my purchases actually matter visually”
+- “my style is part of my progression now”
+
+Do NOT make the UI:
+- childish
+- cluttered
+- over-fashion-game-like
+- excessively flashy
+
+==================================================
+M. BACKEND / SECURITY RULES
+==================================================
+
+- all wearable ownership, equip state, and eligibility checks must be server-side
+- preserve JSON-only APIs
+- preserve ownership checks
+- do not trust client-provided wearable state or slot selection
+- keep schema changes additive and minimal
+- preserve existing mission/proof/reward/economy/world/community/premium flows
+- if rendered wearable state is cached, it must remain recomputable from trusted data
+
+==================================================
+N. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a real wearable/style application layer exists
+2. users can purchase and equip at least clothing/watch/accessory items where supported
+3. wearable slots are clearly defined and enforced
+4. equipped wearables visibly affect the character renderer
+5. coin + level unlock rules are enforced server-side
+6. inventory and item detail clearly explain wearable effects and states
+7. character status screen clearly reflects current equipped wearables
+8. guidance helps users understand why style items matter
+9. existing app flow still works
+10. no oversized avatar-editor/fashion-simulator scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what wearable/style capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Wearable slot model added
+- what slots exist
+- what categories map to each slot
+
+4. Purchase/equip/application flows added
+- what actions are supported
+- how coin + level unlock validation works
+
+5. Character renderer integration added
+- what wearable layers now affect the character
+- how they combine with progression-driven evolution
+
+6. Inventory / item detail / style UX changes
+- what the user now sees
+- how wearable states and effects are communicated
+
+7. End-to-end verification results for:
+- purchase wearable item
+- level lock enforcement
+- equip wearable item
+- visible character change
+- inventory/item detail clarity
+- existing app flow unchanged
+
+8. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.
