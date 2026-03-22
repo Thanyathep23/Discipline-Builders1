@@ -49,6 +49,8 @@ import characterRouter from "./character.js";
 import wearablesRouter from "./wearables.js";
 // Phase 31 — Car Collection / Showcase / Photo Mode
 import carsRouter from "./cars.js";
+// Phase 35 — Admin Wave 3 (incidents, repair, experiments, diagnostics, runbooks, support cases)
+import adminWave3Router from "./admin-wave3.js";
 
 const router: IRouter = Router();
 
@@ -102,5 +104,7 @@ router.use("/character", characterRouter);
 router.use("/wearables", wearablesRouter);
 // Phase 31 — Cars
 router.use("/cars", carsRouter);
+// Phase 35 — Admin Wave 3
+router.use("/admin", adminWave3Router);
 
 export default router;

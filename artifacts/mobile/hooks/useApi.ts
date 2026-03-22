@@ -1114,3 +1114,261 @@ export function useAdminRecUserDebug(userId: string | null) {
     staleTime: 15000,
   });
 }
+
+// ── Wave 3: Incidents ─────────────────────────────────────────────────────────
+
+export function useAdminIncidents(params?: { status?: string; severity?: string; area?: string; limit?: number; offset?: number }) {
+  const { request } = useApiClient();
+  const qs = new URLSearchParams();
+  if (params?.status)   qs.set("status",   params.status);
+  if (params?.severity) qs.set("severity", params.severity);
+  if (params?.area)     qs.set("area",     params.area);
+  if (params?.limit !== undefined)  qs.set("limit",  String(params.limit));
+  if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+  const q = qs.toString();
+  return useQuery({
+    queryKey: ["admin-incidents", params],
+    queryFn: () => request<any>(`/admin/incidents${q ? `?${q}` : ""}`),
+    staleTime: 15000,
+  });
+}
+
+export function useAdminIncident(id: string | null) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-incident", id],
+    queryFn: () => request<any>(`/admin/incidents/${id}`),
+    enabled: !!id,
+    staleTime: 15000,
+  });
+}
+
+export function useAdminCreateIncident() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: any) => request<any>("/admin/incidents", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-incidents"] }); },
+  });
+}
+
+export function useAdminUpdateIncident() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string; [k: string]: any }) =>
+      request<any>(`/admin/incidents/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-incidents"] });
+      qc.invalidateQueries({ queryKey: ["admin-incident"] });
+    },
+  });
+}
+
+export function useAdminDetectIncidents() {
+  const { request } = useApiClient();
+  return useMutation({
+    mutationFn: (windowMinutes: number) => request<any>(`/admin/incidents/detect?windowMinutes=${windowMinutes}`, { method: "POST" }),
+  });
+}
+
+// ── Wave 3: Repair / Reconcile ────────────────────────────────────────────────
+
+export function useAdminRepairWallet() {
+  const { request } = useApiClient();
+  return useMutation({
+    mutationFn: ({ userId, reason, apply }: { userId: string; reason: string; apply: boolean }) =>
+      request<any>(`/admin/repair/player/${userId}/wallet`, { method: "POST", body: JSON.stringify({ reason, apply }) }),
+  });
+}
+
+export function useAdminRepairXp() {
+  const { request } = useApiClient();
+  return useMutation({
+    mutationFn: ({ userId, reason, apply }: { userId: string; reason: string; apply: boolean }) =>
+      request<any>(`/admin/repair/player/${userId}/xp`, { method: "POST", body: JSON.stringify({ reason, apply }) }),
+  });
+}
+
+export function useAdminRepairSkills() {
+  const { request } = useApiClient();
+  return useMutation({
+    mutationFn: ({ userId, reason, apply }: { userId: string; reason: string; apply: boolean }) =>
+      request<any>(`/admin/repair/player/${userId}/skills`, { method: "POST", body: JSON.stringify({ reason, apply }) }),
+  });
+}
+
+export function useAdminRepairInventory() {
+  const { request } = useApiClient();
+  return useMutation({
+    mutationFn: ({ userId, reason, apply }: { userId: string; reason: string; apply: boolean }) =>
+      request<any>(`/admin/repair/player/${userId}/inventory`, { method: "POST", body: JSON.stringify({ reason, apply }) }),
+  });
+}
+
+export function useAdminRepairPremium() {
+  const { request } = useApiClient();
+  return useMutation({
+    mutationFn: ({ userId, reason, apply }: { userId: string; reason: string; apply: boolean }) =>
+      request<any>(`/admin/repair/player/${userId}/premium`, { method: "POST", body: JSON.stringify({ reason, apply }) }),
+  });
+}
+
+// ── Wave 3: Experiments ───────────────────────────────────────────────────────
+
+export function useAdminExperiments(status?: string) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-experiments", status],
+    queryFn: () => request<any>(`/admin/experiments${status ? `?status=${status}` : ""}`),
+    staleTime: 20000,
+  });
+}
+
+export function useAdminExperiment(id: string | null) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-experiment", id],
+    queryFn: () => request<any>(`/admin/experiments/${id}`),
+    enabled: !!id,
+    staleTime: 15000,
+  });
+}
+
+export function useAdminCreateExperiment() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: any) => request<any>("/admin/experiments", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-experiments"] }); },
+  });
+}
+
+export function useAdminExperimentAction() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, action }: { id: string; action: "start" | "pause" | "stop" }) =>
+      request<any>(`/admin/experiments/${id}/${action}`, { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-experiments"] });
+      qc.invalidateQueries({ queryKey: ["admin-experiment"] });
+    },
+  });
+}
+
+export function useAdminExperimentMetrics(id: string | null) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-experiment-metrics", id],
+    queryFn: () => request<any>(`/admin/experiments/${id}/metrics`),
+    enabled: !!id,
+    staleTime: 30000,
+  });
+}
+
+// ── Wave 3: Diagnostics ───────────────────────────────────────────────────────
+
+export function useAdminDiagnostics(windowMinutes = 60) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-diagnostics", windowMinutes],
+    queryFn: () => request<any>(`/admin/diagnostics?windowMinutes=${windowMinutes}`),
+    staleTime: 15000,
+  });
+}
+
+// ── Wave 3: Runbooks ──────────────────────────────────────────────────────────
+
+export function useAdminRunbooks() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-runbooks"],
+    queryFn: () => request<any>("/admin/runbooks"),
+    staleTime: 3600000,
+  });
+}
+
+export function useAdminRunbook(key: string | null) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-runbook", key],
+    queryFn: () => request<any>(`/admin/runbooks/${key}`),
+    enabled: !!key,
+    staleTime: 3600000,
+  });
+}
+
+// ── Wave 3: Support Cases ─────────────────────────────────────────────────────
+
+export function useAdminSupportCases(params?: { status?: string; priority?: string; playerId?: string; limit?: number; offset?: number }) {
+  const { request } = useApiClient();
+  const qs = new URLSearchParams();
+  if (params?.status)   qs.set("status",   params.status);
+  if (params?.priority) qs.set("priority", params.priority);
+  if (params?.playerId) qs.set("playerId", params.playerId);
+  if (params?.limit !== undefined)  qs.set("limit",  String(params.limit));
+  if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+  const q = qs.toString();
+  return useQuery({
+    queryKey: ["admin-support-cases", params],
+    queryFn: () => request<any>(`/admin/support/cases${q ? `?${q}` : ""}`),
+    staleTime: 15000,
+  });
+}
+
+export function useAdminSupportCase(id: string | null) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-support-case", id],
+    queryFn: () => request<any>(`/admin/support/cases/${id}`),
+    enabled: !!id,
+    staleTime: 10000,
+  });
+}
+
+export function useAdminCreateSupportCase() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { playerId: string; title: string; priority?: string; category?: string; note?: string }) =>
+      request<any>("/admin/support/cases", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-support-cases"] }); },
+  });
+}
+
+export function useAdminUpdateSupportCase() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string; status?: string; priority?: string }) =>
+      request<any>(`/admin/support/cases/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-support-cases"] });
+      qc.invalidateQueries({ queryKey: ["admin-support-case"] });
+    },
+  });
+}
+
+export function useAdminAddCaseNote() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, note, actionTaken }: { id: string; note: string; actionTaken?: string }) =>
+      request<any>(`/admin/support/cases/${id}/notes`, { method: "POST", body: JSON.stringify({ note, actionTaken }) }),
+    onSuccess: (_d, { id }) => {
+      qc.invalidateQueries({ queryKey: ["admin-support-case", id] });
+      qc.invalidateQueries({ queryKey: ["admin-support-cases"] });
+    },
+  });
+}
+
+export function useAdminPlayerCases(userId: string | null) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-player-cases", userId],
+    queryFn: () => request<any>(`/admin/support/player/${userId}/cases`),
+    enabled: !!userId,
+    staleTime: 15000,
+  });
+}

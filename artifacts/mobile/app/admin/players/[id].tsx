@@ -341,6 +341,22 @@ export default function PlayerInspectorScreen() {
                   {recoverPlayer.isPending ? "Recovering..." : "Recover Player State"}
                 </Text>
               </Pressable>
+
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: Colors.textSecondary + "18", borderColor: Colors.border }]}
+                onPress={() => router.push({ pathname: "/admin/support/cases" as any, params: { playerId: id } })}
+              >
+                <Ionicons name="headset-outline" size={16} color={Colors.textSecondary} />
+                <Text style={[styles.actionText, { color: Colors.textSecondary }]}>Open Support Case</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: Colors.amber + "18", borderColor: Colors.amber + "40" }]}
+                onPress={() => router.push({ pathname: "/admin/repair" as any })}
+              >
+                <Ionicons name="construct-outline" size={16} color={Colors.amber} />
+                <Text style={[styles.actionText, { color: Colors.amber }]}>Repair & Reconcile</Text>
+              </Pressable>
             </View>
           </Animated.View>
         )}
