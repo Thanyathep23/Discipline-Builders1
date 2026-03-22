@@ -275,14 +275,18 @@ All tokens and components live in `artifacts/mobile/design-system/`. Import via 
 - **States** — `EmptyState` (11 presets), `ErrorState` (5 error types)
 
 ### Backward Compatibility
-`constants/colors.ts` is unchanged — all 61 existing screens continue to import `Colors` from there. The design system is additive only.
+`constants/colors.ts` preserves the `Colors` flat object and `RARITY_COLORS` — all 61 existing screens import from there unchanged. It also exports `ds` (alias for design-system `colors`) and `semantic` (direct re-export of the token object). The design system is additive only.
 
-### Hero Surface Migration (complete)
-- `app/character/index.tsx` — `LoadingScreen` replaces spinner; `Button` replaces `evolutionCTA` Pressable
-- `app/cars/index.tsx` — `LoadingScreen` replaces full-screen loading block
-- `app/wearables/index.tsx` — `LoadingScreen` + `ErrorState` replace loading/error views
-- `app/premium/index.tsx` — `LoadingScreen` imported (inline loading state unchanged — inside ScrollView)
-- `app/(tabs)/rewards.tsx` — `LoadingScreen` imported (inline loading states unchanged — inside tab panels)
+### Hero Surface Migration
+- `app/character/index.tsx` — `LoadingScreen` replaces full-screen spinner; `Button` replaces inline CTA Pressable; TODO comment marks wearable-slot row for future `ActionCard` migration
+- `app/cars/index.tsx` — `LoadingScreen` + `ErrorState` replace full-screen loading/error states; `EmptyState preset="no_car"` replaces inline empty-collection view; TODO comment marks action row buttons for future `Button` flex:1 migration
+- `app/wearables/index.tsx` — `LoadingScreen` + `ErrorState` replace loading/error views; `Button variant="secondary"` replaces empty-wardrobe-slot Pressable; `Button` imported from design-system
+- `app/premium/index.tsx` — `LoadingScreen inline` replaces `ActivityIndicator` inside ScrollView (uses new `inline` prop — no flex:1, no background)
+- `app/(tabs)/rewards.tsx` — `LoadingScreen inline` replaces overview tab spinner; `SkeletonList` replaces marketplace loading indicator; `EmptyState preset="no_purchases"` replaces inline empty marketplace view; TODO comment marks item cards for future CollectionCard migration
+
+### Design System Token Notes
+- `colors.accent.primaryPressed`, `dangerPressed`, `premiumPressed` are first-class tokens — Button uses them for pressed states (no hardcoded hex)
+- `constants/colors.ts` exports `semantic` which re-exports the full design-system token object directly (single source of truth); legacy `Colors` flat object preserved for backward compatibility
 
 ### Raw token values (unchanged)
 - Dark theme: bg `#0A0A0F`, card `#12121A`
