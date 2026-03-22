@@ -1,13 +1,14 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, type ViewStyle } from "react-native";
 import { colors } from "../../tokens/colors";
 import { spacing } from "../../tokens/spacing";
 import { radius } from "../../tokens/radius";
 import { SkeletonBlock } from "./SkeletonBlock";
 
 export interface SkeletonListProps {
-  rows?:      number;
-  showAvatar?:boolean;
+  rows?:       number;
+  showAvatar?: boolean;
+  style?:      ViewStyle;
 }
 
 function SkeletonRow({ showAvatar }: { showAvatar: boolean }) {
@@ -25,9 +26,9 @@ function SkeletonRow({ showAvatar }: { showAvatar: boolean }) {
   );
 }
 
-export function SkeletonList({ rows = 4, showAvatar = false }: SkeletonListProps) {
+export function SkeletonList({ rows = 4, showAvatar = false, style }: SkeletonListProps) {
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, style]}>
       {Array.from({ length: rows }).map((_, i) => (
         <SkeletonRow key={i} showAvatar={showAvatar} />
       ))}

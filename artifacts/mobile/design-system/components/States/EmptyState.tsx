@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, StyleSheet, ViewStyle } from "react-native";
+import React, { type ComponentProps } from "react";
+import { View, Text, StyleSheet, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { colors } from "../../tokens/colors";
@@ -8,29 +8,33 @@ import { spacing } from "../../tokens/spacing";
 import { radius } from "../../tokens/radius";
 import { Button } from "../Button/Button";
 
+type IconName = ComponentProps<typeof Ionicons>["name"];
+
 export type EmptyStateInstance =
   | "no_missions" | "no_proof" | "no_purchases" | "no_room_items"
   | "no_car" | "no_chain" | "no_inventory" | "no_recommendations"
   | "admin_no_players" | "admin_no_content" | "admin_no_audit";
 
 export interface EmptyStateProps {
-  icon?:         string;
-  title?:        string;
-  subtitle?:     string;
-  primaryLabel?: string;
-  onPrimary?:    () => void;
+  icon?:          IconName;
+  title?:         string;
+  subtitle?:      string;
+  primaryLabel?:  string;
+  onPrimary?:     () => void;
   secondaryLabel?:string;
-  onSecondary?:  () => void;
-  preset?:       EmptyStateInstance;
-  accentColor?:  string;
-  style?:        ViewStyle;
+  onSecondary?:   () => void;
+  preset?:        EmptyStateInstance;
+  accentColor?:   string;
+  style?:         ViewStyle;
 }
 
-const PRESETS: Record<EmptyStateInstance, {
-  icon:     string;
+type PresetConfig = {
+  icon:     IconName;
   title:    string;
   subtitle: string;
-}> = {
+};
+
+const PRESETS: Record<EmptyStateInstance, PresetConfig> = {
   no_missions: {
     icon:     "flag-outline",
     title:    "No missions yet",
@@ -88,60 +92,52 @@ const PRESETS: Record<EmptyStateInstance, {
   },
 };
 
+const DEFAULT_ICON: IconName = "help-circle-outline";
+
 export function EmptyState({
   icon, title, subtitle, primaryLabel, onPrimary, secondaryLabel, onSecondary,
   preset, accentColor = colors.accent.primary, style,
 }: EmptyStateProps) {
   const p = preset ? PRESETS[preset] : null;
-  const displayIcon    = icon    ?? p?.icon    ?? "help-circle-outline";
-  const displayTitle   = title   ?? p?.title   ?? "Nothing here yet";
+  const displayIcon     = icon     ?? p?.icon     ?? DEFAULT_ICON;
+  const displayTitle    = title    ?? p?.title    ?? "Nothing here yet";
   const displaySubtitle = subtitle ?? p?.subtitle ?? "";
 
   return (
     <Animated.View entering={FadeIn.duration(400)} style={[styles.wrap, style]}>
       <View style={[styles.iconRing, { borderColor: accentColor + "35", backgroundColor: accentColor + "10" }]}>
-        <Ionicons name={displayIcon as any} size={28} color={accentColor} />
+        <Ionicons name={displayIcon} size={28} color={accentColor} />
       </View>
       <Text style={[typography.h3, styles.title]}>{displayTitle}</Text>
       {displaySubtitle ? (
         <Text style={[typography.body, styles.subtitle]}>{displaySubtitle}</Text>
       ) : null}
-      {primaryLabel && onPrimary && (
-        <Button
-          label={primaryLabel}
-          onPress={onPrimary}
-          variant="primary"
-          fullWidth
-        />
-      )}
-      {secondaryLabel && onSecondary && (
-        <Button
-          label={secondaryLabel}
-          onPress={onSecondary}
-          variant="secondary"
-          fullWidth
-        />
-      )}
+      {primaryLabel && onPrimary ? (
+        <Button label={primaryLabel} onPress={onPrimary} variant="primary" fullWidth />
+      ) : null}
+      {secondaryLabel && onSecondary ? (
+        <Button label={secondaryLabel} onPress={onSecondary} variant="secondary" fullWidth />
+      ) : null}
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    alignItems:    "center",
-    paddingVertical:spacing.xxxl,
-    paddingHorizontal: spacing.xl,
-    gap:           spacing.base,
+    alignItems:       "center",
+    paddingVertical:  spacing.xxxl,
+    paddingHorizontal:spacing.xl,
+    gap:              spacing.base,
   },
   iconRing: {
-    width:         72,
-    height:        72,
-    borderRadius:  36,
-    borderWidth:   1,
-    alignItems:    "center",
-    justifyContent:"center",
-    marginBottom:  spacing.sm,
+    width:          72,
+    height:         72,
+    borderRadius:   36,
+    borderWidth:    1,
+    alignItems:     "center",
+    justifyContent: "center",
+    marginBottom:   spacing.sm,
   },
-  title:    { color: colors.text.primary, textAlign: "center" },
+  title:    { color: colors.text.primary,   textAlign: "center" },
   subtitle: { color: colors.text.secondary, textAlign: "center", lineHeight: 20 },
 });

@@ -1,12 +1,13 @@
-import React from "react";
-import { View, Text, StyleSheet, ViewStyle } from "react-native";
+import React, { type ComponentProps } from "react";
+import { View, Text, StyleSheet, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { colors } from "../../tokens/colors";
 import { typography } from "../../tokens/typography";
 import { spacing } from "../../tokens/spacing";
-import { radius } from "../../tokens/radius";
 import { Button } from "../Button/Button";
+
+type IconName = ComponentProps<typeof Ionicons>["name"];
 
 export type ErrorType = "network" | "validation" | "server" | "permission" | "not_found";
 
@@ -22,12 +23,14 @@ export interface ErrorStateProps {
   style?:         ViewStyle;
 }
 
-const TYPE_CONFIG: Record<ErrorType, {
-  icon:        string;
+type TypeConfig = {
+  icon:        IconName;
   title:       string;
   description: string;
   accentColor: string;
-}> = {
+};
+
+const TYPE_CONFIG: Record<ErrorType, TypeConfig> = {
   network: {
     icon:        "cloud-offline-outline",
     title:       "Connection lost",
@@ -65,27 +68,24 @@ export function ErrorState({
   onFallback, fallbackLabel = "Go Back", inline = false, style,
 }: ErrorStateProps) {
   const cfg = TYPE_CONFIG[type];
-  const displayTitle = title ?? cfg.title;
+  const displayTitle = title       ?? cfg.title;
   const displayDesc  = description ?? cfg.description;
   const accent       = cfg.accentColor;
 
   return (
     <Animated.View
       entering={FadeIn.duration(300)}
-      style={[
-        inline ? styles.inlineWrap : styles.fullWrap,
-        style,
-      ]}
+      style={[inline ? styles.inlineWrap : styles.fullWrap, style]}
     >
       <View style={[styles.iconRing, { borderColor: accent + "40", backgroundColor: accent + "10" }]}>
-        <Ionicons name={cfg.icon as any} size={inline ? 20 : 28} color={accent} />
+        <Ionicons name={cfg.icon} size={inline ? 20 : 28} color={accent} />
       </View>
       <Text style={[typography.h3, styles.title]}>{displayTitle}</Text>
       <Text style={[typography.body, styles.description]}>{displayDesc}</Text>
 
-      {(onRetry || onFallback) && (
+      {(onRetry || onFallback) ? (
         <View style={styles.actions}>
-          {onRetry && (
+          {onRetry ? (
             <Button
               label={retryLabel}
               onPress={onRetry}
@@ -93,34 +93,34 @@ export function ErrorState({
               fullWidth={!onFallback}
               iconLeft="refresh"
             />
-          )}
-          {onFallback && (
+          ) : null}
+          {onFallback ? (
             <Button
               label={fallbackLabel}
               onPress={onFallback}
               variant="secondary"
             />
-          )}
+          ) : null}
         </View>
-      )}
+      ) : null}
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   fullWrap: {
-    alignItems:      "center",
-    paddingVertical: spacing.xxxl,
+    alignItems:       "center",
+    paddingVertical:  spacing.xxxl,
     paddingHorizontal:spacing.xl,
-    gap:             spacing.base,
-    flex:            1,
-    justifyContent:  "center",
+    gap:              spacing.base,
+    flex:             1,
+    justifyContent:   "center",
   },
   inlineWrap: {
-    alignItems:      "center",
-    paddingVertical: spacing.xl,
+    alignItems:       "center",
+    paddingVertical:  spacing.xl,
     paddingHorizontal:spacing.base,
-    gap:             spacing.md,
+    gap:              spacing.md,
   },
   iconRing: {
     width:          56,

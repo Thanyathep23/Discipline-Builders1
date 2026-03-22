@@ -1,18 +1,21 @@
-import React from "react";
-import { View, Text, StyleSheet, ViewStyle } from "react-native";
+import React, { useState } from "react";
+import { View, Image, ActivityIndicator, StyleSheet, type ViewStyle } from "react-native";
 import { colors } from "../../tokens/colors";
-import { typography } from "../../tokens/typography";
-import { spacing } from "../../tokens/spacing";
 import { radius } from "../../tokens/radius";
 import { elevation } from "../../tokens/elevation";
 
 export interface HeroCardProps {
-  children: React.ReactNode;
+  children?:    React.ReactNode;
   accentColor?: string;
-  style?: ViewStyle;
+  imageUri?:    string;
+  imageHeight?: number;
+  style?:       ViewStyle;
 }
 
-export function HeroCard({ children, accentColor, style }: HeroCardProps) {
+export function HeroCard({ children, accentColor, imageUri, imageHeight = 200, style }: HeroCardProps) {
+  const [imgError, setImgError]     = useState(false);
+  const [imgLoading, setImgLoading] = useState(!!imageUri);
+
   return (
     <View style={[
       styles.card,
@@ -20,6 +23,21 @@ export function HeroCard({ children, accentColor, style }: HeroCardProps) {
       elevation.hero,
       style,
     ]}>
+      {imageUri && !imgError ? (
+        <View style={[styles.imageArea, { height: imageHeight }]}>
+          <Image
+            source={{ uri: imageUri }}
+            style={styles.image}
+            onLoadEnd={() => setImgLoading(false)}
+            onError={() => { setImgError(true); setImgLoading(false); }}
+          />
+          {imgLoading && (
+            <View style={styles.imagePlaceholder}>
+              <ActivityIndicator size="small" color={accentColor ?? colors.accent.primary} />
+            </View>
+          )}
+        </View>
+      ) : null}
       {children}
     </View>
   );
@@ -33,4 +51,7 @@ const styles = StyleSheet.create({
     borderColor:     colors.border.subtle,
     overflow:        "hidden",
   },
+  imageArea:       { position: "relative", backgroundColor: colors.bg.surfaceElevated },
+  image:           { width: "100%", height: "100%", resizeMode: "cover" },
+  imagePlaceholder:{ ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
 });

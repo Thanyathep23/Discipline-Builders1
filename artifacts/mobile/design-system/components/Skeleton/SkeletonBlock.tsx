@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { View, ViewStyle } from "react-native";
+import { type ViewStyle, type DimensionValue } from "react-native";
 import Animated, {
   useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing,
 } from "react-native-reanimated";
@@ -7,13 +7,15 @@ import { colors } from "../../tokens/colors";
 import { radius as radiusTokens } from "../../tokens/radius";
 
 export interface SkeletonBlockProps {
-  width?:   number | string;
-  height?:  number;
-  radius?:  number;
-  style?:   ViewStyle;
+  width?:  DimensionValue;
+  height?: number;
+  radius?: number;
+  style?:  ViewStyle;
 }
 
-export function SkeletonBlock({ width = "100%", height = 16, radius = radiusTokens.md, style }: SkeletonBlockProps) {
+export function SkeletonBlock({
+  width = "100%", height = 16, radius = radiusTokens.md, style,
+}: SkeletonBlockProps) {
   const opacity = useSharedValue(0.35);
 
   useEffect(() => {
@@ -30,7 +32,7 @@ export function SkeletonBlock({ width = "100%", height = 16, radius = radiusToke
     <Animated.View
       style={[
         {
-          width:           width as any,
+          width,
           height,
           borderRadius:    radius,
           backgroundColor: colors.bg.surfaceElevated,

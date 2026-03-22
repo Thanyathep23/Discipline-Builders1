@@ -16,6 +16,7 @@ import {
   useRecommendations, useTrackRecommendationEvent,
 } from "@/hooks/useApi";
 import { router } from "expo-router";
+import { LoadingScreen, SkeletonList, EmptyState } from "@/design-system";
 
 const CATEGORY_LABELS: Record<string, string> = {
   all:      "All",
@@ -577,7 +578,7 @@ export default function RewardsScreen() {
         {tab === "overview" && (
           <>
             {isLoading ? (
-              <ActivityIndicator color={Colors.accent} style={{ marginTop: 60 }} />
+              <LoadingScreen inline accentColor={Colors.accent} />
             ) : (
               <>
                 <Animated.View entering={FadeInDown.springify()} style={s.balanceCard}>
@@ -839,13 +840,13 @@ export default function RewardsScreen() {
 
             {/* ── Main list ────────────────────────────────────────────── */}
             {marketLoading ? (
-              <ActivityIndicator color={Colors.accent} style={{ marginTop: 40 }} />
+              <SkeletonList rows={5} style={{ marginHorizontal: 16, marginTop: 8 }} />
             ) : marketItems.length === 0 ? (
-              <View style={s.emptyBox}>
-                <Ionicons name="storefront-outline" size={48} color={Colors.textMuted} />
-                <Text style={s.emptyTitle}>Nothing in this category</Text>
-                <Text style={s.emptySubtitle}>Try a different filter or search term.</Text>
-              </View>
+              <EmptyState
+                preset="no_purchases"
+                accentColor={Colors.accent}
+                style={{ paddingHorizontal: 16 }}
+              />
             ) : (
               <>
                 <View style={s.sectionHeaderRow}>

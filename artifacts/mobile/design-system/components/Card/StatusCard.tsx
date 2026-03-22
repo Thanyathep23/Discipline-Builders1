@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, StyleSheet, ViewStyle } from "react-native";
+import React, { type ComponentProps } from "react";
+import { View, Text, StyleSheet, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../tokens/colors";
 import { typography } from "../../tokens/typography";
@@ -7,15 +7,17 @@ import { spacing } from "../../tokens/spacing";
 import { radius } from "../../tokens/radius";
 import { elevation } from "../../tokens/elevation";
 
+type IconName = ComponentProps<typeof Ionicons>["name"];
+
 export interface StatusCardProps {
-  icon?:       string;
-  eyebrow?:    string;
-  title:       string;
-  description?:string;
-  accentColor?:string;
-  status?:     "active" | "success" | "warning" | "danger" | "info";
-  children?:   React.ReactNode;
-  style?:      ViewStyle;
+  icon?:        IconName;
+  eyebrow?:     string;
+  title:        string;
+  description?: string;
+  accentColor?: string;
+  status?:      "active" | "success" | "warning" | "danger" | "info";
+  children?:    React.ReactNode;
+  style?:       ViewStyle;
 }
 
 const STATUS_COLORS = {
@@ -41,7 +43,7 @@ export function StatusCard({
       <View style={styles.headerRow}>
         {icon && (
           <View style={[styles.iconBox, { backgroundColor: accent + "20" }]}>
-            <Ionicons name={icon as any} size={16} color={accent} />
+            <Ionicons name={icon} size={16} color={accent} />
           </View>
         )}
         <View style={{ flex: 1, gap: 2 }}>

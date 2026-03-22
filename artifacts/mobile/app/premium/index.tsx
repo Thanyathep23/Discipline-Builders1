@@ -104,7 +104,7 @@ export default function PremiumScreen() {
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 50 }]}
       >
         {isLoading ? (
-          <ActivityIndicator color={PREMIUM_COLOR} style={{ marginTop: 60 }} />
+          <LoadingScreen inline accentColor={PREMIUM_COLOR} />
         ) : (
           <>
             {/* Hero */}

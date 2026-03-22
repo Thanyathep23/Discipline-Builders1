@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, type DimensionValue } from "react-native";
 import { colors } from "../../tokens/colors";
 import { typography } from "../../tokens/typography";
 import { spacing } from "../../tokens/spacing";
@@ -21,28 +21,28 @@ export function ProgressBar({
   height = 6,
 }: ProgressBarProps) {
   const clamped = Math.max(0, Math.min(1, value));
-  const pct = `${Math.round(clamped * 100)}%`;
+  const fillWidth: DimensionValue = `${Math.round(clamped * 100)}%`;
 
   return (
     <View style={styles.wrap}>
       {(label || trailingLabel) && (
         <View style={styles.labelRow}>
-          {label     && <Text style={styles.label}>{label}</Text>}
+          {label      && <Text style={styles.label}>{label}</Text>}
           {trailingLabel && <Text style={styles.trailing}>{trailingLabel}</Text>}
         </View>
       )}
       <View style={[styles.track, { height }]}>
-        <View style={[styles.fill, { width: pct as any, backgroundColor: accentColor, height }]} />
+        <View style={[styles.fill, { width: fillWidth, backgroundColor: accentColor, height }]} />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap:       { gap: spacing.xs },
-  labelRow:   { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  label:      { ...typography.bodySmall, color: colors.text.secondary },
-  trailing:   { ...typography.bodySmall, color: colors.text.tertiary },
-  track:      { backgroundColor: colors.bg.surfaceElevated, borderRadius: radius.full, overflow: "hidden" },
-  fill:       { borderRadius: radius.full },
+  wrap:     { gap: spacing.xs },
+  labelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  label:    { ...typography.bodySmall, color: colors.text.secondary },
+  trailing: { ...typography.bodySmall, color: colors.text.tertiary },
+  track:    { backgroundColor: colors.bg.surfaceElevated, borderRadius: radius.full, overflow: "hidden" },
+  fill:     { borderRadius: radius.full },
 });

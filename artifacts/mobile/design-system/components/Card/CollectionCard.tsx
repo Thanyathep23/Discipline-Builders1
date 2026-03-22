@@ -1,23 +1,25 @@
-import React, { useState } from "react";
-import { Pressable, View, Text, StyleSheet, Image, ViewStyle, ActivityIndicator } from "react-native";
+import React, { useState, type ComponentProps } from "react";
+import { Pressable, View, Text, StyleSheet, Image, ActivityIndicator, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../tokens/colors";
 import { typography } from "../../tokens/typography";
 import { spacing } from "../../tokens/spacing";
 import { radius } from "../../tokens/radius";
 import { elevation } from "../../tokens/elevation";
-import { Chip, ChipVariant } from "../Chip/Chip";
+import { Chip, type ChipVariant } from "../Chip/Chip";
+
+type IconName = ComponentProps<typeof Ionicons>["name"];
 
 export interface CollectionCardProps {
-  name:        string;
-  description?:string;
-  imageUri?:   string;
-  icon?:       string;
-  price?:      number | string;
-  state?:      ChipVariant;
-  accentColor?:string;
-  onPress?:    () => void;
-  style?:      ViewStyle;
+  name:         string;
+  description?: string;
+  imageUri?:    string;
+  icon?:        IconName;
+  price?:       number | string;
+  state?:       ChipVariant;
+  accentColor?: string;
+  onPress?:     () => void;
+  style?:       ViewStyle;
   mediaContent?: React.ReactNode;
 }
 
@@ -25,8 +27,9 @@ export function CollectionCard({
   name, description, imageUri, icon, price, state,
   accentColor = colors.accent.primary, onPress, style, mediaContent,
 }: CollectionCardProps) {
-  const [imgError, setImgError] = useState(false);
+  const [imgError, setImgError]     = useState(false);
   const [imgLoading, setImgLoading] = useState(!!imageUri);
+  const defaultIcon: IconName = (icon ?? "gift") as IconName;
 
   return (
     <Pressable
@@ -57,7 +60,7 @@ export function CollectionCard({
           <View style={styles.mediaCustom}>{mediaContent}</View>
         ) : (
           <View style={[styles.mediaPlaceholder, { backgroundColor: accentColor + "15" }]}>
-            <Ionicons name={(icon ?? "gift") as any} size={32} color={accentColor} />
+            <Ionicons name={defaultIcon} size={32} color={accentColor} />
           </View>
         )}
         {state && (
