@@ -476,13 +476,14 @@ const sw = StyleSheet.create({
 
 function CarDetailSheet({
   car, visible, onClose, onPurchase, onFeature, isPurchasing, isFeaturing,
-  onSelectVariant, isSelectingVariant,
+  onSelectVariant, isSelectingVariant, userLevel, coinBalance,
 }: {
   car: Car | null; visible: boolean; onClose: () => void;
   onPurchase: (id: string) => void; onFeature: (id: string) => void;
   isPurchasing: boolean; isFeaturing: boolean;
   onSelectVariant: (carId: string, variantKey: string) => void;
   isSelectingVariant: boolean;
+  userLevel: number; coinBalance: number;
 }) {
   const insets = useSafeAreaInsets();
   const [confirmPurchase, setConfirmPurchase] = useState(false);
@@ -570,30 +571,37 @@ function CarDetailSheet({
           </View>
         </View>
 
-        {!car.isOwned && car.minLevel > 0 && (
-          <View style={ds.progressSection}>
-            <View style={ds.progressHeader}>
-              <Ionicons name={car.isLocked ? "lock-closed-outline" : "lock-open-outline"} size={11} color={car.isLocked ? Colors.crimson : Colors.amber} />
-              <Text style={[ds.progressLabel, { color: car.isLocked ? Colors.crimson : Colors.amber }]}>
-                {car.isLocked ? "UNLOCK PROGRESS" : "PURCHASE READY"}
-              </Text>
+        {!car.isOwned && car.minLevel > 0 && (() => {
+          const levelPct = car.isLocked
+            ? Math.min(95, Math.max(5, Math.round((userLevel / car.minLevel) * 100)))
+            : 100;
+          const levelsRemaining = Math.max(0, car.minLevel - userLevel);
+          const coinsNeeded = Math.max(0, car.cost - coinBalance);
+          const progressColor = car.isLocked ? Colors.crimson : Colors.green;
+          return (
+            <View style={ds.progressSection}>
+              <View style={ds.progressHeader}>
+                <Ionicons name={car.isLocked ? "lock-closed-outline" : "lock-open-outline"} size={11} color={car.isLocked ? Colors.crimson : Colors.amber} />
+                <Text style={[ds.progressLabel, { color: car.isLocked ? Colors.crimson : Colors.amber }]}>
+                  {car.isLocked ? "UNLOCK PROGRESS" : "PURCHASE READY"}
+                </Text>
+              </View>
+              <View style={ds.progressBarBg}>
+                <View style={[ds.progressBarFill, { width: `${levelPct}%`, backgroundColor: progressColor }]} />
+              </View>
+              {car.isLocked && (
+                <Text style={ds.progressHint}>
+                  {levelsRemaining} level{levelsRemaining !== 1 ? "s" : ""} away — reach Level {car.minLevel} to unlock
+                </Text>
+              )}
+              {!car.isLocked && !car.isAffordable && (
+                <Text style={[ds.progressHint, { color: Colors.amber }]}>
+                  {coinsNeeded.toLocaleString()} more coins needed
+                </Text>
+              )}
             </View>
-            <View style={ds.progressBarBg}>
-              <View style={[ds.progressBarFill, {
-                width: `${car.isLocked ? Math.min(95, Math.max(5, Math.round(((car.minLevel - (car.minLevel - Math.min(car.minLevel, 10))) / car.minLevel) * 100))) : 100}%` as any,
-                backgroundColor: car.isLocked ? Colors.crimson : Colors.green,
-              }]} />
-            </View>
-            {car.isLocked && (
-              <Text style={ds.progressHint}>{car.lockReason ?? `Reach Level ${car.minLevel} to unlock`}</Text>
-            )}
-            {!car.isLocked && !car.isAffordable && (
-              <Text style={[ds.progressHint, { color: Colors.amber }]}>
-                Save {Math.max(0, car.cost).toLocaleString()} coins to purchase
-              </Text>
-            )}
-          </View>
-        )}
+          );
+        })()}
 
         {car.isOwned && car.isPhotoEligible && (
           <View style={ds.photoBadge}>
@@ -769,7 +777,7 @@ function CollectionProgressHero({
       </View>
 
       <View style={ph.barBg}>
-        <View style={[ph.barFill, { width: `${Math.min(100, progressPct)}%` as any }]} />
+        <View style={[ph.barFill, { width: `${Math.min(100, progressPct)}%` }]} />
       </View>
 
       <View style={ph.pillRow}>
@@ -1034,6 +1042,8 @@ export default function GarageScreen() {
         isFeaturing={featureCar.isPending}
         onSelectVariant={handleSelectVariant}
         isSelectingVariant={selectVariant.isPending}
+        userLevel={userLevel}
+        coinBalance={coinBalance}
       />
     </View>
   );
