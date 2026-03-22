@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  View, Text, ScrollView, Pressable, StyleSheet, Platform, ActivityIndicator,
+  View, Text, ScrollView, Pressable, StyleSheet, Platform, ActivityIndicator, RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,7 +11,7 @@ import Svg, { Circle, Ellipse, Rect, Path, G } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
-import { useCharacterStatus, useEquipItem, useUnequipItem } from "@/hooks/useApi";
+import { useCharacterStatus } from "@/hooks/useApi";
 
 // ─── Phase 29 — Wearable State Types ──────────────────────────────────────────
 
@@ -23,12 +23,12 @@ type EquippedWearableState = { top: WearableTop; watch: WearableWatch; accessory
 // ─── Phase 28 — Visual State Types ────────────────────────────────────────────
 
 type VisualState = {
-  bodyTone: number;          // 0–4 Fitness  → skin warmth / energy glow
-  posture: number;           // 0–2 Fitness  → head position / shoulder width
-  outfitTier: number;        // 0–4 Finance  → white starter → elite black
-  grooming: number;          // 0–3 Discipline → fade tightness
-  prestigeAccent: number;    // 0–3 Prestige → watch → chain → gold
-  confidenceFace: number;    // 0–2 Discipline → neutral → smile → sharp
+  bodyTone: number;
+  posture: number;
+  outfitTier: number;
+  grooming: number;
+  prestigeAccent: number;
+  confidenceFace: number;
   outfitLabel?: string;
   evolutionExplanations?: { source: string; text: string }[];
 };
@@ -37,7 +37,7 @@ const DEFAULT_VS: VisualState = {
   bodyTone: 0, posture: 0, outfitTier: 0, grooming: 0, prestigeAccent: 0, confidenceFace: 0,
 };
 
-// Outfit per tier: shirt / shirtShadow / pants / pantsS / seam / crease / belt / buckle / bk2 / buttons / collar
+// Outfit per tier
 const OC = [
   { s: "#EEEEEE", ss: "#E4E4E4", p: "#1A1A2E", ps: "#20203A", seam: "#1C1C30", cr: "#151528", belt: "#3A3A52", bk: "#52526A", bk2: "#6A6A80", btn: true,  col: false },
   { s: "#F0F0F2", ss: "#E6E6E8", p: "#181928", ps: "#1E1E36", seam: "#1A1A2C", cr: "#131326", belt: "#3C3C54", bk: "#545470", bk2: "#686882", btn: true,  col: false },
@@ -66,7 +66,6 @@ function browPaths(cf: number, hY: number): [string, string] {
 
 function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visualState?: VisualState | null; equippedWearables?: EquippedWearableState; size?: number }) {
   const v = visualState ?? DEFAULT_VS;
-  // Phase 29 — wearable overrides
   const effectiveOutfitTier = equippedWearables?.top?.outfitTierOverride != null
     ? equippedWearables.top.outfitTierOverride
     : v.outfitTier;
@@ -76,18 +75,16 @@ function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visu
   const skin  = SKIN_C[Math.min(v.bodyTone, 4)];
   const skinS = SKIN_S[Math.min(v.bodyTone, 4)];
 
-  // Posture: head rises, neck grows, shoulders broaden
-  const hCY  = [29,  28,  26 ][v.posture] ?? 28; // head center Y
-  const eCY  = [31,  30,  28 ][v.posture] ?? 30; // ear Y
-  const nY   = [46,  43,  40 ][v.posture] ?? 43; // neck top Y
-  const nH   = [10,  12,  14 ][v.posture] ?? 12; // neck height
-  const tX   = [24,  24,  22 ][v.posture] ?? 24; // torso left
-  const tW   = [52,  52,  56 ][v.posture] ?? 52; // torso width
-  const aLX  = [8,   8,   6  ][v.posture] ?? 8;  // left arm X
-  const aRX  = [76,  76,  78 ][v.posture] ?? 76; // right arm X
-  const aW   = [16,  16,  18 ][v.posture] ?? 16; // arm width
+  const hCY  = [29,  28,  26 ][v.posture] ?? 28;
+  const eCY  = [31,  30,  28 ][v.posture] ?? 30;
+  const nY   = [46,  43,  40 ][v.posture] ?? 43;
+  const nH   = [10,  12,  14 ][v.posture] ?? 12;
+  const tX   = [24,  24,  22 ][v.posture] ?? 24;
+  const tW   = [52,  52,  56 ][v.posture] ?? 52;
+  const aLX  = [8,   8,   6  ][v.posture] ?? 8;
+  const aRX  = [76,  76,  78 ][v.posture] ?? 76;
+  const aW   = [16,  16,  18 ][v.posture] ?? 16;
 
-  // Grooming: side hair tightens into fade
   const hsRx = [5,   4.5, 3.5, 2.5][v.grooming] ?? 5;
   const hsRy = [12,  11,  9,   7  ][v.grooming] ?? 12;
   const hcRy = [13,  13,  12,  11 ][v.grooming] ?? 13;
@@ -105,24 +102,16 @@ function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visu
 
   return (
     <Svg width={w} height={h} viewBox="0 0 100 220">
-
-      {/* Layer 0 — Fitness body tone glow (bodyTone >= 3) */}
       {v.bodyTone >= 3 && (
         <Ellipse cx="50" cy="130" rx="36" ry="90" fill="rgba(0,230,118,0.035)" />
       )}
-
-      {/* Floor shadow */}
       <Ellipse cx="50" cy="212" rx="30" ry="5" fill="#00000055" />
-
-      {/* Layer 1 — Shoes */}
       <Ellipse cx="36" cy="197" rx="16" ry="7.5" fill="#0C0C1A" />
       <Ellipse cx="25" cy="195" rx="8"  ry="5"   fill="#0C0C1A" />
       <Ellipse cx="64" cy="197" rx="16" ry="7.5" fill="#0C0C1A" />
       <Ellipse cx="75" cy="195" rx="8"  ry="5"   fill="#0C0C1A" />
       <Ellipse cx="28" cy="192" rx="5"  ry="2.5" fill="#1A1A2A" />
       <Ellipse cx="72" cy="192" rx="5"  ry="2.5" fill="#1A1A2A" />
-
-      {/* Layer 2 — Legs / pants (outfit-driven) */}
       <Rect x="26" y="118" width="21" height="80" rx="4" fill={oc.p} />
       <Rect x="53" y="118" width="21" height="80" rx="4" fill={oc.p} />
       <Rect x="46" y="118" width="8"  height="80" rx="0" fill={oc.seam} />
@@ -134,13 +123,9 @@ function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visu
       )}
       <Rect x="35" y="140" width="1.5" height="50" rx="0.75" fill={oc.cr} />
       <Rect x="63" y="140" width="1.5" height="50" rx="0.75" fill={oc.cr} />
-
-      {/* Layer 3 — Belt */}
       <Rect x="25" y="113" width="50" height="7" rx="2.5" fill={oc.belt} />
       <Rect x="43" y="113" width="14" height="7" rx="1.5" fill={oc.bk} />
       <Rect x="47" y="115" width="6"  height="3" rx="1"   fill={oc.bk2} />
-
-      {/* Layer 4 — Shirt torso (posture-driven width) */}
       <Rect x={tX}          y="52" width={tW}      height="64" rx="6"   fill={oc.s} />
       <Rect x={tX}          y="52" width={5}        height="64" rx="2.5" fill={oc.ss} />
       <Rect x={tX + tW - 5} y="52" width={5}        height="64" rx="2.5" fill={oc.ss} />
@@ -152,20 +137,14 @@ function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visu
           <Rect x="49.2" y="60" width="1.5" height="52" rx="0.5" fill={oc.ss} />
         </>
       )}
-
-      {/* Layer 5 — Arms (posture-driven position/width) */}
       <Rect x={aLX}      y="54" width={aW} height="50" rx="8" fill={oc.s} />
       <Rect x={aRX}      y="54" width={aW} height="50" rx="8" fill={oc.s} />
       <Rect x={aLX}      y="54" width={4}  height="50" rx="2" fill={oc.ss} />
       <Rect x={aRX + aW - 4} y="54" width={4} height="50" rx="2" fill={oc.ss} />
-
-      {/* Layer 6 — Hands (skin-driven) */}
       <Ellipse cx={aLX + aW / 2} cy="106" rx="9" ry="7" fill={skin} />
       <Ellipse cx={aRX + aW / 2} cy="106" rx="9" ry="7" fill={skin} />
       <Ellipse cx={aLX + 2}           cy="106" rx="3" ry="2.5" fill={skinS} />
       <Ellipse cx={aRX + aW - 2}      cy="106" rx="3" ry="2.5" fill={skinS} />
-
-      {/* Layer 7 — Watch on right wrist (style-driven) */}
       {hasWatch && watchStyle === "basic" && (
         <G>
           <Rect x={aRX + 2} y="99" width="10" height="6" rx="1.5" fill="#7A6030" />
@@ -196,8 +175,6 @@ function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visu
           <Circle cx={aRX + 7} cy="102" r="0.9" fill="#E8E8FF" />
         </G>
       )}
-
-      {/* Layer 8 — Collar / V-neck (outfit-driven) */}
       {oc.col ? (
         <Path
           d={`M${tX + 16} 52 L50 60 L${tX + tW - 16} 52`}
@@ -206,72 +183,49 @@ function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visu
       ) : (
         <Path d="M42 52 L50 62 L58 52" stroke="#DDDDDD" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
       )}
-
-      {/* Layer 9 — Prestige: Chain at collar */}
       {hasChain && (
         <Path
           d={`M44 ${nBottom + 2} Q50 ${nBottom + 6} 56 ${nBottom + 2}`}
           stroke="#C0A030" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.85"
         />
       )}
-
-      {/* Elite lapel pin / gem */}
       {hasGold && (
         <Circle cx={tX + 10} cy="61" r="2.2" fill="#C0A030" />
       )}
-
-      {/* Layer 10 — Neck (posture-driven height) */}
       <Rect x="44" y={nY} width="12" height={nH} rx="4" fill={skin} />
-
-      {/* Layer 11 — Ears (posture-driven Y) */}
       <Ellipse cx="31" cy={eCY} rx="4" ry="6"   fill={skin} />
       <Ellipse cx="69" cy={eCY} rx="4" ry="6"   fill={skin} />
       <Ellipse cx="31" cy={eCY} rx="2" ry="3.5" fill={skinS} />
       <Ellipse cx="69" cy={eCY} rx="2" ry="3.5" fill={skinS} />
-
-      {/* Layer 12 — Head (posture-driven Y) */}
       <Ellipse cx="50" cy={hCY}      rx="19" ry="21" fill={skin} />
       <Ellipse cx="50" cy={hCY + 16} rx="14" ry="5"  fill={skinS} />
-
-      {/* Layer 13 — Eyes */}
       <Ellipse cx="43" cy={hCY - 2} rx="3"   ry="3.2" fill="#2A2A3A" />
       <Ellipse cx="57" cy={hCY - 2} rx="3"   ry="3.2" fill="#2A2A3A" />
       <Ellipse cx="43" cy={hCY - 2} rx="2.2" ry="2.4" fill="#1A1A28" />
       <Ellipse cx="57" cy={hCY - 2} rx="2.2" ry="2.4" fill="#1A1A28" />
       <Circle  cx={44.2} cy={hCY - 3.2} r="0.9" fill="#FFFFFF" />
       <Circle  cx={58.2} cy={hCY - 3.2} r="0.9" fill="#FFFFFF" />
-
-      {/* Layer 14 — Eyebrows (confidence-driven arch) */}
       <Path d={bl} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
       <Path d={br} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-
-      {/* Layer 15 — Nose */}
       <Path
         d={`M50 ${hCY + 3} L48 ${hCY + 8} L52 ${hCY + 8}`}
         stroke="#C09070" strokeWidth="0.9" fill="none" strokeLinecap="round" strokeLinejoin="round"
       />
       <Ellipse cx="50" cy={hCY + 7.5} rx="3" ry="1.5" fill={skin} />
-
-      {/* Layer 16 — Mouth (confidence-driven curve) */}
       <Path d={mouth} stroke="#B07A5A" strokeWidth="1.2" fill="none" strokeLinecap="round" />
       <Ellipse cx="50" cy={hCY + 14} rx="4" ry="1.2" fill="#C98C6C" />
-
-      {/* Layer 17 — Hair / Grooming (side tightness driven by grooming level) */}
       <Ellipse cx="50" cy={hCY - 16} rx="20" ry={hcRy}  fill="#1E1E30" />
       <Rect    x="30"  y={hCY - 16}  width="40" height="14" fill="#1E1E30" />
       <Ellipse cx="31" cy={hCY - 8}  rx={hsRx}  ry={hsRy}  fill="#1E1E30" />
       <Ellipse cx="69" cy={hCY - 8}  rx={hsRx}  ry={hsRy}  fill="#1E1E30" />
       <Path d={`M38 ${hCY - 20} Q50 ${hCY - 24} 62 ${hCY - 20}`} stroke="#2A2A42" strokeWidth="1.5" fill="none" strokeLinecap="round" />
       <Path d={`M36 ${hCY - 16} Q50 ${hCY - 21} 64 ${hCY - 16}`} stroke="#2A2A42" strokeWidth="1"   fill="none" strokeLinecap="round" />
-
-      {/* Fade definition lines — grooming >= 1 */}
       {v.grooming >= 1 && (
         <G>
           <Path d={`M30 ${hCY - 14} Q31 ${hCY - 8} 32 ${hCY - 2}`}  stroke="#1C1C2C" strokeWidth="0.9" fill="none" strokeLinecap="round" />
           <Path d={`M70 ${hCY - 14} Q69 ${hCY - 8} 68 ${hCY - 2}`}  stroke="#1C1C2C" strokeWidth="0.9" fill="none" strokeLinecap="round" />
         </G>
       )}
-      {/* Sharp fade line — grooming >= 2 */}
       {v.grooming >= 2 && (
         <G>
           <Path d={`M32 ${hCY - 11} Q33 ${hCY - 4} 35 ${hCY + 1}`} stroke="#141424" strokeWidth="1.4" fill="none" strokeLinecap="round" />
@@ -282,25 +236,49 @@ function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visu
   );
 }
 
-// ─── Dimension Card ───────────────────────────────────────────────────────────
+// ─── Dimension Card — with FOCUS / STRENGTH badges ────────────────────────────
 
-// ─── Phase 29 — Equipped Style Row ────────────────────────────────────────────
+function DimensionCard({ dimension, badge, delay = 0 }: { dimension: any; badge?: "LOWEST" | "TOP"; delay?: number }) {
+  return (
+    <Animated.View entering={FadeInDown.delay(delay).springify()} style={dimStyles.card}>
+      <View style={dimStyles.topRow}>
+        <View style={[dimStyles.iconWrap, { backgroundColor: dimension.color + "18" }]}>
+          <Ionicons name={dimension.icon as any} size={15} color={dimension.color} />
+        </View>
+        {badge && (
+          <View style={[dimStyles.badge, {
+            backgroundColor: badge === "LOWEST" ? Colors.crimsonDim : dimension.color + "20",
+          }]}>
+            <Text style={[dimStyles.badgeText, {
+              color: badge === "LOWEST" ? Colors.crimson : dimension.color,
+            }]}>
+              {badge === "LOWEST" ? "FOCUS" : "TOP"}
+            </Text>
+          </View>
+        )}
+      </View>
+      <Text style={dimStyles.name}>{dimension.name}</Text>
+      <View style={dimStyles.barBg}>
+        <View style={[dimStyles.barFill, { width: `${dimension.score}%` as any, backgroundColor: dimension.color }]} />
+      </View>
+      <View style={dimStyles.footer}>
+        <Text style={[dimStyles.label, { color: dimension.color }]}>{dimension.label}</Text>
+        <Text style={[dimStyles.scoreNum, { color: dimension.color }]}>{dimension.score}</Text>
+      </View>
+      <Text style={dimStyles.description} numberOfLines={3}>{dimension.description}</Text>
+    </Animated.View>
+  );
+}
 
-const SLOT_ICONS: Record<string, any> = {
-  top:       "shirt-outline",
-  watch:     "watch-outline",
-  accessory: "diamond-outline",
-};
-const SLOT_LABELS: Record<string, string> = {
-  top:       "TOP",
-  watch:     "WATCH",
-  accessory: "ACCESSORY",
-};
+// ─── Equipped Style Row ────────────────────────────────────────────────────────
 
-function EquippedStyleRow({ equippedWearables }: { equippedWearables: EquippedWearableState }) {
+const SLOT_ICONS: Record<string, any> = { top: "shirt-outline", watch: "watch-outline", accessory: "diamond-outline" };
+const SLOT_LABELS: Record<string, string> = { top: "TOP", watch: "WATCH", accessory: "PIECE" };
+
+function EquippedStyleRow({ equippedWearables }: { equippedWearables: any }) {
   const slots = ["top", "watch", "accessory"] as const;
   return (
-    <View style={{ flexDirection: "row", gap: 10, marginHorizontal: 16, marginBottom: 14 }}>
+    <View style={{ flexDirection: "row", gap: 8 }}>
       {slots.map((slot) => {
         const item = equippedWearables?.[slot] ?? null;
         return (
@@ -309,35 +287,27 @@ function EquippedStyleRow({ equippedWearables }: { equippedWearables: EquippedWe
             style={({ pressed }) => ({
               flex: 1,
               backgroundColor: Colors.bgCard,
-              borderRadius: 12,
+              borderRadius: 14,
               borderWidth: 1,
-              borderColor: item ? Colors.accent + "40" : Colors.border,
-              padding: 10,
+              borderColor: item ? Colors.accent + "50" : Colors.border,
+              paddingVertical: 11,
+              paddingHorizontal: 8,
               alignItems: "center",
-              gap: 6,
+              gap: 5,
               opacity: pressed ? 0.75 : 1,
             })}
-            onPress={() => router.push("/wearables" as any)}
+            onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/wearables" as any); }}
           >
-            <Ionicons
-              name={SLOT_ICONS[slot]}
-              size={18}
-              color={item ? Colors.accent : Colors.textMuted}
-            />
-            <Text style={{ fontSize: 9, color: Colors.textMuted, fontFamily: "Inter_700Bold", letterSpacing: 0.8 }}>
+            <Ionicons name={SLOT_ICONS[slot]} size={17} color={item ? Colors.accent : Colors.textMuted} />
+            <Text style={{ fontSize: 8, color: Colors.textMuted, fontFamily: "Inter_700Bold", letterSpacing: 0.8 }}>
               {SLOT_LABELS[slot]}
             </Text>
             {item ? (
-              <>
-                <Text style={{ fontSize: 10, color: Colors.textPrimary, fontFamily: "Inter_700Bold", textAlign: "center" }} numberOfLines={2}>
-                  {item.name}
-                </Text>
-                <View style={{ backgroundColor: Colors.accent + "22", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2 }}>
-                  <Text style={{ fontSize: 8, color: Colors.accent, fontFamily: "Inter_700Bold" }}>EQUIPPED</Text>
-                </View>
-              </>
+              <Text style={{ fontSize: 9, color: Colors.textPrimary, fontFamily: "Inter_600SemiBold", textAlign: "center" }} numberOfLines={2}>
+                {item.name}
+              </Text>
             ) : (
-              <Text style={{ fontSize: 9, color: Colors.textMuted, fontFamily: "Inter_400Regular", fontStyle: "italic" }}>Empty</Text>
+              <Text style={{ fontSize: 9, color: Colors.textMuted, fontFamily: "Inter_400Regular", fontStyle: "italic" }}>None</Text>
             )}
           </Pressable>
         );
@@ -346,490 +316,14 @@ function EquippedStyleRow({ equippedWearables }: { equippedWearables: EquippedWe
   );
 }
 
-function DimensionCard({ dimension, delay = 0 }: { dimension: any; delay?: number }) {
-  return (
-    <Animated.View entering={FadeInDown.delay(delay).springify()} style={dimStyles.card}>
-      <View style={dimStyles.header}>
-        <View style={[dimStyles.iconWrap, { backgroundColor: dimension.color + "18" }]}>
-          <Ionicons name={dimension.icon as any} size={16} color={dimension.color} />
-        </View>
-        <Text style={[dimStyles.score, { color: dimension.color }]}>{dimension.score}</Text>
-      </View>
-      <Text style={dimStyles.name}>{dimension.name}</Text>
-      <View style={dimStyles.barBg}>
-        <View style={[dimStyles.barFill, { width: `${dimension.score}%` as any, backgroundColor: dimension.color }]} />
-      </View>
-      <Text style={[dimStyles.label, { color: dimension.color }]}>{dimension.label}</Text>
-      <Text style={dimStyles.description} numberOfLines={2}>{dimension.description}</Text>
-    </Animated.View>
-  );
-}
+// ─── Tier constants ────────────────────────────────────────────────────────────
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+const TIER_ORDER = ["Starter", "Hustle", "Rising", "Refined", "Elite"];
+const TIER_COLORS: Record<string, string> = {
+  Starter: "#8888AA", Hustle: "#FFB300", Rising: "#00E676", Refined: "#00D4FF", Elite: "#F5C842",
+};
 
-export default function CharacterStatusScreen() {
-  const insets = useSafeAreaInsets();
-  const { user } = useAuth();
-  const { data, isLoading } = useCharacterStatus();
-
-  const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
-  const botPad = insets.bottom + (Platform.OS === "web" ? 34 : 100);
-
-  const dims = data
-    ? [
-        { name: "Fitness",         ...data.dimensions.fitness    },
-        { name: "Discipline",      ...data.dimensions.discipline },
-        { name: "Finance",         ...data.dimensions.finance    },
-        { name: "Prestige",        ...data.dimensions.prestige   },
-      ]
-    : [];
-
-  const tierColor = data?.statusTierColor ?? Colors.textMuted;
-
-  return (
-    <View style={[styles.container, { paddingTop: topPad }]}>
-
-      {/* ── Header ── */}
-      <View style={styles.header}>
-        <Pressable
-          style={styles.backBtn}
-          onPress={() => { Haptics.selectionAsync().catch(() => {}); router.back(); }}
-        >
-          <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
-        </Pressable>
-        <Text style={styles.headerTitle}>CHARACTER</Text>
-        <View style={[styles.betaPill]}>
-          <Text style={styles.betaText}>GAME MODE</Text>
-        </View>
-      </View>
-
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.accent} />
-          <Text style={styles.loadingText}>Loading character...</Text>
-        </View>
-      ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.scroll, { paddingBottom: botPad }]}
-        >
-
-          {/* ── Character Hero Card ── */}
-          <Animated.View entering={FadeIn.duration(500)} style={styles.heroCard}>
-            <LinearGradient
-              colors={["#1A0A3A", "#0A0A18"]}
-              style={styles.heroGradient}
-            >
-              {/* Glow rings */}
-              <View style={[styles.glowRing, { width: 220, height: 220, borderColor: tierColor + "20" }]} />
-              <View style={[styles.glowRing, { width: 170, height: 170, borderColor: tierColor + "15" }]} />
-
-              {/* Tier pill — above character */}
-              <View style={[styles.tierPillTop, { borderColor: tierColor + "60", backgroundColor: tierColor + "15" }]}>
-                <View style={[styles.tierDot, { backgroundColor: tierColor }]} />
-                <Text style={[styles.tierPillText, { color: tierColor }]}>
-                  {data?.statusTier ?? "—"}
-                </Text>
-              </View>
-
-              {/* Character figure — layered evolved renderer */}
-              <View style={styles.characterWrap}>
-                <EvolvedCharacter
-                  visualState={data?.visualState as VisualState | null}
-                  equippedWearables={(data as any)?.equippedWearables as EquippedWearableState ?? null}
-                  size={190}
-                />
-              </View>
-
-              {/* Name + outfit label */}
-              <Text style={styles.characterName}>{user?.username ?? "Character"}</Text>
-              <Text style={styles.outfitLabel}>{data?.character?.outfitLabel ?? "Starter Kit"}</Text>
-
-              {/* Stats strip */}
-              <View style={styles.heroStats}>
-                <View style={styles.heroStat}>
-                  <Text style={styles.heroStatValue}>{data?.completedSessions ?? 0}</Text>
-                  <Text style={styles.heroStatLabel}>Sessions</Text>
-                </View>
-                <View style={styles.heroStatDivider} />
-                <View style={styles.heroStat}>
-                  <Text style={styles.heroStatValue}>{data?.badgeCount ?? 0}</Text>
-                  <Text style={styles.heroStatLabel}>Badges</Text>
-                </View>
-                <View style={styles.heroStatDivider} />
-                <View style={styles.heroStat}>
-                  <Text style={styles.heroStatValue}>{data?.overallScore ?? 0}</Text>
-                  <Text style={styles.heroStatLabel}>Status Score</Text>
-                </View>
-              </View>
-            </LinearGradient>
-          </Animated.View>
-
-          {/* ── Status Tier Card ── */}
-          <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.tierCard}>
-            <View style={styles.tierCardLeft}>
-              <Text style={styles.tierCardLabel}>STATUS TIER</Text>
-              <Text style={[styles.tierCardName, { color: tierColor }]}>{data?.statusTier ?? "Starter"}</Text>
-              <Text style={styles.tierCardDesc}>{data?.statusTierDescription ?? "—"}</Text>
-            </View>
-            <View style={styles.tierCardRight}>
-              <View style={[styles.tierScoreRing, { borderColor: tierColor + "50" }]}>
-                <Text style={[styles.tierScoreNum, { color: tierColor }]}>{data?.overallScore ?? 0}</Text>
-                <Text style={styles.tierScoreLabel}>/ 100</Text>
-              </View>
-            </View>
-          </Animated.View>
-
-          {/* ── Tier progress bar ── */}
-          <Animated.View entering={FadeInDown.delay(120).springify()} style={styles.tierBarWrap}>
-            {["Starter", "Hustle", "Rising", "Refined", "Elite"].map((t, i) => {
-              const tierColors: Record<string, string> = {
-                Starter: "#8888AA", Hustle: "#FFB300", Rising: "#00E676", Refined: "#00D4FF", Elite: "#F5C842",
-              };
-              const active = t === data?.statusTier;
-              const past = ["Starter","Hustle","Rising","Refined","Elite"].indexOf(t) < ["Starter","Hustle","Rising","Refined","Elite"].indexOf(data?.statusTier ?? "Starter");
-              return (
-                <View key={t} style={styles.tierBarItem}>
-                  <View style={[
-                    styles.tierBarDot,
-                    { borderColor: tierColors[t] },
-                    (active || past) && { backgroundColor: tierColors[t] },
-                  ]} />
-                  <Text style={[styles.tierBarLabel, active && { color: tierColors[t], fontFamily: "Inter_700Bold" }]}>{t}</Text>
-                </View>
-              );
-            })}
-          </Animated.View>
-
-          {/* ── Phase 29 — Equipped Style ── */}
-          <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.sectionHeader}>
-            <Ionicons name="shirt-outline" size={13} color={Colors.textMuted} />
-            <Text style={styles.sectionHeaderText}>EQUIPPED STYLE</Text>
-          </Animated.View>
-
-          <EquippedStyleRow
-            equippedWearables={(data as any)?.equippedWearables as EquippedWearableState ?? null}
-          />
-
-          {/* ── Dimensions ── */}
-          <Animated.View entering={FadeInDown.delay(160).springify()} style={styles.sectionHeader}>
-            <Ionicons name="grid-outline" size={13} color={Colors.textMuted} />
-            <Text style={styles.sectionHeaderText}>STATUS DIMENSIONS</Text>
-          </Animated.View>
-
-          <View style={styles.dimsGrid}>
-            {dims.map((dim, i) => (
-              <DimensionCard key={dim.name} dimension={dim} delay={180 + i * 40} />
-            ))}
-          </View>
-
-          {/* ── Phase 28 — Evolution Explanation Layer ── */}
-          {data?.visualState?.evolutionExplanations && data.visualState.evolutionExplanations.length > 0 && (
-            <>
-              <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.sectionHeader}>
-                <Ionicons name="sparkles-outline" size={13} color={Colors.textMuted} />
-                <Text style={styles.sectionHeaderText}>WHY YOUR CHARACTER LOOKS LIKE THIS</Text>
-              </Animated.View>
-              <Animated.View entering={FadeInDown.delay(320).springify()} style={evolStyles.card}>
-                {(data.visualState.evolutionExplanations as { source: string; text: string }[]).map((ex, i) => (
-                  <View key={i} style={[evolStyles.row, i > 0 && evolStyles.rowBorder]}>
-                    <View style={[evolStyles.sourcePill, { backgroundColor: EXPL_COLORS[ex.source] ?? Colors.accentGlow }]}>
-                      <Text style={[evolStyles.sourceText, { color: EXPL_TEXT[ex.source] ?? Colors.accent }]}>
-                        {ex.source.toUpperCase()}
-                      </Text>
-                    </View>
-                    <Text style={evolStyles.text}>{ex.text}</Text>
-                  </View>
-                ))}
-              </Animated.View>
-            </>
-          )}
-
-          {/* ── Room Preview ── */}
-          <Animated.View entering={FadeInDown.delay(340).springify()} style={styles.sectionHeader}>
-            <Ionicons name="home-outline" size={13} color={Colors.textMuted} />
-            <Text style={styles.sectionHeaderText}>YOUR SPACE</Text>
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.delay(360).springify()} style={styles.roomCard}>
-            <LinearGradient colors={["#0F0F20", "#080814"]} style={styles.roomGradient}>
-              {/* Simple room visual */}
-              <View style={styles.roomScene}>
-                {/* Back wall */}
-                <View style={styles.roomWall} />
-                {/* Floor */}
-                <View style={styles.roomFloor} />
-                {/* Window */}
-                <View style={styles.roomWindow}>
-                  <View style={styles.roomWindowPane} />
-                  <View style={styles.roomWindowCross} />
-                  <View style={styles.roomWindowCrossH} />
-                </View>
-                {/* Simple desk */}
-                <View style={styles.roomDesk} />
-                <View style={styles.roomDeskLeg} />
-                {/* Floor lamp placeholder */}
-                <View style={styles.roomLamp} />
-                <View style={styles.roomLampHead} />
-              </View>
-            </LinearGradient>
-            <View style={styles.roomInfo}>
-              <View>
-                <Text style={styles.roomName}>Starter Room</Text>
-                <Text style={styles.roomDesc}>Basic space. Your environment evolves as you grow.</Text>
-              </View>
-              <Pressable
-                style={styles.roomBtn}
-                onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/world"); }}
-              >
-                <Text style={styles.roomBtnText}>View Room</Text>
-                <Ionicons name="arrow-forward" size={13} color={Colors.accent} />
-              </Pressable>
-            </View>
-            <View style={styles.roomHintRow}>
-              <Ionicons name="lock-closed-outline" size={11} color={Colors.textMuted} />
-              <Text style={styles.roomHintText}>
-                Unlock decorations through missions and marketplace purchases.
-              </Text>
-            </View>
-          </Animated.View>
-
-          {/* ── Next Evolution Hint ── */}
-          {data?.nextEvolutionHint && (
-            <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.evolutionCard}>
-              <View style={styles.evolutionHeader}>
-                <View style={styles.evolutionIconWrap}>
-                  <Ionicons name="arrow-up-circle" size={18} color={Colors.accent} />
-                </View>
-                <View>
-                  <Text style={styles.evolutionLabel}>NEXT EVOLUTION</Text>
-                  <Text style={styles.evolutionDimension}>{data.nextEvolutionHint.dimension}</Text>
-                </View>
-              </View>
-              <Text style={styles.evolutionHint}>{data.nextEvolutionHint.hint}</Text>
-              <Pressable
-                style={styles.evolutionAction}
-                onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/(tabs)/missions"); }}
-              >
-                <Text style={styles.evolutionActionText}>{data.nextEvolutionHint.action}</Text>
-                <Ionicons name="chevron-forward" size={14} color={Colors.accent} />
-              </Pressable>
-            </Animated.View>
-          )}
-
-          {/* ── Quick Actions ── */}
-          <Animated.View entering={FadeInDown.delay(440).springify()} style={styles.sectionHeader}>
-            <Ionicons name="flash-outline" size={13} color={Colors.textMuted} />
-            <Text style={styles.sectionHeaderText}>QUICK ACTIONS</Text>
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.delay(460).springify()} style={styles.quickActions}>
-            {[
-              { icon: "radio-button-on-outline", label: "Missions",  onPress: () => router.push("/(tabs)/missions") },
-              { icon: "cart-outline",            label: "Store",     onPress: () => router.push("/(tabs)/rewards")  },
-              { icon: "home-outline",            label: "Room",      onPress: () => router.push("/world")           },
-              { icon: "shirt-outline",           label: "Wardrobe",  onPress: () => router.push("/wearables" as any) },
-            ].map((action) => (
-              <Pressable
-                key={action.label}
-                style={({ pressed }) => [styles.quickActionBtn, pressed && { opacity: 0.75, transform: [{ scale: 0.95 }] }]}
-                onPress={() => { Haptics.selectionAsync().catch(() => {}); action.onPress(); }}
-              >
-                <View style={styles.quickActionIcon}>
-                  <Ionicons name={action.icon as any} size={20} color={Colors.accent} />
-                </View>
-                <Text style={styles.quickActionLabel}>{action.label}</Text>
-              </Pressable>
-            ))}
-          </Animated.View>
-
-          {/* ── Garage / Car Collection ── */}
-          <Animated.View entering={FadeInDown.delay(480).springify()}>
-            <Pressable
-              style={({ pressed }) => [styles.garageCard, pressed && { opacity: 0.88 }]}
-              onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/cars" as any); }}
-            >
-              <View style={styles.garageIconWrap}>
-                <Ionicons name="car-sport-outline" size={22} color={Colors.accent} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.garageTitle}>Dream Garage</Text>
-                <Text style={styles.garageDesc}>Your vehicle collection, showcase, and photo moments.</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
-            </Pressable>
-          </Animated.View>
-
-        </ScrollView>
-      )}
-    </View>
-  );
-}
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container:   { flex: 1, backgroundColor: Colors.bg },
-  loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
-  loadingText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textMuted },
-
-  header: {
-    flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 12, gap: 12,
-  },
-  backBtn:     { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.bgCard, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
-  headerTitle: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.textPrimary, letterSpacing: 2, flex: 1 },
-  betaPill:    { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: Colors.accentGlow, borderRadius: 20, borderWidth: 1, borderColor: Colors.accentDim },
-  betaText:    { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.accent, letterSpacing: 1.5 },
-
-  scroll: { paddingHorizontal: 20, gap: 12 },
-
-  // Hero
-  heroCard:    { borderRadius: 24, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
-  heroGradient:{ padding: 24, alignItems: "center", gap: 12, position: "relative" },
-  glowRing:    {
-    position: "absolute", borderRadius: 1000, borderWidth: 1,
-    top: "50%", left: "50%", marginLeft: -110, marginTop: -110,
-  },
-  tierPillTop: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1,
-    zIndex: 1,
-  },
-  tierDot:     { width: 6, height: 6, borderRadius: 3 },
-  tierPillText:{ fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5 },
-  characterWrap: { alignItems: "center", zIndex: 1 },
-  characterName: { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.textPrimary, letterSpacing: -0.3, zIndex: 1 },
-  outfitLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, zIndex: 1 },
-
-  heroStats:   { flexDirection: "row", width: "100%", zIndex: 1, marginTop: 4 },
-  heroStat:    { flex: 1, alignItems: "center", gap: 3 },
-  heroStatValue: { fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.textPrimary },
-  heroStatLabel: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted, letterSpacing: 0.5 },
-  heroStatDivider: { width: 1, backgroundColor: Colors.border, marginVertical: 4 },
-
-  // Tier card
-  tierCard: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: Colors.bgCard, borderRadius: 18, padding: 18,
-    borderWidth: 1, borderColor: Colors.border, gap: 16,
-  },
-  tierCardLeft: { flex: 1, gap: 5 },
-  tierCardLabel: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 2 },
-  tierCardName: { fontFamily: "Inter_700Bold", fontSize: 28, letterSpacing: -1 },
-  tierCardDesc: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
-  tierCardRight: { alignItems: "center" },
-  tierScoreRing: {
-    width: 72, height: 72, borderRadius: 36, borderWidth: 2,
-    alignItems: "center", justifyContent: "center", backgroundColor: Colors.bgElevated,
-  },
-  tierScoreNum: { fontFamily: "Inter_700Bold", fontSize: 22 },
-  tierScoreLabel: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted },
-
-  // Tier progress bar
-  tierBarWrap: {
-    flexDirection: "row", justifyContent: "space-between",
-    backgroundColor: Colors.bgCard, borderRadius: 14, padding: 12,
-    borderWidth: 1, borderColor: Colors.border,
-  },
-  tierBarItem: { alignItems: "center", gap: 5 },
-  tierBarDot:  { width: 10, height: 10, borderRadius: 5, borderWidth: 1.5 },
-  tierBarLabel: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted },
-
-  // Section header
-  sectionHeader: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    marginTop: 4,
-  },
-  sectionHeaderText: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 2 },
-
-  // Dimensions grid
-  dimsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-
-  // Room card
-  roomCard:     { backgroundColor: Colors.bgCard, borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
-  roomGradient: { height: 130 },
-  roomScene:    { flex: 1, position: "relative" },
-  roomWall:     { position: "absolute", top: 0, left: 0, right: 0, height: 90, backgroundColor: "#0E0E20" },
-  roomFloor:    { position: "absolute", bottom: 0, left: 0, right: 0, height: 40, backgroundColor: "#0A0A16" },
-  roomWindow:   {
-    position: "absolute", top: 15, right: 24, width: 50, height: 55,
-    backgroundColor: "#1A1A35", borderRadius: 4, borderWidth: 1, borderColor: "#2A2A45",
-    overflow: "hidden",
-  },
-  roomWindowPane: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#0D1525" },
-  roomWindowCross: { position: "absolute", top: 0, bottom: 0, left: "50%", width: 1, backgroundColor: "#2A2A45", marginLeft: -0.5 },
-  roomWindowCrossH: { position: "absolute", left: 0, right: 0, top: "50%", height: 1, backgroundColor: "#2A2A45", marginTop: -0.5 },
-  roomDesk:     {
-    position: "absolute", bottom: 38, left: 20, width: 80, height: 10,
-    backgroundColor: "#2A1A0A", borderRadius: 3,
-  },
-  roomDeskLeg:  { position: "absolute", bottom: 28, left: 25, width: 8, height: 12, backgroundColor: "#2A1A0A", borderRadius: 2 },
-  roomLamp:     { position: "absolute", bottom: 38, left: 130, width: 4, height: 36, backgroundColor: "#353545", borderRadius: 2 },
-  roomLampHead: { position: "absolute", bottom: 70, left: 120, width: 22, height: 12, backgroundColor: "#3A3A50", borderRadius: 8, borderTopLeftRadius: 2 },
-
-  roomInfo:     { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
-  roomName:     { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.textPrimary },
-  roomDesc:     { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
-  roomBtn:      {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 14, paddingVertical: 8,
-    backgroundColor: Colors.accentGlow, borderRadius: 20,
-    borderWidth: 1, borderColor: Colors.accentDim,
-  },
-  roomBtnText:  { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.accent },
-  roomHintRow:  { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingBottom: 12 },
-  roomHintText: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, flex: 1 },
-
-  // Evolution hint
-  evolutionCard: {
-    backgroundColor: Colors.accentGlow, borderRadius: 18, padding: 16,
-    borderWidth: 1, borderColor: Colors.accentDim, gap: 12,
-  },
-  evolutionHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
-  evolutionIconWrap: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: Colors.accent + "20", alignItems: "center", justifyContent: "center",
-  },
-  evolutionLabel: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.5 },
-  evolutionDimension: { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.accent },
-  evolutionHint: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 20 },
-  evolutionAction: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    alignSelf: "flex-start",
-    paddingHorizontal: 14, paddingVertical: 8,
-    backgroundColor: Colors.bgCard, borderRadius: 20,
-    borderWidth: 1, borderColor: Colors.border,
-  },
-  evolutionActionText: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.accent },
-
-  // Quick actions
-  quickActions: { flexDirection: "row", gap: 10 },
-  quickActionBtn: {
-    flex: 1, alignItems: "center", gap: 8,
-    backgroundColor: Colors.bgCard, borderRadius: 16, paddingVertical: 14,
-    borderWidth: 1, borderColor: Colors.border,
-  },
-  quickActionIcon: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: Colors.accentGlow, alignItems: "center", justifyContent: "center",
-  },
-  quickActionLabel: { fontFamily: "Inter_500Medium", fontSize: 11, color: Colors.textSecondary, textAlign: "center" },
-
-  // Coming soon
-  garageCard: {
-    flexDirection: "row", alignItems: "center", gap: 14,
-    backgroundColor: Colors.bgCard, borderRadius: 18, padding: 16,
-    borderWidth: 1, borderColor: Colors.accent + "30",
-  },
-  garageIconWrap: {
-    width: 44, height: 44, borderRadius: 12,
-    backgroundColor: Colors.accentDim, alignItems: "center", justifyContent: "center",
-  },
-  garageTitle: { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.textPrimary },
-  garageDesc:  { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, marginTop: 2 },
-});
-
-// ─── Phase 28 — Evolution Explanation Styles ──────────────────────────────────
+// ─── Evolution explanation colors ─────────────────────────────────────────────
 
 const EXPL_COLORS: Record<string, string> = {
   "Fitness":           "#00E67620",
@@ -846,30 +340,493 @@ const EXPL_TEXT: Record<string, string> = {
   "Starting Out":      Colors.textMuted,
 };
 
-const evolStyles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.bgCard, borderRadius: 18, overflow: "hidden",
+// ─── Main Screen ──────────────────────────────────────────────────────────────
+
+export default function CharacterStatusScreen() {
+  const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const { data, isLoading, refetch, isRefetching } = useCharacterStatus();
+
+  const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
+  const botPad = insets.bottom + (Platform.OS === "web" ? 34 : 100);
+
+  const tierColor = data?.statusTierColor ?? Colors.textMuted;
+  const currentTierIdx = TIER_ORDER.indexOf(data?.statusTier ?? "Starter");
+
+  const dims = data
+    ? [
+        { name: "Fitness",    ...data.dimensions.fitness    },
+        { name: "Discipline", ...data.dimensions.discipline },
+        { name: "Finance",    ...data.dimensions.finance    },
+        { name: "Prestige",   ...data.dimensions.prestige   },
+      ]
+    : [];
+
+  let weakestIdx = -1;
+  let strongestIdx = -1;
+  if (dims.length > 0) {
+    let minScore = Infinity, maxScore = -Infinity;
+    dims.forEach((d, i) => {
+      if (d.score < minScore) { minScore = d.score; weakestIdx = i; }
+      if (d.score > maxScore) { maxScore = d.score; strongestIdx = i; }
+    });
+  }
+
+  return (
+    <View style={[styles.container, { paddingTop: topPad }]}>
+
+      {/* ── Header ── */}
+      <View style={styles.header}>
+        <Pressable
+          style={styles.backBtn}
+          onPress={() => { Haptics.selectionAsync().catch(() => {}); router.back(); }}
+        >
+          <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
+        </Pressable>
+        <Text style={styles.headerTitle}>CHARACTER STATUS</Text>
+        <View style={[styles.tierPillHeader, { borderColor: tierColor + "60", backgroundColor: tierColor + "15" }]}>
+          <View style={[styles.tierDotHeader, { backgroundColor: tierColor }]} />
+          <Text style={[styles.tierPillHeaderText, { color: tierColor }]}>
+            {data?.statusTier ?? "—"}
+          </Text>
+        </View>
+      </View>
+
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.accent} />
+          <Text style={styles.loadingText}>Rendering character...</Text>
+        </View>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.scroll, { paddingBottom: botPad }]}
+          refreshControl={
+            <RefreshControl refreshing={!!isRefetching} onRefresh={refetch} tintColor={Colors.accent} />
+          }
+        >
+
+          {/* ── 1. CHARACTER HERO ── */}
+          <Animated.View entering={FadeIn.duration(600)} style={styles.heroCard}>
+            <LinearGradient
+              colors={[tierColor + "28", "#0E0A20", "#06060F"]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.heroGradient}
+            >
+              {/* Ambient glow rings */}
+              <View style={[styles.glowRing, { width: 280, height: 280, borderColor: tierColor + "16", marginLeft: -140, marginTop: -140 }]} />
+              <View style={[styles.glowRing, { width: 200, height: 200, borderColor: tierColor + "10", marginLeft: -100, marginTop: -100 }]} />
+
+              {/* The character — full hero presence */}
+              <View style={styles.characterWrap}>
+                <EvolvedCharacter
+                  visualState={data?.visualState as VisualState | null}
+                  equippedWearables={(data as any)?.equippedWearables as EquippedWearableState ?? null}
+                  size={230}
+                />
+              </View>
+
+              {/* Identity beneath the figure */}
+              <Text style={styles.characterName}>{user?.username ?? "Character"}</Text>
+              <Text style={styles.outfitLabel}>{data?.character?.outfitLabel ?? "Starter Kit"}</Text>
+
+              {/* Status score pill */}
+              <View style={[styles.scoreChip, { borderColor: tierColor + "60", backgroundColor: tierColor + "18" }]}>
+                <Text style={[styles.scoreChipNum, { color: tierColor }]}>{data?.overallScore ?? 0}</Text>
+                <Text style={styles.scoreChipLabel}> STATUS SCORE</Text>
+              </View>
+            </LinearGradient>
+          </Animated.View>
+
+          {/* ── 2. WHO AM I — Status + tier ladder (merged, no duplicate cards) ── */}
+          <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.tierCard}>
+            <View style={styles.tierCardTop}>
+              <View style={{ flex: 1, gap: 5 }}>
+                <Text style={styles.tierCardEyebrow}>CURRENT STATUS</Text>
+                <Text style={[styles.tierCardName, { color: tierColor }]}>{data?.statusTier ?? "Starter"}</Text>
+                <Text style={styles.tierCardDesc}>
+                  {data?.statusTierDescription ?? "Keep pushing. Your status is earned through consistent action."}
+                </Text>
+              </View>
+              <View style={styles.statsCol}>
+                <View style={styles.miniStat}>
+                  <Text style={[styles.miniStatNum, { color: Colors.gold }]}>{data?.completedSessions ?? 0}</Text>
+                  <Text style={styles.miniStatLabel}>Sessions</Text>
+                </View>
+                <View style={[styles.miniStatDivider]} />
+                <View style={styles.miniStat}>
+                  <Text style={[styles.miniStatNum, { color: Colors.cyan }]}>{data?.badgeCount ?? 0}</Text>
+                  <Text style={styles.miniStatLabel}>Badges</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Tier progression ladder — horizontal with connecting rail */}
+            <View style={styles.tierLadder}>
+              {TIER_ORDER.map((t, i) => {
+                const active = t === data?.statusTier;
+                const past = i < currentTierIdx;
+                const isLast = i === TIER_ORDER.length - 1;
+                const tc = TIER_COLORS[t];
+                return (
+                  <React.Fragment key={t}>
+                    <View style={styles.tierStep}>
+                      <View style={[
+                        styles.tierStepDot,
+                        { borderColor: tc },
+                        (active || past) && { backgroundColor: tc },
+                        active && { width: 13, height: 13, borderRadius: 7 },
+                      ]} />
+                      <Text style={[
+                        styles.tierStepLabel,
+                        (active || past) && { color: tc },
+                        active && { fontFamily: "Inter_700Bold" },
+                      ]}>{t}</Text>
+                    </View>
+                    {!isLast && (
+                      <View style={[styles.tierRail, past && { backgroundColor: tc }]} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </View>
+          </Animated.View>
+
+          {/* ── 3. WHAT SHOULD I DO — Next Evolution (promoted to primary CTA) ── */}
+          {data?.nextEvolutionHint && (
+            <Animated.View entering={FadeInDown.delay(120).springify()}>
+              <LinearGradient
+                colors={[Colors.accent + "18", Colors.bgCard]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.evolutionCard}
+              >
+                <View style={styles.evolutionTopRow}>
+                  <View style={styles.evolutionIconWrap}>
+                    <Ionicons name="trending-up" size={21} color={Colors.accent} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.evolutionEyebrow}>NEXT EVOLUTION</Text>
+                    <Text style={styles.evolutionDimension}>{data.nextEvolutionHint.dimension}</Text>
+                  </View>
+                </View>
+                <Text style={styles.evolutionHint}>{data.nextEvolutionHint.hint}</Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.evolutionCTA,
+                    pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                    router.push("/(tabs)/missions");
+                  }}
+                >
+                  <Ionicons name="flash" size={15} color="#fff" />
+                  <Text style={styles.evolutionCTAText}>{data.nextEvolutionHint.action}</Text>
+                </Pressable>
+              </LinearGradient>
+            </Animated.View>
+          )}
+
+          {/* ── 4. EQUIPPED STYLE ── */}
+          <Animated.View entering={FadeInDown.delay(160).springify()}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="shirt-outline" size={12} color={Colors.textMuted} />
+              <Text style={styles.sectionHeaderText}>EQUIPPED STYLE</Text>
+              <Pressable
+                style={styles.sectionLink}
+                onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/wearables" as any); }}
+              >
+                <Text style={styles.sectionLinkText}>Manage</Text>
+                <Ionicons name="chevron-forward" size={11} color={Colors.accent} />
+              </Pressable>
+            </View>
+            <EquippedStyleRow equippedWearables={(data as any)?.equippedWearables ?? null} />
+          </Animated.View>
+
+          {/* ── 5. STATUS DIMENSIONS — why you look like you do ── */}
+          <Animated.View entering={FadeInDown.delay(200).springify()}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="stats-chart-outline" size={12} color={Colors.textMuted} />
+              <Text style={styles.sectionHeaderText}>STATUS DIMENSIONS</Text>
+            </View>
+            <View style={styles.dimsGrid}>
+              {dims.map((dim, i) => {
+                const badge =
+                  i === weakestIdx ? "LOWEST" as const :
+                  i === strongestIdx ? "TOP" as const :
+                  undefined;
+                return (
+                  <DimensionCard key={dim.name} dimension={dim} badge={badge} delay={220 + i * 30} />
+                );
+              })}
+            </View>
+          </Animated.View>
+
+          {/* ── 6. WHY I LOOK LIKE THIS — evolution explanations ── */}
+          {data?.visualState?.evolutionExplanations && data.visualState.evolutionExplanations.length > 0 && (
+            <Animated.View entering={FadeInDown.delay(310).springify()}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="eye-outline" size={12} color={Colors.textMuted} />
+                <Text style={styles.sectionHeaderText}>WHY YOU LOOK LIKE THIS</Text>
+              </View>
+              <View style={evolStyles.card}>
+                {(data.visualState.evolutionExplanations as { source: string; text: string }[]).map((ex, i) => (
+                  <View key={i} style={[evolStyles.row, i > 0 && evolStyles.rowBorder]}>
+                    <View style={[evolStyles.sourcePill, { backgroundColor: EXPL_COLORS[ex.source] ?? Colors.accentGlow }]}>
+                      <Text style={[evolStyles.sourceText, { color: EXPL_TEXT[ex.source] ?? Colors.accent }]}>
+                        {ex.source.toUpperCase()}
+                      </Text>
+                    </View>
+                    <Text style={evolStyles.text}>{ex.text}</Text>
+                  </View>
+                ))}
+              </View>
+            </Animated.View>
+          )}
+
+          {/* ── 7. YOUR SPACE — compact dual chip (no bloated room preview) ── */}
+          <Animated.View entering={FadeInDown.delay(360).springify()}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="home-outline" size={12} color={Colors.textMuted} />
+              <Text style={styles.sectionHeaderText}>YOUR SPACE</Text>
+            </View>
+            <View style={styles.spaceRow}>
+              <Pressable
+                style={({ pressed }) => [styles.spaceChip, pressed && { opacity: 0.82 }]}
+                onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/world"); }}
+              >
+                <View style={[styles.spaceChipIcon, { backgroundColor: Colors.cyan + "18" }]}>
+                  <Ionicons name="cube-outline" size={19} color={Colors.cyan} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.spaceChipTitle}>Command Center</Text>
+                  <Text style={styles.spaceChipSub}>Room & display slots</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.spaceChip, pressed && { opacity: 0.82 }]}
+                onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/cars" as any); }}
+              >
+                <View style={[styles.spaceChipIcon, { backgroundColor: Colors.amber + "18" }]}>
+                  <Ionicons name="car-sport-outline" size={19} color={Colors.amber} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.spaceChipTitle}>Dream Garage</Text>
+                  <Text style={styles.spaceChipSub}>Vehicle collection</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
+              </Pressable>
+            </View>
+          </Animated.View>
+
+          {/* ── 8. QUICK ACTIONS ── */}
+          <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.quickActions}>
+            {[
+              { icon: "radio-button-on-outline", label: "Missions",  onPress: () => router.push("/(tabs)/missions") },
+              { icon: "cart-outline",            label: "Store",     onPress: () => router.push("/(tabs)/rewards")  },
+              { icon: "trophy-outline",          label: "Profile",   onPress: () => router.push("/(tabs)/profile")  },
+              { icon: "shirt-outline",           label: "Wardrobe",  onPress: () => router.push("/wearables" as any) },
+            ].map((action) => (
+              <Pressable
+                key={action.label}
+                style={({ pressed }) => [styles.quickActionBtn, pressed && { opacity: 0.75, transform: [{ scale: 0.95 }] }]}
+                onPress={() => { Haptics.selectionAsync().catch(() => {}); action.onPress(); }}
+              >
+                <View style={styles.quickActionIcon}>
+                  <Ionicons name={action.icon as any} size={20} color={Colors.accent} />
+                </View>
+                <Text style={styles.quickActionLabel}>{action.label}</Text>
+              </Pressable>
+            ))}
+          </Animated.View>
+
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
+// ─── Core Styles ──────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  container:        { flex: 1, backgroundColor: Colors.bg },
+  loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
+  loadingText:      { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textMuted },
+
+  // Header
+  header: {
+    flexDirection: "row", alignItems: "center",
+    paddingHorizontal: 20, paddingVertical: 12, gap: 12,
+  },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: Colors.bgCard, alignItems: "center", justifyContent: "center",
     borderWidth: 1, borderColor: Colors.border,
   },
-  row: { flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 14 },
-  rowBorder: { borderTopWidth: 1, borderTopColor: Colors.border },
-  sourcePill: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, minWidth: 70, alignItems: "center", flexShrink: 0 },
-  sourceText: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.2 },
-  text: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, flex: 1, lineHeight: 19 },
+  headerTitle: {
+    fontFamily: "Inter_700Bold", fontSize: 15,
+    color: Colors.textPrimary, letterSpacing: 1.5, flex: 1,
+  },
+  tierPillHeader: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1,
+  },
+  tierDotHeader:    { width: 6, height: 6, borderRadius: 3 },
+  tierPillHeaderText: { fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 1.2 },
+
+  scroll: { paddingHorizontal: 16, gap: 14 },
+
+  // ── Hero Card ──
+  heroCard:     { borderRadius: 26, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
+  heroGradient: {
+    paddingTop: 32, paddingBottom: 24, paddingHorizontal: 20,
+    alignItems: "center", gap: 8, position: "relative",
+  },
+  glowRing: {
+    position: "absolute", borderRadius: 1000, borderWidth: 1,
+    top: "50%", left: "50%",
+  },
+  characterWrap: { alignItems: "center", zIndex: 1 },
+  characterName: {
+    fontFamily: "Inter_700Bold", fontSize: 22,
+    color: Colors.textPrimary, letterSpacing: -0.3, zIndex: 1,
+  },
+  outfitLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, zIndex: 1 },
+  scoreChip: {
+    flexDirection: "row", alignItems: "center",
+    paddingHorizontal: 16, paddingVertical: 7,
+    borderRadius: 20, borderWidth: 1, marginTop: 6, zIndex: 1,
+  },
+  scoreChipNum:   { fontFamily: "Inter_700Bold", fontSize: 16 },
+  scoreChipLabel: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.5 },
+
+  // ── Status Tier Card (merged) ──
+  tierCard: {
+    backgroundColor: Colors.bgCard, borderRadius: 22,
+    padding: 20, borderWidth: 1, borderColor: Colors.border, gap: 18,
+  },
+  tierCardTop:    { flexDirection: "row", alignItems: "flex-start", gap: 16 },
+  tierCardEyebrow: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 2 },
+  tierCardName:   { fontFamily: "Inter_700Bold", fontSize: 32, letterSpacing: -1.5 },
+  tierCardDesc:   { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
+  statsCol:       { alignItems: "center", gap: 6, minWidth: 52 },
+  miniStat:       { alignItems: "center" },
+  miniStatNum:    { fontFamily: "Inter_700Bold", fontSize: 22 },
+  miniStatLabel:  { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted },
+  miniStatDivider: { width: 28, height: 1, backgroundColor: Colors.border },
+
+  // Tier ladder
+  tierLadder: { flexDirection: "row", alignItems: "center" },
+  tierStep:   { alignItems: "center", gap: 5 },
+  tierStepDot: { width: 10, height: 10, borderRadius: 5, borderWidth: 1.5 },
+  tierStepLabel: {
+    fontFamily: "Inter_400Regular", fontSize: 8,
+    color: Colors.textMuted, letterSpacing: 0.3,
+  },
+  tierRail: { flex: 1, height: 1.5, backgroundColor: Colors.border, marginBottom: 13 },
+
+  // Section header
+  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 10 },
+  sectionHeaderText: {
+    fontFamily: "Inter_700Bold", fontSize: 10,
+    color: Colors.textMuted, letterSpacing: 1.8, flex: 1,
+  },
+  sectionLink:     { flexDirection: "row", alignItems: "center", gap: 3 },
+  sectionLinkText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.accent },
+
+  // Dimensions grid
+  dimsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+
+  // ── Next Evolution CTA ──
+  evolutionCard: {
+    borderRadius: 22, padding: 18,
+    borderWidth: 1, borderColor: Colors.accentDim, gap: 13,
+  },
+  evolutionTopRow:  { flexDirection: "row", alignItems: "center", gap: 13 },
+  evolutionIconWrap: {
+    width: 44, height: 44, borderRadius: 13,
+    backgroundColor: Colors.accent + "20",
+    alignItems: "center", justifyContent: "center",
+  },
+  evolutionEyebrow:   { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.5 },
+  evolutionDimension: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.accent },
+  evolutionHint: {
+    fontFamily: "Inter_400Regular", fontSize: 14,
+    color: Colors.textSecondary, lineHeight: 21,
+  },
+  evolutionCTA: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    alignSelf: "flex-start", backgroundColor: Colors.accent,
+    borderRadius: 24, paddingHorizontal: 20, paddingVertical: 11,
+  },
+  evolutionCTAText: { fontFamily: "Inter_700Bold", fontSize: 13, color: "#fff" },
+
+  // ── Your Space ──
+  spaceRow: { gap: 10 },
+  spaceChip: {
+    flexDirection: "row", alignItems: "center", gap: 13,
+    backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  spaceChipIcon: { width: 40, height: 40, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  spaceChipTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
+  spaceChipSub:   { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+
+  // Quick actions
+  quickActions: { flexDirection: "row", gap: 8 },
+  quickActionBtn: {
+    flex: 1, alignItems: "center", gap: 7,
+    backgroundColor: Colors.bgCard, borderRadius: 14,
+    paddingVertical: 13, borderWidth: 1, borderColor: Colors.border,
+  },
+  quickActionIcon: {
+    width: 38, height: 38, borderRadius: 11,
+    backgroundColor: Colors.accentGlow,
+    alignItems: "center", justifyContent: "center",
+  },
+  quickActionLabel: {
+    fontFamily: "Inter_500Medium", fontSize: 10,
+    color: Colors.textSecondary, textAlign: "center",
+  },
 });
+
+// ─── Dimension Card Styles ─────────────────────────────────────────────────────
 
 const dimStyles = StyleSheet.create({
   card: {
     width: "48.5%" as any,
     backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14,
-    borderWidth: 1, borderColor: Colors.border, gap: 6,
+    borderWidth: 1, borderColor: Colors.border, gap: 7,
   },
-  header:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  topRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   iconWrap:    { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center" },
-  score:       { fontFamily: "Inter_700Bold", fontSize: 22 },
-  name:        { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 1.5 },
+  badge:       { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  badgeText:   { fontFamily: "Inter_700Bold", fontSize: 7, letterSpacing: 0.8 },
+  name:        { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.textPrimary },
   barBg:       { height: 4, backgroundColor: Colors.bgElevated, borderRadius: 2 },
   barFill:     { height: 4, borderRadius: 2 },
-  label:       { fontFamily: "Inter_600SemiBold", fontSize: 12 },
-  description: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textSecondary, lineHeight: 16 },
+  footer:      { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  label:       { fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 0.4 },
+  scoreNum:    { fontFamily: "Inter_700Bold", fontSize: 18 },
+  description: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, lineHeight: 16 },
+});
+
+// ─── Evolution Explanation Styles ─────────────────────────────────────────────
+
+const evolStyles = StyleSheet.create({
+  card: {
+    backgroundColor: Colors.bgCard, borderRadius: 18, overflow: "hidden",
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  row:       { flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 14 },
+  rowBorder: { borderTopWidth: 1, borderTopColor: Colors.border },
+  sourcePill: {
+    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4,
+    minWidth: 70, alignItems: "center", flexShrink: 0,
+  },
+  sourceText: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.2 },
+  text:       { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, flex: 1, lineHeight: 19 },
 });
