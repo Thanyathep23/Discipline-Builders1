@@ -23,7 +23,7 @@ import {
   userPremiumPacksTable,
   focusSessionsTable,
 } from "@workspace/db";
-import { eq, desc, count, and, gte, inArray, sql, isNotNull, lt } from "drizzle-orm";
+import { eq, desc, count, and, gte, inArray, sql, isNotNull, lt, ilike, or } from "drizzle-orm";
 import { setFlag } from "../lib/feature-flags.js";
 import { z } from "zod";
 import { requireAdmin, generateId } from "../lib/auth.js";
@@ -45,9 +45,13 @@ router.get("/dashboard", async (req, res) => {
   try {
     const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
 
     const [
       [{ totalUsers }],
+      [{ newSignups24h }],
+      [{ premiumCount }],
+      [{ activeToday }],
       [{ totalAiMissions }],
       [{ pendingMissions }],
       [{ acceptedMissions }],
@@ -66,6 +70,9 @@ router.get("/dashboard", async (req, res) => {
       recentTitles,
     ] = await Promise.all([
       db.select({ totalUsers: count() }).from(usersTable),
+      db.select({ newSignups24h: count() }).from(usersTable).where(gte(usersTable.createdAt, since24h)),
+      db.select({ premiumCount: count() }).from(usersTable).where(eq(usersTable.isPremium, true)),
+      db.select({ activeToday: count() }).from(usersTable).where(gte(usersTable.lastActiveAt, todayStart)),
       db.select({ totalAiMissions: count() }).from(aiMissionsTable),
       db.select({ pendingMissions: count() }).from(aiMissionsTable).where(eq(aiMissionsTable.status, "pending")),
       db.select({ acceptedMissions: count() }).from(aiMissionsTable).where(eq(aiMissionsTable.status, "accepted")),
@@ -87,7 +94,12 @@ router.get("/dashboard", async (req, res) => {
     ]);
 
     res.json({
-      users: { total: Number(totalUsers) },
+      users: {
+        total: Number(totalUsers),
+        newSignups24h: Number(newSignups24h),
+        premiumCount: Number(premiumCount),
+        activeToday: Number(activeToday),
+      },
       aiMissions: {
         total: Number(totalAiMissions),
         pending: Number(pendingMissions),
@@ -828,19 +840,45 @@ router.post("/reviews/:submissionId", async (req, res) => {
 });
 
 router.get("/audit-log", async (req, res) => {
-  const limit = Math.min(100, parseInt(req.query.limit as string ?? "50") || 50);
-  const offset = parseInt(req.query.offset as string ?? "0") || 0;
+  try {
+    const limit = Math.min(100, parseInt(req.query.limit as string ?? "50") || 50);
+    const offset = parseInt(req.query.offset as string ?? "0") || 0;
+    const actionFilter = req.query.action as string | undefined;
+    const actorIdFilter = req.query.actorId as string | undefined;
+    const targetIdFilter = req.query.targetId as string | undefined;
+    const targetTypeFilter = req.query.targetType as string | undefined;
 
-  const entries = await db.select().from(auditLogTable)
-    .orderBy(desc(auditLogTable.createdAt))
-    .limit(limit)
-    .offset(offset);
+    const conditions = [];
+    if (actionFilter) conditions.push(eq(auditLogTable.action, actionFilter));
+    if (actorIdFilter) conditions.push(eq(auditLogTable.actorId, actorIdFilter));
+    if (targetIdFilter) conditions.push(eq(auditLogTable.targetId, targetIdFilter));
+    if (targetTypeFilter) conditions.push(eq(auditLogTable.targetType, targetTypeFilter));
 
-  res.json(entries.map(e => ({
-    id: e.id, actorId: e.actorId ?? null, actorRole: e.actorRole,
-    action: e.action, targetId: e.targetId ?? null, targetType: e.targetType ?? null,
-    details: e.details ?? null, createdAt: e.createdAt?.toISOString(),
-  })));
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [entries, [{ total }]] = await Promise.all([
+      db.select().from(auditLogTable)
+        .where(whereClause)
+        .orderBy(desc(auditLogTable.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db.select({ total: count() }).from(auditLogTable).where(whereClause),
+    ]);
+
+    res.json({
+      total: Number(total),
+      limit,
+      offset,
+      entries: entries.map(e => ({
+        id: e.id, actorId: e.actorId ?? null, actorRole: e.actorRole,
+        action: e.action, targetId: e.targetId ?? null, targetType: e.targetType ?? null,
+        details: e.details ?? null, reason: e.reason ?? null, result: e.result ?? null,
+        createdAt: e.createdAt?.toISOString(),
+      })),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post("/shop", async (req, res) => {
@@ -1557,4 +1595,254 @@ router.post("/support/user/:userId/premium/resync", async (req: any, res) => {
   }
 });
 
+// =====================================================================
+// PLAYER INSPECTOR — unified searchable player management
+// =====================================================================
+
+router.get("/players", async (req: any, res) => {
+  try {
+    const limit = Math.min(100, parseInt(req.query.limit as string ?? "50") || 50);
+    const offset = parseInt(req.query.offset as string ?? "0") || 0;
+    const search = (req.query.search as string | undefined)?.trim();
+    const roleFilter = req.query.role as string | undefined;
+    const premiumFilter = req.query.isPremium as string | undefined;
+    const activeFilter = req.query.isActive as string | undefined;
+
+    const conditions = [];
+    if (search) conditions.push(or(ilike(usersTable.username, `%${search}%`), ilike(usersTable.email, `%${search}%`)));
+    if (roleFilter) conditions.push(eq(usersTable.role, roleFilter as any));
+    if (premiumFilter !== undefined) conditions.push(eq(usersTable.isPremium, premiumFilter === "true"));
+    if (activeFilter !== undefined) conditions.push(eq(usersTable.isActive, activeFilter !== "false"));
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [users, [{ total }]] = await Promise.all([
+      db.select({
+        id: usersTable.id,
+        username: usersTable.username,
+        email: usersTable.email,
+        role: usersTable.role,
+        level: usersTable.level,
+        xp: usersTable.xp,
+        coinBalance: usersTable.coinBalance,
+        currentStreak: usersTable.currentStreak,
+        trustScore: usersTable.trustScore,
+        isPremium: usersTable.isPremium,
+        isActive: usersTable.isActive,
+        lastActiveAt: usersTable.lastActiveAt,
+        createdAt: usersTable.createdAt,
+      }).from(usersTable).where(whereClause).orderBy(desc(usersTable.lastActiveAt)).limit(limit).offset(offset),
+      db.select({ total: count() }).from(usersTable).where(whereClause),
+    ]);
+
+    res.json({
+      total: Number(total),
+      limit,
+      offset,
+      players: users.map(u => ({
+        ...u,
+        lastActiveAt: u.lastActiveAt?.toISOString() ?? null,
+        createdAt: u.createdAt?.toISOString() ?? null,
+      })),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/players/:playerId", async (req: any, res) => {
+  try {
+    const { playerId } = req.params;
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, playerId)).limit(1);
+    if (!user) return res.status(404).json({ error: "Player not found" });
+
+    const [
+      lifeProfile,
+      badges,
+      titles,
+      recentProofs,
+      recentRewards,
+      activeSession,
+      recentAuditLog,
+      rewardCount,
+      [{ proofCount }],
+    ] = await Promise.all([
+      db.select().from(lifeProfilesTable).where(eq(lifeProfilesTable.userId, playerId)).limit(1),
+      db.select().from(userBadgesTable).where(eq(userBadgesTable.userId, playerId)).orderBy(desc(userBadgesTable.earnedAt)).limit(10),
+      db.select().from(userTitlesTable).where(eq(userTitlesTable.userId, playerId)).orderBy(desc(userTitlesTable.earnedAt)).limit(10),
+      db.select({
+        id: proofSubmissionsTable.id,
+        status: proofSubmissionsTable.status,
+        createdAt: proofSubmissionsTable.createdAt,
+        updatedAt: proofSubmissionsTable.updatedAt,
+      }).from(proofSubmissionsTable).where(eq(proofSubmissionsTable.userId, playerId)).orderBy(desc(proofSubmissionsTable.createdAt)).limit(10),
+      db.select({
+        type: rewardTransactionsTable.type,
+        amount: rewardTransactionsTable.amount,
+        reason: rewardTransactionsTable.reason,
+        balanceAfter: rewardTransactionsTable.balanceAfter,
+        createdAt: rewardTransactionsTable.createdAt,
+      }).from(rewardTransactionsTable).where(eq(rewardTransactionsTable.userId, playerId)).orderBy(desc(rewardTransactionsTable.createdAt)).limit(8),
+      db.select({ id: focusSessionsTable.id, status: focusSessionsTable.status, startedAt: focusSessionsTable.startedAt })
+        .from(focusSessionsTable).where(and(eq(focusSessionsTable.userId, playerId), eq(focusSessionsTable.status, "active"))).limit(1),
+      db.select({
+        id: auditLogTable.id,
+        action: auditLogTable.action,
+        actorId: auditLogTable.actorId,
+        actorRole: auditLogTable.actorRole,
+        reason: auditLogTable.reason,
+        result: auditLogTable.result,
+        details: auditLogTable.details,
+        createdAt: auditLogTable.createdAt,
+      }).from(auditLogTable).where(eq(auditLogTable.targetId, playerId)).orderBy(desc(auditLogTable.createdAt)).limit(15),
+      db.select({ type: rewardTransactionsTable.type, amount: rewardTransactionsTable.amount })
+        .from(rewardTransactionsTable).where(eq(rewardTransactionsTable.userId, playerId)),
+      db.select({ proofCount: count() }).from(proofSubmissionsTable).where(eq(proofSubmissionsTable.userId, playerId)),
+    ]);
+
+    const staleThreshold = new Date(Date.now() - 15 * 60 * 1000);
+    const stuckProofs = recentProofs.filter(p => p.status === "reviewing" && p.updatedAt && p.updatedAt < staleThreshold);
+    const totalEarned = rewardCount.filter(t => (t.amount ?? 0) > 0).reduce((s, t) => s + (t.amount ?? 0), 0);
+
+    res.json({
+      player: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        isPremium: user.isPremium,
+        premiumExpiresAt: user.premiumExpiresAt?.toISOString() ?? null,
+        level: user.level,
+        xp: user.xp,
+        coinBalance: user.coinBalance,
+        currentStreak: user.currentStreak,
+        longestStreak: user.longestStreak,
+        trustScore: user.trustScore,
+        acquisitionSource: user.acquisitionSource ?? null,
+        lastActiveAt: user.lastActiveAt?.toISOString() ?? null,
+        createdAt: user.createdAt?.toISOString() ?? null,
+      },
+      lifeProfile: lifeProfile[0] ?? null,
+      badges: badges.map(b => ({ badgeId: b.badgeId, earnedAt: b.earnedAt?.toISOString() })),
+      titles: titles.map(t => ({ titleId: t.titleId, earnedAt: t.earnedAt?.toISOString() })),
+      stats: {
+        totalCoinEarned: totalEarned,
+        totalProofs: Number(proofCount),
+        stuckProofCount: stuckProofs.length,
+      },
+      recentProofs: recentProofs.map(p => ({
+        ...p,
+        isStuck: stuckProofs.some(sp => sp.id === p.id),
+        createdAt: p.createdAt?.toISOString(),
+        updatedAt: p.updatedAt?.toISOString() ?? null,
+      })),
+      recentRewards: recentRewards.map(r => ({ ...r, createdAt: r.createdAt?.toISOString() })),
+      activeSession: activeSession[0] ? { ...activeSession[0], startedAt: activeSession[0].startedAt?.toISOString() } : null,
+      adminLog: recentAuditLog.map(e => ({ ...e, createdAt: e.createdAt?.toISOString() })),
+    });
+    return;
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/players/:playerId/note", async (req: any, res) => {
+  try {
+    const { playerId } = req.params;
+    const schema = z.object({ note: z.string().min(1).max(500), reason: z.string().max(200).optional() });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Invalid body", details: parsed.error.message });
+
+    const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, playerId)).limit(1);
+    if (!user) return res.status(404).json({ error: "Player not found" });
+
+    await db.insert(auditLogTable).values({
+      id: generateId(),
+      actorId: req.user.id,
+      actorRole: req.user.role,
+      action: "support_note_added",
+      targetId: playerId,
+      targetType: "user",
+      details: JSON.stringify({ note: parsed.data.note }),
+      reason: parsed.data.reason ?? null,
+      result: "note_recorded",
+    });
+
+    return res.json({ ok: true, message: "Support note recorded." });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/players/:playerId/flag", async (req: any, res) => {
+  try {
+    const { playerId } = req.params;
+    const schema = z.object({ reason: z.string().min(1).max(300) });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Invalid body", details: parsed.error.message });
+
+    const [user] = await db.select({ id: usersTable.id, username: usersTable.username }).from(usersTable).where(eq(usersTable.id, playerId)).limit(1);
+    if (!user) return res.status(404).json({ error: "Player not found" });
+
+    await db.insert(auditLogTable).values({
+      id: generateId(),
+      actorId: req.user.id,
+      actorRole: req.user.role,
+      action: "player_flagged_for_review",
+      targetId: playerId,
+      targetType: "user",
+      details: JSON.stringify({ username: user.username }),
+      reason: parsed.data.reason,
+      result: "flagged",
+    });
+
+    return res.json({ ok: true, message: `Player ${user.username} flagged for review.` });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/players/:playerId/recover", async (req: any, res) => {
+  try {
+    const { playerId } = req.params;
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, playerId)).limit(1);
+    if (!user) return res.status(404).json({ error: "Player not found" });
+
+    const now = new Date();
+    const updates: Record<string, any> = { updatedAt: now };
+
+    if ((user.xp ?? 0) < 0) updates.xp = 0;
+    if ((user.coinBalance ?? 0) < 0) updates.coinBalance = 0;
+    if ((user.currentStreak ?? 0) < 0) updates.currentStreak = 0;
+
+    if (Object.keys(updates).length > 1) {
+      await db.update(usersTable).set(updates).where(eq(usersTable.id, playerId));
+    }
+
+    await db.insert(auditLogTable).values({
+      id: generateId(),
+      actorId: req.user.id,
+      actorRole: req.user.role,
+      action: "player_state_recovered",
+      targetId: playerId,
+      targetType: "user",
+      details: JSON.stringify({ appliedFixes: Object.keys(updates).filter(k => k !== "updatedAt") }),
+      reason: "admin_recover",
+      result: Object.keys(updates).length > 1 ? "fixes_applied" : "no_issues_found",
+    });
+
+    return res.json({
+      ok: true,
+      fixesApplied: Object.keys(updates).filter(k => k !== "updatedAt"),
+      message: Object.keys(updates).length > 1 ? "Player state recovered." : "Player state is healthy — no fixes needed.",
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
+

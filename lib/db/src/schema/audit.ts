@@ -10,6 +10,8 @@ export const auditLogTable = pgTable("audit_log", {
   targetId: text("target_id"),
   targetType: text("target_type"),
   details: text("details"),
+  reason: text("reason"),
+  result: text("result"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

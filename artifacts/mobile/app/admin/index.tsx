@@ -25,10 +25,11 @@ export default function AdminScreen() {
     queryFn: () => request<any[]>("/admin/reviews"),
   });
 
-  const { data: auditLog, isLoading: auditLoading } = useQuery({
+  const { data: auditLogRes, isLoading: auditLoading } = useQuery({
     queryKey: ["admin", "audit"],
-    queryFn: () => request<any[]>("/admin/audit-log?limit=15"),
+    queryFn: () => request<any>("/admin/audit-log?limit=15"),
   });
+  const auditLog = auditLogRes?.entries ?? auditLogRes ?? [];
 
   const ACTION_COLORS: Record<string, string> = {
     reward_granted: Colors.green,
@@ -45,6 +46,7 @@ export default function AdminScreen() {
   };
 
   const NAV_ITEMS = [
+    { label: "Player Inspector", icon: "people-outline" as const, route: "/admin/players", color: Colors.green },
     { label: "Product Catalog", icon: "storefront-outline" as const, route: "/admin/catalog", color: Colors.accent },
     { label: "Kill Switches", icon: "power-outline" as const, route: "/admin/kill-switches", color: Colors.crimson },
     { label: "Rewards Audit", icon: "cash-outline" as const, route: "/admin/rewards", color: Colors.gold },
@@ -85,10 +87,25 @@ export default function AdminScreen() {
                 <View style={styles.statCard}>
                   <Ionicons name="people" size={20} color={Colors.accent} />
                   <Text style={styles.statValue}>{dashboard.users?.total ?? 0}</Text>
-                  <Text style={styles.statLabel}>Users</Text>
+                  <Text style={styles.statLabel}>Total Users</Text>
                 </View>
                 <View style={styles.statCard}>
-                  <Ionicons name="flash" size={20} color={Colors.cyan} />
+                  <Ionicons name="person-add" size={20} color={Colors.green} />
+                  <Text style={[styles.statValue, { color: Colors.green }]}>{dashboard.users?.newSignups24h ?? 0}</Text>
+                  <Text style={styles.statLabel}>New 24h</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Ionicons name="pulse" size={20} color={Colors.cyan} />
+                  <Text style={[styles.statValue, { color: Colors.cyan }]}>{dashboard.users?.activeToday ?? 0}</Text>
+                  <Text style={styles.statLabel}>Active Today</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Ionicons name="diamond" size={20} color={Colors.gold} />
+                  <Text style={[styles.statValue, { color: Colors.gold }]}>{dashboard.users?.premiumCount ?? 0}</Text>
+                  <Text style={styles.statLabel}>Premium</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Ionicons name="flash" size={20} color={Colors.accent} />
                   <Text style={styles.statValue}>{dashboard.aiMissions?.total ?? 0}</Text>
                   <Text style={styles.statLabel}>AI Missions</Text>
                 </View>
@@ -103,6 +120,11 @@ export default function AdminScreen() {
                   <Ionicons name="link" size={20} color={Colors.green} />
                   <Text style={styles.statValue}>{dashboard.chains?.active ?? 0}</Text>
                   <Text style={styles.statLabel}>Chains</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Ionicons name="receipt" size={20} color={Colors.amber} />
+                  <Text style={[styles.statValue, { color: Colors.amber }]}>{dashboard.rewards?.last24hTransactions ?? 0}</Text>
+                  <Text style={styles.statLabel}>Tx 24h</Text>
                 </View>
               </View>
 

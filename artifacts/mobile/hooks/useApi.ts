@@ -960,3 +960,93 @@ export function useCarPhotoMode() {
     staleTime: 30000,
   });
 }
+
+export function useAdminDashboard() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-dashboard"],
+    queryFn: () => request<any>("/admin/dashboard"),
+    staleTime: 30000,
+  });
+}
+
+export function useAdminPlayers(params?: { search?: string; role?: string; isPremium?: string; isActive?: string; limit?: number; offset?: number }) {
+  const { request } = useApiClient();
+  const qs = new URLSearchParams();
+  if (params?.search) qs.set("search", params.search);
+  if (params?.role) qs.set("role", params.role);
+  if (params?.isPremium !== undefined) qs.set("isPremium", params.isPremium);
+  if (params?.isActive !== undefined) qs.set("isActive", params.isActive);
+  if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+  if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+  const query = qs.toString();
+  return useQuery({
+    queryKey: ["admin-players", params],
+    queryFn: () => request<any>(`/admin/players${query ? `?${query}` : ""}`),
+    staleTime: 15000,
+  });
+}
+
+export function useAdminPlayerSnapshot(playerId: string | null) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-player", playerId],
+    queryFn: () => request<any>(`/admin/players/${playerId}`),
+    enabled: !!playerId,
+    staleTime: 10000,
+  });
+}
+
+export function useAdminAddPlayerNote() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ playerId, note, reason }: { playerId: string; note: string; reason?: string }) =>
+      request<any>(`/admin/players/${playerId}/note`, { method: "POST", body: JSON.stringify({ note, reason }) }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["admin-player", vars.playerId] });
+    },
+  });
+}
+
+export function useAdminFlagPlayer() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ playerId, reason }: { playerId: string; reason: string }) =>
+      request<any>(`/admin/players/${playerId}/flag`, { method: "POST", body: JSON.stringify({ reason }) }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["admin-player", vars.playerId] });
+      qc.invalidateQueries({ queryKey: ["admin-players"] });
+    },
+  });
+}
+
+export function useAdminRecoverPlayer() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (playerId: string) =>
+      request<any>(`/admin/players/${playerId}/recover`, { method: "POST" }),
+    onSuccess: (_data, playerId) => {
+      qc.invalidateQueries({ queryKey: ["admin-player", playerId] });
+    },
+  });
+}
+
+export function useAdminAuditLog(params?: { action?: string; actorId?: string; targetId?: string; targetType?: string; limit?: number; offset?: number }) {
+  const { request } = useApiClient();
+  const qs = new URLSearchParams();
+  if (params?.action) qs.set("action", params.action);
+  if (params?.actorId) qs.set("actorId", params.actorId);
+  if (params?.targetId) qs.set("targetId", params.targetId);
+  if (params?.targetType) qs.set("targetType", params.targetType);
+  if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+  if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+  const query = qs.toString();
+  return useQuery({
+    queryKey: ["admin-audit-log", params],
+    queryFn: () => request<any>(`/admin/audit-log${query ? `?${query}` : ""}`),
+    staleTime: 15000,
+  });
+}

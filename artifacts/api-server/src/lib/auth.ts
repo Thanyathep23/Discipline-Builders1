@@ -11,8 +11,7 @@ export function generateToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
-// Simple in-memory token store (replace with Redis in production)
-const tokenStore = new Map<string, string>(); // token -> userId
+const tokenStore = new Map<string, string>();
 
 export function createToken(userId: string): string {
   const token = generateToken();
@@ -73,13 +72,33 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   next();
 }
 
+export const ADMIN_ROLE_SET = new Set(["admin", "super_admin", "ops_admin", "content_admin", "support_admin"]);
+
 export async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
   await requireAuth(req, res, async () => {
     const user = (req as any).user;
-    if (user?.role !== "admin") {
+    if (!user || !ADMIN_ROLE_SET.has(user.role)) {
       res.status(403).json({ error: "Admin access required" });
       return;
     }
     next();
   });
+}
+
+export function requireRole(...roles: string[]) {
+  const allowed = roles.length > 0 ? new Set(roles) : ADMIN_ROLE_SET;
+  return async function (req: Request, res: Response, next: NextFunction): Promise<void> {
+    await requireAuth(req, res, async () => {
+      const user = (req as any).user;
+      if (!user || !allowed.has(user.role)) {
+        res.status(403).json({ error: "Insufficient permissions", requiredRoles: roles });
+        return;
+      }
+      next();
+    });
+  };
+}
+
+export function isAdminRole(role: string): boolean {
+  return ADMIN_ROLE_SET.has(role);
 }

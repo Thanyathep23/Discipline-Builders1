@@ -971,3 +971,49 @@ Maps 4 dimension scores to 6 visual axes: bodyTone (0-4), posture (0-2), outfitT
 - Header right button changed from empty spacer to "Store →" shortcut (routes to marketplace)
 - Empty slot fallback changed from plain text to a tappable card with "No items yet — browse the Store to unlock this slot." → routes to Store on press
 - `borderStyle: "dashed"` visual to make empty slot state clearly distinct from filled slots
+
+## Phase 33 — Admin / Ops Console Wave 1 (COMPLETE)
+
+### DB Schema improvements
+- `user_role` enum extended: `user`, `admin`, `super_admin`, `ops_admin`, `content_admin`, `support_admin` — full RBAC granularity without breaking existing data
+- `audit_log` table: added `reason TEXT` and `result TEXT` columns — every audit entry can now record why it happened and what the outcome was
+
+### Auth middleware — RBAC (`src/lib/auth.ts`)
+- `requireAdmin` updated to accept ALL admin-tier roles (not just `"admin"`)
+- `requireRole(...roles)` factory — returns a middleware that accepts any of the listed roles; when called with no args, defaults to any admin-tier role
+- `isAdminRole(role)` helper
+- `ADMIN_ROLE_SET` exported constant
+
+### Backend enhancements (`src/routes/admin.ts`)
+**Dashboard** (`GET /admin/dashboard`):
+- Added `users.newSignups24h`, `users.premiumCount`, `users.activeToday` to the response alongside the existing `users.total`
+
+**Audit Log** (`GET /admin/audit-log`):
+- Now returns `{ total, limit, offset, entries[] }` (was a flat array)
+- New optional query filters: `action`, `actorId`, `targetId`, `targetType`
+- Response now includes `reason` and `result` fields from the new columns
+
+**Player Inspector routes** (all at `/admin/players`):
+- `GET /admin/players` — searchable, paginated player list with filters (search by username/email via ilike, role, isPremium, isActive); returns `{ total, limit, offset, players[] }`
+- `GET /admin/players/:id` — unified snapshot: profile, lifeProfile, badges, titles, recent proofs (with stuck detection), recent rewards, active focus session, admin audit log for this player, lifetime stats
+- `POST /admin/players/:id/note` — records a support note as an audit log entry with `action="support_note_added"`, `result="note_recorded"`
+- `POST /admin/players/:id/flag` — flags player for review as `action="player_flagged_for_review"`, `result="flagged"`
+- `POST /admin/players/:id/recover` — audits and repairs negative coin/XP/streak values; returns `fixesApplied[]` and a human-readable message
+
+### Mobile hooks (`hooks/useApi.ts`)
+Added: `useAdminDashboard`, `useAdminPlayers(params)`, `useAdminPlayerSnapshot(id)`, `useAdminAddPlayerNote`, `useAdminFlagPlayer`, `useAdminRecoverPlayer`, `useAdminAuditLog(params)`
+
+### Mobile screens
+- `app/admin/players/index.tsx` — searchable player list: live debounced search (350ms), role filter chips, premium-only toggle, pagination (30/page), last-seen display, one-tap drill-down
+- `app/admin/players/[id].tsx` — unified player inspector with 4 tabs (Overview / Proofs / Rewards / Admin Log):
+  - Overview: profile card with role badge, 5-stat row (level/XP/coins/streak/trust), account info card, lifetime stats, stuck proof alert, active session indicator
+  - Support actions: Add Support Note (textarea with optional reason), Flag for Review (reason required), Recover Player State (auto-detects and fixes negative values)
+  - Proofs tab: recent proof submissions with stuck detection
+  - Rewards tab: last 8 transactions with sign indicator and balance-after
+  - Admin Log tab: admin actions targeting this player with reason/result from new audit_log columns
+  - All write actions use in-screen toast banners (no Alert.alert) with Haptics.notificationAsync fire-and-forget
+
+### Admin dashboard (`app/admin/index.tsx`)
+- "Player Inspector" added as the first nav item (routes to `/admin/players`)
+- Stats grid expanded from 4 to 8 cards: Total Users, New 24h, Active Today, Premium, AI Missions, Flagged, Chains, Tx 24h
+- Audit log query updated to handle new `{ total, entries[] }` response format
