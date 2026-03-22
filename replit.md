@@ -949,3 +949,25 @@ Maps 4 dimension scores to 6 visual axes: bodyTone (0-4), posture (0-2), outfitT
 ### Character Screen linkage
 - Replaced "SOON" placeholder with a live "Dream Garage" pressable card → routes to `/cars`
 - Hooks: `useCars()`, `usePurchaseCar()`, `useFeatureCar()`, `useCarPhotoMode()` in `hooks/useApi.ts`
+
+## Phase 32 — v2 Integration / Polish / App Store Readiness
+
+### Cross-system rarity color unification
+- `RARITY_COLORS` from `@/constants/colors` is now used in ALL game-mode screens
+- Removed local `RARITY_COLORS` / `RARITY_COLOR` override maps from `cars/index.tsx`, `cars/photo.tsx`, and `wearables/index.tsx`
+- Single source of truth: `common=#9E9E9E uncommon=#4CAF50 rare=#2196F3 epic=#9C27B0 legendary=#F5C842`
+
+### Store / Marketplace improvements (`app/(tabs)/rewards.tsx`)
+- Added `vehicle: "Vehicles"` + `car-sport-outline` icon and `fashion: "Wearables"` + `shirt-outline` icon to CATEGORY_LABELS/CATEGORY_ICONS — cars and wearables now show with proper labels in marketplace category tabs
+- Replaced all `Alert.alert` purchase/equip/sell/title calls with in-screen toast banners (auto-dismiss in 4.5s, dismissable on tap, green border for success, red border for error)
+- Smart purchase hint: after buying a wearable the toast says "Go to Wardrobe to equip it."; after buying a room item it says "Apply it from your Room screen."
+- Added **Game Mode** shortcuts section in the Overview tab: 4-button grid (Character → Wardrobe → Room → Garage) for single-tap navigation between all expansion screens
+- Removed `Alert` from React Native import (was unused after replacements)
+
+### Character screen quick actions updated
+- Replaced "Skills" with "Wardrobe" (`shirt-outline`) in the quick actions row — direct one-tap equip access from the Character hub
+
+### Wardrobe screen (`app/wearables/index.tsx`)
+- Header right button changed from empty spacer to "Store →" shortcut (routes to marketplace)
+- Empty slot fallback changed from plain text to a tappable card with "No items yet — browse the Store to unlock this slot." → routes to Store on press
+- `borderStyle: "dashed"` visual to make empty slot state clearly distinct from filled slots

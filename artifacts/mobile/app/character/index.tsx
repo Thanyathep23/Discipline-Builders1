@@ -627,8 +627,8 @@ export default function CharacterStatusScreen() {
             {[
               { icon: "radio-button-on-outline", label: "Missions",  onPress: () => router.push("/(tabs)/missions") },
               { icon: "cart-outline",            label: "Store",     onPress: () => router.push("/(tabs)/rewards")  },
-              { icon: "home-outline",            label: "My Room",   onPress: () => router.push("/world")           },
-              { icon: "stats-chart-outline",     label: "Skills",    onPress: () => router.push("/skills")          },
+              { icon: "home-outline",            label: "Room",      onPress: () => router.push("/world")           },
+              { icon: "shirt-outline",           label: "Wardrobe",  onPress: () => router.push("/wearables" as any) },
             ].map((action) => (
               <Pressable
                 key={action.label}

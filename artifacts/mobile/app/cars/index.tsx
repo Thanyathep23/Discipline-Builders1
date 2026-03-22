@@ -9,7 +9,7 @@ import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import Svg, { Path, Circle, Rect, Ellipse } from "react-native-svg";
-import { Colors } from "@/constants/colors";
+import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useCars, usePurchaseCar, useFeatureCar } from "@/hooks/useApi";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -38,14 +38,6 @@ type Car = {
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const RARITY_COLORS: Record<string, string> = {
-  common:    "#9CA3AF",
-  uncommon:  "#34D399",
-  rare:      "#60A5FA",
-  epic:      "#A78BFA",
-  legendary: "#F59E0B",
-};
 
 const CLASS_LABELS: Record<string, string> = {
   starter:   "STARTER",

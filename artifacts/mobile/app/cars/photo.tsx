@@ -28,14 +28,6 @@ type Car = {
 
 type Scene = "studio" | "street" | "command";
 
-const RARITY_COLOR: Record<string, string> = {
-  common:    "#9CA3AF",
-  uncommon:  "#34D399",
-  rare:      "#60A5FA",
-  epic:      "#A78BFA",
-  legendary: "#F59E0B",
-};
-
 const SCENE_META: Record<Scene, { label: string; icon: string; bg1: string; bg2: string; ground: string }> = {
   studio:  { label: "Studio",  icon: "aperture-outline",  bg1: "#0D1117", bg2: "#1A1F2E", ground: "#161B27" },
   street:  { label: "Street",  icon: "navigate-outline",  bg1: "#050A0F", bg2: "#0D1A2A", ground: "#0A1520" },
@@ -73,7 +65,7 @@ function CharacterSilhouette({ color, size = 100 }: { color: string; size?: numb
 // ─── Car Silhouette (large) ───────────────────────────────────────────────────
 
 function CarSilhouetteLarge({ rarity, width = 280 }: { rarity: string; width?: number }) {
-  const color = RARITY_COLOR[rarity] ?? "#9CA3AF";
+  const color = RARITY_COLORS[rarity] ?? "#9CA3AF";
   const h = width * 0.42;
   const w = width;
 
@@ -148,7 +140,7 @@ function PhotoScene({
   prestige: string | null;
 }) {
   const sm = SCENE_META[scene];
-  const rarityColor = RARITY_COLOR[car.rarity] ?? "#9CA3AF";
+  const rarityColor = RARITY_COLORS[car.rarity] ?? "#9CA3AF";
 
   return (
     <View style={photoStyles.sceneOuter}>
@@ -386,7 +378,7 @@ export default function PhotoModeScreen() {
               <View style={styles.carSelectRow}>
                 {ownedCars.map((c) => {
                   const active = activeCar?.id === c.id;
-                  const rc = RARITY_COLOR[c.rarity] ?? Colors.textMuted;
+                  const rc = RARITY_COLORS[c.rarity] ?? Colors.textMuted;
                   return (
                     <Pressable
                       key={c.id}
@@ -417,8 +409,8 @@ export default function PhotoModeScreen() {
                 <Text style={styles.carInfoName}>{activeCar.name}</Text>
                 <Text style={styles.carInfoClass}>{CLASS_LABELS[activeCar.carClass ?? "starter"]}</Text>
               </View>
-              <View style={[styles.rarityBadge, { backgroundColor: (RARITY_COLOR[activeCar.rarity] ?? Colors.textMuted) + "20" }]}>
-                <Text style={[styles.rarityBadgeText, { color: RARITY_COLOR[activeCar.rarity] ?? Colors.textMuted }]}>
+              <View style={[styles.rarityBadge, { backgroundColor: (RARITY_COLORS[activeCar.rarity] ?? Colors.textMuted) + "20" }]}>
+                <Text style={[styles.rarityBadgeText, { color: RARITY_COLORS[activeCar.rarity] ?? Colors.textMuted }]}>
                   {activeCar.rarity.toUpperCase()}
                 </Text>
               </View>

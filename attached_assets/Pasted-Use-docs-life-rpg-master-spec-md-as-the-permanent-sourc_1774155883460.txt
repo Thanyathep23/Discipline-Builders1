@@ -1,0 +1,399 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 32 — v2 Integration / Polish / App Store Readiness.
+
+Current context:
+- Phase 27 is complete: Game Mode / Character Status Hub exists.
+- Phase 28 is complete: Character Evolution Renderer exists and progression visibly changes the character.
+- Phase 29 is complete: Wearables / Style / Identity Application exists and wearable items can be purchased/equipped and visibly applied.
+- Phase 30 is complete: Room Progression / Workspace Decor exists and the room/workspace can evolve and display owned room items/themes.
+- Phase 31 is complete: Car Collection / Showcase / Photo Mode Lite exists and dream cars can be unlocked, showcased, and used in a lightweight photo moment.
+- The next highest-value step is full v2 cohesion:
+  all these systems now need to feel like one polished, premium, mobile-first product that is easier to use, more visually coherent, more performant, and more App Store-ready.
+- This phase is NOT about adding more gameplay systems.
+- This phase is about integration quality, flow quality, polish quality, performance, and release readiness for the new game-mode expansion.
+
+Your task:
+Build only the smallest high-impact v2 Integration / Polish / App Store Readiness layer.
+
+==================================================
+PHASE 32 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Cross-system integration pass for the new game-mode expansion
+2. UX / flow polish across character, room, store, and car collection
+3. Visual polish and consistency pass
+4. Performance and rendering optimization for mobile
+5. State consistency / edge-case cleanup
+6. App Store readiness / mobile-readiness pass
+7. Minimal internal QA / diagnostics only if strictly needed
+
+Do NOT build:
+- new gameplay systems
+- new car gameplay
+- new social systems
+- new economy systems
+- full 3D engine
+- giant redesign from scratch
+- broad infrastructure rewrites unless absolutely necessary
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the end-to-end game-mode experience across:
+   - Game Mode entry
+   - Character Status Hub
+   - Character Evolution Renderer
+   - wearable/style equip flow
+   - store/catalog browsing for style and room items
+   - room/workspace screen
+   - car collection screen
+   - photo mode lite
+   - profile/showcase touchpoints
+   - recommendation/guidance surfaces relevant to game mode
+2. identify where the game-mode expansion still feels fragmented, awkward, inconsistent, slow, or unfinished
+3. identify the minimum high-impact changes needed to make the game-mode expansion feel like a cohesive premium v2 layer
+4. implement only the minimum systems needed
+5. avoid broad refactors and avoid adding new product pillars
+
+==================================================
+A. CROSS-SYSTEM INTEGRATION PASS
+==================================================
+
+Unify the newly built game-mode systems so they feel like one connected product.
+
+Areas to align:
+- Character Status Hub language
+- status tier/class language
+- wearable/style language
+- store/catalog/item-state language
+- room/workspace terminology
+- car collection terminology
+- prestige/lifestyle/status presentation language
+- next evolution / next unlock wording
+- recommendation/guidance wording around game-mode systems
+- equipped/displayed/owned/locked/premium/limited states everywhere
+
+Requirements:
+- remove conflicting labels and duplicated meanings where practical
+- ensure a user can understand item state consistently across:
+  - store
+  - inventory
+  - character
+  - room
+  - car collection
+- ensure the game-mode expansion feels like a unified “life-status game” layer
+- do not rewrite the whole IA; focus on consistency and polish
+
+==================================================
+B. GAME MODE FLOW POLISH
+==================================================
+
+Improve the high-value flows inside the new game-mode expansion.
+
+Critical flows to polish:
+1. open Game Mode -> understand current status quickly
+2. see evolved character -> understand why the character looks this way
+3. move from status page -> store -> purchase item -> equip/apply item
+4. move from status page -> room -> apply room upgrade
+5. move from status page -> car collection -> understand locked/owned/showcase state
+6. use photo mode lite with owned car smoothly
+7. understand what to do next after unlocking/purchasing/upgrading something
+
+Requirements:
+- reduce unnecessary taps where practical
+- improve “what changed?” clarity after important actions
+- improve “what should I do next?” clarity
+- keep actions mobile-friendly
+- ensure the user is not lost between character, room, store, and car flows
+
+==================================================
+C. VISUAL POLISH / INTERACTION POLISH
+==================================================
+
+Add a targeted premium polish pass to the game-mode expansion.
+
+Possible areas:
+- better spacing and hierarchy on character/status screen
+- cleaner stat blocks and tier presentation
+- stronger visual distinction between starter/rising/refined/elite states
+- smoother equipped/active/displayed feedback
+- clearer visual transitions between store/inventory/character/room/car screens
+- stronger premium presentation for locked vs unlockable vs owned items
+- more elegant loading/empty/error states
+- subtle, tasteful success feedback for:
+  - style equipped
+  - room updated
+  - car unlocked
+  - featured car changed
+  - next tier reached
+  - next visible evolution reached
+
+Requirements:
+- polish must reinforce clarity and aspiration
+- avoid over-animation
+- avoid making it flashy or childish
+- focus on the emotionally important moments
+
+==================================================
+D. PERFORMANCE / RENDERING OPTIMIZATION
+==================================================
+
+Optimize the game-mode expansion for mobile performance.
+
+Audit and improve:
+- character renderer performance
+- room/workspace rendering performance
+- car collection/gallery rendering
+- photo mode lite rendering
+- store/catalog list rendering for style/room/car categories
+- heavy image/media usage
+- unnecessary rerenders or over-fetching
+- transitions between game-mode screens
+- any obvious payload bloat related to media-heavy surfaces
+
+Requirements:
+- improve obvious bottlenecks
+- use lazy loading, memoization, pagination, or image optimization where justified
+- preserve correctness and maintainability
+- do not do speculative over-optimization
+- if useful, document remaining known hotspots clearly
+
+==================================================
+E. STATE CONSISTENCY / EDGE-CASE CLEANUP
+==================================================
+
+Ensure the game-mode systems stay in sync and feel trustworthy.
+
+Audit and improve consistency between:
+- owned items and equipped wearables
+- owned items and room-applied items
+- owned cars and featured/showcase cars
+- status renderer and actual progression data
+- room renderer and applied room state
+- store state and ownership state
+- item detail state and actual eligibility state
+- photo mode availability and actual owned/showcase state
+- premium/limited item visibility and real entitlement state
+- next unlock/evolution hints and actual current thresholds
+
+Requirements:
+- reduce stale or contradictory state
+- ensure after-action refreshes feel coherent
+- preserve server-side authority
+- keep fixes small and practical
+- if small recompute/reconcile helpers are needed, keep them minimal and safe
+
+==================================================
+F. INFORMATION HIERARCHY / PRODUCT CLARITY
+==================================================
+
+Because the expansion now has multiple screens, make the product easier to understand.
+
+The highest-value screens should clearly answer:
+
+1. Character Status Hub:
+- who am I now?
+- how am I evolving?
+- what should I improve next?
+
+2. Store:
+- what matters to buy next?
+- what is locked vs affordable vs aspirational?
+
+3. Room:
+- how is my environment changing?
+- what should I upgrade next?
+
+4. Car Collection:
+- what dream cars do I own?
+- what can I unlock next?
+- what is worth showcasing?
+
+5. Photo Mode:
+- what can I do here?
+- what is currently available with my owned assets?
+
+Requirements:
+- reduce too many equally-loud cards
+- strengthen primary CTA hierarchy
+- keep advanced systems visible but not overwhelming
+- ensure the emotional fantasy stays intact across screens
+
+==================================================
+G. EMPTY / LOADING / ERROR / DEGRADED STATE POLISH
+==================================================
+
+Polish the major non-happy-path states for the new game-mode systems.
+
+Handle cases such as:
+- no wearable items owned
+- no room upgrades owned
+- no car owned yet
+- all desired cars still locked
+- no valid item for a slot
+- failed purchase attempt
+- failed equip/apply attempt
+- failed media/image load
+- photo mode unavailable because no owned eligible car
+- renderer fallback state if visual data is temporarily unavailable
+
+Requirements:
+- empty states should teach and motivate
+- errors should recover gracefully
+- loading states should feel premium and intentional
+- degraded states should not strand the user
+- preserve the premium tone
+
+==================================================
+H. APP STORE / MOBILE-READINESS PASS
+==================================================
+
+Treat this as a mobile release quality pass for the game-mode expansion.
+
+Audit and improve:
+- portrait layout consistency
+- thumb-friendly action placement
+- text legibility
+- safe spacing and hierarchy on smaller screens
+- loading and image behavior on mobile
+- basic device resilience across different screen sizes if feasible
+- screenshot-worthy presentation for store listing / marketing potential
+- make the game-mode layer feel like something that could credibly ship in an App Store product
+
+Requirements:
+- focus on the top mobile flows
+- keep this practical
+- do not build a giant device lab or platform abstraction
+- if real testing constraints exist, document remaining mobile risks clearly
+
+==================================================
+I. MINIMAL INTERNAL / QA SUPPORT TOOLS
+==================================================
+
+Add only minimal internal tools if strictly needed for this phase.
+
+Possible examples:
+- game-mode state reconciliation helper
+- visual/debug snapshot for character/room/car states
+- lightweight diagnostics for media/rendering issues
+- QA toggle for empty/owned/locked states
+- admin-only validation screen for game-mode integrity
+
+Requirements:
+- internal/admin only
+- lightweight
+- use current admin/tuning/QA surfaces where possible
+- do not build a giant QA system
+
+==================================================
+J. UI / UX DIRECTION
+==================================================
+
+Design direction:
+- dark premium
+- serious, aspirational, elegant
+- unified luxury-status fantasy
+- mobile-first
+- clean, cohesive, expensive-feeling
+- screenshot-worthy without being gaudy
+
+The expansion after this phase should feel:
+- more coherent
+- more understandable
+- more premium
+- more responsive
+- more satisfying
+- more release-ready
+
+It should feel like:
+- one strong game-mode product
+not
+- several good modules placed next to each other
+
+==================================================
+K. BACKEND / SECURITY RULES
+==================================================
+
+- preserve JSON-only APIs
+- preserve ownership and entitlement checks
+- preserve server-side authority for progression, purchases, wearable equip state, room display state, car ownership/showcase state, and premium gating
+- keep schema changes additive and minimal
+- do not introduce risky rewrites just for polish
+- if any cache/recompute helpers are added, they must be safe and trustworthy
+- preserve all existing high-value app flows
+
+==================================================
+L. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. the game-mode expansion feels meaningfully more cohesive across character, room, store, and car systems
+2. major game-mode flows are clearer and smoother
+3. visual/interaction polish is improved in the highest-value moments
+4. important mobile performance bottlenecks are reduced or documented
+5. key state inconsistencies are reduced
+6. information hierarchy is clearer on major game-mode screens
+7. empty/loading/error/degraded states feel more complete
+8. the game-mode expansion feels App Store-ready in quality direction
+9. existing app behavior still works
+10. no unrelated new feature scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what already felt strong in the game-mode expansion
+- what felt fragmented, rough, or slow
+- what was improved
+
+2. Files changed in this run only
+
+3. Cross-system integration changes
+- what terminology/state/model presentation was unified
+- what inconsistencies were removed
+
+4. UX flow polish changes
+- what key game-mode flows became smoother
+- what confusing moments were improved
+
+5. Visual/interaction polish changes
+- what high-value moments got polish
+- what loading/feedback/state improvements were added
+
+6. Performance/rendering changes
+- what bottlenecks were addressed
+- what optimizations were added
+- any remaining known hotspots
+
+7. State consistency/edge-case cleanup changes
+- what stale/conflicting state problems were fixed
+- how cross-system coherence improved
+
+8. End-to-end verification results for:
+- Character Status Hub flow
+- store -> purchase -> equip/apply flow
+- room progression flow
+- car collection -> showcase -> photo mode flow
+- game-mode empty/error states
+- existing app flow unchanged
+
+9. Remaining gaps after Phase 32
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

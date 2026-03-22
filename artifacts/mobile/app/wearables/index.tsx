@@ -8,7 +8,7 @@ import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useQueryClient } from "@tanstack/react-query";
-import { Colors } from "@/constants/colors";
+import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useWearables, useEquipItem, useUnequipItem, useBuyItem } from "@/hooks/useApi";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -44,12 +44,6 @@ const SLOT_META: Record<string, { label: string; icon: string }> = {
   accessory: { label: "ACCESSORIES", icon: "diamond-outline" },
 };
 
-const RARITY_COLOR: Record<string, string> = {
-  common:    "#9CA3AF",
-  rare:      "#60A5FA",
-  epic:      "#A78BFA",
-  legendary: "#F59E0B",
-};
 
 // ─── Confirmation Modal ────────────────────────────────────────────────────────
 
@@ -107,7 +101,7 @@ function WearableCard({ item, delay = 0 }: { item: WearableItem; delay?: number 
   const [confirmAction, setConfirmAction] = useState<"buy" | "equip" | "unequip" | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const rarityColor = RARITY_COLOR[item.rarity ?? "common"] ?? RARITY_COLOR.common;
+  const rarityColor = RARITY_COLORS[item.rarity ?? "common"] ?? RARITY_COLORS.common;
   const busy = equipMut.isPending || unequipMut.isPending || buyMut.isPending;
 
   function invalidate() {
@@ -329,7 +323,13 @@ export default function WardrobeScreen() {
           <Ionicons name="shirt-outline" size={16} color={Colors.accent} />
           <Text style={s.headerTitle}>WARDROBE</Text>
         </View>
-        <View style={{ width: 36 }} />
+        <Pressable
+          style={({ pressed }) => [s.storeBtn, pressed && { opacity: 0.7 }]}
+          onPress={() => router.push("/(tabs)/rewards" as any)}
+        >
+          <Ionicons name="cart-outline" size={15} color={Colors.accent} />
+          <Text style={s.storeBtnTxt}>Store</Text>
+        </Pressable>
       </View>
 
       {/* Body */}
@@ -367,7 +367,14 @@ export default function WardrobeScreen() {
               ))}
 
               {group.items.length === 0 && (
-                <Text style={s.empty}>No items available in this slot.</Text>
+                <Pressable
+                  style={({ pressed }) => [s.emptyCard, pressed && { opacity: 0.75 }]}
+                  onPress={() => router.push("/(tabs)/rewards" as any)}
+                >
+                  <Ionicons name="cart-outline" size={16} color={Colors.textMuted} />
+                  <Text style={s.emptyCardText}>No items yet — browse the Store to unlock this slot.</Text>
+                  <Ionicons name="chevron-forward" size={13} color={Colors.textMuted} />
+                </Pressable>
               )}
             </View>
           ))}
@@ -390,8 +397,12 @@ const s = StyleSheet.create({
   slotLabel:    { fontSize: 11, fontFamily: "Inter_700Bold", color: Colors.textMuted, letterSpacing: 1.2 },
   slotLine:     { flex: 1, height: 1, backgroundColor: Colors.border },
   empty:        { fontSize: 12, color: Colors.textMuted, fontStyle: "italic", paddingVertical: 8 },
+  emptyCard:    { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.bgCard, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: Colors.border, borderStyle: "dashed" },
+  emptyCardText: { flex: 1, fontSize: 12, color: Colors.textMuted, fontFamily: "Inter_400Regular" },
   center:       { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   errorText:    { fontSize: 14, color: Colors.textSecondary, fontFamily: "Inter_400Regular" },
   retryBtn:     { backgroundColor: Colors.accent, borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
   retryTxt:     { fontSize: 13, fontFamily: "Inter_700Bold", color: "#000" },
+  storeBtn:     { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: Colors.accentDim, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
+  storeBtnTxt:  { fontSize: 12, fontFamily: "Inter_600SemiBold", color: Colors.accent },
 });

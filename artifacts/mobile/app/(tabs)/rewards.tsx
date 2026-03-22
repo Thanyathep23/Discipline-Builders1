@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet, Platform,
-  ActivityIndicator, Alert, Modal, TextInput,
+  ActivityIndicator, Modal, TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,6 +24,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   room:     "Room",
   cosmetic: "Cosmetic",
   prestige: "Prestige",
+  vehicle:  "Vehicles",
+  fashion:  "Wearables",
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -32,6 +34,8 @@ const CATEGORY_ICONS: Record<string, string> = {
   room:     "home-outline",
   cosmetic: "color-palette-outline",
   prestige: "star-outline",
+  vehicle:  "car-sport-outline",
+  fashion:  "shirt-outline",
 };
 
 const SURFACE_META: Record<string, { label: string; icon: string; color: string }> = {
@@ -69,6 +73,15 @@ export default function RewardsScreen() {
   const [premiumOnly, setPremiumOnly] = useState(false);
   const [detailItem, setDetailItem] = useState<any>(null);
   const [sellConfirmItem, setSellConfirmItem] = useState<any>(null);
+  const [toastMsg, setToastMsg] = useState<{ text: string; type: "success" | "error"; hint?: string } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(text: string, type: "success" | "error", hint?: string) {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToastMsg({ text, type, hint });
+    toastTimer.current = setTimeout(() => setToastMsg(null), 4500);
+  }
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   const { data: balance, isLoading } = useRewardBalance();
   const { data: history } = useRewardHistory();
@@ -127,33 +140,38 @@ export default function RewardsScreen() {
   async function handleBuy(item: any) {
     setDetailItem(null);
     try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
       await buyItem.mutateAsync(item.id);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Purchased!", `${item.name} is now in your inventory.`);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      const isWearable = item.category === "fashion" || item.wearableSlot;
+      const isRoomItem = item.category === "room";
+      const hint = isWearable ? "Go to Wardrobe to equip it." : isRoomItem ? "Apply it from your Room screen." : undefined;
+      showToast(`${item.name} added to inventory.`, "success", hint);
     } catch (err: any) {
-      Alert.alert("Cannot Purchase", err.message);
+      showToast(err.message ?? "Purchase failed.", "error");
     }
   }
 
   async function handleEquip(item: any) {
     setDetailItem(null);
     try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       await equipItem.mutateAsync(item.id);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      showToast(`${item.name} equipped.`, "success");
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      showToast(err.message ?? "Could not equip item.", "error");
     }
   }
 
   async function handleUnequip(item: any) {
     setDetailItem(null);
     try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       await unequipItem.mutateAsync(item.id);
+      showToast(`${item.name} unequipped.`, "success");
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      showToast(err.message ?? "Could not unequip item.", "error");
     }
   }
 
@@ -161,21 +179,22 @@ export default function RewardsScreen() {
     setSellConfirmItem(null);
     setDetailItem(null);
     try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       await sellItem.mutateAsync(item.id);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Sold", `Received ${item.sellBackValue} coins.`);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      showToast(`Sold for ${item.sellBackValue ?? "?"} coins.`, "success");
     } catch (err: any) {
-      Alert.alert("Cannot Sell", err.message);
+      showToast(err.message ?? "Could not sell item.", "error");
     }
   }
 
   async function handleActivateTitle(titleId: string) {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     try {
       await activateTitle.mutateAsync(titleId);
+      showToast("Title activated.", "success");
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      showToast(err.message ?? "Could not activate title.", "error");
     }
   }
 
@@ -189,6 +208,18 @@ export default function RewardsScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Rewards</Text>
       </View>
+
+      {/* In-screen toast */}
+      {toastMsg && (
+        <Pressable onPress={() => setToastMsg(null)} style={[styles.toast, toastMsg.type === "error" && styles.toastError]}>
+          <Ionicons name={toastMsg.type === "success" ? "checkmark-circle" : "alert-circle"} size={16} color={toastMsg.type === "success" ? Colors.green : Colors.crimson} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.toastText}>{toastMsg.text}</Text>
+            {toastMsg.hint && <Text style={styles.toastHint}>{toastMsg.hint}</Text>}
+          </View>
+          <Ionicons name="close" size={14} color={Colors.textMuted} />
+        </Pressable>
+      )}
 
       {/* Main tab row */}
       <ScrollView
@@ -283,6 +314,30 @@ export default function RewardsScreen() {
                     <Text style={styles.shareSnapshotText}>Browse Marketplace</Text>
                     <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
                   </Pressable>
+                </Animated.View>
+
+                {/* Game Mode hub shortcuts */}
+                <Animated.View entering={FadeInDown.delay(220).springify()} style={styles.gameModeSection}>
+                  <Text style={styles.gameModeLabel}>GAME MODE</Text>
+                  <View style={styles.gameModeGrid}>
+                    {([
+                      { icon: "person-outline",    label: "Character",  route: "/character"       },
+                      { icon: "shirt-outline",     label: "Wardrobe",   route: "/wearables"       },
+                      { icon: "home-outline",      label: "Room",       route: "/world"            },
+                      { icon: "car-sport-outline", label: "Garage",     route: "/cars"             },
+                    ] as const).map((item) => (
+                      <Pressable
+                        key={item.label}
+                        style={({ pressed }) => [styles.gameModeBtn, pressed && { opacity: 0.75, transform: [{ scale: 0.95 }] }]}
+                        onPress={() => { Haptics.selectionAsync(); router.push(item.route as any); }}
+                      >
+                        <View style={styles.gameModeBtnIcon}>
+                          <Ionicons name={item.icon} size={18} color={Colors.accent} />
+                        </View>
+                        <Text style={styles.gameModeBtnLabel}>{item.label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
                 </Animated.View>
 
                 {earnedBadges.length > 0 && (
@@ -944,6 +999,10 @@ export default function RewardsScreen() {
 const styles = StyleSheet.create({
   container:           { flex: 1, backgroundColor: Colors.bg },
   header:              { paddingHorizontal: 20, paddingBottom: 12 },
+  toast:               { flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginBottom: 8, backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: Colors.green + "40", padding: 12 },
+  toastError:          { borderColor: Colors.crimson + "40" },
+  toastText:           { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.textPrimary },
+  toastHint:           { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
   title:               { fontFamily: "Inter_700Bold", fontSize: 28, color: Colors.textPrimary, letterSpacing: -0.5 },
   tabRow:              { flexGrow: 0, marginBottom: 14 },
   tab:                 { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
@@ -973,6 +1032,12 @@ const styles = StyleSheet.create({
   activeTitleValue:    { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.gold },
   shareSnapshotBtn:    { backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: Colors.border },
   marketplaceShortcut: { backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: Colors.accent + "30" },
+  gameModeSection:     { marginBottom: 14, marginTop: 6 },
+  gameModeLabel:       { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 1.5, marginBottom: 10 },
+  gameModeGrid:        { flexDirection: "row", gap: 10 },
+  gameModeBtn:         { flex: 1, alignItems: "center", gap: 7, backgroundColor: Colors.bgCard, borderRadius: 14, paddingVertical: 12, borderWidth: 1, borderColor: Colors.border },
+  gameModeBtnIcon:     { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.accentGlow, alignItems: "center", justifyContent: "center" },
+  gameModeBtnLabel:    { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textSecondary },
   shareSnapshotText:   { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary, flex: 1 },
   recentBadgesCard:    { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border },
   badgeMini:           { alignItems: "center", gap: 6, width: 68 },
