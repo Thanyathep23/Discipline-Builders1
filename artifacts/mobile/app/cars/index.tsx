@@ -11,6 +11,7 @@ import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import Svg, { Path, Circle, Rect, Ellipse } from "react-native-svg";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useCars, usePurchaseCar, useFeatureCar } from "@/hooks/useApi";
+import { LoadingScreen } from "@/design-system";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -753,13 +754,8 @@ export default function GarageScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { paddingTop: topPad, alignItems: "center", justifyContent: "center" }]}>
-        <View style={styles.loadingIcon}>
-          <Ionicons name="car-sport-outline" size={28} color={Colors.accent} />
-        </View>
-        <Text style={styles.loadingTitle}>Loading Collection</Text>
-        <Text style={styles.loadingText}>Your dream cars are loading...</Text>
-        <ActivityIndicator color={Colors.accent} style={{ marginTop: 12 }} />
+      <View style={[styles.container, { paddingTop: topPad }]}>
+        <LoadingScreen message="Loading your collection..." accentColor={Colors.accent} />
       </View>
     );
   }

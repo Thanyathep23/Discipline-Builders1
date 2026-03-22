@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  View, Text, ScrollView, Pressable, StyleSheet, Platform, ActivityIndicator, RefreshControl,
+  View, Text, ScrollView, Pressable, StyleSheet, Platform, RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,6 +10,7 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import Svg, { Circle, Ellipse, Rect, Path, G } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/colors";
+import { LoadingScreen, Button } from "@/design-system";
 import { useAuth } from "@/context/AuthContext";
 import { useCharacterStatus } from "@/hooks/useApi";
 
@@ -393,10 +394,10 @@ export default function CharacterStatusScreen() {
       </View>
 
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.accent} />
-          <Text style={styles.loadingText}>Rendering character...</Text>
-        </View>
+        <LoadingScreen
+          message="Rendering character..."
+          accentColor={Colors.accent}
+        />
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -512,19 +513,15 @@ export default function CharacterStatusScreen() {
                   </View>
                 </View>
                 <Text style={styles.evolutionHint}>{data.nextEvolutionHint.hint}</Text>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.evolutionCTA,
-                    pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
-                  ]}
+                <Button
+                  label={data.nextEvolutionHint.action}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
                     router.push("/(tabs)/missions");
                   }}
-                >
-                  <Ionicons name="flash" size={15} color="#fff" />
-                  <Text style={styles.evolutionCTAText}>{data.nextEvolutionHint.action}</Text>
-                </Pressable>
+                  variant="primary"
+                  iconLeft="flash"
+                />
               </LinearGradient>
             </Animated.View>
           )}

@@ -257,6 +257,34 @@ Settings: blocking_config, blocked_attempts, strictness_profiles, sleep_logs, ti
 
 ## Design System
 
+All tokens and components live in `artifacts/mobile/design-system/`. Import via `@/design-system`.
+
+### Tokens (`design-system/tokens/`)
+- `colors.ts` — Semantic roles: `colors.bg.*`, `colors.text.*`, `colors.border.*`, `colors.accent.*`, `colors.tier.*`, `colors.rarity.*`
+- `typography.ts` — 8-step type scale: display, h1, h2, h3, title, body, bodySmall, label, micro (all Inter)
+- `spacing.ts` — xs(4) sm(8) md(12) base(16) lg(20) xl(24) xxl(32) xxxl(40)
+- `radius.ts` — sm(6) md(10) lg(14) xl(20) full(999)
+- `elevation.ts` — none, low, medium, hero (platform-aware shadows)
+
+### Components (`design-system/components/`)
+- **Button** — 5 variants: primary, secondary, tertiary, destructive, premium; sizes sm/md/lg
+- **Chip** — 24 variants across ownership (owned/equipped/locked/featured), rarity, tier, and status states
+- **Progress** — `ProgressBar`, `StatBlock`, `SkillBar`
+- **Card** — `HeroCard`, `SummaryCard`, `ActionCard`, `CollectionCard`, `StatusCard`, `AdminMetricCard`
+- **Skeleton** — `SkeletonBlock`, `SkeletonCard`, `SkeletonList`, `LoadingScreen`
+- **States** — `EmptyState` (11 presets), `ErrorState` (5 error types)
+
+### Backward Compatibility
+`constants/colors.ts` is unchanged — all 61 existing screens continue to import `Colors` from there. The design system is additive only.
+
+### Hero Surface Migration (complete)
+- `app/character/index.tsx` — `LoadingScreen` replaces spinner; `Button` replaces `evolutionCTA` Pressable
+- `app/cars/index.tsx` — `LoadingScreen` replaces full-screen loading block
+- `app/wearables/index.tsx` — `LoadingScreen` + `ErrorState` replace loading/error views
+- `app/premium/index.tsx` — `LoadingScreen` imported (inline loading state unchanged — inside ScrollView)
+- `app/(tabs)/rewards.tsx` — `LoadingScreen` imported (inline loading states unchanged — inside tab panels)
+
+### Raw token values (unchanged)
 - Dark theme: bg `#0A0A0F`, card `#12121A`
 - Accent purple: `#7C5CFC`
 - Gold coins: `#F5C842`

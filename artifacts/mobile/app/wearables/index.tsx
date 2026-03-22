@@ -10,6 +10,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { useQueryClient } from "@tanstack/react-query";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useWearables, useEquipItem, useUnequipItem, useBuyItem } from "@/hooks/useApi";
+import { LoadingScreen, ErrorState } from "@/design-system";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -334,16 +335,14 @@ export default function WardrobeScreen() {
 
       {/* Body */}
       {isLoading ? (
-        <View style={s.center}>
-          <ActivityIndicator color={Colors.accent} />
-        </View>
+        <LoadingScreen accentColor={Colors.accent} />
       ) : isError ? (
-        <View style={s.center}>
-          <Text style={s.errorText}>Failed to load wardrobe.</Text>
-          <Pressable style={s.retryBtn} onPress={() => refetch()}>
-            <Text style={s.retryTxt}>Retry</Text>
-          </Pressable>
-        </View>
+        <ErrorState
+          type="network"
+          onRetry={() => refetch()}
+          retryLabel="Reload Wardrobe"
+          style={{ flex: 1 }}
+        />
       ) : (
         <ScrollView
           style={s.scroll}

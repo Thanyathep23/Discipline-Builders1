@@ -11,6 +11,7 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useApiClient } from "@/hooks/useApi";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { LoadingScreen } from "@/design-system";
 
 const PREMIUM_COLOR = "#F5C842";
 const PREMIUM_DIM = "#F5C84220";

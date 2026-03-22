@@ -51,4 +51,6 @@ export const RARITY_COLORS: Record<string, string> = {
   legendary: "#F5C842",
 };
 
+export { colors as ds } from "@/design-system";
+
 export default Colors;
