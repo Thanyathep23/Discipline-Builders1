@@ -1,0 +1,470 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Build a complete premium Wardrobe system accessible from the 
+Game Mode section on the Rewards screen. This replaces the 
+current placeholder "try again" state.
+
+The Wardrobe must feel like a luxury fashion boutique and 
+watch collection combined — designed specifically for 
+entrepreneurs who appreciate premium lifestyle brands.
+
+LEGAL REQUIREMENT:
+Do NOT use real brand names, logos, or trademarks such as 
+Rolex, AP, Patek Philippe, Richard Mille, Gucci, Louis Vuitton, 
+or any other trademarked brand. Use premium inspired naming 
+instead. See the catalog defined below.
+
+==================================================
+SYSTEM ARCHITECTURE OVERVIEW
+==================================================
+
+The Wardrobe system has 4 sections:
+
+1. WATCHES — luxury timepiece collection
+2. CLOTHING — premium apparel collection  
+3. ACCESSORIES — lifestyle accessories
+4. EQUIPPED — currently active items on character
+
+Access: From Rewards screen → Game Mode → Wardrobe button
+Unlock gate: coin balance + character level requirement
+Effect: equipped items visually affect the Character Status Hub
+
+==================================================
+PART 1 — WARDROBE SCREEN STRUCTURE
+==================================================
+
+1A. Entry Point
+
+When user taps "Wardrobe" from Game Mode section:
+- navigate to Wardrobe screen (not a modal)
+- full screen with back navigation
+- tab bar at top: Watches | Clothing | Accessories | Equipped
+
+1B. Screen Header
+
+- Title: "WARDROBE"
+- Subtitle: current equipped count e.g. "3 items equipped"
+- Coin balance chip (top right, same as current design)
+- Character mini-preview showing current outfit if practical
+
+1C. Section Layout
+
+Each tab shows a 2-column grid of item cards.
+
+Each item card shows:
+- item visual (watch face / garment illustration)
+- item name
+- brand series name
+- rarity chip: Common / Refined / Prestige / Elite / Legendary
+- price in coins OR "Level X required"
+- state chip: Locked / Available / Owned / Equipped
+
+1D. Filter Bar (below tabs)
+
+- All / Owned / Available / Locked
+- Sort: Price / Level / Rarity
+
+==================================================
+PART 2 — WATCH CATALOG
+==================================================
+
+Define these watches in the catalog system.
+These are inspired by real luxury watches but use original naming.
+
+WATCH 1 — Mariner Black 40
+- inspired by: dive luxury (Rolex Submariner feel)
+- series: Mariner Collection
+- rarity: Refined
+- level required: 10
+- coin cost: 1200
+- dial: black / blue / green variants
+- description: "Depth-rated. Board-room ready."
+- character effect: adds watch to wrist layer, lifestyle signal +1
+
+WATCH 2 — Royal Series 41
+- inspired by: integrated bracelet sport (AP Royal Oak feel)
+- series: Royal Collection  
+- rarity: Prestige
+- level required: 20
+- coin cost: 3500
+- dial: silver / black / blue variants
+- description: "The watch that changed what luxury meant."
+- character effect: lifestyle signal +2, prestige accent
+
+WATCH 3 — Genève Perpetual
+- inspired by: ultra-thin dress watch (Patek feel)
+- series: Genève Heritage
+- rarity: Elite
+- level required: 35
+- coin cost: 7500
+- dial: white / champagne / midnight variants
+- description: "You don't own it. You keep it for the next generation."
+- character effect: prestige accent, elite overlay marker
+
+WATCH 4 — Carbon RM Series
+- inspired by: skeletonized hypercar (Richard Mille feel)
+- series: Carbon Atelier
+- rarity: Legendary
+- level required: 50
+- coin cost: 18000
+- dial: carbon / orange / green variants
+- description: "Worn by those who move faster than the market."
+- character effect: strongest prestige overlay, elite aura
+
+WATCH 5 — Chrono Sport 38
+- inspired by: classic sports chronograph (Daytona feel)
+- series: Chrono Collection
+- rarity: Refined
+- level required: 8
+- coin cost: 900
+- dial: white / black variants
+- description: "Track every second of your ascent."
+- character effect: lifestyle signal +1
+
+WATCH 6 — Starter Timepiece
+- inspired by: clean minimal dress watch
+- series: Entry Series
+- rarity: Common
+- level required: 1
+- coin cost: 200
+- dial: white / black
+- description: "Time is your only real asset."
+- character effect: basic watch presence on wrist
+
+==================================================
+PART 3 — CLOTHING CATALOG
+==================================================
+
+CLOTHING 1 — Milano Cashmere Coat
+- inspired by: Loro Piana / Brunello Cucinelli quiet luxury
+- category: Outerwear
+- rarity: Elite
+- level required: 30
+- coin cost: 6000
+- color variants: Camel / Charcoal / Ivory
+- description: "The coat that doesn't need a logo."
+- character effect: outfit tier upgrade to Refined
+
+CLOTHING 2 — Silk Business Shirt
+- category: Top
+- rarity: Prestige
+- level required: 18
+- coin cost: 2800
+- color variants: White / Light Blue / Pale Pink
+- description: "Cut for the boardroom. Worn for the life."
+- character effect: outfit tier upgrade
+
+CLOTHING 3 — Technical Slim Trouser
+- inspired by: Loro Piana / Tom Ford precision trousers
+- category: Bottom
+- rarity: Refined
+- level required: 12
+- coin cost: 1500
+- color variants: Navy / Charcoal / Black
+- description: "Precision tailoring. Zero compromise."
+- character effect: lower outfit refinement upgrade
+
+CLOTHING 4 — Executive Suit — Midnight
+- category: Full Set
+- rarity: Elite
+- level required: 40
+- coin cost: 9000
+- color variants: Midnight Navy / Charcoal / Black
+- description: "The uniform of those who close."
+- character effect: strongest outfit upgrade, prestige signal
+
+CLOTHING 5 — Premium Hoodie — Series 1
+- inspired by: Fear of God / Essentials elevated casual
+- category: Top
+- rarity: Refined
+- level required: 8
+- coin cost: 800
+- color variants: Black / Cream / Slate
+- description: "Elevated casual. Never basic."
+- character effect: casual tier outfit
+
+CLOTHING 6 — Starter White Shirt
+- category: Top (this is the default starter outfit)
+- rarity: Common
+- level required: 1
+- coin cost: 0 (default owned)
+- color variants: White
+- description: "Every story starts somewhere."
+- character effect: default starter appearance
+
+CLOTHING 7 — Dark Denim Premium
+- category: Bottom (this is the default starter outfit)
+- rarity: Common
+- level required: 1
+- coin cost: 0 (default owned)
+- color variants: Black / Dark Indigo
+- description: "The foundation."
+- character effect: default starter appearance
+
+==================================================
+PART 4 — ACCESSORIES CATALOG
+==================================================
+
+ACCESSORY 1 — Leather Bifold — Milano
+- category: Wallet
+- rarity: Refined
+- level required: 10
+- coin cost: 600
+- description: "Slim. Black. No logo needed."
+- character effect: subtle lifestyle signal
+
+ACCESSORY 2 — Carbon Fiber Card Case
+- category: Card holder
+- rarity: Prestige
+- level required: 22
+- coin cost: 1200
+- description: "Details signal status before you speak."
+- character effect: lifestyle signal upgrade
+
+ACCESSORY 3 — Silk Pocket Square — Midnight
+- category: Pocket detail
+- rarity: Refined
+- level required: 15
+- coin cost: 400
+- description: "The 10% that makes 100% of the impression."
+- character effect: outfit detail upgrade on suited looks
+
+ACCESSORY 4 — Titanium Ring — Zero
+- category: Ring
+- rarity: Elite
+- level required: 38
+- coin cost: 3500
+- description: "Unmarked. Immovable."
+- character effect: prestige signal on hands layer
+
+==================================================
+PART 5 — ITEM DETAIL BOTTOM SHEET
+==================================================
+
+When user taps any item card, open a bottom sheet with:
+
+5A. Content
+- large item visual (watch face / clothing render)
+- item name + series
+- rarity chip
+- description text
+- color/variant selector (swatches)
+- stats:
+  - Level required
+  - Coin cost
+  - Character effect description
+  - Rarity
+
+5B. Action states
+
+If LOCKED (level too low):
+- Show: "Reach Level X to unlock"
+- Show XP progress toward that level
+- Button: disabled "Locked" state
+
+If AVAILABLE (level met, can afford):
+- Show coin cost
+- Button: "Purchase — X Coins" (primary)
+
+If AVAILABLE but cannot afford:
+- Show coin shortfall: "Need X more coins"
+- Button: "Not Enough Coins" (disabled)
+- Secondary: "Earn More Coins →" (links to Missions)
+
+If OWNED but not equipped:
+- Button: "Equip" (primary)
+
+If OWNED and EQUIPPED:
+- Button: "Unequip" (secondary)
+- Show "Currently Equipped" chip
+
+5C. Character preview
+- show a small character preview wearing this item if practical
+- or show item on mannequin/stand silhouette
+
+==================================================
+PART 6 — EQUIPPED TAB
+==================================================
+
+Shows currently equipped loadout:
+
+6A. Active slots visible:
+- Watch slot
+- Top / Shirt slot
+- Outerwear slot
+- Bottom / Trousers slot
+- Accessory slot
+
+6B. Each slot shows:
+- equipped item name
+- item visual / icon
+- "Change" button → opens that category tab filtered
+
+6C. Empty slot shows:
+- slot icon
+- "None equipped"
+- "Browse [category]" CTA
+
+6D. Outfit preset system (optional v1 lite):
+- allow saving current loadout as "Preset 1 / Preset 2"
+- switch between presets quickly
+
+==================================================
+PART 7 — CHARACTER STATUS HUB CONNECTION
+==================================================
+
+Equipped wardrobe items must visibly affect the character:
+
+7A. Watch connection
+- equipped watch appears on character wrist layer
+- watch rarity affects lifestyle/prestige signal score
+
+7B. Clothing connection
+- equipped outfit changes the character body layer
+- outfit tier (Common → Legendary) upgrades visible character class
+- must be reflected on the Character Status Hub screen
+
+7C. Status tier influence
+- equipped items above Prestige rarity add small passive
+  boost to Finance/Lifestyle dimension
+- display small "equipped boost" indicator on Character Status Hub
+
+7D. Sync rule
+- character visual must update when wardrobe changes
+- change should be immediate on equip/unequip
+- persist server-side per user
+
+==================================================
+PART 8 — ITEM VISUAL SYSTEM
+==================================================
+
+8A. Watch visuals
+- use SVG for each watch face
+- must be recognizable as premium luxury watch style
+- show: case shape, dial, crown, bracelet/strap suggestion
+- support dial color variants via SVG fill tokens
+- dark mode friendly
+
+8B. Clothing visuals
+- use clean flat/minimal garment illustration
+- folded or hanging presentation style
+- color variants via SVG fill/stroke tokens
+- must look premium, not like a mobile game icon
+
+8C. Accessory visuals
+- small clean product illustration
+- consistent size and padding with other items
+
+==================================================
+PART 9 — ECONOMY AND UNLOCK RULES
+==================================================
+
+9A. Purchase rules (server-side enforced)
+- user must meet level requirement
+- user must have sufficient coin balance
+- on purchase:
+  - deduct coins from wallet atomically
+  - create reward_transaction record (type: purchase)
+  - add item to user inventory
+  - return updated wallet balance and owned item state
+
+9B. Equip rules (server-side enforced)
+- user must own item before equipping
+- only one item per slot at a time
+- equipping does not cost additional coins
+- unequipping is always free
+
+9C. Default items
+- Starter White Shirt: auto-owned by all users at signup
+- Dark Denim Premium: auto-owned by all users at signup
+- Starter Timepiece: auto-owned at signup
+
+9D. Anti-abuse
+- prevent duplicate purchase of same item
+- prevent equipping non-owned items
+- prevent client-side coin balance manipulation
+- all state changes audit-logged
+
+==================================================
+PART 10 — WARDROBE NAVIGATION INTEGRATION
+==================================================
+
+10A. Entry from Rewards screen
+- Wardrobe button in Game Mode section → navigate to /wardrobe
+- Update the current "try again" placeholder with real navigation
+
+10B. Entry from Character Status Hub
+- add "Wardrobe" quick-access button near character
+- opens Wardrobe screen with Equipped tab active
+
+10C. Deep link from store recommendations
+- if recommendation suggests "upgrade your watch"
+- CTA links directly to Watch tab in Wardrobe
+
+==================================================
+TECHNICAL REQUIREMENTS
+==================================================
+
+- wardrobe screen must be mobile-first, portrait optimized
+- all item visuals must be SVG with color variant support
+- item data must be catalog-driven (no hardcoded UI)
+- coin + level gate must be server-side only
+- inventory/equipped state must persist per user in DB
+- character equipped state must sync to character renderer
+- all UI must use design system tokens
+- use existing catalog/store architecture patterns
+
+==================================================
+DO NOT BUILD
+==================================================
+
+- real brand names or logos (Rolex, AP, Patek, Gucci, LV, etc.)
+- player-to-player item trading
+- real-money purchases in this phase
+- 3D clothing try-on
+- physics-based clothing simulation
+- deep fashion game mechanics
+- new gameplay systems
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. Wardrobe screen loads from Game Mode correctly
+2. All 3 tabs (Watches / Clothing / Accessories) show catalog items
+3. Equipped tab shows current loadout with all slots
+4. Item detail bottom sheet opens for every item
+5. Lock state shows level requirement correctly
+6. Purchase flow deducts coins server-side atomically
+7. Equip/unequip flow works and persists
+8. Equipped items visibly affect Character Status Hub
+9. Watch visuals are premium SVG with color variants
+10. Clothing visuals are premium flat illustrations
+11. Default starter items are auto-owned at signup
+12. Duplicate purchase prevention works
+13. All coin/level gates enforced server-side
+14. No real brand names used anywhere
+15. All UI uses design system tokens
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. Wardrobe screen structure built
+2. Full catalog seeded (Watches / Clothing / Accessories)
+3. Item visual approach used
+4. Purchase / equip / unequip flow details
+5. Character Status Hub connection details
+6. Files changed in this run only
+7. End-to-end test results:
+   - browse all tabs
+   - purchase item
+   - equip item
+   - character updates
+   - level lock works
+   - coin deduction works
+8. Remaining gaps for next phase
