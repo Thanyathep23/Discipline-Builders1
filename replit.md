@@ -918,3 +918,34 @@ Maps 4 dimension scores to 6 visual axes: bodyTone (0-4), posture (0-2), outfitT
 - **Room Progression Card**: Shows room tier label, animated score progress bar (0-100), and up to 2 evolution hints; color-coded by tier (muted → accent → cyan → gold)
 - **Workspace Zone section**: Two-column layout with `SlotCard` for Desk Setup and Lifestyle Item slots, including deskState pill badge when slot is filled
 - All new styles added to existing StyleSheet
+
+## Phase 31 — Car Collection / Showcase / Photo Mode Lite
+
+### Backend: `routes/cars.ts`
+- **Car Catalog Seed (idempotent on startup)**: 8 vehicles across 5 classes — Urban Runner (free), Midnight Sedan (350c/Lv3), Obsidian Coupe (650c/Lv5), Executive GT (1200c/Lv8), Carbon Series (1800c/Lv11), Shadow Supercar (3000c/Lv15), Titanium RSX (5000c/Lv20 limited), Black Signature (8000c/Lv25 legendary)
+- **`GET /cars`**: Full catalog with per-user lock/own/featured/affordable state; sorted owned-first; includes featuredCar, userLevel, coinBalance
+- **`POST /cars/:id/purchase`**: Server-side validation of level gate, coin balance, and duplicate ownership; deducts coins and logs transaction
+- **`POST /cars/:id/feature`**: Sets `displaySlot = "featured_car"` in user_inventory for one car at a time (clears previous)
+- **`DELETE /cars/feature`**: Unfeatures any currently featured car
+- **`GET /cars/photo-mode`**: Returns owned cars + featured car for photo composition
+- No schema changes — uses existing `category:"vehicle"`, `subcategory` (for car class), `minLevel`, `isDisplayable`, `isProfileItem` columns
+
+### Frontend: `app/cars/index.tsx` — Garage Screen
+- Full catalog browse with 3 filters: All / Owned / Locked
+- Per-car cards with SVG silhouette colored by rarity, lock overlay with level requirement, badges (FEATURED/OWNED/LIMITED)
+- Stats row (owned, to unlock, coins, level) at top
+- Featured Car Hero section (carousel-style, with Photo Mode CTA)
+- Slide-up detail modal: full description, level/price/prestige stats, lock banner, confirm purchase flow, Feature button
+- In-screen error banner (no Alert.alert)
+
+### Frontend: `app/cars/photo.tsx` — Photo Mode Lite
+- Scene composition: character SVG silhouette + large car SVG with rarity-tinted colors
+- 3 scene presets: Studio (dark), Street (urban), Command (grid lines)
+- Optional prestige overlay badge (username, prestige label, car name)
+- Vehicle selector when multiple cars are owned
+- Capture button with success animation
+- Shows owned cars from `/cars/photo-mode`; graceful empty state with Garage CTA
+
+### Character Screen linkage
+- Replaced "SOON" placeholder with a live "Dream Garage" pressable card → routes to `/cars`
+- Hooks: `useCars()`, `usePurchaseCar()`, `useFeatureCar()`, `useCarPhotoMode()` in `hooks/useApi.ts`

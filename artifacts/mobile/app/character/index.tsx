@@ -643,16 +643,21 @@ export default function CharacterStatusScreen() {
             ))}
           </Animated.View>
 
-          {/* ── Collection placeholder ── */}
-          <Animated.View entering={FadeInDown.delay(480).springify()} style={styles.comingSoonCard}>
-            <Ionicons name="car-sport-outline" size={20} color={Colors.textMuted} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.comingSoonTitle}>Collection</Text>
-              <Text style={styles.comingSoonDesc}>Vehicle and luxury collection. Unlocks at Refined tier.</Text>
-            </View>
-            <View style={styles.comingSoonPill}>
-              <Text style={styles.comingSoonPillText}>SOON</Text>
-            </View>
+          {/* ── Garage / Car Collection ── */}
+          <Animated.View entering={FadeInDown.delay(480).springify()}>
+            <Pressable
+              style={({ pressed }) => [styles.garageCard, pressed && { opacity: 0.88 }]}
+              onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/cars" as any); }}
+            >
+              <View style={styles.garageIconWrap}>
+                <Ionicons name="car-sport-outline" size={22} color={Colors.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.garageTitle}>Dream Garage</Text>
+                <Text style={styles.garageDesc}>Your vehicle collection, showcase, and photo moments.</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+            </Pressable>
           </Animated.View>
 
         </ScrollView>
@@ -811,15 +816,17 @@ const styles = StyleSheet.create({
   quickActionLabel: { fontFamily: "Inter_500Medium", fontSize: 11, color: Colors.textSecondary, textAlign: "center" },
 
   // Coming soon
-  comingSoonCard: {
+  garageCard: {
     flexDirection: "row", alignItems: "center", gap: 14,
     backgroundColor: Colors.bgCard, borderRadius: 18, padding: 16,
-    borderWidth: 1, borderColor: Colors.border, borderStyle: "dashed",
+    borderWidth: 1, borderColor: Colors.accent + "30",
   },
-  comingSoonTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textMuted },
-  comingSoonDesc:  { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, marginTop: 2 },
-  comingSoonPill:  { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: Colors.bgElevated, borderRadius: 10 },
-  comingSoonPillText: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.5 },
+  garageIconWrap: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: Colors.accentDim, alignItems: "center", justifyContent: "center",
+  },
+  garageTitle: { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.textPrimary },
+  garageDesc:  { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, marginTop: 2 },
 });
 
 // ─── Phase 28 — Evolution Explanation Styles ──────────────────────────────────

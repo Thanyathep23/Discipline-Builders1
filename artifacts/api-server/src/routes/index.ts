@@ -47,6 +47,8 @@ import adminRecommendationsRouter from "./admin-recommendations.js";
 import characterRouter from "./character.js";
 // Phase 29 — Wearables / Style / Identity
 import wearablesRouter from "./wearables.js";
+// Phase 31 — Car Collection / Showcase / Photo Mode
+import carsRouter from "./cars.js";
 
 const router: IRouter = Router();
 
@@ -98,5 +100,7 @@ router.use("/admin/recommendations", adminRecommendationsRouter);
 router.use("/character", characterRouter);
 // Phase 29 — Wearables
 router.use("/wearables", wearablesRouter);
+// Phase 31 — Cars
+router.use("/cars", carsRouter);
 
 export default router;

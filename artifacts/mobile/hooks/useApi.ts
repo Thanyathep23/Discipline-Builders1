@@ -912,3 +912,51 @@ export function useWearables() {
     staleTime: 30000,
   });
 }
+
+// ─── Phase 31 — Cars ─────────────────────────────────────────────────────────
+
+export function useCars() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["cars"],
+    queryFn: () => request<any>("/cars"),
+    staleTime: 30000,
+  });
+}
+
+export function usePurchaseCar() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (carId: string) =>
+      request<any>(`/cars/${carId}/purchase`, { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cars"] });
+      qc.invalidateQueries({ queryKey: ["character"] });
+    },
+  });
+}
+
+export function useFeatureCar() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (carId: string | null) =>
+      carId
+        ? request<any>(`/cars/${carId}/feature`, { method: "POST" })
+        : request<any>(`/cars/feature`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cars"] });
+      qc.invalidateQueries({ queryKey: ["cars-photo"] });
+    },
+  });
+}
+
+export function useCarPhotoMode() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["cars-photo"],
+    queryFn: () => request<any>("/cars/photo-mode"),
+    staleTime: 30000,
+  });
+}
