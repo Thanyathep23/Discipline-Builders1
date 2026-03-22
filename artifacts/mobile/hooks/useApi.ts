@@ -1050,3 +1050,67 @@ export function useAdminAuditLog(params?: { action?: string; actorId?: string; t
     staleTime: 15000,
   });
 }
+
+// ── Wave 2: Economy Console ───────────────────────────────────────────────────
+
+export function useAdminEconomy(days = 30) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-economy", days],
+    queryFn: () => request<any>(`/admin/economy?days=${days}`),
+    staleTime: 60000,
+  });
+}
+
+// ── Wave 2: Deep Funnel ───────────────────────────────────────────────────────
+
+export function useAdminFunnelDeep(days = 30) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-funnel-deep", days],
+    queryFn: () => request<any>(`/admin/funnel/deep?days=${days}`),
+    staleTime: 60000,
+  });
+}
+
+// ── Wave 2: Recommendation Controls ──────────────────────────────────────────
+
+export function useAdminRecControls() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-rec-controls"],
+    queryFn: () => request<any>("/admin/recommendations/controls"),
+    staleTime: 30000,
+  });
+}
+
+export function useAdminUpdateRecControls() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { surfaces?: Record<string, boolean>; weights?: Record<string, number>; reason?: string }) =>
+      request<any>("/admin/recommendations/controls", { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-rec-controls"] });
+    },
+  });
+}
+
+export function useAdminRecStats(days = 7) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-rec-stats", days],
+    queryFn: () => request<any>(`/admin/recommendations/stats?days=${days}`),
+    staleTime: 30000,
+  });
+}
+
+export function useAdminRecUserDebug(userId: string | null) {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["admin-rec-user", userId],
+    queryFn: () => request<any>(`/admin/recommendations/${userId}`),
+    enabled: !!userId,
+    staleTime: 15000,
+  });
+}

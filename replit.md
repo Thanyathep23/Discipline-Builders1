@@ -1017,3 +1017,46 @@ Added: `useAdminDashboard`, `useAdminPlayers(params)`, `useAdminPlayerSnapshot(i
 - "Player Inspector" added as the first nav item (routes to `/admin/players`)
 - Stats grid expanded from 4 to 8 cards: Total Users, New 24h, Active Today, Premium, AI Missions, Flagged, Chains, Tx 24h
 - Audit log query updated to handle new `{ total, entries[] }` response format
+
+## Phase 34 — Admin / Ops Console Wave 2 (COMPLETE)
+
+### Kill switch additions (`src/lib/kill-switches.ts`)
+- 3 new kill switches: `kill_recommendations` (disable all recommendation surfaces), `kill_car_collection` (disable garage/cars), `kill_photo_mode` (disable photo capture)
+- Total kill switches: 11
+
+### Content pack status (`src/routes/live-ops.ts`)
+- "paused" status added to validation enums for both content packs and live events (POST + PATCH)
+- Full status lifecycle: draft → scheduled → active → paused → expired → archived
+
+### Economy Console backend (`GET /admin/economy`)
+- Coin generation breakdown: last 24h / 7d / 30d / all-time from `reward_transactions`
+- Top reward sources: grouped by type + reason with event count and total coins
+- Purchase volume by category: wearables, room/workspace, cars, premium, other (via `user_inventory` + `shop_items` join)
+- Wallet distribution stats: avg, min, max, user count (from `users`)
+- Anomaly detection: large single-event transactions (≥500 coins)
+- Pricing signals: heuristic underpriced/overpriced/featured-no-sales flags on active items
+- Sink/source ratio (approximate spend vs generated coins over 30d)
+
+### Deep Funnel backend (`GET /admin/funnel/deep`)
+- 11-step activation funnel with per-step counts and conversion rates between steps
+- Invite funnel: invite signups → activated, direct vs invite breakdown
+- Free → Premium conversion: new users vs new premium users in window, conversion rate
+- Comeback funnel: surface shown → mission accepted, accept rate
+
+### Recommendation Controls backend (`GET/PUT /admin/recommendations/controls`)
+- 5 recommendation surfaces configurable: Next Best Action, Mission Recs, Smart Merchandising, Comeback/Recovery, Prestige Nudges
+- 3 recommendation weights configurable: Store Push Aggressiveness, Comeback Push Strength, Mission Variety Bias (0–100 scale)
+- All changes stored as feature flags and audit-logged with optional reason
+
+### Mobile hooks added (`hooks/useApi.ts`)
+`useAdminEconomy(days)`, `useAdminFunnelDeep(days)`, `useAdminRecControls()`, `useAdminUpdateRecControls()`, `useAdminRecStats(days)`, `useAdminRecUserDebug(userId)`
+
+### New mobile screens
+- `app/admin/economy.tsx` — Economy Console: 4 tabs (Overview, By Category, Top Items, Anomalies). Overview: coin flow stats, wallet distribution, top reward sources, pricing signals. Categories: purchase breakdown. Items: ranked top purchases. Anomalies: large transaction list.
+- `app/admin/recommendations.tsx` — Recommendations Console: 3 tabs (Performance, Controls, Inspector). Performance: aggregate CTR/dismiss metrics, clicks/dismissals by type. Controls: surface toggles (Switch), weight sliders (5-point presets), reason input, audit-logged saves. Inspector: per-user debug view.
+- `app/admin/funnels.tsx` — Funnel Analysis: 4 tabs (Activation, Invite, Premium, Comeback). Visual bar chart per funnel step, conversion rates with health-coded color indicators.
+
+### Admin navigation (`app/admin/index.tsx`)
+- Navigation now grouped by section: Players | Store | Economy | Content | AI Ops | Analytics | Controls | Tools
+- 3 new sections added: Economy Console, Recommendations, Funnels
+- Nav items: 13 → 16 items across 8 sections

@@ -1,0 +1,413 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this wave.
+
+Goal:
+Implement Admin / Ops Console Wave 2.
+
+Current context:
+- Wave 1 is complete:
+  - admin auth / RBAC foundation exists
+  - admin dashboard exists
+  - player inspector exists
+  - support / recovery basics exist
+  - store admin basics exist
+  - audit log foundation exists
+- The next highest-value step is operational control depth:
+  the product now needs stronger systems to run content, tune the economy, inspect recommendation logic, control high-risk features, and read deeper funnel performance.
+- This wave should turn the admin surface from a basic console into a real game-operations layer.
+
+Your task:
+Build only the smallest high-impact Admin / Ops Console Wave 2 layer.
+
+==================================================
+WAVE 2 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Content Ops Console
+2. Economy Console
+3. Recommendation / AI Ops Console
+4. Feature Flags / Kill Switches
+5. Live Ops controls
+6. Deeper funnel / telemetry views
+7. Minimal admin UX improvements required for the above
+
+Do NOT build:
+- full experimentation platform
+- giant BI warehouse
+- full billing ops suite
+- giant moderation system
+- enterprise reporting system
+- full CMS beyond what is necessary
+- redesign of the user-facing app
+- new gameplay systems
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current admin Wave 1 implementation, content packs/events systems, mission generation systems, store/catalog, reward/economy flows, recommendation engine, telemetry/funnel tracking, feature flag surfaces, live-ops systems, and kill-switch logic if any
+2. identify what operational capabilities already exist vs what is still manual or too shallow
+3. identify the minimum Wave 2 admin systems needed to operate the game safely and intelligently
+4. implement only the minimum systems needed
+5. avoid broad refactors
+
+==================================================
+A. CONTENT OPS CONSOLE
+==================================================
+
+Build the core admin console for shipping and managing content.
+
+Purpose:
+Allow the team to create, inspect, schedule, activate, pause, and archive content without code edits.
+
+At minimum, support these content entities where applicable:
+- mission packs
+- challenge packs
+- comeback packs
+- live events
+- limited-time drops
+- seasonal/cycle content
+- premium content packs
+- featured collections or themed content if already supported
+
+Each content item should support operational fields such as:
+- name
+- type
+- short description
+- status
+- start/end time if relevant
+- targeting/eligibility summary if relevant
+- featured state if relevant
+- reward or incentive summary if relevant
+- linked catalog/store items if relevant
+- created/updated timestamps
+
+Required statuses:
+- draft
+- scheduled
+- active
+- paused
+- expired
+- archived
+
+Admin must be able to:
+- create content
+- edit content
+- schedule content
+- activate/deactivate content
+- archive content
+- inspect linked items/missions if already practical
+
+Requirements:
+- keep this tactical, not a giant CMS
+- server-side validation required
+- important writes must be audit-logged
+- do not require code edits for basic activation/deactivation after this wave
+
+==================================================
+B. ECONOMY CONSOLE
+==================================================
+
+Build a lightweight but real Economy Console.
+
+Purpose:
+Give visibility into coin generation, spending, pricing pressure, and pacing health.
+
+At minimum, show:
+- total coin generation over recent windows
+- total coin spend over recent windows
+- sink/source ratio
+- top reward sources
+- top spend categories
+- purchases by category:
+  - wearables
+  - room/workspace
+  - cars
+  - premium cosmetics/content if relevant
+- recent large reward or spend anomalies if practical
+- average/median wallet balance if already easy
+- recent price-sensitive item performance if practical
+
+Admin should be able to inspect:
+- item purchase volume
+- item conversion by category
+- affordability friction signals if already practical
+- potentially underpriced or overpriced item candidates (lightweight, heuristic is fine)
+
+Admin controls can include only lightweight tuning if already safe:
+- adjust item price
+- adjust level unlock threshold
+- activate/deactivate featured push
+- change item category visibility
+- inspect suspicious economy behavior
+
+Requirements:
+- keep reward/economy authority server-side
+- keep this operational, not a giant financial warehouse
+- all impactful admin mutations must be audit-logged
+- preserve existing store/economy behavior for users
+
+==================================================
+C. RECOMMENDATION / AI OPS CONSOLE
+==================================================
+
+Build a lightweight ops surface for recommendation and AI-guided systems.
+
+Purpose:
+Allow the team to see whether the recommendation layer is useful and to tune it safely.
+
+At minimum, support visibility into:
+- next-best-action recommendations
+- mission recommendations
+- smart merchandising/store recommendations
+- recovery/comeback recommendations if applicable
+
+Admin should be able to inspect:
+- recommendation type
+- recommendation target surface
+- impression count
+- click/use/accept rate if already tracked
+- purchase/completion follow-through if already practical
+- low-performing recommendation groups
+- recommendation reasoning summary if available
+- whether recommendation came from rule-based or AI-assisted logic if relevant
+
+Admin controls can include:
+- enable/disable specific recommendation surfaces
+- adjust weighting/priorities for recommendation categories
+- reduce store-push aggressiveness if too strong
+- increase recovery recommendations if user base is struggling
+- inspect why a recommendation was selected for a given player if already practical
+
+Requirements:
+- do not build a giant ML ops platform
+- keep recommendation logic inspectable and explainable
+- admin changes must be bounded and audit-logged
+- preserve trust and product clarity
+
+==================================================
+D. FEATURE FLAGS / KILL SWITCHES
+==================================================
+
+Build proper Wave 2 feature controls for high-risk systems.
+
+Purpose:
+Allow the team to disable risky systems safely without taking down the whole product.
+
+At minimum, support kill-switch or feature-flag control for:
+- AI mission generation
+- OCR / file extraction if present
+- recommendation surfaces
+- live events visibility
+- content pack visibility
+- premium offer surfaces
+- car collection surfaces if needed
+- photo mode if needed
+- integrations/webhooks if already present
+- community/circle surfaces if already present
+
+Requirements:
+- controls must be admin-only
+- system should degrade safely when a feature is disabled
+- users should not get broken dead-end UX when a flag is off
+- flag changes should be audit-logged
+- keep implementation lightweight and reliable
+
+Support at minimum:
+- on/off
+- optional rollout status / label if easy
+- note/reason for change if practical
+
+==================================================
+E. LIVE OPS CONTROLS
+==================================================
+
+Build lightweight controls specifically for running the product as a living game.
+
+Purpose:
+Allow operators to control what is active now.
+
+At minimum, support:
+- currently active events list
+- currently active content packs list
+- featured collection / featured store section controls if applicable
+- visibility of active premium packs if relevant
+- active seasonal/cycle content if already supported
+- “what is live right now” summary
+
+Admin should be able to:
+- activate/deactivate live content
+- pause broken live content
+- inspect timing windows
+- inspect basic performance summary for active content
+- avoid overlapping/contradictory active states where practical
+
+Requirements:
+- keep this practical
+- use the content/event models already in the system
+- do not build a giant live-service orchestration engine
+
+==================================================
+F. DEEPER FUNNEL / TELEMETRY VIEWS
+==================================================
+
+Build a more useful internal funnel console beyond the high-level dashboard.
+
+At minimum, support visibility into these funnels:
+1. Signup -> Quick Start completion
+2. Quick Start -> first mission
+3. First mission -> first proof
+4. First proof -> first reward
+5. First reward -> first store visit
+6. First store visit -> first purchase
+7. First purchase -> first equip/apply
+8. Invite received -> signup -> activated user
+9. Free -> premium
+10. Comeback surface shown -> comeback mission accepted/completed if applicable
+
+If practical, segment by:
+- direct vs invite
+- free vs premium
+- new vs returning
+- active vs comeback users
+
+Requirements:
+- keep views tactical and legible
+- do not build a giant analytics warehouse
+- use existing telemetry where possible
+- allow operators to identify obvious drop-off points quickly
+
+==================================================
+G. ADMIN NAVIGATION / INFORMATION ARCHITECTURE
+==================================================
+
+Extend the admin UI cleanly from Wave 1.
+
+Minimum admin sections after Wave 2 should include:
+- Dashboard
+- Players
+- Content
+- Store
+- Economy
+- Recommendations
+- Funnels
+- Feature Flags / Live Ops
+- Audit Logs
+
+Requirements:
+- admin navigation must stay clear and fast
+- do not clutter the admin console with too many nested surfaces
+- prioritize operational clarity over decorative design
+- maintain strong separation from user-facing app navigation
+
+==================================================
+H. VALIDATION / SECURITY / AUDIT RULES
+==================================================
+
+Requirements:
+- all Wave 2 admin routes must be protected server-side
+- role permissions must be enforced server-side
+- all impactful actions must be audit-logged, especially:
+  - content activation/deactivation
+  - price changes
+  - unlock threshold changes
+  - feature flag changes
+  - recommendation weighting or visibility changes
+- preserve JSON-only admin APIs
+- do not expose sensitive raw user data unnecessarily
+- preserve user-facing ownership, entitlement, progression, and economy rules
+
+If a Wave 2 action could destabilize the product:
+- require higher admin role
+- require reason/note
+- make the UI explicit and careful
+- do not silently mutate major state
+
+==================================================
+I. UX / PRODUCT RULES FOR ADMIN
+==================================================
+
+The Wave 2 admin console should feel:
+- operational
+- fast
+- trustworthy
+- controllable
+- like a live game/product can actually be run from it
+
+It should not feel:
+- like a raw database viewer
+- like a giant enterprise data swamp
+- like a half-baked debug page
+- like a system where dangerous changes are too easy
+
+==================================================
+J. ACCEPTANCE CRITERIA
+==================================================
+
+This wave is complete only if:
+
+1. a real Content Ops Console exists
+2. a real Economy Console exists with useful sink/source and purchase visibility
+3. a Recommendation / AI Ops Console exists with inspectable recommendation performance/tuning
+4. feature flags / kill switches exist for major risky systems
+5. live content can be controlled from the admin side
+6. deeper funnel/telemetry views exist and show meaningful drop-off visibility
+7. all impactful admin actions are protected and audit-logged
+8. admin navigation stays clear and usable
+9. existing user-facing flows still work
+10. no oversized CMS/BI/ML-ops scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what Wave 2 admin/ops capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Content Ops Console added
+- what entities can be managed
+- what statuses/actions exist
+
+4. Economy Console added
+- what metrics/sections are visible
+- what tuning controls exist
+
+5. Recommendation / AI Ops Console added
+- what recommendation surfaces are inspectable
+- what tuning/inspection actions exist
+
+6. Feature Flags / Live Ops controls added
+- what systems can now be toggled/paused/controlled
+- where these controls live
+
+7. Funnel / telemetry views added
+- what funnels are visible
+- what segmentation exists
+
+8. End-to-end verification results for:
+- admin access protection
+- content activation/deactivation
+- price or unlock tuning action
+- recommendation ops visibility
+- feature flag / kill-switch action
+- funnel visibility
+- existing user flow unchanged
+
+9. Remaining gaps for Wave 3
+
+Important:
+Keep this wave focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

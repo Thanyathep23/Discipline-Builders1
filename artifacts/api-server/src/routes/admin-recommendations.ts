@@ -1,14 +1,31 @@
 import { Router } from "express";
 import {
   db, usersTable, auditLogTable, focusSessionsTable,
-  missionsTable, userInventoryTable,
+  missionsTable, userInventoryTable, featureFlagsTable,
 } from "@workspace/db";
 import { eq, and, count, gte, desc } from "drizzle-orm";
-import { requireAdmin } from "../lib/auth.js";
+import { requireAdmin, generateId } from "../lib/auth.js";
 import { getUserSkills } from "../lib/skill-engine.js";
 import { resolveArc } from "../lib/arc-resolver.js";
 import { computePrestigeState } from "../lib/prestige-engine.js";
 import { computeAdaptiveChallenge } from "../lib/adaptive-challenge.js";
+import { setFlag, getFlag } from "../lib/feature-flags.js";
+import { z } from "zod";
+
+// ─── Recommendation surface control keys (stored as feature flags) ────────────
+const REC_SURFACE_KEYS = [
+  { key: "rec_surface_next_best_action", label: "Next Best Action", description: "Home screen next-best-action card" },
+  { key: "rec_surface_mission_recs",     label: "Mission Recommendations", description: "AI-suggested missions for each user" },
+  { key: "rec_surface_store_merch",      label: "Smart Merchandising", description: "Personalized store item recommendations" },
+  { key: "rec_surface_comeback",         label: "Comeback / Recovery", description: "Recovery recommendations for lapsed users" },
+  { key: "rec_surface_prestige_nudge",   label: "Prestige Nudges", description: "Prompts to prestige when user is ready" },
+] as const;
+
+const REC_WEIGHT_KEYS = [
+  { key: "rec_weight_store_push",      label: "Store Push Aggressiveness", defaultValue: "50", min: 0, max: 100, description: "Higher = more store recommendations surfaced (0-100)" },
+  { key: "rec_weight_comeback_push",   label: "Comeback Push Strength",    defaultValue: "50", min: 0, max: 100, description: "Higher = more recovery prompts for lapsed users (0-100)" },
+  { key: "rec_weight_mission_variety", label: "Mission Variety Bias",      defaultValue: "50", min: 0, max: 100, description: "Higher = more varied mission types recommended (0-100)" },
+] as const;
 
 const router = Router();
 router.use(requireAdmin);
@@ -190,6 +207,86 @@ router.get("/:userId", async (req, res) => {
       recentRecommendationEvents: userRecEvents,
       note: "To see the full live recommendation payload, call GET /api/guidance/recommendations as this user (or run it with their session token).",
     });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── GET /admin/recommendations/controls ────────────────────────────────────
+// Returns current recommendation surface on/off states and weight values.
+
+router.get("/controls", async (_req, res) => {
+  try {
+    const surfaces = await Promise.all(
+      REC_SURFACE_KEYS.map(async s => ({
+        key:         s.key,
+        label:       s.label,
+        description: s.description,
+        enabled:     (await getFlag(s.key, "true")) !== "false",
+      })),
+    );
+    const weights = await Promise.all(
+      REC_WEIGHT_KEYS.map(async w => ({
+        key:         w.key,
+        label:       w.label,
+        description: w.description,
+        min:         w.min,
+        max:         w.max,
+        value:       Number(await getFlag(w.key, w.defaultValue)),
+      })),
+    );
+    res.json({ surfaces, weights });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── PUT /admin/recommendations/controls ─────────────────────────────────────
+// Update one or more surface toggles or weight values.
+
+router.put("/controls", async (req: any, res) => {
+  const schema = z.object({
+    surfaces: z.record(z.string(), z.boolean()).optional(),
+    weights:  z.record(z.string(), z.number().int().min(0).max(100)).optional(),
+    reason:   z.string().max(300).optional(),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Validation failed", details: parsed.error.message }); return; }
+
+  try {
+    const actor = req.user;
+    const { surfaces, weights, reason } = parsed.data;
+    const changes: string[] = [];
+
+    if (surfaces) {
+      const validSurfaceKeys = new Set<string>(REC_SURFACE_KEYS.map(s => s.key));
+      for (const [key, enabled] of Object.entries(surfaces)) {
+        if (!validSurfaceKeys.has(key)) continue;
+        await setFlag(key, enabled ? "true" : "false", actor.id);
+        changes.push(`${key}=${enabled ? "on" : "off"}`);
+      }
+    }
+
+    if (weights) {
+      const validWeightKeys = new Set<string>(REC_WEIGHT_KEYS.map(w => w.key));
+      for (const [key, value] of Object.entries(weights)) {
+        if (!validWeightKeys.has(key)) continue;
+        await setFlag(key, String(value), actor.id);
+        changes.push(`${key}=${value}`);
+      }
+    }
+
+    await db.insert(auditLogTable).values({
+      id: generateId(),
+      actorId:    actor.id,
+      actorRole:  actor.role,
+      action:     "recommendation_controls_updated",
+      targetType: "system",
+      details:    JSON.stringify({ changes }),
+      reason:     reason ?? null,
+    });
+
+    res.json({ ok: true, changes });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

@@ -22,8 +22,9 @@ import {
   premiumPacksTable,
   userPremiumPacksTable,
   focusSessionsTable,
+  userInventoryTable,
 } from "@workspace/db";
-import { eq, desc, count, and, gte, inArray, sql, isNotNull, lt, ilike, or } from "drizzle-orm";
+import { eq, desc, count, sum, avg, min, max, and, gte, inArray, sql, isNotNull, isNull, lt, ilike, or } from "drizzle-orm";
 import { setFlag } from "../lib/feature-flags.js";
 import { z } from "zod";
 import { requireAdmin, generateId } from "../lib/auth.js";
@@ -1838,6 +1839,290 @@ router.post("/players/:playerId/recover", async (req: any, res) => {
       ok: true,
       fixesApplied: Object.keys(updates).filter(k => k !== "updatedAt"),
       message: Object.keys(updates).length > 1 ? "Player state recovered." : "Player state is healthy — no fixes needed.",
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// =====================================================================
+// WAVE 2 — ECONOMY CONSOLE  GET /admin/economy
+// =====================================================================
+router.get("/economy", async (req, res) => {
+  try {
+    const days = Math.min(Number(req.query.days ?? 30), 90);
+    const now = new Date();
+    const since30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const since7d  = new Date(now.getTime() -  7 * 24 * 60 * 60 * 1000);
+    const since24h = new Date(now.getTime() -      24 * 60 * 60 * 1000);
+    const sinceWindow = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+
+    // ── Coin generation from reward transactions ──────────────────────
+    const [gen30d, gen7d, gen24h, genTotal] = await Promise.all([
+      db.select({ total: sum(rewardTransactionsTable.amount) }).from(rewardTransactionsTable).where(gte(rewardTransactionsTable.createdAt, since30d)),
+      db.select({ total: sum(rewardTransactionsTable.amount) }).from(rewardTransactionsTable).where(gte(rewardTransactionsTable.createdAt, since7d)),
+      db.select({ total: sum(rewardTransactionsTable.amount) }).from(rewardTransactionsTable).where(gte(rewardTransactionsTable.createdAt, since24h)),
+      db.select({ total: sum(rewardTransactionsTable.amount) }).from(rewardTransactionsTable),
+    ]);
+
+    // ── Top reward sources (type + reason grouping) ────────────────────
+    const topSources = await db
+      .select({
+        type:       rewardTransactionsTable.type,
+        reason:     rewardTransactionsTable.reason,
+        eventCount: count(),
+        totalCoins: sum(rewardTransactionsTable.amount),
+      })
+      .from(rewardTransactionsTable)
+      .where(gte(rewardTransactionsTable.createdAt, sinceWindow))
+      .groupBy(rewardTransactionsTable.type, rewardTransactionsTable.reason)
+      .orderBy(desc(sum(rewardTransactionsTable.amount)))
+      .limit(15);
+
+    // ── Large anomaly transactions (> 500 coins in one event) ─────────
+    const anomalies = await db
+      .select({
+        userId:   rewardTransactionsTable.userId,
+        amount:   rewardTransactionsTable.amount,
+        type:     rewardTransactionsTable.type,
+        reason:   rewardTransactionsTable.reason,
+        at:       rewardTransactionsTable.createdAt,
+      })
+      .from(rewardTransactionsTable)
+      .where(and(gte(rewardTransactionsTable.createdAt, sinceWindow), gte(rewardTransactionsTable.amount, 500)))
+      .orderBy(desc(rewardTransactionsTable.amount))
+      .limit(20);
+
+    // ── Purchase volume — join userInventory with shopItems ───────────
+    const purchases = await db
+      .select({
+        itemId:       userInventoryTable.itemId,
+        name:         shopItemsTable.name,
+        category:     shopItemsTable.category,
+        cost:         shopItemsTable.cost,
+        wearableSlot: shopItemsTable.wearableSlot,
+        roomZone:     shopItemsTable.roomZone,
+        isPremiumOnly: shopItemsTable.isPremiumOnly,
+        featuredOrder: shopItemsTable.featuredOrder,
+        purchaseCount: count(),
+      })
+      .from(userInventoryTable)
+      .innerJoin(shopItemsTable, eq(userInventoryTable.itemId, shopItemsTable.id))
+      .where(and(
+        eq(userInventoryTable.source, "purchase"),
+        gte(userInventoryTable.redeemedAt, sinceWindow),
+      ))
+      .groupBy(
+        userInventoryTable.itemId,
+        shopItemsTable.name,
+        shopItemsTable.category,
+        shopItemsTable.cost,
+        shopItemsTable.wearableSlot,
+        shopItemsTable.roomZone,
+        shopItemsTable.isPremiumOnly,
+        shopItemsTable.featuredOrder,
+      )
+      .orderBy(desc(count()));
+
+    // Categorize purchases
+    const byCategory: Record<string, { count: number; totalCost: number }> = {
+      wearables: { count: 0, totalCost: 0 },
+      room:      { count: 0, totalCost: 0 },
+      cars:      { count: 0, totalCost: 0 },
+      premium:   { count: 0, totalCost: 0 },
+      other:     { count: 0, totalCost: 0 },
+    };
+    for (const p of purchases) {
+      const n = Number(p.purchaseCount);
+      const cost = (p.cost ?? 0) * n;
+      if (p.wearableSlot) {
+        byCategory.wearables.count += n; byCategory.wearables.totalCost += cost;
+      } else if (p.roomZone) {
+        byCategory.room.count += n; byCategory.room.totalCost += cost;
+      } else if (p.category?.toLowerCase().includes("car")) {
+        byCategory.cars.count += n; byCategory.cars.totalCost += cost;
+      } else if (p.isPremiumOnly) {
+        byCategory.premium.count += n; byCategory.premium.totalCost += cost;
+      } else {
+        byCategory.other.count += n; byCategory.other.totalCost += cost;
+      }
+    }
+
+    // Top items by purchase volume
+    const topItems = purchases.slice(0, 20).map(p => ({
+      itemId:        p.itemId,
+      name:          p.name,
+      category:      p.category,
+      cost:          p.cost,
+      purchaseCount: Number(p.purchaseCount),
+      totalRevenue:  (p.cost ?? 0) * Number(p.purchaseCount),
+    }));
+
+    // Pricing signals (heuristic)
+    const allItems = await db.select({
+      id:            shopItemsTable.id,
+      name:          shopItemsTable.name,
+      cost:          shopItemsTable.cost,
+      featuredOrder: shopItemsTable.featuredOrder,
+      isAvailable:   shopItemsTable.isAvailable,
+    }).from(shopItemsTable).where(eq(shopItemsTable.isAvailable, true));
+
+    const purchaseMap = new Map(purchases.map(p => [p.itemId, Number(p.purchaseCount)]));
+    const avgPurchaseCount = purchases.length > 0
+      ? purchases.reduce((s, p) => s + Number(p.purchaseCount), 0) / purchases.length
+      : 0;
+
+    const pricingSignals = allItems
+      .map(item => {
+        const pc = purchaseMap.get(item.id) ?? 0;
+        let signal: string | null = null;
+        if (pc > avgPurchaseCount * 2.5 && (item.cost ?? 0) < 100) signal = "possibly_underpriced";
+        else if (pc === 0 && item.featuredOrder !== null) signal = "featured_no_sales";
+        else if (pc < avgPurchaseCount * 0.1 && (item.cost ?? 0) > 300) signal = "possibly_overpriced";
+        return signal ? { id: item.id, name: item.name, cost: item.cost, purchaseCount: pc, signal } : null;
+      })
+      .filter(Boolean)
+      .slice(0, 10);
+
+    // Wallet stats
+    const walletStats = await db
+      .select({
+        userCount: count(),
+        avgBalance: avg(usersTable.coinBalance),
+        minBalance: min(usersTable.coinBalance),
+        maxBalance: max(usersTable.coinBalance),
+      })
+      .from(usersTable)
+      .where(eq(usersTable.role, "user"));
+
+    const totalGenerated30d = Number(gen30d[0]?.total ?? 0);
+    const totalSpent30d     = Object.values(byCategory).reduce((s, c) => s + c.totalCost, 0);
+    const sinkSourceRatio   = totalGenerated30d > 0
+      ? Math.round((totalSpent30d / totalGenerated30d) * 100) / 100
+      : null;
+
+    return res.json({
+      windowDays: days,
+      coinFlow: {
+        generated: {
+          last24h:  Number(gen24h[0]?.total ?? 0),
+          last7d:   Number(gen7d[0]?.total ?? 0),
+          last30d:  totalGenerated30d,
+          allTime:  Number(genTotal[0]?.total ?? 0),
+        },
+        approximateSpend30d: totalSpent30d,
+        sinkSourceRatio,
+      },
+      topRewardSources: topSources.map(r => ({
+        type:       r.type,
+        reason:     r.reason,
+        eventCount: Number(r.eventCount),
+        totalCoins: Number(r.totalCoins ?? 0),
+      })),
+      purchasesByCategory: byCategory,
+      topItemsByPurchase: topItems,
+      pricingSignals,
+      walletStats: {
+        userCount:  Number(walletStats[0]?.userCount ?? 0),
+        avg:        Math.round(Number(walletStats[0]?.avgBalance ?? 0)),
+        min:        Number(walletStats[0]?.minBalance ?? 0),
+        max:        Number(walletStats[0]?.maxBalance ?? 0),
+      },
+      recentAnomalies: anomalies,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// =====================================================================
+// WAVE 2 — DEEP FUNNEL  GET /admin/funnel/deep
+// =====================================================================
+router.get("/funnel/deep", async (req, res) => {
+  try {
+    const days = Math.min(Number(req.query.days ?? 30), 90);
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    // Core funnel events ordered by journey step
+    const FUNNEL_STEPS = [
+      { key: "signup",          event: "signup_completed",           label: "Signup" },
+      { key: "profile",         event: "standard_profile_completed", label: "Profile Completed" },
+      { key: "mission_shown",   event: "ai_mission_shown",           label: "Mission Shown" },
+      { key: "mission_accept",  event: "ai_mission_accepted",        label: "Mission Accepted" },
+      { key: "focus_started",   event: "focus_started",              label: "Focus Started" },
+      { key: "focus_done",      event: "focus_completed",            label: "Focus Completed" },
+      { key: "proof_submitted", event: "proof_submitted",            label: "Proof Submitted" },
+      { key: "proof_approved",  event: "proof_approved",             label: "Proof Approved" },
+      { key: "reward_earned",   event: "reward_granted",             label: "First Reward" },
+      { key: "store_visited",   event: "store_visited",              label: "Store Visited" },
+      { key: "item_purchased",  event: "item_purchased",             label: "Item Purchased" },
+    ];
+
+    const funnelEvents = FUNNEL_STEPS.map(s => s.event);
+    const rows = await db
+      .select({ action: auditLogTable.action, n: count() })
+      .from(auditLogTable)
+      .where(and(gte(auditLogTable.createdAt, since), inArray(auditLogTable.action, funnelEvents)))
+      .groupBy(auditLogTable.action);
+
+    const counts: Record<string, number> = {};
+    for (const r of rows) counts[r.action] = Number(r.n);
+
+    let prevCount: number | null = null;
+    const steps = FUNNEL_STEPS.map(s => {
+      const n = counts[s.event] ?? 0;
+      const conversionFromPrev = prevCount !== null && prevCount > 0
+        ? Math.round((n / prevCount) * 100)
+        : null;
+      prevCount = n > 0 ? n : prevCount;
+      return { key: s.key, label: s.label, event: s.event, count: n, conversionFromPrev };
+    });
+
+    // Comeback funnel: comeback surface shown → mission accepted
+    const [comebackShown, comebackAccepted] = await Promise.all([
+      db.select({ n: count() }).from(auditLogTable)
+        .where(and(eq(auditLogTable.action, "comeback_surface_shown"), gte(auditLogTable.createdAt, since))),
+      db.select({ n: count() }).from(auditLogTable)
+        .where(and(eq(auditLogTable.action, "comeback_mission_accepted"), gte(auditLogTable.createdAt, since))),
+    ]);
+
+    // Invite funnel
+    const [inviteSignups, inviteActivated, totalUsers, premiumUsers] = await Promise.all([
+      db.select({ n: count() }).from(usersTable)
+        .where(and(isNotNull(usersTable.invitedByCode), gte(usersTable.createdAt, since))),
+      db.select({ n: count() }).from(usersTable)
+        .innerJoin(lifeProfilesTable, eq(usersTable.id, lifeProfilesTable.userId))
+        .where(and(isNotNull(usersTable.invitedByCode), isNotNull(lifeProfilesTable.onboardingStage), gte(usersTable.createdAt, since))),
+      db.select({ n: count() }).from(usersTable).where(and(eq(usersTable.role, "user"), gte(usersTable.createdAt, since))),
+      db.select({ n: count() }).from(usersTable).where(and(eq(usersTable.isPremium, true), gte(usersTable.createdAt, since))),
+    ]);
+
+    const totalN       = Number(totalUsers[0]?.n ?? 0);
+    const premiumN     = Number(premiumUsers[0]?.n ?? 0);
+    const inviteSignN  = Number(inviteSignups[0]?.n ?? 0);
+    const inviteActN   = Number(inviteActivated[0]?.n ?? 0);
+    const cbShownN     = Number(comebackShown[0]?.n ?? 0);
+    const cbAcceptedN  = Number(comebackAccepted[0]?.n ?? 0);
+
+    return res.json({
+      windowDays: days,
+      steps,
+      inviteFunnel: {
+        inviteSignups:     inviteSignN,
+        inviteActivated:   inviteActN,
+        activationRate:    inviteSignN > 0 ? Math.round((inviteActN / inviteSignN) * 100) : null,
+        directSignups:     totalN - inviteSignN,
+      },
+      freeToPremium: {
+        newUsers:          totalN,
+        newPremium:        premiumN,
+        conversionRate:    totalN > 0 ? Math.round((premiumN / totalN) * 100) : null,
+      },
+      comebackFunnel: {
+        surfaceShown:      cbShownN,
+        missionAccepted:   cbAcceptedN,
+        acceptRate:        cbShownN > 0 ? Math.round((cbAcceptedN / cbShownN) * 100) : null,
+      },
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

@@ -46,19 +46,22 @@ export default function AdminScreen() {
   };
 
   const NAV_ITEMS = [
-    { label: "Player Inspector", icon: "people-outline" as const, route: "/admin/players", color: Colors.green },
-    { label: "Product Catalog", icon: "storefront-outline" as const, route: "/admin/catalog", color: Colors.accent },
-    { label: "Kill Switches", icon: "power-outline" as const, route: "/admin/kill-switches", color: Colors.crimson },
-    { label: "Rewards Audit", icon: "cash-outline" as const, route: "/admin/rewards", color: Colors.gold },
-    { label: "Mission Inspection", icon: "flash-outline" as const, route: "/admin/missions", color: Colors.cyan },
-    { label: "User Progression", icon: "person-outline" as const, route: "/admin/user-progression", color: Colors.accent },
-    { label: "Override Actions", icon: "build-outline" as const, route: "/admin/overrides", color: Colors.crimson },
-    { label: "Telemetry & Funnels", icon: "pulse-outline" as const, route: "/admin/telemetry", color: Colors.green },
-    { label: "User Feedback", icon: "chatbubble-outline" as const, route: "/admin/feedback", color: Colors.amber },
-    { label: "Feature Flags", icon: "toggle-outline" as const, route: "/admin/flags", color: Colors.accent },
-    { label: "Growth Funnel", icon: "trending-up-outline" as const, route: "/admin/growth", color: Colors.cyan },
-    { label: "Live Ops", icon: "calendar-outline" as const, route: "/admin/live-ops", color: Colors.amber },
-    { label: "Offer Controls", icon: "star-outline" as const, route: "/admin/offers", color: Colors.gold },
+    { label: "Player Inspector",    icon: "people-outline" as const,         route: "/admin/players",         color: Colors.green,   section: "Players" },
+    { label: "Product Catalog",     icon: "storefront-outline" as const,     route: "/admin/catalog",         color: Colors.accent,  section: "Store" },
+    { label: "Offer Controls",      icon: "star-outline" as const,           route: "/admin/offers",          color: Colors.gold,    section: "Store" },
+    { label: "Economy Console",     icon: "bar-chart-outline" as const,      route: "/admin/economy",         color: Colors.gold,    section: "Economy" },
+    { label: "Rewards Audit",       icon: "cash-outline" as const,           route: "/admin/rewards",         color: Colors.amber,   section: "Economy" },
+    { label: "Content / Live Ops",  icon: "calendar-outline" as const,       route: "/admin/live-ops",        color: Colors.cyan,    section: "Content" },
+    { label: "Recommendations",     icon: "bulb-outline" as const,           route: "/admin/recommendations", color: Colors.accent,  section: "AI Ops" },
+    { label: "Funnels",             icon: "funnel-outline" as const,         route: "/admin/funnels",         color: Colors.green,   section: "Analytics" },
+    { label: "Telemetry",           icon: "pulse-outline" as const,          route: "/admin/telemetry",       color: Colors.cyan,    section: "Analytics" },
+    { label: "Growth Funnel",       icon: "trending-up-outline" as const,    route: "/admin/growth",          color: Colors.green,   section: "Analytics" },
+    { label: "Kill Switches",       icon: "power-outline" as const,          route: "/admin/kill-switches",   color: Colors.crimson, section: "Controls" },
+    { label: "Feature Flags",       icon: "toggle-outline" as const,         route: "/admin/flags",           color: Colors.accent,  section: "Controls" },
+    { label: "Mission Inspection",  icon: "flash-outline" as const,          route: "/admin/missions",        color: Colors.cyan,    section: "Tools" },
+    { label: "User Progression",    icon: "person-outline" as const,         route: "/admin/user-progression",color: Colors.accent,  section: "Tools" },
+    { label: "Override Actions",    icon: "build-outline" as const,          route: "/admin/overrides",       color: Colors.crimson, section: "Tools" },
+    { label: "User Feedback",       icon: "chatbubble-outline" as const,     route: "/admin/feedback",        color: Colors.amber,   section: "Tools" },
   ];
 
   return (
@@ -200,25 +203,30 @@ export default function AdminScreen() {
           ) : null}
         </Animated.View>
 
-        {/* Navigation */}
-        <Animated.View entering={FadeInDown.delay(80).springify()}>
-          <Text style={styles.sectionTitle}>Inspection Tools</Text>
-          <View style={styles.navGrid}>
-            {NAV_ITEMS.map(item => (
-              <Pressable
-                key={item.route}
-                style={({ pressed }) => [styles.navCard, pressed && { opacity: 0.7 }]}
-                onPress={() => router.push(item.route as any)}
-              >
-                <View style={[styles.navIcon, { backgroundColor: item.color + "18" }]}>
-                  <Ionicons name={item.icon} size={22} color={item.color} />
-                </View>
-                <Text style={styles.navLabel}>{item.label}</Text>
-                <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
-              </Pressable>
-            ))}
-          </View>
-        </Animated.View>
+        {/* Navigation — grouped by section */}
+        {(() => {
+          const sections = [...new Set(NAV_ITEMS.map(n => n.section))];
+          return sections.map((sec, si) => (
+            <Animated.View key={sec} entering={FadeInDown.delay(80 + si * 30).springify()}>
+              <Text style={styles.sectionTitle}>{sec}</Text>
+              <View style={styles.navGrid}>
+                {NAV_ITEMS.filter(n => n.section === sec).map(item => (
+                  <Pressable
+                    key={item.route}
+                    style={({ pressed }) => [styles.navCard, pressed && { opacity: 0.7 }]}
+                    onPress={() => router.push(item.route as any)}
+                  >
+                    <View style={[styles.navIcon, { backgroundColor: item.color + "18" }]}>
+                      <Ionicons name={item.icon} size={22} color={item.color} />
+                    </View>
+                    <Text style={styles.navLabel}>{item.label}</Text>
+                    <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+                  </Pressable>
+                ))}
+              </View>
+            </Animated.View>
+          ));
+        })()}
 
         {/* Flagged Proofs */}
         <Animated.View entering={FadeInDown.delay(160).springify()}>

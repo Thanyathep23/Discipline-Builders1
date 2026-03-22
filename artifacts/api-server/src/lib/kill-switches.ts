@@ -19,7 +19,10 @@ export type KillSwitchKey =
   | "kill_circles"
   | "kill_webhooks"
   | "kill_invite_system"
-  | "kill_live_ops";
+  | "kill_live_ops"
+  | "kill_recommendations"
+  | "kill_car_collection"
+  | "kill_photo_mode";
 
 export const KILL_SWITCH_DESCRIPTIONS: Record<KillSwitchKey, string> = {
   kill_ai_missions:           "Emergency: disable AI mission generation (falls back to rule-based)",
@@ -30,6 +33,9 @@ export const KILL_SWITCH_DESCRIPTIONS: Record<KillSwitchKey, string> = {
   kill_webhooks:              "Emergency: disable all outbound webhook dispatching",
   kill_invite_system:         "Emergency: disable invite code generation and use",
   kill_live_ops:              "Emergency: disable live ops event activation",
+  kill_recommendations:       "Emergency: disable all recommendation surfaces (next-best-action, missions, store)",
+  kill_car_collection:        "Emergency: disable car collection and garage features",
+  kill_photo_mode:            "Emergency: disable photo mode and proof image capture",
 };
 
 /**
