@@ -68,13 +68,13 @@ const SKIN_TONE_DISPLAY: { key: string; label: string }[] = [
   { key: "tone-5", label: "Deep"   },
 ];
 
-const HAIR_STYLE_DISPLAY: { key: string; label: string; icon: string }[] = [
-  { key: "low-fade", label: "Low Fade",  icon: "cut-outline"         },
-  { key: "caesar",   label: "Caesar",    icon: "ellipsis-horizontal" },
-  { key: "taper",    label: "Taper",     icon: "options-outline"     },
-  { key: "waves",    label: "Waves",     icon: "water-outline"       },
-  { key: "natural",  label: "Natural",   icon: "leaf-outline"        },
-  { key: "bald",     label: "Bald",      icon: "remove-circle-outline"},
+const HAIR_STYLE_DISPLAY: { key: string; label: string }[] = [
+  { key: "low-fade", label: "Low Fade" },
+  { key: "caesar",   label: "Caesar"   },
+  { key: "taper",    label: "Taper"    },
+  { key: "waves",    label: "Waves"    },
+  { key: "natural",  label: "Natural"  },
+  { key: "bald",     label: "Bald"     },
 ];
 
 const HAIR_COLOR_DISPLAY: { key: string; label: string }[] = [
@@ -177,6 +177,71 @@ function HairLayer({ style, color, hCY, hsRx, hsRy, hcRy }: {
       <Path d={`M38 ${hCY - 20} Q50 ${hCY - 24} 62 ${hCY - 20}`} stroke={shade} strokeWidth="1.5" fill="none" strokeLinecap="round" />
       <Path d={`M36 ${hCY - 16} Q50 ${hCY - 21} 64 ${hCY - 16}`} stroke={shade} strokeWidth="1" fill="none" strokeLinecap="round" />
     </G>
+  );
+}
+
+// ─── Hair Style Mini Preview SVG ──────────────────────────────────────────────
+
+function HairStylePreview({ style, color, size = 44 }: { style: string; color: string; size?: number }) {
+  const shade = "#00000050";
+  const headFill = "#C8956C";
+  const cx = 20; const cy = 20; const r = 12;
+  const hTop = cy - r - 3;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 40 40">
+      {/* head */}
+      <Ellipse cx={cx} cy={cy + 2} rx={r} ry={r + 1} fill={headFill} />
+      {/* hair per style */}
+      {style === "natural" && (
+        <G>
+          <Ellipse cx={cx} cy={hTop - 2} rx="12" ry="9" fill={color} />
+          <Rect x={cx - 12} y={hTop - 2} width="24" height="9" fill={color} />
+          <Ellipse cx={cx - 11} cy={hTop + 5} rx="3.5" ry="7" fill={color} />
+          <Ellipse cx={cx + 11} cy={hTop + 5} rx="3.5" ry="7" fill={color} />
+          <Path d={`M9 ${hTop - 2} Q20 ${hTop - 7} 31 ${hTop - 2}`} stroke={shade} strokeWidth="1" fill="none" strokeLinecap="round" />
+        </G>
+      )}
+      {style === "waves" && (
+        <G>
+          <Ellipse cx={cx} cy={hTop} rx="11" ry="7" fill={color} />
+          <Rect x={cx - 11} y={hTop} width="22" height="7" fill={color} />
+          <Ellipse cx={cx - 10} cy={hTop + 5} rx="3" ry="5" fill={color} />
+          <Ellipse cx={cx + 10} cy={hTop + 5} rx="3" ry="5" fill={color} />
+          <Path d={`M10 ${hTop - 2} Q14 ${hTop - 6} 18 ${hTop - 2} Q22 ${hTop + 2} 26 ${hTop - 2} Q30 ${hTop - 6} 31 ${hTop - 2}`} stroke={shade} strokeWidth="0.9" fill="none" strokeLinecap="round" />
+        </G>
+      )}
+      {style === "caesar" && (
+        <G>
+          <Ellipse cx={cx} cy={hTop} rx="11" ry="6" fill={color} />
+          <Rect x={cx - 11} y={hTop} width="22" height="7" fill={color} />
+          <Ellipse cx={cx} cy={hTop - 3} rx="10" ry="3.5" fill={color} />
+          <Ellipse cx={cx - 10} cy={hTop + 5} rx="2" ry="5" fill={color} />
+          <Ellipse cx={cx + 10} cy={hTop + 5} rx="2" ry="5" fill={color} />
+          <Path d={`M10 ${hTop - 2} Q20 ${hTop - 7} 30 ${hTop - 2}`} stroke={shade} strokeWidth="1" fill="none" strokeLinecap="round" />
+        </G>
+      )}
+      {style === "low-fade" && (
+        <G>
+          <Ellipse cx={cx} cy={hTop} rx="11" ry="7" fill={color} />
+          <Rect x={cx - 11} y={hTop} width="22" height="7" fill={color} />
+          <Ellipse cx={cx - 10} cy={hTop + 5} rx="2" ry="4" fill={color} />
+          <Ellipse cx={cx + 10} cy={hTop + 5} rx="2" ry="4" fill={color} />
+          <Path d={`M12 ${hTop - 3} Q20 ${hTop - 7} 28 ${hTop - 3}`} stroke={shade} strokeWidth="1.2" fill="none" strokeLinecap="round" />
+        </G>
+      )}
+      {(style === "taper" || (!["natural","waves","caesar","low-fade","bald"].includes(style))) && (
+        <G>
+          <Ellipse cx={cx} cy={hTop} rx="11" ry="7" fill={color} />
+          <Rect x={cx - 11} y={hTop} width="22" height="7" fill={color} />
+          <Ellipse cx={cx - 10} cy={hTop + 5} rx="2.5" ry="5.5" fill={color} />
+          <Ellipse cx={cx + 10} cy={hTop + 5} rx="2.5" ry="5.5" fill={color} />
+          <Path d={`M13 ${hTop - 3} Q20 ${hTop - 7} 27 ${hTop - 3}`} stroke={shade} strokeWidth="1.2" fill="none" strokeLinecap="round" />
+        </G>
+      )}
+      {style === "bald" && (
+        <Ellipse cx={cx} cy={hTop + 1} rx="11.5" ry="5" fill={headFill} opacity="0.25" />
+      )}
+    </Svg>
   );
 }
 
@@ -486,7 +551,7 @@ function CharacterCustomizeSheet({
                   <Text style={[sheetStyles.swatchLabel, active && { color: Colors.textPrimary }]}>
                     {s.label}
                   </Text>
-                  {active && <View style={sheetStyles.swatchCheck}><Ionicons name="checkmark" size={10} color="#fff" /></View>}
+                  {active && <View style={sheetStyles.swatchCheck}><Ionicons name="checkmark" size={10} color={Colors.textOnAccent} /></View>}
                 </Pressable>
               );
             })}
@@ -497,6 +562,7 @@ function CharacterCustomizeSheet({
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={sheetStyles.styleScroll} contentContainerStyle={sheetStyles.styleScrollContent}>
             {HAIR_STYLE_DISPLAY.map((s) => {
               const active = hairStyle === s.key;
+              const previewColor = HAIR_COLOR_HEX[hairColor] ?? "#3B2314";
               return (
                 <Pressable
                   key={s.key}
@@ -504,7 +570,7 @@ function CharacterCustomizeSheet({
                   onPress={() => { Haptics.selectionAsync().catch(() => {}); setHairStyle(s.key); }}
                 >
                   <View style={[sheetStyles.styleIconWrap, active && { backgroundColor: Colors.accent + "30" }]}>
-                    <Ionicons name={s.icon as any} size={22} color={active ? Colors.accent : Colors.textMuted} />
+                    <HairStylePreview style={s.key} color={previewColor} size={44} />
                   </View>
                   <Text style={[sheetStyles.styleCardLabel, active && { color: Colors.accent }]}>
                     {s.label}
@@ -535,7 +601,7 @@ function CharacterCustomizeSheet({
                   <Text style={[sheetStyles.colorLabel, active && { color: Colors.textPrimary }]}>
                     {c.label}
                   </Text>
-                  {active && <View style={sheetStyles.colorCheck}><Ionicons name="checkmark" size={10} color="#fff" /></View>}
+                  {active && <View style={sheetStyles.colorCheck}><Ionicons name="checkmark" size={10} color={Colors.textOnAccent} /></View>}
                 </Pressable>
               );
             })}
@@ -882,6 +948,14 @@ export default function CharacterStatusScreen() {
                   <Ionicons name="chevron-forward" size={18} color={Colors.accent + "80"} />
                 </View>
                 <Text style={styles.evolutionHint}>{data.nextEvolutionHint.hint}</Text>
+                {data.nextEvolutionHint.missionsRequired != null && (
+                  <View style={styles.evolutionMissionsRow}>
+                    <Ionicons name="flame-outline" size={13} color={Colors.amber} />
+                    <Text style={styles.evolutionMissionsText}>
+                      {data.nextEvolutionHint.missionsRequired} {data.nextEvolutionHint.missionsRequired === 1 ? "mission" : "missions"} away from your next evolution
+                    </Text>
+                  </View>
+                )}
                 <Button
                   label={data.nextEvolutionHint.action}
                   onPress={() => {
@@ -1147,12 +1221,21 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular", fontSize: 14,
     color: Colors.textSecondary, lineHeight: 21,
   },
+  evolutionMissionsRow: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: Colors.amberDim,
+    borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
+    alignSelf: "flex-start",
+  },
+  evolutionMissionsText: {
+    fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.amber,
+  },
   evolutionCTA: {
     flexDirection: "row", alignItems: "center", gap: 8,
     alignSelf: "flex-start", backgroundColor: Colors.accent,
     borderRadius: 24, paddingHorizontal: 20, paddingVertical: 11,
   },
-  evolutionCTAText: { fontFamily: "Inter_700Bold", fontSize: 13, color: "#fff" },
+  evolutionCTAText: { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.textOnAccent },
 
   // ── Your Space ──
   spaceRow: { gap: 10 },
@@ -1226,7 +1309,7 @@ const evolStyles = StyleSheet.create({
 const sheetStyles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.60)",
+    backgroundColor: Colors.overlayHeavy,
   },
   sheet: {
     position: "absolute", bottom: 0, left: 0, right: 0,

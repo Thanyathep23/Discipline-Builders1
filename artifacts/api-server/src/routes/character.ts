@@ -177,11 +177,11 @@ function computeVisualState(
   };
 }
 
-const NEXT_HINTS: Record<string, { dimension: string; hint: string; action: string }> = {
-  fitness:    { dimension: "Fitness",           hint: "Complete fitness missions to strengthen your physique and energy.",                 action: "Start a Fitness Mission" },
-  discipline: { dimension: "Discipline",        hint: "Build your focus streak to advance your discipline and composure.",                action: "Start a Focus Session"   },
-  finance:    { dimension: "Finance/Lifestyle", hint: "Grow your trading and learning skills to elevate your lifestyle quality.",         action: "Browse Missions"         },
-  prestige:   { dimension: "Prestige",          hint: "Earn badges and reach mastery levels to unlock elite identity markers.",          action: "View Skill Tree"         },
+const NEXT_HINTS: Record<string, { dimension: string; hint: string; action: string; missionsPerPoint: number }> = {
+  fitness:    { dimension: "Fitness",           hint: "Complete fitness missions to strengthen your physique and energy.",                 action: "Start a Fitness Mission", missionsPerPoint: 1 },
+  discipline: { dimension: "Discipline",        hint: "Build your focus streak to advance your discipline and composure.",                action: "Start a Focus Session",   missionsPerPoint: 1 },
+  finance:    { dimension: "Finance/Lifestyle", hint: "Grow your trading and learning skills to elevate your lifestyle quality.",         action: "Browse Missions",         missionsPerPoint: 2 },
+  prestige:   { dimension: "Prestige",          hint: "Earn badges and reach mastery levels to unlock elite identity markers.",          action: "View Skill Tree",         missionsPerPoint: 3 },
 };
 
 // ── Appearance helpers ────────────────────────────────────────────────────────
@@ -300,7 +300,11 @@ router.get("/status", requireAuth, async (req: any, res) => {
       { key: "prestige",   score: prestigeScore   },
     ].sort((a, b) => a.score - b.score);
     const lowestKey = dimScores[0].key;
-    const nextEvolutionHint = NEXT_HINTS[lowestKey] ?? NEXT_HINTS.discipline;
+    const lowestScore = dimScores[0].score;
+    const hintBase = NEXT_HINTS[lowestKey] ?? NEXT_HINTS.discipline;
+    const pointsNeeded = Math.max(0, Math.ceil((lowestScore + 10) / 10) * 10 - lowestScore);
+    const missionsRequired = Math.max(1, Math.ceil(pointsNeeded * hintBase.missionsPerPoint));
+    const nextEvolutionHint = { ...hintBase, missionsRequired };
 
     // ── Phase 29: Equipped wearables ─────────────────────────────────────────
     const equippedInv = await db

@@ -29,6 +29,9 @@ export const Colors = {
   textPrimary: "#F0F0FF",
   textSecondary: "#8888AA",
   textMuted: "#4A4A6A",
+  textOnAccent: "#FFFFFF",
+
+  overlayHeavy: "rgba(0,0,0,0.60)",
 
   priorityLow: "#4A9EFF",
   priorityMedium: "#FFB300",
