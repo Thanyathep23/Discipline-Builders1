@@ -1,18 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet, Platform, RefreshControl,
+  Modal, TouchableOpacity,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, SlideInDown } from "react-native-reanimated";
 import Svg, { Circle, Ellipse, Rect, Path, G } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/colors";
 import { LoadingScreen, Button } from "@/design-system";
 import { useAuth } from "@/context/AuthContext";
-import { useCharacterStatus } from "@/hooks/useApi";
+import { useCharacterStatus, useUpdateCharacterAppearance } from "@/hooks/useApi";
 
 // ─── Phase 29 — Wearable State Types ──────────────────────────────────────────
 
@@ -38,6 +39,55 @@ const DEFAULT_VS: VisualState = {
   bodyTone: 0, posture: 0, outfitTier: 0, grooming: 0, prestigeAccent: 0, confidenceFace: 0,
 };
 
+// ─── Phase 32 — Appearance color maps ─────────────────────────────────────────
+
+const SKIN_TONE_COLORS: Record<string, [string, string]> = {
+  "tone-1": ["#FDDCB5", "#EDCB9A"],
+  "tone-2": ["#EDB98A", "#D49F70"],
+  "tone-3": ["#C8956C", "#B07E58"],
+  "tone-4": ["#8B5E3C", "#7A4E2E"],
+  "tone-5": ["#5C3317", "#4A2510"],
+};
+
+const HAIR_COLOR_HEX: Record<string, string> = {
+  "black":         "#141414",
+  "dark-brown":    "#2C1A0E",
+  "medium-brown":  "#5C3A1E",
+  "light-brown":   "#8B5E3C",
+  "dirty-blonde":  "#BF9B5A",
+  "blonde":        "#E8D090",
+  "auburn":        "#7B3F20",
+  "platinum":      "#DCDCDC",
+};
+
+const SKIN_TONE_DISPLAY: { key: string; label: string }[] = [
+  { key: "tone-1", label: "Ivory"  },
+  { key: "tone-2", label: "Fair"   },
+  { key: "tone-3", label: "Medium" },
+  { key: "tone-4", label: "Brown"  },
+  { key: "tone-5", label: "Deep"   },
+];
+
+const HAIR_STYLE_DISPLAY: { key: string; label: string; icon: string }[] = [
+  { key: "low-fade", label: "Low Fade",  icon: "cut-outline"         },
+  { key: "caesar",   label: "Caesar",    icon: "ellipsis-horizontal" },
+  { key: "taper",    label: "Taper",     icon: "options-outline"     },
+  { key: "waves",    label: "Waves",     icon: "water-outline"       },
+  { key: "natural",  label: "Natural",   icon: "leaf-outline"        },
+  { key: "bald",     label: "Bald",      icon: "remove-circle-outline"},
+];
+
+const HAIR_COLOR_DISPLAY: { key: string; label: string }[] = [
+  { key: "black",         label: "Black"     },
+  { key: "dark-brown",    label: "Dk Brown"  },
+  { key: "medium-brown",  label: "Brown"     },
+  { key: "light-brown",   label: "Lt Brown"  },
+  { key: "dirty-blonde",  label: "Blonde"    },
+  { key: "blonde",        label: "Platinum"  },
+  { key: "auburn",        label: "Auburn"    },
+  { key: "platinum",      label: "Silver"    },
+];
+
 // Outfit per tier
 const OC = [
   { s: "#EEEEEE", ss: "#E4E4E4", p: "#1A1A2E", ps: "#20203A", seam: "#1C1C30", cr: "#151528", belt: "#3A3A52", bk: "#52526A", bk2: "#6A6A80", btn: true,  col: false },
@@ -46,9 +96,6 @@ const OC = [
   { s: "#4A4A56", ss: "#42424E", p: "#111120", ps: "#17172C", seam: "#0E0E1A", cr: "#0B0B16", belt: "#504858", bk: "#6A6070", bk2: "#888096", btn: false, col: true  },
   { s: "#1E1E2A", ss: "#1A1A22", p: "#0A0A14", ps: "#10101E", seam: "#07070F", cr: "#05050C", belt: "#4A3E52", bk: "#786A82", bk2: "#C0A030", btn: false, col: true  },
 ];
-
-const SKIN_C = ["#D4A574","#D6A876","#D8AA78","#DAAC7A","#DCAE7C"];
-const SKIN_S = ["#C49A6C","#C69C6E","#C89E70","#CAA072","#CCA274"];
 
 function mouthPath(cf: number, hY: number): string {
   const y = hY + 12;
@@ -63,9 +110,93 @@ function browPaths(cf: number, hY: number): [string, string] {
   return [`M40 ${y0 - 1} Q43 ${y1 - 0.5} 46 ${y0 - 1}`, `M54 ${y0 - 1} Q57 ${y1 - 0.5} 60 ${y0 - 1}`];
 }
 
+// ─── Hair Layer Renderer ───────────────────────────────────────────────────────
+
+function HairLayer({ style, color, hCY, hsRx, hsRy, hcRy }: {
+  style: string; color: string;
+  hCY: number; hsRx: number; hsRy: number; hcRy: number;
+}) {
+  const shade = "#00000040";
+  if (style === "bald") return null;
+
+  if (style === "natural") {
+    return (
+      <G>
+        <Ellipse cx="50" cy={hCY - 20} rx="22" ry="18" fill={color} />
+        <Rect x="28" y={hCY - 20} width="44" height="18" fill={color} />
+        <Ellipse cx="29" cy={hCY - 9} rx="5.5" ry="13" fill={color} />
+        <Ellipse cx="71" cy={hCY - 9} rx="5.5" ry="13" fill={color} />
+        <Path d={`M34 ${hCY - 22} Q50 ${hCY - 28} 66 ${hCY - 22}`} stroke={shade} strokeWidth="1.2" fill="none" strokeLinecap="round" />
+      </G>
+    );
+  }
+  if (style === "waves") {
+    return (
+      <G>
+        <Ellipse cx="50" cy={hCY - 16} rx="20" ry={hcRy} fill={color} />
+        <Rect x="30" y={hCY - 16} width="40" height="14" fill={color} />
+        <Ellipse cx="31" cy={hCY - 8} rx={hsRx} ry={hsRy} fill={color} />
+        <Ellipse cx="69" cy={hCY - 8} rx={hsRx} ry={hsRy} fill={color} />
+        <Path d={`M35 ${hCY - 19} Q41 ${hCY - 23} 47 ${hCY - 19} Q53 ${hCY - 15} 59 ${hCY - 19} Q65 ${hCY - 23} 67 ${hCY - 19}`} stroke={shade} strokeWidth="1.1" fill="none" strokeLinecap="round" />
+        <Path d={`M36 ${hCY - 15} Q42 ${hCY - 19} 48 ${hCY - 15} Q54 ${hCY - 11} 60 ${hCY - 15}`} stroke={shade} strokeWidth="0.9" fill="none" strokeLinecap="round" />
+      </G>
+    );
+  }
+  if (style === "caesar") {
+    return (
+      <G>
+        <Ellipse cx="50" cy={hCY - 15} rx="20" ry="11" fill={color} />
+        <Rect x="30" y={hCY - 15} width="40" height="13" fill={color} />
+        <Ellipse cx="50" cy={hCY - 20} rx="19" ry="5.5" fill={color} />
+        <Ellipse cx="31" cy={hCY - 8} rx="3" ry="7" fill={color} />
+        <Ellipse cx="69" cy={hCY - 8} rx="3" ry="7" fill={color} />
+        <Path d={`M31 ${hCY - 20} Q50 ${hCY - 25} 69 ${hCY - 20}`} fill={color} />
+        <Path d={`M33 ${hCY - 22} Q50 ${hCY - 26} 67 ${hCY - 22}`} stroke={shade} strokeWidth="1.2" fill="none" strokeLinecap="round" />
+      </G>
+    );
+  }
+  if (style === "low-fade") {
+    return (
+      <G>
+        <Ellipse cx="50" cy={hCY - 16} rx="20" ry={hcRy} fill={color} />
+        <Rect x="30" y={hCY - 16} width="40" height="14" fill={color} />
+        <Ellipse cx="31" cy={hCY - 8} rx={Math.min(hsRx, 3)} ry={Math.min(hsRy, 6)} fill={color} />
+        <Ellipse cx="69" cy={hCY - 8} rx={Math.min(hsRx, 3)} ry={Math.min(hsRy, 6)} fill={color} />
+        <Path d={`M38 ${hCY - 20} Q50 ${hCY - 24} 62 ${hCY - 20}`} stroke={shade} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        <Path d={`M36 ${hCY - 16} Q50 ${hCY - 21} 64 ${hCY - 16}`} stroke={shade} strokeWidth="1" fill="none" strokeLinecap="round" />
+      </G>
+    );
+  }
+  // taper (default)
+  return (
+    <G>
+      <Ellipse cx="50" cy={hCY - 16} rx="20" ry={hcRy} fill={color} />
+      <Rect x="30" y={hCY - 16} width="40" height="14" fill={color} />
+      <Ellipse cx="31" cy={hCY - 8} rx={hsRx} ry={hsRy} fill={color} />
+      <Ellipse cx="69" cy={hCY - 8} rx={hsRx} ry={hsRy} fill={color} />
+      <Path d={`M38 ${hCY - 20} Q50 ${hCY - 24} 62 ${hCY - 20}`} stroke={shade} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      <Path d={`M36 ${hCY - 16} Q50 ${hCY - 21} 64 ${hCY - 16}`} stroke={shade} strokeWidth="1" fill="none" strokeLinecap="round" />
+    </G>
+  );
+}
+
 // ─── Evolved Character Renderer ───────────────────────────────────────────────
 
-function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visualState?: VisualState | null; equippedWearables?: EquippedWearableState; size?: number }) {
+function EvolvedCharacter({
+  visualState,
+  equippedWearables,
+  skinTone = "tone-3",
+  hairStyle = "taper",
+  hairColor = "black",
+  size = 190,
+}: {
+  visualState?: VisualState | null;
+  equippedWearables?: EquippedWearableState;
+  skinTone?: string;
+  hairStyle?: string;
+  hairColor?: string;
+  size?: number;
+}) {
   const v = visualState ?? DEFAULT_VS;
   const effectiveOutfitTier = equippedWearables?.top?.outfitTierOverride != null
     ? equippedWearables.top.outfitTierOverride
@@ -73,8 +204,10 @@ function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visu
   const watchStyle: "basic" | "refined" | "elite" = equippedWearables?.watch?.watchStyle ?? "basic";
   const accessoryStyle: "chain" | "pin" | null = equippedWearables?.accessory?.accessoryStyle ?? null;
   const oc = OC[Math.min(effectiveOutfitTier, 4)];
-  const skin  = SKIN_C[Math.min(v.bodyTone, 4)];
-  const skinS = SKIN_S[Math.min(v.bodyTone, 4)];
+
+  // User-chosen skin tone overrides stat-driven skin color
+  const [skin, skinS] = SKIN_TONE_COLORS[skinTone] ?? SKIN_TONE_COLORS["tone-3"];
+  const hairFill = HAIR_COLOR_HEX[hairColor] ?? "#141414";
 
   const hCY  = [29,  28,  26 ][v.posture] ?? 28;
   const eCY  = [31,  30,  28 ][v.posture] ?? 30;
@@ -103,16 +236,20 @@ function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visu
 
   return (
     <Svg width={w} height={h} viewBox="0 0 100 220">
+      {/* Fitness glow for high body tone */}
       {v.bodyTone >= 3 && (
         <Ellipse cx="50" cy="130" rx="36" ry="90" fill="rgba(0,230,118,0.035)" />
       )}
+      {/* Shadow */}
       <Ellipse cx="50" cy="212" rx="30" ry="5" fill="#00000055" />
+      {/* Shoes */}
       <Ellipse cx="36" cy="197" rx="16" ry="7.5" fill="#0C0C1A" />
       <Ellipse cx="25" cy="195" rx="8"  ry="5"   fill="#0C0C1A" />
       <Ellipse cx="64" cy="197" rx="16" ry="7.5" fill="#0C0C1A" />
       <Ellipse cx="75" cy="195" rx="8"  ry="5"   fill="#0C0C1A" />
       <Ellipse cx="28" cy="192" rx="5"  ry="2.5" fill="#1A1A2A" />
       <Ellipse cx="72" cy="192" rx="5"  ry="2.5" fill="#1A1A2A" />
+      {/* Trousers */}
       <Rect x="26" y="118" width="21" height="80" rx="4" fill={oc.p} />
       <Rect x="53" y="118" width="21" height="80" rx="4" fill={oc.p} />
       <Rect x="46" y="118" width="8"  height="80" rx="0" fill={oc.seam} />
@@ -124,9 +261,11 @@ function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visu
       )}
       <Rect x="35" y="140" width="1.5" height="50" rx="0.75" fill={oc.cr} />
       <Rect x="63" y="140" width="1.5" height="50" rx="0.75" fill={oc.cr} />
+      {/* Belt */}
       <Rect x="25" y="113" width="50" height="7" rx="2.5" fill={oc.belt} />
       <Rect x="43" y="113" width="14" height="7" rx="1.5" fill={oc.bk} />
       <Rect x="47" y="115" width="6"  height="3" rx="1"   fill={oc.bk2} />
+      {/* Shirt/Top */}
       <Rect x={tX}          y="52" width={tW}      height="64" rx="6"   fill={oc.s} />
       <Rect x={tX}          y="52" width={5}        height="64" rx="2.5" fill={oc.ss} />
       <Rect x={tX + tW - 5} y="52" width={5}        height="64" rx="2.5" fill={oc.ss} />
@@ -138,14 +277,17 @@ function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visu
           <Rect x="49.2" y="60" width="1.5" height="52" rx="0.5" fill={oc.ss} />
         </>
       )}
+      {/* Arms */}
       <Rect x={aLX}      y="54" width={aW} height="50" rx="8" fill={oc.s} />
       <Rect x={aRX}      y="54" width={aW} height="50" rx="8" fill={oc.s} />
       <Rect x={aLX}      y="54" width={4}  height="50" rx="2" fill={oc.ss} />
       <Rect x={aRX + aW - 4} y="54" width={4} height="50" rx="2" fill={oc.ss} />
+      {/* Hands */}
       <Ellipse cx={aLX + aW / 2} cy="106" rx="9" ry="7" fill={skin} />
       <Ellipse cx={aRX + aW / 2} cy="106" rx="9" ry="7" fill={skin} />
-      <Ellipse cx={aLX + 2}           cy="106" rx="3" ry="2.5" fill={skinS} />
-      <Ellipse cx={aRX + aW - 2}      cy="106" rx="3" ry="2.5" fill={skinS} />
+      <Ellipse cx={aLX + 2}      cy="106" rx="3" ry="2.5" fill={skinS} />
+      <Ellipse cx={aRX + aW - 2} cy="106" rx="3" ry="2.5" fill={skinS} />
+      {/* Watch */}
       {hasWatch && watchStyle === "basic" && (
         <G>
           <Rect x={aRX + 2} y="99" width="10" height="6" rx="1.5" fill="#7A6030" />
@@ -176,6 +318,7 @@ function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visu
           <Circle cx={aRX + 7} cy="102" r="0.9" fill="#E8E8FF" />
         </G>
       )}
+      {/* Collar */}
       {oc.col ? (
         <Path
           d={`M${tX + 16} 52 L50 60 L${tX + tW - 16} 52`}
@@ -184,6 +327,7 @@ function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visu
       ) : (
         <Path d="M42 52 L50 62 L58 52" stroke="#DDDDDD" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
       )}
+      {/* Chain/Lapel */}
       {hasChain && (
         <Path
           d={`M44 ${nBottom + 2} Q50 ${nBottom + 6} 56 ${nBottom + 2}`}
@@ -193,51 +337,232 @@ function EvolvedCharacter({ visualState, equippedWearables, size = 190 }: { visu
       {hasGold && (
         <Circle cx={tX + 10} cy="61" r="2.2" fill="#C0A030" />
       )}
+      {/* Neck */}
       <Rect x="44" y={nY} width="12" height={nH} rx="4" fill={skin} />
+      {/* Ears */}
       <Ellipse cx="31" cy={eCY} rx="4" ry="6"   fill={skin} />
       <Ellipse cx="69" cy={eCY} rx="4" ry="6"   fill={skin} />
       <Ellipse cx="31" cy={eCY} rx="2" ry="3.5" fill={skinS} />
       <Ellipse cx="69" cy={eCY} rx="2" ry="3.5" fill={skinS} />
+      {/* Face */}
       <Ellipse cx="50" cy={hCY}      rx="19" ry="21" fill={skin} />
       <Ellipse cx="50" cy={hCY + 16} rx="14" ry="5"  fill={skinS} />
+      {/* Eyes */}
       <Ellipse cx="43" cy={hCY - 2} rx="3"   ry="3.2" fill="#2A2A3A" />
       <Ellipse cx="57" cy={hCY - 2} rx="3"   ry="3.2" fill="#2A2A3A" />
       <Ellipse cx="43" cy={hCY - 2} rx="2.2" ry="2.4" fill="#1A1A28" />
       <Ellipse cx="57" cy={hCY - 2} rx="2.2" ry="2.4" fill="#1A1A28" />
       <Circle  cx={44.2} cy={hCY - 3.2} r="0.9" fill="#FFFFFF" />
       <Circle  cx={58.2} cy={hCY - 3.2} r="0.9" fill="#FFFFFF" />
+      {/* Eyebrows */}
       <Path d={bl} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
       <Path d={br} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+      {/* Nose */}
       <Path
         d={`M50 ${hCY + 3} L48 ${hCY + 8} L52 ${hCY + 8}`}
         stroke="#C09070" strokeWidth="0.9" fill="none" strokeLinecap="round" strokeLinejoin="round"
       />
       <Ellipse cx="50" cy={hCY + 7.5} rx="3" ry="1.5" fill={skin} />
+      {/* Mouth */}
       <Path d={mouth} stroke="#B07A5A" strokeWidth="1.2" fill="none" strokeLinecap="round" />
       <Ellipse cx="50" cy={hCY + 14} rx="4" ry="1.2" fill="#C98C6C" />
-      <Ellipse cx="50" cy={hCY - 16} rx="20" ry={hcRy}  fill="#1E1E30" />
-      <Rect    x="30"  y={hCY - 16}  width="40" height="14" fill="#1E1E30" />
-      <Ellipse cx="31" cy={hCY - 8}  rx={hsRx}  ry={hsRy}  fill="#1E1E30" />
-      <Ellipse cx="69" cy={hCY - 8}  rx={hsRx}  ry={hsRy}  fill="#1E1E30" />
-      <Path d={`M38 ${hCY - 20} Q50 ${hCY - 24} 62 ${hCY - 20}`} stroke="#2A2A42" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-      <Path d={`M36 ${hCY - 16} Q50 ${hCY - 21} 64 ${hCY - 16}`} stroke="#2A2A42" strokeWidth="1"   fill="none" strokeLinecap="round" />
-      {v.grooming >= 1 && (
+      {/* Hair — separate colorable layer */}
+      <HairLayer
+        style={hairStyle}
+        color={hairFill}
+        hCY={hCY}
+        hsRx={hsRx}
+        hsRy={hsRy}
+        hcRy={hcRy}
+      />
+      {/* Grooming details (fade lines) drawn on top of hair */}
+      {hairStyle !== "bald" && v.grooming >= 1 && (
         <G>
-          <Path d={`M30 ${hCY - 14} Q31 ${hCY - 8} 32 ${hCY - 2}`}  stroke="#1C1C2C" strokeWidth="0.9" fill="none" strokeLinecap="round" />
-          <Path d={`M70 ${hCY - 14} Q69 ${hCY - 8} 68 ${hCY - 2}`}  stroke="#1C1C2C" strokeWidth="0.9" fill="none" strokeLinecap="round" />
+          <Path d={`M30 ${hCY - 14} Q31 ${hCY - 8} 32 ${hCY - 2}`}  stroke="#00000030" strokeWidth="0.9" fill="none" strokeLinecap="round" />
+          <Path d={`M70 ${hCY - 14} Q69 ${hCY - 8} 68 ${hCY - 2}`}  stroke="#00000030" strokeWidth="0.9" fill="none" strokeLinecap="round" />
         </G>
       )}
-      {v.grooming >= 2 && (
+      {hairStyle !== "bald" && v.grooming >= 2 && (
         <G>
-          <Path d={`M32 ${hCY - 11} Q33 ${hCY - 4} 35 ${hCY + 1}`} stroke="#141424" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-          <Path d={`M68 ${hCY - 11} Q67 ${hCY - 4} 65 ${hCY + 1}`} stroke="#141424" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+          <Path d={`M32 ${hCY - 11} Q33 ${hCY - 4} 35 ${hCY + 1}`} stroke="#00000040" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+          <Path d={`M68 ${hCY - 11} Q67 ${hCY - 4} 65 ${hCY + 1}`} stroke="#00000040" strokeWidth="1.4" fill="none" strokeLinecap="round" />
         </G>
       )}
     </Svg>
   );
 }
 
-// ─── Dimension Card — with FOCUS / STRENGTH badges ────────────────────────────
+// ─── Character Customization Bottom Sheet ─────────────────────────────────────
+
+function CharacterCustomizeSheet({
+  visible,
+  onClose,
+  currentSkinTone,
+  currentHairStyle,
+  currentHairColor,
+  visualState,
+  equippedWearables,
+  onSave,
+  isSaving,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  currentSkinTone: string;
+  currentHairStyle: string;
+  currentHairColor: string;
+  visualState: VisualState | null;
+  equippedWearables: EquippedWearableState;
+  onSave: (skinTone: string, hairStyle: string, hairColor: string) => void;
+  isSaving: boolean;
+}) {
+  const insets = useSafeAreaInsets();
+  const [skinTone,  setSkinTone]  = useState(currentSkinTone);
+  const [hairStyle, setHairStyle] = useState(currentHairStyle);
+  const [hairColor, setHairColor] = useState(currentHairColor);
+
+  React.useEffect(() => {
+    if (visible) {
+      setSkinTone(currentSkinTone);
+      setHairStyle(currentHairStyle);
+      setHairColor(currentHairColor);
+    }
+  }, [visible, currentSkinTone, currentHairStyle, currentHairColor]);
+
+  const hasChanges =
+    skinTone !== currentSkinTone ||
+    hairStyle !== currentHairStyle ||
+    hairColor !== currentHairColor;
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={sheetStyles.backdrop} activeOpacity={1} onPress={onClose} />
+      <Animated.View entering={SlideInDown.springify().damping(18)} style={[sheetStyles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+
+        {/* Handle */}
+        <View style={sheetStyles.handle} />
+
+        {/* Header */}
+        <View style={sheetStyles.header}>
+          <View>
+            <Text style={sheetStyles.headerTitle}>CUSTOMIZE</Text>
+            <Text style={sheetStyles.headerSub}>Appearance</Text>
+          </View>
+          <Pressable style={sheetStyles.closeBtn} onPress={onClose}>
+            <Ionicons name="close" size={18} color={Colors.textMuted} />
+          </Pressable>
+        </View>
+
+        {/* Live preview */}
+        <View style={sheetStyles.previewWrap}>
+          <EvolvedCharacter
+            visualState={visualState}
+            equippedWearables={equippedWearables}
+            skinTone={skinTone}
+            hairStyle={hairStyle}
+            hairColor={hairColor}
+            size={160}
+          />
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }}>
+
+          {/* ── Skin Tone ── */}
+          <Text style={sheetStyles.sectionLabel}>SKIN TONE</Text>
+          <View style={sheetStyles.swatchRow}>
+            {SKIN_TONE_DISPLAY.map((s) => {
+              const [bg] = SKIN_TONE_COLORS[s.key] ?? ["#C8956C"];
+              const active = skinTone === s.key;
+              return (
+                <Pressable
+                  key={s.key}
+                  style={[sheetStyles.swatchItem, active && { opacity: 1 }]}
+                  onPress={() => { Haptics.selectionAsync().catch(() => {}); setSkinTone(s.key); }}
+                >
+                  <View style={[
+                    sheetStyles.swatchCircle,
+                    { backgroundColor: bg },
+                    active && { borderColor: Colors.accent, borderWidth: 2.5 },
+                  ]} />
+                  <Text style={[sheetStyles.swatchLabel, active && { color: Colors.textPrimary }]}>
+                    {s.label}
+                  </Text>
+                  {active && <View style={sheetStyles.swatchCheck}><Ionicons name="checkmark" size={10} color="#fff" /></View>}
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* ── Hair Style ── */}
+          <Text style={sheetStyles.sectionLabel}>HAIR STYLE</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={sheetStyles.styleScroll} contentContainerStyle={sheetStyles.styleScrollContent}>
+            {HAIR_STYLE_DISPLAY.map((s) => {
+              const active = hairStyle === s.key;
+              return (
+                <Pressable
+                  key={s.key}
+                  style={[sheetStyles.styleCard, active && sheetStyles.styleCardActive]}
+                  onPress={() => { Haptics.selectionAsync().catch(() => {}); setHairStyle(s.key); }}
+                >
+                  <View style={[sheetStyles.styleIconWrap, active && { backgroundColor: Colors.accent + "30" }]}>
+                    <Ionicons name={s.icon as any} size={22} color={active ? Colors.accent : Colors.textMuted} />
+                  </View>
+                  <Text style={[sheetStyles.styleCardLabel, active && { color: Colors.accent }]}>
+                    {s.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {/* ── Hair Color ── */}
+          <Text style={sheetStyles.sectionLabel}>HAIR COLOR</Text>
+          <View style={sheetStyles.colorGrid}>
+            {HAIR_COLOR_DISPLAY.map((c) => {
+              const hex = HAIR_COLOR_HEX[c.key] ?? "#141414";
+              const active = hairColor === c.key;
+              return (
+                <Pressable
+                  key={c.key}
+                  style={sheetStyles.colorItem}
+                  onPress={() => { Haptics.selectionAsync().catch(() => {}); setHairColor(c.key); }}
+                >
+                  <View style={[
+                    sheetStyles.colorCircle,
+                    { backgroundColor: hex },
+                    active && { borderColor: Colors.accent, borderWidth: 2.5 },
+                    c.key === "platinum" && { borderWidth: 1.5, borderColor: Colors.border },
+                  ]} />
+                  <Text style={[sheetStyles.colorLabel, active && { color: Colors.textPrimary }]}>
+                    {c.label}
+                  </Text>
+                  {active && <View style={sheetStyles.colorCheck}><Ionicons name="checkmark" size={10} color="#fff" /></View>}
+                </Pressable>
+              );
+            })}
+          </View>
+
+        </ScrollView>
+
+        {/* Save */}
+        <View style={sheetStyles.saveRow}>
+          <Button
+            label={isSaving ? "Saving…" : hasChanges ? "Save Appearance" : "No Changes"}
+            onPress={() => {
+              if (!hasChanges || isSaving) return;
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+              onSave(skinTone, hairStyle, hairColor);
+            }}
+            variant="primary"
+            fullWidth
+            disabled={!hasChanges || isSaving}
+          />
+        </View>
+      </Animated.View>
+    </Modal>
+  );
+}
+
+// ─── Dimension Card ────────────────────────────────────────────────────────────
 
 function DimensionCard({ dimension, badge, delay = 0 }: { dimension: any; badge?: "LOWEST" | "TOP"; delay?: number }) {
   return (
@@ -277,8 +602,6 @@ const SLOT_ICONS: Record<string, any> = { top: "shirt-outline", watch: "watch-ou
 const SLOT_LABELS: Record<string, string> = { top: "TOP", watch: "WATCH", accessory: "PIECE" };
 
 function EquippedStyleRow({ equippedWearables }: { equippedWearables: any }) {
-  // TODO: Migrate each wearable slot Pressable to <ActionCard icon=... onPress=... /> once
-  // ActionCard supports flex:1 stretch mode for equal-width row layouts.
   const slots = ["top", "watch", "accessory"] as const;
   return (
     <View style={{ flexDirection: "row", gap: 8 }}>
@@ -349,6 +672,9 @@ export default function CharacterStatusScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { data, isLoading, refetch, isRefetching } = useCharacterStatus();
+  const updateAppearance = useUpdateCharacterAppearance();
+
+  const [showCustomize, setShowCustomize] = useState(false);
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const botPad = insets.bottom + (Platform.OS === "web" ? 34 : 100);
@@ -372,6 +698,21 @@ export default function CharacterStatusScreen() {
     dims.forEach((d, i) => {
       if (d.score < minScore) { minScore = d.score; weakestIdx = i; }
       if (d.score > maxScore) { maxScore = d.score; strongestIdx = i; }
+    });
+  }
+
+  // Current appearance from API (with fallbacks)
+  const appearance = (data as any)?.appearance;
+  const currentSkinTone  = appearance?.skinTone  ?? "tone-3";
+  const currentHairStyle = appearance?.hairStyle ?? "taper";
+  const currentHairColor = appearance?.hairColor ?? "black";
+
+  function handleSaveAppearance(skinTone: string, hairStyle: string, hairColor: string) {
+    updateAppearance.mutate({ skinTone, hairStyle, hairColor }, {
+      onSuccess: () => {
+        setShowCustomize(false);
+        refetch();
+      },
     });
   }
 
@@ -418,15 +759,29 @@ export default function CharacterStatusScreen() {
               style={styles.heroGradient}
             >
               {/* Ambient glow rings */}
-              <View style={[styles.glowRing, { width: 280, height: 280, borderColor: tierColor + "16", marginLeft: -140, marginTop: -140 }]} />
-              <View style={[styles.glowRing, { width: 200, height: 200, borderColor: tierColor + "10", marginLeft: -100, marginTop: -100 }]} />
+              <View style={[styles.glowRing, { width: 320, height: 320, borderColor: tierColor + "14", marginLeft: -160, marginTop: -160 }]} />
+              <View style={[styles.glowRing, { width: 220, height: 220, borderColor: tierColor + "10", marginLeft: -110, marginTop: -110 }]} />
+
+              {/* Customize button — top right */}
+              <Pressable
+                style={styles.customizeBtn}
+                onPress={() => {
+                  Haptics.selectionAsync().catch(() => {});
+                  setShowCustomize(true);
+                }}
+              >
+                <Ionicons name="color-palette-outline" size={16} color={Colors.textSecondary} />
+              </Pressable>
 
               {/* The character — full hero presence */}
               <View style={styles.characterWrap}>
                 <EvolvedCharacter
                   visualState={data?.visualState as VisualState | null}
                   equippedWearables={(data as any)?.equippedWearables as EquippedWearableState ?? null}
-                  size={230}
+                  skinTone={currentSkinTone}
+                  hairStyle={currentHairStyle}
+                  hairColor={currentHairColor}
+                  size={250}
                 />
               </View>
 
@@ -434,15 +789,19 @@ export default function CharacterStatusScreen() {
               <Text style={styles.characterName}>{user?.username ?? "Character"}</Text>
               <Text style={styles.outfitLabel}>{data?.character?.outfitLabel ?? "Starter Kit"}</Text>
 
-              {/* Status score pill */}
-              <View style={[styles.scoreChip, { borderColor: tierColor + "60", backgroundColor: tierColor + "18" }]}>
+              {/* Status score pill — with glow */}
+              <View style={[
+                styles.scoreChip,
+                { borderColor: tierColor + "60", backgroundColor: tierColor + "18" },
+                { shadowColor: tierColor, shadowRadius: 14, shadowOpacity: 0.45, shadowOffset: { width: 0, height: 0 }, elevation: 8 },
+              ]}>
                 <Text style={[styles.scoreChipNum, { color: tierColor }]}>{data?.overallScore ?? 0}</Text>
                 <Text style={styles.scoreChipLabel}> STATUS SCORE</Text>
               </View>
             </LinearGradient>
           </Animated.View>
 
-          {/* ── 2. WHO AM I — Status + tier ladder (merged, no duplicate cards) ── */}
+          {/* ── 2. STATUS + TIER CARD ── */}
           <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.tierCard}>
             <View style={styles.tierCardTop}>
               <View style={{ flex: 1, gap: 5 }}>
@@ -457,7 +816,7 @@ export default function CharacterStatusScreen() {
                   <Text style={[styles.miniStatNum, { color: Colors.gold }]}>{data?.completedSessions ?? 0}</Text>
                   <Text style={styles.miniStatLabel}>Sessions</Text>
                 </View>
-                <View style={[styles.miniStatDivider]} />
+                <View style={styles.miniStatDivider} />
                 <View style={styles.miniStat}>
                   <Text style={[styles.miniStatNum, { color: Colors.cyan }]}>{data?.badgeCount ?? 0}</Text>
                   <Text style={styles.miniStatLabel}>Badges</Text>
@@ -465,30 +824,37 @@ export default function CharacterStatusScreen() {
               </View>
             </View>
 
-            {/* Tier progression ladder — horizontal with connecting rail */}
+            {/* Tier progression ladder */}
             <View style={styles.tierLadder}>
-              {TIER_ORDER.map((t, i) => {
-                const active = t === data?.statusTier;
-                const past = i < currentTierIdx;
+              {TIER_ORDER.map((tier, i) => {
+                const tc = TIER_COLORS[tier];
+                const isActive = i === currentTierIdx;
+                const isPast = i < currentTierIdx;
                 const isLast = i === TIER_ORDER.length - 1;
-                const tc = TIER_COLORS[t];
                 return (
-                  <React.Fragment key={t}>
+                  <React.Fragment key={tier}>
                     <View style={styles.tierStep}>
                       <View style={[
                         styles.tierStepDot,
-                        { borderColor: tc },
-                        (active || past) && { backgroundColor: tc },
-                        active && { width: 13, height: 13, borderRadius: 7 },
+                        isActive
+                          ? { backgroundColor: tc, borderColor: tc, width: 16, height: 16, borderRadius: 8, shadowColor: tc, shadowRadius: 8, shadowOpacity: 0.6, shadowOffset: { width: 0, height: 0 }, elevation: 6 }
+                          : isPast
+                            ? { backgroundColor: tc + "60", borderColor: tc + "80" }
+                            : { backgroundColor: "transparent", borderColor: Colors.border + "80" },
                       ]} />
                       <Text style={[
                         styles.tierStepLabel,
-                        (active || past) && { color: tc },
-                        active && { fontFamily: "Inter_700Bold" },
-                      ]}>{t}</Text>
+                        isActive && { color: tc, fontFamily: "Inter_700Bold" },
+                        isPast  && { color: tc + "80" },
+                      ]}>
+                        {tier}
+                      </Text>
                     </View>
                     {!isLast && (
-                      <View style={[styles.tierRail, past && { backgroundColor: tc }]} />
+                      <View style={[
+                        styles.tierRail,
+                        isPast && { backgroundColor: TIER_COLORS[TIER_ORDER[i + 1]] + "40" },
+                      ]} />
                     )}
                   </React.Fragment>
                 );
@@ -496,7 +862,7 @@ export default function CharacterStatusScreen() {
             </View>
           </Animated.View>
 
-          {/* ── 3. WHAT SHOULD I DO — Next Evolution (promoted to primary CTA) ── */}
+          {/* ── 3. NEXT EVOLUTION ── */}
           {data?.nextEvolutionHint && (
             <Animated.View entering={FadeInDown.delay(120).springify()}>
               <LinearGradient
@@ -513,6 +879,7 @@ export default function CharacterStatusScreen() {
                     <Text style={styles.evolutionEyebrow}>NEXT EVOLUTION</Text>
                     <Text style={styles.evolutionDimension}>{data.nextEvolutionHint.dimension}</Text>
                   </View>
+                  <Ionicons name="chevron-forward" size={18} color={Colors.accent + "80"} />
                 </View>
                 <Text style={styles.evolutionHint}>{data.nextEvolutionHint.hint}</Text>
                 <Button
@@ -544,7 +911,7 @@ export default function CharacterStatusScreen() {
             <EquippedStyleRow equippedWearables={(data as any)?.equippedWearables ?? null} />
           </Animated.View>
 
-          {/* ── 5. STATUS DIMENSIONS — why you look like you do ── */}
+          {/* ── 5. STATUS DIMENSIONS ── */}
           <Animated.View entering={FadeInDown.delay(200).springify()}>
             <View style={styles.sectionHeader}>
               <Ionicons name="stats-chart-outline" size={12} color={Colors.textMuted} />
@@ -563,7 +930,7 @@ export default function CharacterStatusScreen() {
             </View>
           </Animated.View>
 
-          {/* ── 6. WHY I LOOK LIKE THIS — evolution explanations ── */}
+          {/* ── 6. WHY YOU LOOK LIKE THIS ── */}
           {data?.visualState?.evolutionExplanations && data.visualState.evolutionExplanations.length > 0 && (
             <Animated.View entering={FadeInDown.delay(310).springify()}>
               <View style={styles.sectionHeader}>
@@ -585,7 +952,7 @@ export default function CharacterStatusScreen() {
             </Animated.View>
           )}
 
-          {/* ── 7. YOUR SPACE — compact dual chip (no bloated room preview) ── */}
+          {/* ── 7. YOUR SPACE ── */}
           <Animated.View entering={FadeInDown.delay(360).springify()}>
             <View style={styles.sectionHeader}>
               <Ionicons name="home-outline" size={12} color={Colors.textMuted} />
@@ -644,6 +1011,19 @@ export default function CharacterStatusScreen() {
 
         </ScrollView>
       )}
+
+      {/* ── Customization Sheet ── */}
+      <CharacterCustomizeSheet
+        visible={showCustomize}
+        onClose={() => setShowCustomize(false)}
+        currentSkinTone={currentSkinTone}
+        currentHairStyle={currentHairStyle}
+        currentHairColor={currentHairColor}
+        visualState={data?.visualState as VisualState | null ?? null}
+        equippedWearables={(data as any)?.equippedWearables ?? null}
+        onSave={handleSaveAppearance}
+        isSaving={updateAppearance.isPending}
+      />
     </View>
   );
 }
@@ -681,28 +1061,39 @@ const styles = StyleSheet.create({
   // ── Hero Card ──
   heroCard:     { borderRadius: 26, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
   heroGradient: {
-    paddingTop: 32, paddingBottom: 24, paddingHorizontal: 20,
+    paddingTop: 44, paddingBottom: 28, paddingHorizontal: 20,
     alignItems: "center", gap: 8, position: "relative",
   },
   glowRing: {
     position: "absolute", borderRadius: 1000, borderWidth: 1,
     top: "50%", left: "50%",
   },
+  customizeBtn: {
+    position: "absolute", top: 14, right: 14,
+    width: 34, height: 34, borderRadius: 10,
+    backgroundColor: Colors.bgElevated + "CC",
+    borderWidth: 1, borderColor: Colors.border,
+    alignItems: "center", justifyContent: "center",
+    zIndex: 10,
+  },
   characterWrap: { alignItems: "center", zIndex: 1 },
   characterName: {
-    fontFamily: "Inter_700Bold", fontSize: 22,
+    fontFamily: "Inter_700Bold", fontSize: 24,
     color: Colors.textPrimary, letterSpacing: -0.3, zIndex: 1,
   },
-  outfitLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, zIndex: 1 },
+  outfitLabel: {
+    fontFamily: "Inter_500Medium", fontSize: 12,
+    color: Colors.textSecondary, zIndex: 1, letterSpacing: 0.3,
+  },
   scoreChip: {
     flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 16, paddingVertical: 7,
-    borderRadius: 20, borderWidth: 1, marginTop: 6, zIndex: 1,
+    paddingHorizontal: 18, paddingVertical: 8,
+    borderRadius: 22, borderWidth: 1, marginTop: 8, zIndex: 1,
   },
-  scoreChipNum:   { fontFamily: "Inter_700Bold", fontSize: 16 },
+  scoreChipNum:   { fontFamily: "Inter_700Bold", fontSize: 18 },
   scoreChipLabel: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.5 },
 
-  // ── Status Tier Card (merged) ──
+  // ── Status Tier Card ──
   tierCard: {
     backgroundColor: Colors.bgCard, borderRadius: 22,
     padding: 20, borderWidth: 1, borderColor: Colors.border, gap: 18,
@@ -720,7 +1111,7 @@ const styles = StyleSheet.create({
   // Tier ladder
   tierLadder: { flexDirection: "row", alignItems: "center" },
   tierStep:   { alignItems: "center", gap: 5 },
-  tierStepDot: { width: 10, height: 10, borderRadius: 5, borderWidth: 1.5 },
+  tierStepDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1.5 },
   tierStepLabel: {
     fontFamily: "Inter_400Regular", fontSize: 8,
     color: Colors.textMuted, letterSpacing: 0.3,
@@ -828,4 +1219,100 @@ const evolStyles = StyleSheet.create({
   },
   sourceText: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.2 },
   text:       { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, flex: 1, lineHeight: 19 },
+});
+
+// ─── Customize Sheet Styles ────────────────────────────────────────────────────
+
+const sheetStyles = StyleSheet.create({
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.60)",
+  },
+  sheet: {
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    backgroundColor: Colors.bgCard,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    borderWidth: 1, borderColor: Colors.border,
+    borderBottomWidth: 0,
+    paddingTop: 12, paddingHorizontal: 20,
+    maxHeight: "90%",
+  },
+  handle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: Colors.border,
+    alignSelf: "center", marginBottom: 16,
+  },
+  header: {
+    flexDirection: "row", alignItems: "flex-start",
+    justifyContent: "space-between", marginBottom: 4,
+  },
+  headerTitle: {
+    fontFamily: "Inter_700Bold", fontSize: 10,
+    color: Colors.textMuted, letterSpacing: 2,
+  },
+  headerSub: {
+    fontFamily: "Inter_700Bold", fontSize: 20,
+    color: Colors.textPrimary, marginTop: 2,
+  },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 10,
+    backgroundColor: Colors.bgElevated,
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  previewWrap: {
+    alignItems: "center", paddingVertical: 12,
+    backgroundColor: Colors.bg,
+    borderRadius: 18, marginVertical: 12,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  sectionLabel: {
+    fontFamily: "Inter_700Bold", fontSize: 9,
+    color: Colors.textMuted, letterSpacing: 2,
+    marginTop: 16, marginBottom: 12,
+  },
+  // Skin tone swatches
+  swatchRow: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 4 },
+  swatchItem: { alignItems: "center", gap: 6, opacity: 0.75 },
+  swatchCircle: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: "transparent" },
+  swatchLabel: { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textMuted },
+  swatchCheck: {
+    position: "absolute", top: 0, right: -2,
+    width: 16, height: 16, borderRadius: 8,
+    backgroundColor: Colors.accent,
+    alignItems: "center", justifyContent: "center",
+  },
+  // Hair style cards
+  styleScroll: { marginHorizontal: -20 },
+  styleScrollContent: { paddingHorizontal: 20, gap: 10, flexDirection: "row" },
+  styleCard: {
+    alignItems: "center", gap: 8, paddingVertical: 14, paddingHorizontal: 16,
+    backgroundColor: Colors.bg, borderRadius: 16,
+    borderWidth: 1.5, borderColor: Colors.border, minWidth: 80,
+  },
+  styleCardActive: { borderColor: Colors.accent, backgroundColor: Colors.accent + "10" },
+  styleIconWrap: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: Colors.bgElevated,
+    alignItems: "center", justifyContent: "center",
+  },
+  styleCardLabel: {
+    fontFamily: "Inter_600SemiBold", fontSize: 11,
+    color: Colors.textMuted, textAlign: "center",
+  },
+  // Hair color grid
+  colorGrid: {
+    flexDirection: "row", flexWrap: "wrap", gap: 12, paddingHorizontal: 4, marginBottom: 8,
+  },
+  colorItem: { alignItems: "center", gap: 6, width: "21%" as any },
+  colorCircle: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: "transparent" },
+  colorLabel: { fontFamily: "Inter_500Medium", fontSize: 9, color: Colors.textMuted, textAlign: "center" },
+  colorCheck: {
+    position: "absolute", top: 0, right: 2,
+    width: 16, height: 16, borderRadius: 8,
+    backgroundColor: Colors.accent,
+    alignItems: "center", justifyContent: "center",
+  },
+  // Save
+  saveRow: { paddingTop: 16, paddingBottom: 4 },
 });

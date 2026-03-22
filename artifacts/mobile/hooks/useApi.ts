@@ -582,6 +582,18 @@ export function useCharacterStatus() {
   });
 }
 
+export function useUpdateCharacterAppearance() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { skinTone?: string; hairStyle?: string; hairColor?: string }) =>
+      request<any>("/character/appearance", { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["characterStatus"] });
+    },
+  });
+}
+
 export function useStartCycle() {
   const { request } = useApiClient();
   const queryClient = useQueryClient();
