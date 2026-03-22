@@ -61,6 +61,8 @@ export const shopItemsTable = pgTable("shop_items", {
   wearableSlot:    text("wearable_slot"),                      // "top" | "watch" | "accessory" | null
   minLevel:        integer("min_level").notNull().default(0),  // minimum user level to equip
   styleEffect:     text("style_effect"),                       // human-readable style impact
+  // Phase 30 — Room Progression / Workspace Decor
+  roomZone:        text("room_zone"),                          // "desk_setup" | "lifestyle_item" | null
   createdAt:       timestamp("created_at").notNull().defaultNow(),
   updatedAt:       timestamp("updated_at").notNull().defaultNow(),
 });

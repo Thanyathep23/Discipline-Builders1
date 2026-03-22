@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet, Modal,
-  ActivityIndicator, Platform, Alert,
+  ActivityIndicator, Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,6 +23,8 @@ const SLOT_LABELS: Record<string, string> = {
   trophy_shelf_2:  "Trophy Shelf II",
   trophy_shelf_3:  "Trophy Shelf III",
   prestige_marker: "Prestige Marker",
+  desk_setup:      "Desk Setup",
+  lifestyle_item:  "Lifestyle Item",
 };
 
 const SLOT_ICONS: Record<string, string> = {
@@ -32,6 +34,8 @@ const SLOT_ICONS: Record<string, string> = {
   trophy_shelf_2:  "trophy-outline",
   trophy_shelf_3:  "trophy-outline",
   prestige_marker: "shield-checkmark-outline",
+  desk_setup:      "desktop-outline",
+  lifestyle_item:  "cafe-outline",
 };
 
 const TROPHY_SLOTS = ["trophy_shelf_1", "trophy_shelf_2", "trophy_shelf_3"];
@@ -52,6 +56,7 @@ export default function CommandCenterScreen() {
 
   const [pickerSlot, setPickerSlot] = useState<string | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const theme = roomData?.theme ?? {
     name: "Standard Base", accentColor: Colors.accent,
@@ -63,6 +68,7 @@ export default function CommandCenterScreen() {
   const activeTitle = roomData?.activeTitle;
   const earnedBadges: any[] = roomData?.earnedBadges ?? [];
   const stats = roomData?.stats;
+  const roomState = roomData?.roomState;
 
   const arc = skillsData?.currentArc;
   const prestige = endgameData?.prestige;
@@ -75,22 +81,26 @@ export default function CommandCenterScreen() {
   }
 
   const handleAssign = useCallback(async (slot: string, itemId: string) => {
+    setErrorMsg(null);
     try {
       await assignSlot.mutateAsync({ slot, itemId });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setPickerVisible(false);
     } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Could not assign item");
+      setPickerVisible(false);
+      setErrorMsg(e.message ?? "Could not assign item");
     }
   }, [assignSlot]);
 
   const handleClear = useCallback(async (slot: string) => {
+    setErrorMsg(null);
     try {
       await clearSlot.mutateAsync(slot);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       setPickerVisible(false);
     } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Could not clear slot");
+      setPickerVisible(false);
+      setErrorMsg(e.message ?? "Could not clear slot");
     }
   }, [clearSlot]);
 
@@ -123,6 +133,18 @@ export default function CommandCenterScreen() {
             <Text style={styles.statsChipText}>{stats?.totalDisplayed ?? 0}/{stats?.totalOwned ?? 0}</Text>
           </View>
         </Animated.View>
+
+        {/* In-screen error banner */}
+        {errorMsg && (
+          <Pressable
+            style={styles.errorBanner}
+            onPress={() => setErrorMsg(null)}
+          >
+            <Ionicons name="warning-outline" size={14} color={Colors.crimson} />
+            <Text style={styles.errorBannerText} numberOfLines={2}>{errorMsg}</Text>
+            <Ionicons name="close" size={14} color={Colors.crimson} />
+          </Pressable>
+        )}
 
         {/* Room Theme Hero */}
         <Animated.View
@@ -175,6 +197,44 @@ export default function CommandCenterScreen() {
               <Ionicons name="storefront-outline" size={13} color="#00D4FF" />
               <Text style={worldGuideStyles.ctaText}>Browse Marketplace</Text>
             </Pressable>
+          </Animated.View>
+        )}
+
+        {/* Room Progression Card */}
+        {roomState && (
+          <Animated.View entering={FadeInDown.delay(55).springify()} style={styles.roomProgressCard}>
+            <View style={styles.roomProgressHeader}>
+              <View style={styles.roomProgressLeft}>
+                <Ionicons name="bar-chart-outline" size={13} color={Colors.accent} />
+                <Text style={styles.roomProgressEyebrow}>ROOM TIER</Text>
+              </View>
+              <View style={[styles.roomTierPill, { backgroundColor: Colors.accent + "20" }]}>
+                <Text style={[styles.roomTierPillText, { color: Colors.accent }]}>
+                  {roomState.roomTierLabel?.toUpperCase()}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.roomScoreRow}>
+              <View style={styles.roomScoreBar}>
+                <View
+                  style={[styles.roomScoreFill, {
+                    width: `${Math.min(100, roomState.roomScore ?? 0)}%` as any,
+                    backgroundColor:
+                      roomState.roomTier >= 4 ? Colors.gold :
+                      roomState.roomTier >= 3 ? "#00D4FF" :
+                      roomState.roomTier >= 2 ? Colors.accent :
+                      Colors.textMuted,
+                  }]}
+                />
+              </View>
+              <Text style={styles.roomScoreText}>{roomState.roomScore ?? 0}</Text>
+            </View>
+            {(roomState.nextEvolutionHints ?? []).map((hint: string, i: number) => (
+              <View key={i} style={styles.evolutionHintRow}>
+                <Ionicons name="arrow-forward-outline" size={11} color={Colors.textMuted} />
+                <Text style={styles.evolutionHint}>{hint}</Text>
+              </View>
+            ))}
           </Animated.View>
         )}
 
@@ -310,6 +370,41 @@ export default function CommandCenterScreen() {
                 slot="prestige_marker"
                 item={slots["prestige_marker"]}
                 accentColor="#9C27B0"
+                onPress={openPicker}
+                onClear={handleClear}
+              />
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* Workspace Zone — desk_setup + lifestyle_item */}
+        <Animated.View entering={FadeInDown.delay(158).springify()} style={styles.sectionBlock}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="desktop-outline" size={14} color={Colors.textMuted} />
+            <Text style={styles.sectionHeader}>WORKSPACE</Text>
+            {roomState?.deskState && roomState.deskState !== "empty" && (
+              <View style={styles.deskStatePill}>
+                <Text style={styles.deskStatePillText}>{roomState.deskState.toUpperCase()}</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.featuredRow}>
+            <View style={styles.featuredHalf}>
+              <Text style={styles.featuredLabel}>Desk Setup</Text>
+              <SlotCard
+                slot="desk_setup"
+                item={slots["desk_setup"]}
+                accentColor="#00D4FF"
+                onPress={openPicker}
+                onClear={handleClear}
+              />
+            </View>
+            <View style={styles.featuredHalf}>
+              <Text style={styles.featuredLabel}>Lifestyle Item</Text>
+              <SlotCard
+                slot="lifestyle_item"
+                item={slots["lifestyle_item"]}
+                accentColor="#F5C842"
                 onPress={openPicker}
                 onClear={handleClear}
               />
@@ -739,6 +834,55 @@ const styles = StyleSheet.create({
   pickerItemIcon: { width: 40, height: 40, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   pickerItemName: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
   pickerItemRarity: { fontFamily: "Inter_500Medium", fontSize: 11, textTransform: "capitalize", marginTop: 2 },
+
+  // Error banner
+  errorBanner: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: Colors.crimson + "18", borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: Colors.crimson + "40",
+  },
+  errorBannerText: {
+    flex: 1, fontFamily: "Inter_500Medium", fontSize: 12,
+    color: Colors.crimson, lineHeight: 17,
+  },
+
+  // Room Progression Card
+  roomProgressCard: {
+    backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14,
+    borderWidth: 1, borderColor: Colors.accent + "30", gap: 10,
+  },
+  roomProgressHeader: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+  },
+  roomProgressLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
+  roomProgressEyebrow: {
+    fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.accent, letterSpacing: 1.5,
+  },
+  roomTierPill: {
+    borderRadius: 8, paddingHorizontal: 9, paddingVertical: 3,
+  },
+  roomTierPillText: { fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 0.8 },
+  roomScoreRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  roomScoreBar: {
+    flex: 1, height: 6, borderRadius: 3, backgroundColor: Colors.bgElevated, overflow: "hidden",
+  },
+  roomScoreFill: { height: 6, borderRadius: 3, minWidth: 4 },
+  roomScoreText: {
+    fontFamily: "Inter_700Bold", fontSize: 12, color: Colors.textSecondary, minWidth: 26, textAlign: "right",
+  },
+  evolutionHintRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 2 },
+  evolutionHint: {
+    flex: 1, fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, lineHeight: 16,
+  },
+
+  // Workspace zone
+  deskStatePill: {
+    marginLeft: "auto" as any, backgroundColor: "#00D4FF15",
+    borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2,
+  },
+  deskStatePillText: {
+    fontFamily: "Inter_700Bold", fontSize: 9, color: "#00D4FF", letterSpacing: 0.8,
+  },
 });
 
 const worldGuideStyles = StyleSheet.create({

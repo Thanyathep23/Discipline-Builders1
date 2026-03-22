@@ -896,3 +896,25 @@ Maps 4 dimension scores to 6 visual axes: bodyTone (0-4), posture (0-2), outfitT
 - `EquippedStyleRow` component: 3 tappable slot cards (TOP/WATCH/ACCESSORY) shown on character screen; navigates to /wearables
 - `app/wearables/index.tsx`: Wardrobe screen with 3 slot sections, per-item buy/equip/unequip with confirm modal, level lock display, rarity color dots, style effect text
 - `useWearables()` hook in `hooks/useApi.ts`
+
+## Phase 30 — Room Progression / Workspace Decor
+
+### Schema changes in `lib/db/src/schema/shop.ts`
+- Added column: `roomZone` (text, nullable) — values `desk_setup` or `lifestyle_item`
+- Also carries `styleEffect` (text) from Phase 29 for display in Command Center
+
+### Backend: `routes/world.ts`
+- **Room Decor Seed (idempotent on startup)**: 5 items — Minimal Desk Setup (free), Command Desk (180c), Premium Workstation (380c), Ergonomic Pro Chair (140c), Coffee Station (85c)
+- **New slots**: `desk_setup` and `lifestyle_item` added to `SLOT_ELIGIBILITY` with type `decor`
+- **Zone narrowing**: `SLOT_ROOM_ZONES` map enforces roomZone matching at assign time
+- **`computeRoomState()`**: Scores tier 0-4 from theme tier + desk tier + lifestyle + trophies + centerpiece + prestige marker + finance/discipline skill bonuses; returns `roomScore` (0-100), `roomTierLabel`, `deskState` (empty/basic/command/premium), `ambianceState` (dim/warm/bright/elite), and `nextEvolutionHints[]`
+- **`GET /world/room`**: Now includes `roomState` object in response
+- **Eligibility route**: Filters `desk_setup` items by `roomZone === 'desk_setup'` and `lifestyle_item` items by `roomZone === 'lifestyle_item'`
+- **Assign route**: Validates roomZone compatibility before allowing slot assignment
+
+### Frontend: `app/world/index.tsx`
+- Replaced all `Alert.alert` calls with in-screen error banner (dismissable on tap)
+- Added `SLOT_LABELS`/`SLOT_ICONS` entries for `desk_setup` and `lifestyle_item`
+- **Room Progression Card**: Shows room tier label, animated score progress bar (0-100), and up to 2 evolution hints; color-coded by tier (muted → accent → cyan → gold)
+- **Workspace Zone section**: Two-column layout with `SlotCard` for Desk Setup and Lifestyle Item slots, including deskState pill badge when slot is filled
+- All new styles added to existing StyleSheet

@@ -45,7 +45,159 @@ const SLOT_ELIGIBILITY: Record<string, string[]> = {
   trophy_shelf_2:   ["trophy"],
   trophy_shelf_3:   ["trophy"],
   prestige_marker:  ["prestige"],
+  // Phase 30 — Workspace zones
+  desk_setup:       ["decor"],
+  lifestyle_item:   ["decor"],
 };
+
+// Phase 30 — Zone-narrowing: these slots require matching roomZone on the item
+const SLOT_ROOM_ZONES: Record<string, string> = {
+  desk_setup:     "desk_setup",
+  lifestyle_item: "lifestyle_item",
+};
+
+// ─── Phase 30 — Room Decor Seed Catalog ──────────────────────────────────────
+
+const ROOM_DECOR_SEED = [
+  {
+    id: "room-decor-desk-001", slug: "minimal-desk", name: "Minimal Desk Setup",
+    description: "A clean, organized surface. The foundation of a serious workspace.",
+    cost: 0, category: "room", icon: "desktop-outline", rarity: "common",
+    itemType: "decor", isEquippable: false, isDisplayable: true, isWorldItem: true,
+    roomZone: "desk_setup", styleEffect: "Clean and organized. A solid base.",
+  },
+  {
+    id: "room-decor-desk-002", slug: "command-desk", name: "Command Desk",
+    description: "Dual-monitor setup, cable management, a premium mat. Built for focus.",
+    cost: 180, category: "room", icon: "desktop-outline", rarity: "uncommon",
+    itemType: "decor", isEquippable: false, isDisplayable: true, isWorldItem: true,
+    roomZone: "desk_setup", styleEffect: "Professional setup. Signals serious operation.",
+  },
+  {
+    id: "room-decor-desk-003", slug: "premium-workstation", name: "Premium Workstation",
+    description: "Standing-height glass desk, ultra-wide monitor, mechanical keyboard. Elite tier.",
+    cost: 380, category: "room", icon: "desktop-outline", rarity: "rare",
+    itemType: "decor", isEquippable: false, isDisplayable: true, isWorldItem: true,
+    roomZone: "desk_setup", styleEffect: "Elite-class workstation. Maximum operator presence.",
+  },
+  {
+    id: "room-decor-life-001", slug: "pro-chair", name: "Ergonomic Pro Chair",
+    description: "A premium ergonomic command chair. Your posture. Your position.",
+    cost: 140, category: "room", icon: "accessibility-outline", rarity: "uncommon",
+    itemType: "decor", isEquippable: false, isDisplayable: true, isWorldItem: true,
+    roomZone: "lifestyle_item", styleEffect: "Refinement signals. Operators invest in their seat.",
+  },
+  {
+    id: "room-decor-life-002", slug: "coffee-station", name: "Coffee Station",
+    description: "A premium pour-over setup. Ritual matters.",
+    cost: 85, category: "room", icon: "cafe-outline", rarity: "common",
+    itemType: "decor", isEquippable: false, isDisplayable: true, isWorldItem: true,
+    roomZone: "lifestyle_item", styleEffect: "Daily ritual. A signal of intention and consistency.",
+  },
+];
+
+async function seedRoomDecor() {
+  for (const item of ROOM_DECOR_SEED) {
+    const existing = await db.select({ id: shopItemsTable.id })
+      .from(shopItemsTable).where(eq(shopItemsTable.id, item.id)).limit(1);
+    if (existing.length === 0) {
+      await db.insert(shopItemsTable).values({
+        id: item.id, slug: item.slug, name: item.name, description: item.description,
+        cost: item.cost, category: item.category, icon: item.icon, rarity: item.rarity as any,
+        itemType: item.itemType, isEquippable: item.isEquippable as any, isDisplayable: item.isDisplayable,
+        isWorldItem: item.isWorldItem, roomZone: item.roomZone,
+        styleEffect: item.styleEffect, sortOrder: 10,
+        tags: "[]", status: "active", acquisitionSource: "purchase",
+      } as any);
+    } else {
+      await db.update(shopItemsTable).set({
+        roomZone: item.roomZone, styleEffect: item.styleEffect,
+        isDisplayable: true, isWorldItem: true,
+      }).where(eq(shopItemsTable.id, item.id));
+    }
+  }
+}
+
+// Seed on startup (fire-and-forget)
+seedRoomDecor().catch((e) => console.error("[world] seed error:", e.message));
+
+// ─── Phase 30 — Room Progression State Engine ────────────────────────────────
+
+type DeskState = "empty" | "basic" | "command" | "premium";
+type AmbianceState = "dim" | "warm" | "bright" | "elite";
+
+interface RoomState {
+  roomTier: number;
+  roomTierLabel: string;
+  roomScore: number;
+  deskState: DeskState;
+  deskTier: number;
+  trophiesDisplayed: number;
+  hasCenterpiece: boolean;
+  hasPrestigeMarker: boolean;
+  hasLifestyleItem: boolean;
+  ambianceState: AmbianceState;
+  nextEvolutionHints: string[];
+}
+
+function computeRoomState(params: {
+  slotMap: Record<string, any>;
+  skills: { skillId: string; level: number }[];
+  themeTier: number;
+}): RoomState {
+  const { slotMap, skills, themeTier } = params;
+
+  const getSkillLevel = (id: string) => skills.find(s => s.skillId === id)?.level ?? 0;
+  const financeScore  = getSkillLevel("trading")    * 0.6 + getSkillLevel("learning")  * 0.4;
+  const disciplineScore = getSkillLevel("discipline") * 0.6 + getSkillLevel("focus")     * 0.4;
+
+  const deskItem = slotMap["desk_setup"];
+  const deskTier = deskItem
+    ? (deskItem.itemId === "room-decor-desk-003" ? 3
+     : deskItem.itemId === "room-decor-desk-002" ? 2 : 1)
+    : 0;
+  const deskState: DeskState = (["empty", "basic", "command", "premium"] as const)[Math.min(deskTier, 3)];
+
+  const trophiesDisplayed = ["trophy_shelf_1", "trophy_shelf_2", "trophy_shelf_3"]
+    .filter(s => slotMap[s] != null).length;
+  const hasCenterpiece    = slotMap["centerpiece"] != null;
+  const hasPrestigeMarker = slotMap["prestige_marker"] != null;
+  const hasLifestyleItem  = slotMap["lifestyle_item"] != null;
+
+  // Point scoring (max ≈ 122 raw → normalized to 100)
+  const themePoints     = [0, 20, 35, 50][Math.min(themeTier, 3)] ?? 0;
+  const deskPoints      = [0, 8, 16, 24][Math.min(deskTier, 3)] ?? 0;
+  const lifestylePoints = hasLifestyleItem ? 8 : 0;
+  const trophyPoints    = Math.min(trophiesDisplayed, 3) * 4;
+  const cpPoints        = hasCenterpiece ? 8 : 0;
+  const pmPoints        = hasPrestigeMarker ? 8 : 0;
+  const financeBonus    = Math.round(Math.min(financeScore, 80) / 80 * 12);
+  const disciplineBonus = Math.round(Math.min(disciplineScore, 80) / 80 * 8);
+
+  const raw      = themePoints + deskPoints + lifestylePoints + trophyPoints + cpPoints + pmPoints + financeBonus + disciplineBonus;
+  const roomScore = Math.min(100, Math.round(raw / 1.22));
+
+  const roomTier = roomScore >= 85 ? 4 : roomScore >= 70 ? 3 : roomScore >= 50 ? 2 : roomScore >= 25 ? 1 : 0;
+  const TIER_LABELS = ["Basic", "Improving", "Premium", "Refined", "Elite Command Center"] as const;
+  const roomTierLabel = TIER_LABELS[roomTier];
+  const ambianceState: AmbianceState = (["dim", "warm", "bright", "elite"] as const)[Math.min(roomTier, 3)];
+
+  const hints: string[] = [];
+  if (themeTier === 0)         hints.push("Activate a room theme to start evolving your workspace.");
+  if (deskTier === 0)          hints.push("Add a desk setup to transform your command center.");
+  if (trophiesDisplayed < 2)   hints.push("Display your earned trophies to fill your space.");
+  if (!hasCenterpiece)         hints.push("Feature a centerpiece to elevate your room's presence.");
+  if (financeScore < 30)       hints.push("Growing your Finance score unlocks better room ambiance.");
+  if (hints.length === 0)      hints.push("Your room is thriving. Keep pushing toward Elite Command Center.");
+
+  return {
+    roomTier, roomTierLabel, roomScore,
+    deskState, deskTier,
+    trophiesDisplayed, hasCenterpiece, hasPrestigeMarker, hasLifestyleItem,
+    ambianceState,
+    nextEvolutionHints: hints.slice(0, 2),
+  };
+}
 
 // ─── GET /world/room — full room state ────────────────────────────────────────
 router.get("/room", requireAuth, async (req: any, res) => {
@@ -65,6 +217,7 @@ router.get("/room", requireAuth, async (req: any, res) => {
       itemType:    shopItemsTable.itemType,
       description: shopItemsTable.description,
       category:    shopItemsTable.category,
+      roomZone:    shopItemsTable.roomZone,
     })
       .from(userInventoryTable)
       .innerJoin(shopItemsTable, eq(userInventoryTable.itemId, shopItemsTable.id))
@@ -112,6 +265,8 @@ router.get("/room", requireAuth, async (req: any, res) => {
       room_theme: null, centerpiece: null,
       trophy_shelf_1: null, trophy_shelf_2: null, trophy_shelf_3: null,
       prestige_marker: null,
+      // Phase 30 — Workspace zones
+      desk_setup: null, lifestyle_item: null,
     };
 
     for (const inv of inventory) {
@@ -166,9 +321,17 @@ router.get("/room", requireAuth, async (req: any, res) => {
     const topSkillId = sortedSkills[0]?.skillId ?? null;
     const totalSessions = 0; // not needed for summary line here
 
+    // Phase 30 — Compute room progression state
+    const roomState = computeRoomState({
+      slotMap,
+      skills: skills.map(s => ({ skillId: s.skillId, level: s.level })),
+      themeTier: activeTheme.tier,
+    });
+
     return res.json({
       theme: activeTheme,
       slots,
+      roomState,
       activeTitle: activeTitle ? { name: activeTitle.name, rarity: activeTitle.rarity, category: activeTitle.category } : null,
       earnedBadges: badgesRows.map(b => ({ badgeId: b.badgeId, name: b.name, icon: b.icon, rarity: b.rarity, category: b.category })),
       ownedNotDisplayed,
@@ -203,6 +366,7 @@ router.get("/room/eligibility", requireAuth, async (req: any, res) => {
       rarity:   shopItemsTable.rarity,
       itemType: shopItemsTable.itemType,
       category: shopItemsTable.category,
+      roomZone: shopItemsTable.roomZone,
     })
       .from(userInventoryTable)
       .innerJoin(shopItemsTable, eq(userInventoryTable.itemId, shopItemsTable.id))
@@ -210,16 +374,24 @@ router.get("/room/eligibility", requireAuth, async (req: any, res) => {
 
     // For each slot, return items that can be placed there
     const eligibilityMap = Object.fromEntries(
-      Object.entries(SLOT_ELIGIBILITY).map(([slot, allowedTypes]) => [
-        slot,
-        inventory
-          .filter(inv => allowedTypes.includes(inv.itemType) || allowedTypes.includes(inv.category))
-          .map(inv => ({
-            itemId: inv.itemId, name: inv.name, icon: inv.icon,
-            rarity: inv.rarity, itemType: inv.itemType,
-            isCurrentlyInSlot: inv.displaySlot === slot,
-          })),
-      ])
+      Object.entries(SLOT_ELIGIBILITY).map(([slot, allowedTypes]) => {
+        const requiredZone = SLOT_ROOM_ZONES[slot] ?? null;
+        return [
+          slot,
+          inventory
+            .filter(inv => {
+              const typeMatch = allowedTypes.includes(inv.itemType) || allowedTypes.includes(inv.category);
+              if (!typeMatch) return false;
+              if (requiredZone) return inv.roomZone === requiredZone;
+              return true;
+            })
+            .map(inv => ({
+              itemId: inv.itemId, name: inv.name, icon: inv.icon,
+              rarity: inv.rarity, itemType: inv.itemType,
+              isCurrentlyInSlot: inv.displaySlot === slot,
+            })),
+        ];
+      })
     );
 
     return res.json({ slots: eligibilityMap });
@@ -248,6 +420,7 @@ router.post("/room/slots", requireAuth, async (req: any, res) => {
       id:       userInventoryTable.id,
       itemType: shopItemsTable.itemType,
       category: shopItemsTable.category,
+      roomZone: shopItemsTable.roomZone,
     })
       .from(userInventoryTable)
       .innerJoin(shopItemsTable, eq(userInventoryTable.itemId, shopItemsTable.id))
@@ -258,9 +431,15 @@ router.post("/room/slots", requireAuth, async (req: any, res) => {
       return res.status(403).json({ error: "Item not owned" });
     }
 
-    // Check eligibility
+    // Check type eligibility
     if (!allowedTypes.includes(ownership.itemType) && !allowedTypes.includes(ownership.category)) {
       return res.status(400).json({ error: `Item type '${ownership.itemType}' cannot be placed in slot '${slot}'` });
+    }
+
+    // Phase 30 — Check roomZone compatibility
+    const requiredZone = SLOT_ROOM_ZONES[slot] ?? null;
+    if (requiredZone && ownership.roomZone !== requiredZone) {
+      return res.status(400).json({ error: `This item cannot be placed in the '${slot}' slot` });
     }
 
     // Clear any item currently in the target slot for this user
