@@ -605,6 +605,9 @@ function CarDetailModal({
           </View>
         ) : (
           <View style={detailStyles.actionRow}>
+            {/* TODO: Migrate Photo Mode / Feature / Purchase inline Pressable buttons to
+                design-system <Button> once it supports flex:1 grow semantics for
+                equal-width side-by-side row layouts. */}
             {car.isOwned ? (
               <>
                 <Pressable

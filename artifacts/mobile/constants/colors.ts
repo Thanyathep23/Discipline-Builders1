@@ -53,11 +53,7 @@ export const RARITY_COLORS: Record<string, string> = {
 
 export { colors as ds } from "@/design-system";
 
-export const semantic = {
-  bg:         { app: "#0A0A0F", surface: "#12121A", elevated: "#1A1A26" },
-  text:       { primary: "#F0F0FF", secondary: "#8888AA", muted: "#4A4A6A" },
-  accent:     { primary: "#7C5CFC", secondary: "#A07CFF", gold: "#F5C842", danger: "#FF3D71", success: "#00E676", warning: "#FFB300" },
-  border:     { default: "#1E1E2E", subtle: "#16162A" },
-} as const;
+import { colors as _ds } from "@/design-system/tokens/colors";
+export const semantic = _ds;
 
 export default Colors;

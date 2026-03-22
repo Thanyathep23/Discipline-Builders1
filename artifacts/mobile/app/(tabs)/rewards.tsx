@@ -117,6 +117,9 @@ function BestNextUpgradeCard({ item, coinBalance, onPress }: { item: any; coinBa
   const gap = affordGap(item, coinBalance);
   const canBuy = item.canAfford && !item.owned;
 
+  // TODO: Migrate BestNextCard and MarketListCard to design-system <CollectionCard> /
+  // <ActionCard>. Currently these are local composite components that mix affordability
+  // logic with custom layout; migrate after extracting data hooks from inline usage.
   return (
     <Animated.View entering={FadeInDown.delay(20).springify()}>
       <Pressable style={[s.bestCard, { borderColor: rc + "50" }]} onPress={onPress}>

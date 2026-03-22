@@ -277,6 +277,8 @@ const SLOT_ICONS: Record<string, any> = { top: "shirt-outline", watch: "watch-ou
 const SLOT_LABELS: Record<string, string> = { top: "TOP", watch: "WATCH", accessory: "PIECE" };
 
 function EquippedStyleRow({ equippedWearables }: { equippedWearables: any }) {
+  // TODO: Migrate each wearable slot Pressable to <ActionCard icon=... onPress=... /> once
+  // ActionCard supports flex:1 stretch mode for equal-width row layouts.
   const slots = ["top", "watch", "accessory"] as const;
   return (
     <View style={{ flexDirection: "row", gap: 8 }}>
