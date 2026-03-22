@@ -7,139 +7,242 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
-import Svg, { Circle, Ellipse, Rect, Path } from "react-native-svg";
+import Svg, { Circle, Ellipse, Rect, Path, G } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
 import { useCharacterStatus } from "@/hooks/useApi";
 
-// ─── Starter Character SVG ────────────────────────────────────────────────────
+// ─── Phase 28 — Visual State Types ────────────────────────────────────────────
 
-function StarterCharacter({ size = 180 }: { size?: number }) {
+type VisualState = {
+  bodyTone: number;          // 0–4 Fitness  → skin warmth / energy glow
+  posture: number;           // 0–2 Fitness  → head position / shoulder width
+  outfitTier: number;        // 0–4 Finance  → white starter → elite black
+  grooming: number;          // 0–3 Discipline → fade tightness
+  prestigeAccent: number;    // 0–3 Prestige → watch → chain → gold
+  confidenceFace: number;    // 0–2 Discipline → neutral → smile → sharp
+  outfitLabel?: string;
+  evolutionExplanations?: { source: string; text: string }[];
+};
+
+const DEFAULT_VS: VisualState = {
+  bodyTone: 0, posture: 0, outfitTier: 0, grooming: 0, prestigeAccent: 0, confidenceFace: 0,
+};
+
+// Outfit per tier: shirt / shirtShadow / pants / pantsS / seam / crease / belt / buckle / bk2 / buttons / collar
+const OC = [
+  { s: "#EEEEEE", ss: "#E4E4E4", p: "#1A1A2E", ps: "#20203A", seam: "#1C1C30", cr: "#151528", belt: "#3A3A52", bk: "#52526A", bk2: "#6A6A80", btn: true,  col: false },
+  { s: "#F0F0F2", ss: "#E6E6E8", p: "#181928", ps: "#1E1E36", seam: "#1A1A2C", cr: "#131326", belt: "#3C3C54", bk: "#545470", bk2: "#686882", btn: true,  col: false },
+  { s: "#C8C8D5", ss: "#BCBCC8", p: "#151525", ps: "#1C1C32", seam: "#121222", cr: "#0F0F1E", belt: "#484858", bk: "#606078", bk2: "#747492", btn: false, col: true  },
+  { s: "#4A4A56", ss: "#42424E", p: "#111120", ps: "#17172C", seam: "#0E0E1A", cr: "#0B0B16", belt: "#504858", bk: "#6A6070", bk2: "#888096", btn: false, col: true  },
+  { s: "#1E1E2A", ss: "#1A1A22", p: "#0A0A14", ps: "#10101E", seam: "#07070F", cr: "#05050C", belt: "#4A3E52", bk: "#786A82", bk2: "#C0A030", btn: false, col: true  },
+];
+
+const SKIN_C = ["#D4A574","#D6A876","#D8AA78","#DAAC7A","#DCAE7C"];
+const SKIN_S = ["#C49A6C","#C69C6E","#C89E70","#CAA072","#CCA274"];
+
+function mouthPath(cf: number, hY: number): string {
+  const y = hY + 12;
+  if (cf === 0) return `M45 ${y} Q50 ${y + 2} 55 ${y}`;
+  if (cf === 1) return `M45 ${y} Q50 ${y + 3.5} 55 ${y}`;
+  return `M44 ${y} Q50 ${y + 4.5} 56 ${y}`;
+}
+function browPaths(cf: number, hY: number): [string, string] {
+  const [y0, y1] = [hY - 7, hY - 9];
+  if (cf === 0) return [`M40 ${y0} Q43 ${y0 - 1} 46 ${y0}`, `M54 ${y0} Q57 ${y0 - 1} 60 ${y0}`];
+  if (cf === 1) return [`M40 ${y0 - 0.5} Q43 ${y1} 46 ${y0 - 0.5}`, `M54 ${y0 - 0.5} Q57 ${y1} 60 ${y0 - 0.5}`];
+  return [`M40 ${y0 - 1} Q43 ${y1 - 0.5} 46 ${y0 - 1}`, `M54 ${y0 - 1} Q57 ${y1 - 0.5} 60 ${y0 - 1}`];
+}
+
+// ─── Evolved Character Renderer ───────────────────────────────────────────────
+
+function EvolvedCharacter({ visualState, size = 190 }: { visualState?: VisualState | null; size?: number }) {
+  const v = visualState ?? DEFAULT_VS;
+  const oc = OC[Math.min(v.outfitTier, 4)];
+  const skin  = SKIN_C[Math.min(v.bodyTone, 4)];
+  const skinS = SKIN_S[Math.min(v.bodyTone, 4)];
+
+  // Posture: head rises, neck grows, shoulders broaden
+  const hCY  = [29,  28,  26 ][v.posture] ?? 28; // head center Y
+  const eCY  = [31,  30,  28 ][v.posture] ?? 30; // ear Y
+  const nY   = [46,  43,  40 ][v.posture] ?? 43; // neck top Y
+  const nH   = [10,  12,  14 ][v.posture] ?? 12; // neck height
+  const tX   = [24,  24,  22 ][v.posture] ?? 24; // torso left
+  const tW   = [52,  52,  56 ][v.posture] ?? 52; // torso width
+  const aLX  = [8,   8,   6  ][v.posture] ?? 8;  // left arm X
+  const aRX  = [76,  76,  78 ][v.posture] ?? 76; // right arm X
+  const aW   = [16,  16,  18 ][v.posture] ?? 16; // arm width
+
+  // Grooming: side hair tightens into fade
+  const hsRx = [5,   4.5, 3.5, 2.5][v.grooming] ?? 5;
+  const hsRy = [12,  11,  9,   7  ][v.grooming] ?? 12;
+  const hcRy = [13,  13,  12,  11 ][v.grooming] ?? 13;
+
+  const [bl, br] = browPaths(Math.min(v.confidenceFace, 2), hCY);
+  const mouth    = mouthPath(Math.min(v.confidenceFace, 2), hCY);
+  const hasWatch = v.prestigeAccent >= 1;
+  const hasChain = v.prestigeAccent >= 2;
+  const hasGold  = v.prestigeAccent >= 3;
+  const nBottom  = nY + nH;
+
   const aspect = 220 / 100;
   const w = size / aspect;
   const h = size;
 
   return (
     <Svg width={w} height={h} viewBox="0 0 100 220">
+
+      {/* Layer 0 — Fitness body tone glow (bodyTone >= 3) */}
+      {v.bodyTone >= 3 && (
+        <Ellipse cx="50" cy="130" rx="36" ry="90" fill="rgba(0,230,118,0.035)" />
+      )}
+
       {/* Floor shadow */}
       <Ellipse cx="50" cy="212" rx="30" ry="5" fill="#00000055" />
 
-      {/* Left shoe */}
+      {/* Layer 1 — Shoes */}
       <Ellipse cx="36" cy="197" rx="16" ry="7.5" fill="#0C0C1A" />
-      <Ellipse cx="25" cy="195" rx="8" ry="5" fill="#0C0C1A" />
-      {/* Right shoe */}
+      <Ellipse cx="25" cy="195" rx="8"  ry="5"   fill="#0C0C1A" />
       <Ellipse cx="64" cy="197" rx="16" ry="7.5" fill="#0C0C1A" />
-      <Ellipse cx="75" cy="195" rx="8" ry="5" fill="#0C0C1A" />
-      {/* Shoe highlight */}
-      <Ellipse cx="28" cy="192" rx="5" ry="2.5" fill="#1A1A2A" />
-      <Ellipse cx="72" cy="192" rx="5" ry="2.5" fill="#1A1A2A" />
+      <Ellipse cx="75" cy="195" rx="8"  ry="5"   fill="#0C0C1A" />
+      <Ellipse cx="28" cy="192" rx="5"  ry="2.5" fill="#1A1A2A" />
+      <Ellipse cx="72" cy="192" rx="5"  ry="2.5" fill="#1A1A2A" />
 
-      {/* Left jeans leg */}
-      <Rect x="26" y="118" width="21" height="80" rx="4" fill="#1A1A2E" />
-      {/* Right jeans leg */}
-      <Rect x="53" y="118" width="21" height="80" rx="4" fill="#1A1A2E" />
-      {/* Jeans seam highlight */}
-      <Rect x="46" y="118" width="8" height="80" rx="0" fill="#1C1C30" />
-      {/* Jeans pocket left */}
-      <Rect x="28" y="122" width="11" height="8" rx="2" fill="#20203A" />
-      {/* Jeans pocket right */}
-      <Rect x="61" y="122" width="11" height="8" rx="2" fill="#20203A" />
-      {/* Jeans crease */}
-      <Rect x="35" y="140" width="1.5" height="50" rx="0.75" fill="#151528" />
-      <Rect x="63" y="140" width="1.5" height="50" rx="0.75" fill="#151528" />
+      {/* Layer 2 — Legs / pants (outfit-driven) */}
+      <Rect x="26" y="118" width="21" height="80" rx="4" fill={oc.p} />
+      <Rect x="53" y="118" width="21" height="80" rx="4" fill={oc.p} />
+      <Rect x="46" y="118" width="8"  height="80" rx="0" fill={oc.seam} />
+      {oc.btn && (
+        <>
+          <Rect x="28" y="122" width="11" height="8" rx="2" fill={oc.ps} />
+          <Rect x="61" y="122" width="11" height="8" rx="2" fill={oc.ps} />
+        </>
+      )}
+      <Rect x="35" y="140" width="1.5" height="50" rx="0.75" fill={oc.cr} />
+      <Rect x="63" y="140" width="1.5" height="50" rx="0.75" fill={oc.cr} />
 
-      {/* Belt */}
-      <Rect x="25" y="113" width="50" height="7" rx="2.5" fill="#3A3A52" />
-      {/* Belt buckle */}
-      <Rect x="43" y="113" width="14" height="7" rx="1.5" fill="#52526A" />
-      <Rect x="47" y="115" width="6" height="3" rx="1" fill="#6A6A80" />
+      {/* Layer 3 — Belt */}
+      <Rect x="25" y="113" width="50" height="7" rx="2.5" fill={oc.belt} />
+      <Rect x="43" y="113" width="14" height="7" rx="1.5" fill={oc.bk} />
+      <Rect x="47" y="115" width="6"  height="3" rx="1"   fill={oc.bk2} />
 
-      {/* Shirt torso */}
-      <Rect x="24" y="52" width="52" height="64" rx="6" fill="#EEEEEE" />
-      {/* Shirt fold/shadow left */}
-      <Rect x="24" y="52" width="5" height="64" rx="2.5" fill="#E4E4E4" />
-      {/* Shirt fold/shadow right */}
-      <Rect x="71" y="52" width="5" height="64" rx="2.5" fill="#E4E4E4" />
-      {/* Shirt buttons */}
-      <Circle cx="50" cy="70" r="1.6" fill="#D8D8D8" />
-      <Circle cx="50" cy="83" r="1.6" fill="#D8D8D8" />
-      <Circle cx="50" cy="96" r="1.6" fill="#D8D8D8" />
-      {/* Shirt center stitch */}
-      <Rect x="49.2" y="60" width="1.5" height="52" rx="0.5" fill="#E2E2E2" />
+      {/* Layer 4 — Shirt torso (posture-driven width) */}
+      <Rect x={tX}          y="52" width={tW}      height="64" rx="6"   fill={oc.s} />
+      <Rect x={tX}          y="52" width={5}        height="64" rx="2.5" fill={oc.ss} />
+      <Rect x={tX + tW - 5} y="52" width={5}        height="64" rx="2.5" fill={oc.ss} />
+      {oc.btn && (
+        <>
+          <Circle cx="50" cy="70" r="1.6" fill={oc.ss} />
+          <Circle cx="50" cy="83" r="1.6" fill={oc.ss} />
+          <Circle cx="50" cy="96" r="1.6" fill={oc.ss} />
+          <Rect x="49.2" y="60" width="1.5" height="52" rx="0.5" fill={oc.ss} />
+        </>
+      )}
 
-      {/* Left arm (shirt) */}
-      <Rect x="8" y="54" width="16" height="50" rx="8" fill="#EEEEEE" />
-      {/* Right arm (shirt) */}
-      <Rect x="76" y="54" width="16" height="50" rx="8" fill="#EEEEEE" />
-      {/* Arm shadows */}
-      <Rect x="8" y="54" width="4" height="50" rx="2" fill="#E4E4E4" />
-      <Rect x="88" y="54" width="4" height="50" rx="2" fill="#E4E4E4" />
+      {/* Layer 5 — Arms (posture-driven position/width) */}
+      <Rect x={aLX}      y="54" width={aW} height="50" rx="8" fill={oc.s} />
+      <Rect x={aRX}      y="54" width={aW} height="50" rx="8" fill={oc.s} />
+      <Rect x={aLX}      y="54" width={4}  height="50" rx="2" fill={oc.ss} />
+      <Rect x={aRX + aW - 4} y="54" width={4} height="50" rx="2" fill={oc.ss} />
 
-      {/* Left hand */}
-      <Ellipse cx="16" cy="106" rx="9" ry="7" fill="#D4A574" />
-      {/* Right hand */}
-      <Ellipse cx="84" cy="106" rx="9" ry="7" fill="#D4A574" />
-      {/* Knuckle details */}
-      <Ellipse cx="10" cy="106" rx="3" ry="2.5" fill="#C49A6C" />
-      <Ellipse cx="90" cy="106" rx="3" ry="2.5" fill="#C49A6C" />
+      {/* Layer 6 — Hands (skin-driven) */}
+      <Ellipse cx={aLX + aW / 2} cy="106" rx="9" ry="7" fill={skin} />
+      <Ellipse cx={aRX + aW / 2} cy="106" rx="9" ry="7" fill={skin} />
+      <Ellipse cx={aLX + 2}           cy="106" rx="3" ry="2.5" fill={skinS} />
+      <Ellipse cx={aRX + aW - 2}      cy="106" rx="3" ry="2.5" fill={skinS} />
 
-      {/* Shirt collar (V-neck hint) */}
-      <Path d="M42 52 L50 62 L58 52" stroke="#DDDDDD" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Layer 7 — Prestige: Watch on right wrist */}
+      {hasWatch && (
+        <G>
+          <Rect x={aRX + 2} y="99" width="10" height="6" rx="1.5" fill="#7A6030" />
+          <Rect x={aRX + 3} y="100" width="8" height="4" rx="1"   fill="#C0A030" />
+          <Circle cx={aRX + 7} cy="102" r="1.5" fill="#1A1A28" />
+          <Circle cx={aRX + 7} cy="102" r="0.7" fill="#C0A030" />
+        </G>
+      )}
 
-      {/* Neck */}
-      <Rect x="44" y="43" width="12" height="12" rx="4" fill="#C49A6C" />
+      {/* Layer 8 — Collar / V-neck (outfit-driven) */}
+      {oc.col ? (
+        <Path
+          d={`M${tX + 16} 52 L50 60 L${tX + tW - 16} 52`}
+          stroke={oc.ss} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"
+        />
+      ) : (
+        <Path d="M42 52 L50 62 L58 52" stroke="#DDDDDD" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      )}
 
-      {/* HEAD */}
-      {/* Left ear */}
-      <Ellipse cx="31" cy="30" rx="4" ry="6" fill="#C49A6C" />
-      {/* Right ear */}
-      <Ellipse cx="69" cy="30" rx="4" ry="6" fill="#C49A6C" />
-      {/* Ear detail */}
-      <Ellipse cx="31" cy="30" rx="2" ry="3.5" fill="#B8906A" />
-      <Ellipse cx="69" cy="30" rx="2" ry="3.5" fill="#B8906A" />
+      {/* Layer 9 — Prestige: Chain at collar */}
+      {hasChain && (
+        <Path
+          d={`M44 ${nBottom + 2} Q50 ${nBottom + 6} 56 ${nBottom + 2}`}
+          stroke="#C0A030" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.85"
+        />
+      )}
 
-      {/* Head */}
-      <Ellipse cx="50" cy="28" rx="19" ry="21" fill="#D4A574" />
+      {/* Elite lapel pin / gem */}
+      {hasGold && (
+        <Circle cx={tX + 10} cy="61" r="2.2" fill="#C0A030" />
+      )}
 
-      {/* Jawline shadow */}
-      <Ellipse cx="50" cy="44" rx="14" ry="5" fill="#C49A6C" />
+      {/* Layer 10 — Neck (posture-driven height) */}
+      <Rect x="44" y={nY} width="12" height={nH} rx="4" fill={skin} />
 
-      {/* Eyes */}
-      <Ellipse cx="43" cy="26" rx="3" ry="3.2" fill="#2A2A3A" />
-      <Ellipse cx="57" cy="26" rx="3" ry="3.2" fill="#2A2A3A" />
-      {/* Eye whites/iris */}
-      <Ellipse cx="43" cy="26" rx="2.2" ry="2.4" fill="#1A1A28" />
-      <Ellipse cx="57" cy="26" rx="2.2" ry="2.4" fill="#1A1A28" />
-      {/* Eye shines */}
-      <Circle cx="44.2" cy="24.8" r="0.9" fill="#FFFFFF" />
-      <Circle cx="58.2" cy="24.8" r="0.9" fill="#FFFFFF" />
-      {/* Eyebrows */}
-      <Path d="M40 20.5 Q43 19 46 20.5" stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-      <Path d="M54 20.5 Q57 19 60 20.5" stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+      {/* Layer 11 — Ears (posture-driven Y) */}
+      <Ellipse cx="31" cy={eCY} rx="4" ry="6"   fill={skin} />
+      <Ellipse cx="69" cy={eCY} rx="4" ry="6"   fill={skin} />
+      <Ellipse cx="31" cy={eCY} rx="2" ry="3.5" fill={skinS} />
+      <Ellipse cx="69" cy={eCY} rx="2" ry="3.5" fill={skinS} />
 
-      {/* Nose */}
-      <Path d="M50 31 L48 36 L52 36" stroke="#C09070" strokeWidth="0.9" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      {/* Nose tip */}
-      <Ellipse cx="50" cy="35.5" rx="3" ry="1.5" fill="#C49A6C" />
+      {/* Layer 12 — Head (posture-driven Y) */}
+      <Ellipse cx="50" cy={hCY}      rx="19" ry="21" fill={skin} />
+      <Ellipse cx="50" cy={hCY + 16} rx="14" ry="5"  fill={skinS} />
 
-      {/* Mouth */}
-      <Path d="M45 40 Q50 43.5 55 40" stroke="#B07A5A" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-      {/* Lower lip subtle highlight */}
-      <Ellipse cx="50" cy="42" rx="4" ry="1.2" fill="#C98C6C" />
+      {/* Layer 13 — Eyes */}
+      <Ellipse cx="43" cy={hCY - 2} rx="3"   ry="3.2" fill="#2A2A3A" />
+      <Ellipse cx="57" cy={hCY - 2} rx="3"   ry="3.2" fill="#2A2A3A" />
+      <Ellipse cx="43" cy={hCY - 2} rx="2.2" ry="2.4" fill="#1A1A28" />
+      <Ellipse cx="57" cy={hCY - 2} rx="2.2" ry="2.4" fill="#1A1A28" />
+      <Circle  cx={44.2} cy={hCY - 3.2} r="0.9" fill="#FFFFFF" />
+      <Circle  cx={58.2} cy={hCY - 3.2} r="0.9" fill="#FFFFFF" />
 
-      {/* HAIR */}
-      {/* Main hair cap */}
-      <Ellipse cx="50" cy="12" rx="20" ry="13" fill="#1E1E30" />
-      {/* Hair covering sides of head */}
-      <Rect x="30" y="12" width="40" height="14" fill="#1E1E30" />
-      {/* Hair side left */}
-      <Ellipse cx="31" cy="20" rx="5" ry="12" fill="#1E1E30" />
-      {/* Hair side right */}
-      <Ellipse cx="69" cy="20" rx="5" ry="12" fill="#1E1E30" />
-      {/* Hair highlight/texture */}
-      <Path d="M38 8 Q50 4 62 8" stroke="#2A2A42" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-      <Path d="M36 12 Q50 7 64 12" stroke="#2A2A42" strokeWidth="1" fill="none" strokeLinecap="round" />
+      {/* Layer 14 — Eyebrows (confidence-driven arch) */}
+      <Path d={bl} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+      <Path d={br} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+
+      {/* Layer 15 — Nose */}
+      <Path
+        d={`M50 ${hCY + 3} L48 ${hCY + 8} L52 ${hCY + 8}`}
+        stroke="#C09070" strokeWidth="0.9" fill="none" strokeLinecap="round" strokeLinejoin="round"
+      />
+      <Ellipse cx="50" cy={hCY + 7.5} rx="3" ry="1.5" fill={skin} />
+
+      {/* Layer 16 — Mouth (confidence-driven curve) */}
+      <Path d={mouth} stroke="#B07A5A" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+      <Ellipse cx="50" cy={hCY + 14} rx="4" ry="1.2" fill="#C98C6C" />
+
+      {/* Layer 17 — Hair / Grooming (side tightness driven by grooming level) */}
+      <Ellipse cx="50" cy={hCY - 16} rx="20" ry={hcRy}  fill="#1E1E30" />
+      <Rect    x="30"  y={hCY - 16}  width="40" height="14" fill="#1E1E30" />
+      <Ellipse cx="31" cy={hCY - 8}  rx={hsRx}  ry={hsRy}  fill="#1E1E30" />
+      <Ellipse cx="69" cy={hCY - 8}  rx={hsRx}  ry={hsRy}  fill="#1E1E30" />
+      <Path d={`M38 ${hCY - 20} Q50 ${hCY - 24} 62 ${hCY - 20}`} stroke="#2A2A42" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      <Path d={`M36 ${hCY - 16} Q50 ${hCY - 21} 64 ${hCY - 16}`} stroke="#2A2A42" strokeWidth="1"   fill="none" strokeLinecap="round" />
+
+      {/* Fade definition lines — grooming >= 1 */}
+      {v.grooming >= 1 && (
+        <G>
+          <Path d={`M30 ${hCY - 14} Q31 ${hCY - 8} 32 ${hCY - 2}`}  stroke="#1C1C2C" strokeWidth="0.9" fill="none" strokeLinecap="round" />
+          <Path d={`M70 ${hCY - 14} Q69 ${hCY - 8} 68 ${hCY - 2}`}  stroke="#1C1C2C" strokeWidth="0.9" fill="none" strokeLinecap="round" />
+        </G>
+      )}
+      {/* Sharp fade line — grooming >= 2 */}
+      {v.grooming >= 2 && (
+        <G>
+          <Path d={`M32 ${hCY - 11} Q33 ${hCY - 4} 35 ${hCY + 1}`} stroke="#141424" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+          <Path d={`M68 ${hCY - 11} Q67 ${hCY - 4} 65 ${hCY + 1}`} stroke="#141424" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+        </G>
+      )}
     </Svg>
   );
 }
@@ -232,9 +335,9 @@ export default function CharacterStatusScreen() {
                 </Text>
               </View>
 
-              {/* Character figure */}
+              {/* Character figure — layered evolved renderer */}
               <View style={styles.characterWrap}>
-                <StarterCharacter size={190} />
+                <EvolvedCharacter visualState={data?.visualState as VisualState | null} size={190} />
               </View>
 
               {/* Name + outfit label */}
@@ -308,6 +411,28 @@ export default function CharacterStatusScreen() {
               <DimensionCard key={dim.name} dimension={dim} delay={180 + i * 40} />
             ))}
           </View>
+
+          {/* ── Phase 28 — Evolution Explanation Layer ── */}
+          {data?.visualState?.evolutionExplanations && data.visualState.evolutionExplanations.length > 0 && (
+            <>
+              <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.sectionHeader}>
+                <Ionicons name="sparkles-outline" size={13} color={Colors.textMuted} />
+                <Text style={styles.sectionHeaderText}>WHY YOUR CHARACTER LOOKS LIKE THIS</Text>
+              </Animated.View>
+              <Animated.View entering={FadeInDown.delay(320).springify()} style={evolStyles.card}>
+                {(data.visualState.evolutionExplanations as { source: string; text: string }[]).map((ex, i) => (
+                  <View key={i} style={[evolStyles.row, i > 0 && evolStyles.rowBorder]}>
+                    <View style={[evolStyles.sourcePill, { backgroundColor: EXPL_COLORS[ex.source] ?? Colors.accentGlow }]}>
+                      <Text style={[evolStyles.sourceText, { color: EXPL_TEXT[ex.source] ?? Colors.accent }]}>
+                        {ex.source.toUpperCase()}
+                      </Text>
+                    </View>
+                    <Text style={evolStyles.text}>{ex.text}</Text>
+                  </View>
+                ))}
+              </Animated.View>
+            </>
+          )}
 
           {/* ── Room Preview ── */}
           <Animated.View entering={FadeInDown.delay(340).springify()} style={styles.sectionHeader}>
@@ -584,6 +709,35 @@ const styles = StyleSheet.create({
   comingSoonDesc:  { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, marginTop: 2 },
   comingSoonPill:  { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: Colors.bgElevated, borderRadius: 10 },
   comingSoonPillText: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.5 },
+});
+
+// ─── Phase 28 — Evolution Explanation Styles ──────────────────────────────────
+
+const EXPL_COLORS: Record<string, string> = {
+  "Fitness":           "#00E67620",
+  "Discipline":        "#7C5CFC20",
+  "Finance/Lifestyle": "#F5C84220",
+  "Prestige":          "#00D4FF20",
+  "Starting Out":      Colors.bgElevated,
+};
+const EXPL_TEXT: Record<string, string> = {
+  "Fitness":           "#00E676",
+  "Discipline":        "#7C5CFC",
+  "Finance/Lifestyle": "#F5C842",
+  "Prestige":          "#00D4FF",
+  "Starting Out":      Colors.textMuted,
+};
+
+const evolStyles = StyleSheet.create({
+  card: {
+    backgroundColor: Colors.bgCard, borderRadius: 18, overflow: "hidden",
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  row: { flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 14 },
+  rowBorder: { borderTopWidth: 1, borderTopColor: Colors.border },
+  sourcePill: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, minWidth: 70, alignItems: "center", flexShrink: 0 },
+  sourceText: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.2 },
+  text: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, flex: 1, lineHeight: 19 },
 });
 
 const dimStyles = StyleSheet.create({

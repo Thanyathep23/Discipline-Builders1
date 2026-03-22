@@ -71,6 +71,58 @@ const PRESTIGE_DESCS: Array<[number, string]> = [
   [101, "Maximum prestige. A legacy being written."],
 ];
 
+// ── Phase 28 — Character Evolution State Engine ───────────────────────────────
+
+interface VisualStateResult {
+  bodyTone: number;          // 0–4: fitness progression → subtle skin warmth/energy
+  posture: number;           // 0–2: fitness → slouch / upright / confident
+  outfitTier: number;        // 0–4: finance → white starter → elite black
+  grooming: number;          // 0–3: discipline → basic → fade → refined → mastered
+  prestigeAccent: number;    // 0–3: prestige → none → watch → chain → gold aura
+  confidenceFace: number;    // 0–2: discipline → neutral → slight smile → defined gaze
+  outfitLabel: string;
+  evolutionExplanations: { source: string; text: string }[];
+}
+
+const OUTFIT_LABELS = [
+  "Starter Kit — White Shirt",
+  "Crisp Look — White & Black",
+  "Elevated Look — Premium Grey",
+  "Refined Style — Dark Fitted",
+  "Elite Presence — Premium Black",
+];
+
+function computeVisualState(
+  fitnessScore: number,
+  disciplineScore: number,
+  financeScore: number,
+  prestigeScore: number,
+): VisualStateResult {
+  const bodyTone       = fitnessScore    < 20 ? 0 : fitnessScore    < 40 ? 1 : fitnessScore    < 60 ? 2 : fitnessScore    < 80 ? 3 : 4;
+  const posture        = fitnessScore    < 30 ? 0 : fitnessScore    < 65 ? 1 : 2;
+  const outfitTier     = financeScore    < 20 ? 0 : financeScore    < 40 ? 1 : financeScore    < 60 ? 2 : financeScore    < 80 ? 3 : 4;
+  const grooming       = disciplineScore < 20 ? 0 : disciplineScore < 50 ? 1 : disciplineScore < 80 ? 2 : 3;
+  const prestigeAccent = prestigeScore   < 20 ? 0 : prestigeScore   < 50 ? 1 : prestigeScore   < 80 ? 2 : 3;
+  const confidenceFace = disciplineScore < 30 ? 0 : disciplineScore < 65 ? 1 : 2;
+
+  const explanations: { source: string; text: string }[] = [];
+  if (posture >= 1)        explanations.push({ source: "Fitness",          text: "Your fitness progress is improving your posture and physical confidence." });
+  if (bodyTone >= 2)       explanations.push({ source: "Fitness",          text: "Consistent training is showing in your body readiness and energy." });
+  if (grooming >= 1)       explanations.push({ source: "Discipline",       text: "Your discipline is refining your grooming and overall presentation." });
+  if (confidenceFace >= 1) explanations.push({ source: "Discipline",       text: "Self-control is adding composure and confidence to your expression." });
+  if (outfitTier >= 2)     explanations.push({ source: "Finance/Lifestyle", text: "Your lifestyle level is visibly elevating your outfit quality and class." });
+  if (prestigeAccent >= 1) explanations.push({ source: "Prestige",         text: "Earned milestones are unlocking elite identity accents and signals." });
+  if (explanations.length === 0) {
+    explanations.push({ source: "Starting Out", text: "Keep progressing across all dimensions to see your character visually evolve." });
+  }
+
+  return {
+    bodyTone, posture, outfitTier, grooming, prestigeAccent, confidenceFace,
+    outfitLabel: OUTFIT_LABELS[outfitTier] ?? OUTFIT_LABELS[0],
+    evolutionExplanations: explanations,
+  };
+}
+
 const NEXT_HINTS: Record<string, { dimension: string; hint: string; action: string }> = {
   fitness:    { dimension: "Fitness",           hint: "Complete fitness missions to strengthen your physique and energy.",                 action: "Start a Fitness Mission" },
   discipline: { dimension: "Discipline",        hint: "Build your focus streak to advance your discipline and composure.",                action: "Start a Focus Session"   },
@@ -139,6 +191,9 @@ router.get("/status", requireAuth, async (req: any, res) => {
     const lowestKey = dimScores[0].key;
     const nextEvolutionHint = NEXT_HINTS[lowestKey] ?? NEXT_HINTS.discipline;
 
+    // ── Phase 28: Compute visual evolution state ──────────────────────────────
+    const visualState = computeVisualState(fitnessScore, disciplineScore, financeScore, prestigeScore);
+
     return res.json({
       dimensions: {
         fitness: {
@@ -168,9 +223,10 @@ router.get("/status", requireAuth, async (req: any, res) => {
       overallScore,
       nextEvolutionHint,
       character: {
-        outfitLabel: "Starter Kit — White Shirt / Black Jeans",
+        outfitLabel: visualState.outfitLabel,
         tierLabel: overallScore >= 20 ? "On the Rise" : "Beginning Stage",
       },
+      visualState,
       completedSessions,
       prestigeTier: userRow.prestigeTier ?? 0,
       badgeCount,
