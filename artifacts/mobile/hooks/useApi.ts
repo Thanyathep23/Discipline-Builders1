@@ -572,6 +572,16 @@ export function useEndgame() {
   });
 }
 
+export function useCharacterStatus() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["characterStatus"],
+    queryFn: () => request<any>("/character/status"),
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+  });
+}
+
 export function useStartCycle() {
   const { request } = useApiClient();
   const queryClient = useQueryClient();

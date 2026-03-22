@@ -116,6 +116,27 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
+        {/* Phase 27 — Character Status Hub entry */}
+        <Animated.View entering={FadeInDown.delay(35).springify()}>
+          <Pressable
+            style={({ pressed }) => [styles.gameModeCard, pressed && { opacity: 0.85 }]}
+            onPress={() => { Haptics.selectionAsync(); router.push("/character"); }}
+          >
+            <View style={styles.gameModeIconCol}>
+              <View style={styles.gameModeIconRing}>
+                <Ionicons name="person-circle-outline" size={26} color={Colors.accent} />
+              </View>
+              <View style={[styles.gameModeStatus, { backgroundColor: Colors.green }]} />
+            </View>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={styles.gameModeLabel}>CHARACTER STATUS</Text>
+              <Text style={styles.gameModeTitle}>Open Status Hub</Text>
+              <Text style={styles.gameModeSub}>Game mode · Full character progression</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.accent} />
+          </Pressable>
+        </Animated.View>
+
         {streakData && (
           <Animated.View entering={FadeInDown.delay(40).springify()} style={styles.streakCard}>
             <View style={styles.streakLeft}>
@@ -496,6 +517,7 @@ export default function ProfileScreen() {
             <MenuItem icon="cube-outline" label="Content Packs" onPress={() => { Haptics.selectionAsync(); router.push("/premium/packs"); }} />
             <MenuItem icon="share-outline" label="Share Progress" onPress={() => router.push("/share")} accent />
             <MenuItem icon="people" label="Accountability Circles" onPress={() => router.push("/circles")} accent />
+            <MenuItem icon="person-circle-outline" label="Character Status Hub" onPress={() => router.push("/character")} accent />
             <MenuItem icon="eye-outline" label="Prestige Showcase" onPress={() => router.push("/settings/showcase")} />
             <MenuItem icon="people-outline" label="Invite Friends" onPress={() => router.push("/invite")} />
             <MenuItem icon="sparkles-outline" label="AI Mission Board" onPress={() => router.push("/(tabs)/missions")} />
@@ -639,6 +661,21 @@ const styles = StyleSheet.create({
   completionLayerLabelDone: { color: Colors.accent, fontFamily: "Inter_600SemiBold" },
   completionConnector:      { flex: 1, height: 2, backgroundColor: Colors.border, marginTop: 5 },
   completionConnectorDone:  { backgroundColor: Colors.accent },
+  // Phase 27 — Game Mode / Character Status entry
+  gameModeCard: {
+    flexDirection: "row", alignItems: "center", gap: 14,
+    backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14,
+    borderWidth: 1, borderColor: Colors.accent + "50",
+  },
+  gameModeIconCol: { alignItems: "center", gap: 0 },
+  gameModeIconRing: {
+    width: 44, height: 44, borderRadius: 14,
+    backgroundColor: Colors.accentGlow, alignItems: "center", justifyContent: "center",
+  },
+  gameModeStatus: { width: 8, height: 8, borderRadius: 4, marginTop: -4, borderWidth: 1.5, borderColor: Colors.bgCard },
+  gameModeLabel: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.accent, letterSpacing: 2 },
+  gameModeTitle: { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.textPrimary },
+  gameModeSub:   { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
   // Phase 18 — Command Center banner
   commandCenterBanner: {
     flexDirection: "row", alignItems: "center", gap: 12,

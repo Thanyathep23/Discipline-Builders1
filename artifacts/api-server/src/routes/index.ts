@@ -43,6 +43,8 @@ import adminPremiumRouter from "./admin-premium.js";
 import guidanceRouter from "./guidance.js";
 // Phase 25 — Recommendation admin inspector
 import adminRecommendationsRouter from "./admin-recommendations.js";
+// Phase 27 — Character Status Hub
+import characterRouter from "./character.js";
 
 const router: IRouter = Router();
 
@@ -91,5 +93,6 @@ router.use("/platform/integrations", integrationsRouter);
 router.use("/guidance", guidanceRouter);
 // Phase 25 — Recommendation admin inspector
 router.use("/admin/recommendations", adminRecommendationsRouter);
+router.use("/character", characterRouter);
 
 export default router;

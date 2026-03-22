@@ -1,0 +1,423 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 27 — Game Mode Foundation / Character Status Hub.
+
+Current context:
+- The existing app already has the core Life RPG systems: missions, proof, rewards, skills, identity, marketplace, room/world, premium, community, and guidance systems.
+- The next expansion is a dedicated mobile-first “game mode” layer.
+- This game mode should make the user feel like they are looking at a real player character whose life is evolving visually over time.
+- The immediate goal is NOT to build a full 3D game.
+- The correct goal is to build a premium pseudo-3D / rendered-character status hub that is realistic to implement in Replit and future-ready for App Store deployment.
+
+Your task:
+Build only the smallest high-impact Game Mode Foundation / Character Status Hub layer.
+
+==================================================
+PHASE 27 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Game Mode entry point and navigation
+2. Character Status Hub screen
+3. Starter character presentation
+4. Mobile-first status layout
+5. Core stat visualization for the 4 key dimensions
+6. Room preview starter state
+7. Basic progression summary / next unlock hint
+8. Minimal connections to existing systems
+9. Minimal internal/admin controls only if strictly needed
+
+Do NOT build:
+- full 3D interactive character
+- full 3D world
+- complex animation system
+- freeform avatar editor
+- clothing equip system in this phase
+- car collection UI in this phase
+- full room decorator in this phase
+- player discovery / matchmaking
+- social comparison systems
+- redesign of the whole app
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current mobile app structure, profile/status screens, home/command center, world/room layer, marketplace, character/status visualization work, and existing navigation
+2. identify what already exists that can support a dedicated game mode screen
+3. identify the minimum new layer needed to create a strong “this is my character” experience
+4. implement only the minimum systems needed
+5. avoid broad refactors
+
+==================================================
+A. CORE PRODUCT FANTASY FOR THIS PHASE
+==================================================
+
+This phase must create the first true “game mode” experience.
+
+The user should feel:
+- this is my character
+- this character reflects my current life progress
+- I started from a humble/basic state
+- my body, presence, status, and environment will improve as I improve
+- my room, clothing, accessories, and future collection goals will matter
+- my daily actions are shaping a visible life-avatar
+
+Important:
+Do NOT use insulting or shaming labels like “poor” directly in the UI.
+The visual starting state can feel humble/basic/starter-level, but the language must stay aspirational and premium.
+
+Preferred tone:
+- serious
+- premium
+- stylish
+- life-upgrade fantasy
+- not childish
+- not cartoonishly goofy
+
+==================================================
+B. GAME MODE ENTRY POINT
+==================================================
+
+Add a clear Game Mode entry point inside the existing mobile app.
+
+Requirements:
+- users should be able to open a dedicated Game Mode / Character Hub screen
+- this should feel like entering the “player identity” layer of the product
+- integrate cleanly into the current app navigation without rewriting the whole nav system
+- use current mobile app patterns where possible
+
+Possible naming directions:
+- Game Mode
+- Character
+- My Avatar
+- Status Hub
+- Identity Hub
+
+Choose the most premium and coherent naming based on the existing app tone.
+
+==================================================
+C. CHARACTER STATUS HUB SCREEN
+==================================================
+
+Build the main Character Status Hub screen.
+
+This is the hero screen of this phase.
+
+The screen must show at minimum:
+1. full-body stylized player character
+2. current status tier/class
+3. 4 major progression dimensions:
+   - Fitness
+   - Discipline
+   - Finance / Lifestyle
+   - Prestige
+4. short explanation of what those dimensions currently say about the player
+5. room preview starter card/section
+6. next unlock / next evolution hint
+7. quick action buttons or links to:
+   - improve character/status
+   - open store
+   - view room
+   - view collection (placeholder/entry for future car phase if needed, but do not build the full feature now)
+
+Requirements:
+- mobile-first layout
+- strong visual hierarchy
+- character is the hero of the page
+- stats support the fantasy, not overpower it
+- page should feel screenshot-worthy
+- page should be understandable quickly
+
+==================================================
+D. STARTER CHARACTER PRESENTATION
+==================================================
+
+Build the first starter version of the player character.
+
+Mandatory starter look:
+- white shirt
+- black jeans
+- clean simple shoes or neutral starter footwear
+- humble/basic starter vibe
+- not broken/dirty/exaggerated poverty
+- more like “beginning stage” than “humiliation stage”
+
+Character style:
+- stylized
+- pseudo-3D / rendered
+- premium
+- slightly aspirational
+- not too childlike
+- not uncanny realism
+- full body visible
+
+Implementation direction:
+- do NOT build a full 3D model system in this phase
+- use a pseudo-3D / rendered-character presentation that is realistic for Replit/mobile
+- this can be based on layered illustration, composable assets, or a deterministic rendered status figure approach
+- keep it lightweight and extensible for later phases
+
+==================================================
+E. CORE STATUS DIMENSIONS
+==================================================
+
+In this phase, visualize exactly these 4 dimensions:
+
+1. Fitness
+Represents:
+- body condition
+- posture
+- health/energy vibe
+- physical confidence
+
+2. Discipline
+Represents:
+- self-control
+- consistency
+- composure
+- neatness/refinement
+
+3. Finance / Lifestyle
+Represents:
+- overall lifestyle quality
+- taste/status refinement
+- material progression signals
+- future access to better presentation and purchases
+
+4. Prestige
+Represents:
+- earned distinction
+- elite markers
+- long-term accomplishment
+- visible advancement beyond basic level
+
+Requirements:
+- these should be shown clearly on the Character Status Hub
+- each dimension should have:
+  - current value/state
+  - short plain-language explanation
+  - directional sense of growth if already practical
+- do not overload the page with too many secondary stats
+
+==================================================
+F. STATUS TIER / CLASS PRESENTATION
+==================================================
+
+Add a high-level status tier/class presentation for the player.
+
+Purpose:
+Give the user a fast emotional read of their overall current level/state.
+
+Recommended style:
+Use premium aspirational tiers such as:
+- Starter
+- Hustle
+- Rising
+- Refined
+- Elite
+
+Requirements:
+- the tier should be derived from real progression state
+- it should be visible and meaningful
+- it should not replace deeper stats
+- it should not shame the user
+- it should be clear that the player is on a journey upward
+
+==================================================
+G. ROOM PREVIEW STARTER STATE
+==================================================
+
+Add a lightweight room preview section in the Game Mode hub.
+
+Purpose:
+Show that the world around the character also exists and will evolve.
+
+In this phase:
+- the room starts as a simple empty/basic room
+- this is a preview of what later phases will deepen
+- the room preview should hint that upgrades, decor, and lifestyle progression will matter
+
+Requirements:
+- keep it visually simple in this phase
+- do not build the full room progression system yet
+- use a compact preview card/section or scene block
+- the room should feel intentionally minimal, not unfinished
+
+==================================================
+H. NEXT EVOLUTION / NEXT UNLOCK HINT
+==================================================
+
+Because this screen is about aspiration, include lightweight forward-looking guidance.
+
+Examples:
+- improve Fitness to unlock a stronger body/posture presentation
+- improve Discipline to move beyond the current status tier
+- improve Finance/Lifestyle to unlock better visual class and future purchases
+- raise Prestige to unlock more elite identity markers
+- earn more coin and levels to unlock future style/room/car items
+
+Requirements:
+- hints must be based on real user state
+- keep copy concise and motivating
+- do not over-explain
+- make the user feel there is a visible path upward
+
+==================================================
+I. CONNECTION TO EXISTING SYSTEMS
+==================================================
+
+Connect this phase lightly but correctly to the systems that already exist.
+
+At minimum:
+- current skill/progression state should drive the 4 status dimensions
+- current title/identity state can inform prestige display if useful
+- current room/world data can feed the room preview if already practical
+- current store/economy state can support “open store” CTA
+- existing recommendation/guidance logic can inform next unlock hint if useful
+
+Do NOT force deep full linkage to all systems yet.
+This phase is the foundation only.
+
+==================================================
+J. MOBILE-FIRST UX RULES
+==================================================
+
+This phase is for mobile-first use.
+
+Requirements:
+- optimize for portrait mobile layout
+- clear vertical flow
+- character should be readable without pinch/zoom
+- stats should be legible without becoming a giant dashboard
+- quick actions should be thumb-friendly
+- avoid overstuffing the screen
+- preserve premium feel on smaller devices
+
+==================================================
+K. VISUAL / INTERACTION DIRECTION
+==================================================
+
+Design direction:
+- dark premium
+- aspirational
+- serious, stylish, elegant
+- like a life-status game, not a children’s game
+- character-first
+- polished, clean, emotionally rewarding
+
+Interaction direction:
+- subtle, premium feedback
+- not over-animated
+- character reveal should feel important
+- entering this screen should feel like entering “my avatar / my life status” area
+
+==================================================
+L. MINIMAL INTERNAL / ADMIN CONTROLS
+==================================================
+
+Add only minimal internal controls if strictly needed.
+
+Possible examples:
+- status tier threshold config
+- starter visual config
+- debug view of computed character state
+- enable/disable game mode entry point during rollout
+
+Requirements:
+- admin-only
+- lightweight
+- use existing admin/tuning surfaces where possible
+- do not build a large game-ops console in this phase
+
+==================================================
+M. BACKEND / SECURITY RULES
+==================================================
+
+- all derived status/class/character state should come from trusted internal data
+- preserve JSON-only APIs
+- preserve ownership checks
+- do not trust client-provided progression or visual state
+- keep schema changes additive and minimal
+- preserve existing mission/proof/reward/economy/world/community/premium flows
+- if any character state is persisted, it must be recomputable from real progression data
+
+==================================================
+N. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a dedicated Game Mode / Character Status Hub exists
+2. the player sees a full-body starter character with:
+   - white shirt
+   - black jeans
+   - premium/basic starting vibe
+3. the screen clearly shows the 4 key status dimensions:
+   - Fitness
+   - Discipline
+   - Finance/Lifestyle
+   - Prestige
+4. a high-level status tier/class is visible
+5. a room preview starter state is visible
+6. the screen provides a next evolution / next unlock hint
+7. the screen connects correctly to real progression data
+8. the mobile experience feels premium and usable
+9. existing app flow still works
+10. no oversized 3D/avatar-editor scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what game-mode / character-status capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Game Mode foundation added
+- entry point
+- screen structure
+- navigation integration
+
+4. Character starter presentation added
+- visual approach used
+- why it fits mobile/Replit constraints
+
+5. Status hub changes
+- what the user now sees
+- how the 4 dimensions are represented
+- how the tier/class is shown
+
+6. Room preview integration added
+- what starter room state is shown
+- how it connects to later progression
+
+7. Next evolution / unlock hint added
+- what logic drives it
+- where it appears
+
+8. End-to-end verification results for:
+- opening game mode
+- character status visibility
+- progression data linkage
+- room preview visibility
+- existing app flow unchanged
+
+9. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.
