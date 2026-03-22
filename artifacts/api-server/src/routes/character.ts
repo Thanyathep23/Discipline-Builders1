@@ -6,6 +6,7 @@ import {
   characterAppearanceTable,
   SKIN_TONES, HAIR_STYLES, HAIR_COLORS, DEFAULT_APPEARANCE,
 } from "@workspace/db";
+import type { SkinTone, HairStyle, HairColor } from "@workspace/db";
 import { eq, and, count, inArray, isNotNull } from "drizzle-orm";
 import { z } from "zod/v4";
 import { getUserSkills } from "../lib/skill-engine.js";
@@ -186,9 +187,9 @@ const NEXT_HINTS: Record<string, { dimension: string; hint: string; action: stri
 // ── Appearance helpers ────────────────────────────────────────────────────────
 
 const patchAppearanceSchema = z.object({
-  skinTone:  z.enum(SKIN_TONES  as unknown as [string, ...string[]]).optional(),
-  hairStyle: z.enum(HAIR_STYLES as unknown as [string, ...string[]]).optional(),
-  hairColor: z.enum(HAIR_COLORS as unknown as [string, ...string[]]).optional(),
+  skinTone:  z.enum([...SKIN_TONES]  as [SkinTone,  ...SkinTone[] ]).optional(),
+  hairStyle: z.enum([...HAIR_STYLES] as [HairStyle, ...HairStyle[]]).optional(),
+  hairColor: z.enum([...HAIR_COLORS] as [HairColor, ...HairColor[]]).optional(),
 });
 
 async function getOrDefaultAppearance(userId: string) {
