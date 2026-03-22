@@ -56,6 +56,9 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
-    "expo-document-picker": "^55.0.9"
+    "expo-document-picker": "^55.0.9",
+    "expo-media-library": "^55.0.10",
+    "expo-sharing": "^55.0.14",
+    "react-native-view-shot": "^4.0.3"
   }
 }

@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet,
-  ActivityIndicator, Platform,
+  ActivityIndicator, Platform, Dimensions, Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,13 +10,16 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown, FadeIn, ZoomIn, FadeOut } from "react-native-reanimated";
 import Svg, {
   Path, Circle, Rect, Ellipse, LinearGradient, Defs, Stop,
-  Line, Text as SvgText,
+  Line, G,
 } from "react-native-svg";
+import ViewShot from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
+import * as MediaLibrary from "expo-media-library";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
-import { useCarPhotoMode, useIdentity, useEndgame } from "@/hooks/useApi";
+import { useCarPhotoMode, useCharacterStatus, useIdentity, useEndgame } from "@/hooks/useApi";
 import { useAuth } from "@/context/AuthContext";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+const SCREEN_W = Dimensions.get("window").width;
 
 type Car = {
   id: string;
@@ -27,149 +30,219 @@ type Car = {
   prestigeValue: number;
   styleEffect?: string | null;
   description?: string;
+  colorVariants?: { key: string; label: string; hex: string }[];
+  selectedVariant?: string | null;
 };
 
-type Scene = "studio" | "street" | "command";
-
-// ─── Scene definitions ────────────────────────────────────────────────────────
+type Scene = "nightcity" | "coastal" | "minimal" | "track";
+type AspectRatio = "4:5" | "1:1";
 
 const SCENE_META: Record<Scene, {
   label: string; mood: string; icon: string;
-  bg1: string; bg2: string; ground: string; accentAlpha: string;
+  bg1: string; bg2: string; ground: string;
 }> = {
-  studio: {
-    label: "Studio",
-    mood: "Clean. Editorial. Timeless.",
-    icon: "aperture-outline",
-    bg1: "#090C14", bg2: "#141C2E", ground: "#0F1520",
-    accentAlpha: "12",
+  nightcity: {
+    label: "Night City",
+    mood: "Dark urban. Neon undertow.",
+    icon: "business-outline",
+    bg1: "#05080E", bg2: "#0A1628", ground: "#080E1A",
   },
-  street: {
-    label: "Street",
-    mood: "Motion. Power. Recognition.",
-    icon: "navigate-outline",
-    bg1: "#050810", bg2: "#091524", ground: "#071018",
-    accentAlpha: "10",
+  coastal: {
+    label: "Coastal",
+    mood: "Horizon. Golden hour. Calm.",
+    icon: "water-outline",
+    bg1: "#0A0E18", bg2: "#10182A", ground: "#0D1220",
   },
-  command: {
-    label: "Command",
-    mood: "Operator. Precision. Control.",
-    icon: "desktop-outline",
-    bg1: "#090810", bg2: "#100E1E", ground: "#0D0B18",
-    accentAlpha: "15",
+  minimal: {
+    label: "Minimal",
+    mood: "Pure. Distilled. Elegant.",
+    icon: "remove-outline",
+    bg1: "#080808", bg2: "#111111", ground: "#0C0C0C",
+  },
+  track: {
+    label: "Track",
+    mood: "Speed. Precision. Racing.",
+    icon: "speedometer-outline",
+    bg1: "#08060E", bg2: "#120E1E", ground: "#0E0B18",
   },
 };
 
 const CLASS_LABELS: Record<string, string> = {
-  starter:   "Starter",
-  rising:    "Rising Luxury",
-  executive: "Executive",
-  elite:     "Elite Supercar",
-  prestige:  "Prestige Signature",
+  entry: "Entry",
+  sport: "Sport",
+  performance: "Performance",
+  grandtouring: "Grand Touring",
+  flagship: "Flagship",
+  hypercar: "Hypercar",
 };
 
-// ─── Car Silhouette — hero scale ──────────────────────────────────────────────
+function getVariantHex(car: Car, variantKey?: string | null): string {
+  const key = variantKey ?? car.selectedVariant;
+  const v = car.colorVariants?.find(cv => cv.key === key);
+  return v?.hex ?? RARITY_COLORS[car.rarity] ?? Colors.textMuted;
+}
 
-function CarSilhouetteLarge({ rarity, width = 260 }: { rarity: string; width?: number }) {
-  const color = RARITY_COLORS[rarity] ?? "#9CA3AF";
-  const h = width * 0.42;
-  const w = width;
+function PhotoCarVisual({ carClass, bodyColor, size = 200 }: { carClass: string | null; bodyColor: string; size?: number }) {
+  const c = bodyColor;
+  const w = size;
+  const h = size * 0.5;
+  const wheelR = h * 0.16;
+  const wheelY = h * 0.88;
+  const wlx = w * 0.22;
+  const wrx = w * 0.78;
+  const cls = carClass ?? "entry";
+
+  const shadowEl = <Ellipse cx={w / 2} cy={h + 8} rx={w * 0.38} ry={3.5} fill={c + "14"} />;
+  const wheelEls = (
+    <>
+      <Circle cx={wlx} cy={wheelY} r={wheelR} fill={c + "18"} stroke={c + "80"} strokeWidth={1.3} />
+      <Circle cx={wlx} cy={wheelY} r={wheelR * 0.45} fill={c + "50"} />
+      <Circle cx={wrx} cy={wheelY} r={wheelR} fill={c + "18"} stroke={c + "80"} strokeWidth={1.3} />
+      <Circle cx={wrx} cy={wheelY} r={wheelR * 0.45} fill={c + "50"} />
+    </>
+  );
+
+  let bodyEl: React.ReactNode;
+  if (cls === "entry") {
+    bodyEl = (
+      <>
+        <Rect x={w * 0.08} y={h * 0.42} width={w * 0.84} height={h * 0.42} rx={6} fill={c + "22"} stroke={c + "70"} strokeWidth={1.2} />
+        <Path d={`M${w * 0.28},${h * 0.42} L${w * 0.35},${h * 0.12} L${w * 0.65},${h * 0.12} L${w * 0.72},${h * 0.42} Z`} fill={c + "15"} stroke={c + "60"} strokeWidth={1} />
+        <Rect x={w * 0.88} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "80"} />
+        <Rect x={w * 0.08} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "50"} />
+      </>
+    );
+  } else if (cls === "sport") {
+    bodyEl = (
+      <>
+        <Rect x={w * 0.06} y={h * 0.40} width={w * 0.88} height={h * 0.44} rx={5} fill={c + "25"} stroke={c + "80"} strokeWidth={1.3} />
+        <Path d={`M${w * 0.26},${h * 0.40} L${w * 0.34},${h * 0.08} L${w * 0.62},${h * 0.08} L${w * 0.74},${h * 0.40} Z`} fill={c + "18"} stroke={c + "70"} strokeWidth={1.1} />
+        <Rect x={w * 0.90} y={h * 0.48} width={5} height={h * 0.14} rx={2} fill={c + "90"} />
+        <Rect x={w * 0.05} y={h * 0.48} width={5} height={h * 0.14} rx={2} fill={c + "55"} />
+      </>
+    );
+  } else if (cls === "performance") {
+    bodyEl = (
+      <>
+        <Path d={`M${w * 0.06},${h * 0.82} L${w * 0.06},${h * 0.42} Q${w * 0.06},${h * 0.36} ${w * 0.12},${h * 0.36} L${w * 0.88},${h * 0.36} Q${w * 0.94},${h * 0.36} ${w * 0.94},${h * 0.42} L${w * 0.94},${h * 0.82} Z`} fill={c + "25"} stroke={c + "80"} strokeWidth={1.3} />
+        <Path d={`M${w * 0.20},${h * 0.36} L${w * 0.30},${h * 0.06} L${w * 0.58},${h * 0.06} L${w * 0.78},${h * 0.36} Z`} fill={c + "18"} stroke={c + "70"} strokeWidth={1.1} />
+        <Rect x={w * 0.91} y={h * 0.44} width={5} height={h * 0.16} rx={2} fill={c + "90"} />
+        <Rect x={w * 0.04} y={h * 0.44} width={5} height={h * 0.16} rx={2} fill={c + "55"} />
+      </>
+    );
+  } else if (cls === "grandtouring") {
+    bodyEl = (
+      <>
+        <Path d={`M${w * 0.04},${h * 0.82} L${w * 0.04},${h * 0.40} Q${w * 0.04},${h * 0.34} ${w * 0.10},${h * 0.34} L${w * 0.90},${h * 0.34} Q${w * 0.96},${h * 0.34} ${w * 0.96},${h * 0.40} L${w * 0.96},${h * 0.82} Z`} fill={c + "22"} stroke={c + "75"} strokeWidth={1.3} />
+        <Path d={`M${w * 0.22},${h * 0.34} L${w * 0.32},${h * 0.06} Q${w * 0.34},${h * 0.02} ${w * 0.38},${h * 0.02} L${w * 0.68},${h * 0.02} Q${w * 0.72},${h * 0.02} ${w * 0.73},${h * 0.06} L${w * 0.80},${h * 0.34} Z`} fill={c + "18"} stroke={c + "65"} strokeWidth={1.1} />
+        <Rect x={w * 0.93} y={h * 0.42} width={5} height={h * 0.18} rx={2.5} fill={c + "85"} />
+        <Rect x={w * 0.02} y={h * 0.42} width={5} height={h * 0.18} rx={2.5} fill={c + "55"} />
+      </>
+    );
+  } else if (cls === "flagship") {
+    bodyEl = (
+      <>
+        <Path d={`M${w * 0.03},${h * 0.82} L${w * 0.03},${h * 0.38} Q${w * 0.03},${h * 0.30} ${w * 0.10},${h * 0.30} L${w * 0.90},${h * 0.30} Q${w * 0.97},${h * 0.30} ${w * 0.97},${h * 0.38} L${w * 0.97},${h * 0.82} Z`} fill={c + "22"} stroke={c + "80"} strokeWidth={1.4} />
+        <Path d={`M${w * 0.18},${h * 0.30} L${w * 0.28},${h * 0.04} Q${w * 0.30},${h * 0.00} ${w * 0.35},${h * 0.00} L${w * 0.70},${h * 0.00} Q${w * 0.75},${h * 0.00} ${w * 0.76},${h * 0.04} L${w * 0.84},${h * 0.30} Z`} fill={c + "18"} stroke={c + "70"} strokeWidth={1.2} />
+        <Rect x={w * 0.94} y={h * 0.38} width={6} height={h * 0.20} rx={3} fill={c} />
+        <Rect x={w * 0.01} y={h * 0.38} width={6} height={h * 0.20} rx={3} fill={c + "60"} />
+      </>
+    );
+  } else if (cls === "hypercar") {
+    bodyEl = (
+      <>
+        <Path d={`M${w * 0.04},${h * 0.82} L${w * 0.04},${h * 0.36} Q${w * 0.10},${h * 0.24} ${w * 0.20},${h * 0.24} L${w * 0.80},${h * 0.24} Q${w * 0.90},${h * 0.24} ${w * 0.96},${h * 0.36} L${w * 0.96},${h * 0.82} Z`} fill={c + "28"} stroke={c + "90"} strokeWidth={1.5} />
+        <Path d={`M${w * 0.16},${h * 0.24} L${w * 0.26},${h * 0.02} L${w * 0.60},${h * 0.02} L${w * 0.84},${h * 0.24} Z`} fill={c + "20"} stroke={c + "75"} strokeWidth={1.2} />
+        <Rect x={w * 0.94} y={h * 0.34} width={6} height={h * 0.22} rx={3} fill={c} />
+        <Rect x={w * 0.01} y={h * 0.34} width={6} height={h * 0.22} rx={3} fill={c + "70"} />
+        <Path d={`M${w * 0.04},${h * 0.78} L${w * 0.00},${h * 0.66} L${w * 0.04},${h * 0.66}`} fill={c + "35"} />
+        <Path d={`M${w * 0.96},${h * 0.78} L${w * 1.00},${h * 0.66} L${w * 0.96},${h * 0.66}`} fill={c + "35"} />
+      </>
+    );
+  } else {
+    bodyEl = (
+      <>
+        <Rect x={w * 0.08} y={h * 0.42} width={w * 0.84} height={h * 0.42} rx={6} fill={c + "22"} stroke={c + "70"} strokeWidth={1.2} />
+        <Path d={`M${w * 0.28},${h * 0.42} L${w * 0.35},${h * 0.12} L${w * 0.65},${h * 0.12} L${w * 0.72},${h * 0.42} Z`} fill={c + "15"} stroke={c + "60"} strokeWidth={1} />
+        <Rect x={w * 0.88} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "80"} />
+        <Rect x={w * 0.08} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "50"} />
+      </>
+    );
+  }
 
   return (
-    <Svg width={w} height={h + 24} viewBox={`0 0 ${w} ${h + 24}`}>
-      {/* Ground shadow */}
-      <Ellipse cx={w / 2} cy={h + 18} rx={w * 0.4} ry={5} fill={color + "18"} />
-      {/* Ground glow */}
-      <Ellipse cx={w / 2} cy={h + 14} rx={w * 0.32} ry={3} fill={color + "30"} />
-      {/* Body */}
-      <Rect x={6} y={h * 0.45} width={w - 12} height={h * 0.44} rx={9} fill={color + "22"} stroke={color + "90"} strokeWidth={1.6} />
-      {/* Cabin */}
-      <Path
-        d={`M${w*0.22},${h*0.45} L${w*0.29},${h*0.07} L${w*0.71},${h*0.07} L${w*0.78},${h*0.45} Z`}
-        fill={color + "16"} stroke={color + "90"} strokeWidth={1.6}
-      />
-      {/* Windows */}
-      <Path
-        d={`M${w*0.242},${h*0.43} L${w*0.32},${h*0.11} L${w*0.474},${h*0.11} L${w*0.474},${h*0.43} Z`}
-        fill={color + "28"} stroke={color + "55"} strokeWidth={1}
-      />
-      <Path
-        d={`M${w*0.526},${h*0.43} L${w*0.526},${h*0.11} L${w*0.68},${h*0.11} L${w*0.758},${h*0.43} Z`}
-        fill={color + "28"} stroke={color + "55"} strokeWidth={1}
-      />
-      {/* Front lights (bright) */}
-      <Rect x={w - 12} y={h * 0.49} width={8} height={h * 0.18} rx={4} fill={color} />
-      <Rect x={w - 12} y={h * 0.68} width={5} height={h * 0.07} rx={2} fill={color + "70"} />
-      {/* Rear lights */}
-      <Rect x={4} y={h * 0.49} width={8} height={h * 0.18} rx={4} fill={color + "60"} />
-      {/* Accent strip */}
-      <Rect x={w * 0.12} y={h * 0.87} width={w * 0.76} height={h * 0.04} rx={2} fill={color + "30"} />
-      {/* Wheels */}
-      <Circle cx={w * 0.213} cy={h * 0.9} r={h * 0.23} fill={color + "12"} stroke={color} strokeWidth={2.2} />
-      <Circle cx={w * 0.787} cy={h * 0.9} r={h * 0.23} fill={color + "12"} stroke={color} strokeWidth={2.2} />
-      <Circle cx={w * 0.213} cy={h * 0.9} r={h * 0.1} fill={color + "45"} />
-      <Circle cx={w * 0.787} cy={h * 0.9} r={h * 0.1} fill={color + "45"} />
-      {/* Spokes — front wheel */}
-      {[0, 60, 120, 180, 240, 300].map((deg) => {
-        const rad = (deg * Math.PI) / 180;
-        const r = h * 0.19;
-        const cx1 = w * 0.213; const cy1 = h * 0.9;
-        return (
-          <Line key={`f${deg}`}
-            x1={cx1} y1={cy1}
-            x2={cx1 + Math.cos(rad) * r} y2={cy1 + Math.sin(rad) * r}
-            stroke={color + "70"} strokeWidth={1.2}
-          />
-        );
-      })}
-      {/* Spokes — rear wheel */}
-      {[0, 60, 120, 180, 240, 300].map((deg) => {
-        const rad = (deg * Math.PI) / 180;
-        const r = h * 0.19;
-        const cx1 = w * 0.787; const cy1 = h * 0.9;
-        return (
-          <Line key={`r${deg}`}
-            x1={cx1} y1={cy1}
-            x2={cx1 + Math.cos(rad) * r} y2={cy1 + Math.sin(rad) * r}
-            stroke={color + "70"} strokeWidth={1.2}
-          />
-        );
-      })}
+    <Svg width={w} height={h + 16} viewBox={`0 0 ${w} ${h + 16}`} style={{ opacity: 1 }}>
+      {shadowEl}
+      {bodyEl}
+      {wheelEls}
     </Svg>
   );
 }
 
-// ─── Character silhouette — companion scale ───────────────────────────────────
+function PhotoCharacter({ size = 120 }: { size?: number }) {
+  const w = size / 2.2;
+  const h = size;
+  const skin = "#C8956C";
+  const skinS = "#B07C58";
+  const shirt = "#1A1A2E";
+  const shirtS = "#141428";
+  const pants = "#0F0F1E";
+  const belt = "#222240";
+  const shoe = "#0C0C1A";
 
-function CharacterSilhouette({ color, size = 80 }: { color: string; size?: number }) {
-  const s = size;
   return (
-    <Svg width={s * 0.45} height={s} viewBox="0 0 45 100">
-      <Circle cx={22} cy={11} r={8} fill={color + "35"} stroke={color + "75"} strokeWidth={1.2} />
-      <Rect x={12} y={20} width={20} height={32} rx={5} fill={color + "28"} stroke={color + "65"} strokeWidth={1} />
-      <Rect x={3} y={22} width={8} height={22} rx={4} fill={color + "22"} stroke={color + "55"} strokeWidth={1} />
-      <Rect x={34} y={22} width={8} height={22} rx={4} fill={color + "22"} stroke={color + "55"} strokeWidth={1} />
-      <Rect x={12} y={53} width={9} height={30} rx={4} fill={color + "28"} stroke={color + "65"} strokeWidth={1} />
-      <Rect x={23} y={53} width={9} height={30} rx={4} fill={color + "28"} stroke={color + "65"} strokeWidth={1} />
+    <Svg width={w} height={h} viewBox="0 0 100 220">
+      <Ellipse cx="50" cy="212" rx="30" ry="5" fill="#00000055" />
+      <Ellipse cx="36" cy="197" rx="16" ry="7.5" fill={shoe} />
+      <Ellipse cx="25" cy="195" rx="8" ry="5" fill={shoe} />
+      <Ellipse cx="64" cy="197" rx="16" ry="7.5" fill={shoe} />
+      <Ellipse cx="75" cy="195" rx="8" ry="5" fill={shoe} />
+      <Rect x="26" y="118" width="21" height="80" rx="4" fill={pants} />
+      <Rect x="53" y="118" width="21" height="80" rx="4" fill={pants} />
+      <Rect x="25" y="113" width="50" height="7" rx="2.5" fill={belt} />
+      <Rect x="43" y="113" width="14" height="7" rx="1.5" fill="#2A2A48" />
+      <Rect x="24" y="52" width="52" height="64" rx="6" fill={shirt} />
+      <Rect x="24" y="52" width="5" height="64" rx="2.5" fill={shirtS} />
+      <Rect x="71" y="52" width="5" height="64" rx="2.5" fill={shirtS} />
+      <Rect x="8" y="54" width="16" height="50" rx="8" fill={shirt} />
+      <Rect x="76" y="54" width="16" height="50" rx="8" fill={shirt} />
+      <Ellipse cx="16" cy="103" rx="7" ry="8" fill={skin} />
+      <Ellipse cx="84" cy="103" rx="7" ry="8" fill={skin} />
+      <Rect x="36" y="43" width="28" height="12" rx="4" fill={skin} />
+      <Ellipse cx="50" cy="28" rx="15" ry="16" fill={skin} />
+      <Ellipse cx="42" cy="27" rx="2" ry="1.5" fill="#0D0D0D" />
+      <Ellipse cx="58" cy="27" rx="2" ry="1.5" fill="#0D0D0D" />
+      <Path d="M47 33 Q50 36 53 33" stroke={skinS} strokeWidth="1" fill="none" strokeLinecap="round" />
+      <Ellipse cx="50" cy="12" rx="14" ry="9" fill="#141414" />
+      <Rect x="36" y="10" width="28" height="9" fill="#141414" />
+      <Ellipse cx="39" cy="17" rx="3" ry="6" fill="#141414" />
+      <Ellipse cx="61" cy="17" rx="3" ry="6" fill="#141414" />
     </Svg>
   );
 }
 
-// ─── Scene canvas ─────────────────────────────────────────────────────────────
+const CANVAS_W = SCREEN_W - 32;
+const ASPECT_RATIOS: Record<AspectRatio, number> = { "4:5": 5 / 4, "1:1": 1 };
 
 function PhotoScene({
-  car, scene, showOverlay, username, prestige, activeTitle, classLabel,
+  car, scene, showIdentity, showCarName, showWatermark,
+  username, statusTier, activeTitle, classLabel, aspectRatio,
 }: {
-  car: Car; scene: Scene; showOverlay: boolean;
-  username: string; prestige: string | null; activeTitle: string | null; classLabel: string;
+  car: Car; scene: Scene; showIdentity: boolean; showCarName: boolean; showWatermark: boolean;
+  username: string; statusTier: string | null; activeTitle: string | null; classLabel: string;
+  aspectRatio: AspectRatio;
 }) {
   const sm = SCENE_META[scene];
   const rarityColor = RARITY_COLORS[car.rarity] ?? "#9CA3AF";
+  const bodyColor = getVariantHex(car);
+  const canvasH = CANVAS_W * ASPECT_RATIOS[aspectRatio];
+  const vb = `0 0 380 ${Math.round(380 * ASPECT_RATIOS[aspectRatio])}`;
+  const vbH = Math.round(380 * ASPECT_RATIOS[aspectRatio]);
+  const groundY = vbH - 60;
 
   return (
-    <View style={ps.sceneOuter}>
-      {/* SVG background */}
-      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} viewBox="0 0 380 280">
+    <View style={[sc.outer, { height: canvasH }]}>
+      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} viewBox={vb}>
         <Defs>
           <LinearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0%" stopColor={sm.bg1} stopOpacity={1} />
@@ -181,114 +254,115 @@ function PhotoScene({
           </LinearGradient>
           <LinearGradient id="carGlow" x1="0" y1="0" x2="1" y2="0">
             <Stop offset="0%" stopColor={rarityColor} stopOpacity={0} />
-            <Stop offset="50%" stopColor={rarityColor} stopOpacity={0.14} />
+            <Stop offset="50%" stopColor={rarityColor} stopOpacity={0.12} />
             <Stop offset="100%" stopColor={rarityColor} stopOpacity={0} />
           </LinearGradient>
         </Defs>
 
-        {/* Base background */}
-        <Rect x={0} y={0} width={380} height={280} fill="url(#bg)" />
+        <Rect x={0} y={0} width={380} height={vbH} fill="url(#bg)" />
+        <Rect x={0} y={groundY - 30} width={380} height={90} fill="url(#carGlow)" />
+        <Rect x={0} y={groundY} width={380} height={60} fill="url(#ground)" />
 
-        {/* Horizontal glow band at car mid-height */}
-        <Rect x={0} y={110} width={380} height={90} fill="url(#carGlow)" />
-
-        {/* Ground plane */}
-        <Rect x={0} y={230} width={380} height={50} fill="url(#ground)" />
-
-        {/* Scene-specific atmosphere */}
-        {scene === "studio" && (
-          <>
-            {/* Spotlight cone from upper-left */}
-            <Path
-              d={`M80,0 L0,280 L200,280 Z`}
-              fill={rarityColor + "04"}
-            />
-            <Path d={`M80,0 L80,280`} stroke={rarityColor + "08"} strokeWidth={1} />
-            {/* Subtle floor reflection line */}
-            <Rect x={60} y={232} width={260} height={1} fill={rarityColor + "25"} />
-          </>
-        )}
-        {scene === "street" && (
-          <>
-            {/* Speed lines — perspective */}
-            {[-20, 0, 30, 70, 110].map((y, i) => (
-              <Line key={i} x1={0} y1={150 + y} x2={100} y2={150 + y * 0.6} stroke={rarityColor + "08"} strokeWidth={0.8} />
+        {scene === "nightcity" && (
+          <G>
+            <Rect x={30} y={40} width={18} height={groundY - 60} rx={2} fill={rarityColor + "06"} stroke={rarityColor + "12"} strokeWidth={0.5} />
+            <Rect x={60} y={20} width={22} height={groundY - 40} rx={2} fill={rarityColor + "05"} stroke={rarityColor + "10"} strokeWidth={0.5} />
+            <Rect x={290} y={55} width={20} height={groundY - 75} rx={2} fill={rarityColor + "06"} stroke={rarityColor + "10"} strokeWidth={0.5} />
+            <Rect x={320} y={30} width={25} height={groundY - 50} rx={2} fill={rarityColor + "05"} stroke={rarityColor + "12"} strokeWidth={0.5} />
+            <Rect x={340} y={60} width={15} height={groundY - 80} rx={2} fill={rarityColor + "04"} stroke={rarityColor + "08"} strokeWidth={0.5} />
+            {[42, 52, 62, 72, 85].map((y, i) => (
+              <Rect key={i} x={33} y={y} width={12} height={5} rx={1} fill={rarityColor + "12"} />
             ))}
-            {/* Road markings */}
-            <Rect x={0} y={232} width={380} height={2} fill={rarityColor + "18"} />
-            <Rect x={150} y={234} width={35} height={5} rx={2} fill={rarityColor + "12"} />
-            <Rect x={210} y={234} width={35} height={5} rx={2} fill={rarityColor + "10"} />
-            {/* Horizon glow */}
-            <Rect x={0} y={148} width={380} height={12} fill={rarityColor + "06"} />
-          </>
+            {[30, 45, 58, 75].map((y, i) => (
+              <Rect key={i} x={63} y={y} width={16} height={6} rx={1} fill={rarityColor + "10"} />
+            ))}
+            <Rect x={0} y={groundY} width={380} height={1} fill={rarityColor + "15"} />
+            <Ellipse cx={190} cy={groundY + 8} rx={80} ry={3} fill={rarityColor + "10"} />
+          </G>
         )}
-        {scene === "command" && (
-          <>
-            {/* Corner brackets */}
-            <Rect x={0} y={0} width={380} height={1.5} fill={rarityColor + "35"} />
-            <Rect x={0} y={278} width={380} height={1.5} fill={rarityColor + "25"} />
-            <Rect x={0} y={0} width={1.5} height={280} fill={rarityColor + "25"} />
-            <Rect x={378} y={0} width={1.5} height={280} fill={rarityColor + "25"} />
-            {/* Corner L-shapes */}
-            <Rect x={0} y={0} width={24} height={2} fill={rarityColor + "70"} />
-            <Rect x={0} y={0} width={2} height={20} fill={rarityColor + "70"} />
-            <Rect x={356} y={0} width={24} height={2} fill={rarityColor + "70"} />
-            <Rect x={378} y={0} width={2} height={20} fill={rarityColor + "70"} />
-            <Rect x={0} y={278} width={24} height={2} fill={rarityColor + "50"} />
-            <Rect x={0} y={260} width={2} height={20} fill={rarityColor + "50"} />
-            <Rect x={356} y={278} width={24} height={2} fill={rarityColor + "50"} />
-            <Rect x={378} y={260} width={2} height={20} fill={rarityColor + "50"} />
-            {/* Subtle grid lines */}
-            <Line x1={0} y1={93} x2={380} y2={93} stroke={rarityColor + "08"} strokeWidth={0.6} />
-            <Line x1={0} y1={186} x2={380} y2={186} stroke={rarityColor + "08"} strokeWidth={0.6} />
-            <Line x1={126} y1={0} x2={126} y2={280} stroke={rarityColor + "06"} strokeWidth={0.6} />
-            <Line x1={253} y1={0} x2={253} y2={280} stroke={rarityColor + "06"} strokeWidth={0.6} />
-          </>
+
+        {scene === "coastal" && (
+          <G>
+            <Line x1={0} y1={groundY - 40} x2={380} y2={groundY - 40} stroke="#F5C84220" strokeWidth={0.8} />
+            <Ellipse cx={320} cy={groundY - 70} rx={14} ry={14} fill="#F5C84208" stroke="#F5C84215" strokeWidth={0.5} />
+            <Rect x={0} y={groundY - 8} width={380} height={2} fill="#4488AA12" />
+            <Rect x={0} y={groundY - 2} width={380} height={1} fill="#4488AA08" />
+            {[60, 130, 210, 280, 340].map((x, i) => (
+              <Ellipse key={i} cx={x} cy={groundY + 15 + (i % 2) * 8} rx={30 + i * 3} ry={2} fill="#4488AA06" />
+            ))}
+          </G>
+        )}
+
+        {scene === "minimal" && (
+          <G>
+            <Line x1={190} y1={0} x2={190} y2={vbH} stroke={rarityColor + "05"} strokeWidth={0.5} />
+            <Line x1={0} y1={groundY} x2={380} y2={groundY} stroke={rarityColor + "08"} strokeWidth={0.5} />
+            <Rect x={185} y={groundY - 4} width={10} height={8} rx={1} fill={rarityColor + "06"} />
+          </G>
+        )}
+
+        {scene === "track" && (
+          <G>
+            <Rect x={0} y={groundY} width={380} height={2} fill={rarityColor + "25"} />
+            <Rect x={0} y={groundY + 12} width={380} height={1} fill={rarityColor + "12"} />
+            {[30, 80, 130, 180, 230, 280, 330].map((x, i) => (
+              <Rect key={i} x={x} y={groundY + 3} width={20} height={4} rx={1} fill={rarityColor + "10"} />
+            ))}
+            {[-30, -10, 20, 60, 110].map((y, i) => (
+              <Line key={i} x1={0} y1={groundY + y} x2={60 - i * 6} y2={groundY + y * 0.5} stroke={rarityColor + "06"} strokeWidth={0.6} />
+            ))}
+            {[-30, -10, 20, 60, 110].map((y, i) => (
+              <Line key={i} x1={380} y1={groundY + y} x2={320 + i * 6} y2={groundY + y * 0.5} stroke={rarityColor + "06"} strokeWidth={0.6} />
+            ))}
+            <Rect x={2} y={groundY - 20} width={3} height={20} rx={1} fill={rarityColor + "15"} />
+            <Rect x={375} y={groundY - 20} width={3} height={20} rx={1} fill={rarityColor + "15"} />
+          </G>
         )}
       </Svg>
 
-      {/* Character — left side, smaller */}
-      <View style={ps.characterWrap}>
-        <CharacterSilhouette color={rarityColor} size={84} />
+      <View style={[sc.compositionWrap, { height: canvasH }]}>
+        <View style={sc.characterPos}>
+          <PhotoCharacter size={canvasH * 0.38} />
+        </View>
+        <View style={sc.carPos}>
+          <PhotoCarVisual carClass={car.carClass} bodyColor={bodyColor} size={CANVAS_W * 0.62} />
+        </View>
       </View>
 
-      {/* Car — center dominant */}
-      <View style={ps.carWrap}>
-        <CarSilhouetteLarge rarity={car.rarity} width={230} />
-      </View>
-
-      {/* Prestige overlay card — rarity-tinted, top-right */}
-      {showOverlay && (
-        <Animated.View
-          entering={FadeIn.duration(250)}
-          exiting={FadeOut.duration(200)}
-          style={[ps.overlayCard, { borderColor: rarityColor + "50", backgroundColor: "#000000CC" }]}
-        >
-          {/* Rarity corner accent */}
-          <View style={[ps.overlayCorner, { backgroundColor: rarityColor }]} />
-          <Text style={[ps.overlayUsername, { color: rarityColor }]}>{username}</Text>
-          {activeTitle && (
-            <Text style={ps.overlayTitle}>{activeTitle}</Text>
-          )}
-          {prestige && (
-            <Text style={ps.overlayPrestige}>{prestige}</Text>
-          )}
-          <View style={ps.overlaySep} />
-          <View style={ps.overlayCarRow}>
-            <Ionicons name="car-sport-outline" size={9} color={rarityColor} />
-            <Text style={[ps.overlayCarName, { color: rarityColor }]} numberOfLines={1}>{car.name}</Text>
-          </View>
-          <Text style={[ps.overlayClass, { color: rarityColor + "90" }]}>{classLabel}</Text>
-          <View style={ps.overlayBrand}>
-            <Text style={ps.overlayBrandText}>DisciplineOS</Text>
+      {showIdentity && (
+        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={sc.identityOverlay}>
+          <View style={[sc.identityCard, { borderColor: rarityColor + "50" }]}>
+            <View style={[sc.identityAccent, { backgroundColor: rarityColor }]} />
+            <Text style={[sc.identityName, { color: rarityColor }]}>{username}</Text>
+            {activeTitle && <Text style={sc.identityTitle}>{activeTitle}</Text>}
+            {statusTier && <Text style={sc.identityTier}>{statusTier}</Text>}
           </View>
         </Animated.View>
+      )}
+
+      {showCarName && (
+        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={sc.carNameOverlay}>
+          <View style={[sc.carNameCard, { borderColor: rarityColor + "40" }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <View style={[sc.carNameDot, { backgroundColor: rarityColor }]} />
+              <Text style={[sc.carNameText, { color: rarityColor }]} numberOfLines={1}>{car.name}</Text>
+            </View>
+            {classLabel ? <Text style={[sc.carClassText, { color: rarityColor + "90" }]}>{classLabel}</Text> : null}
+            {car.prestigeValue > 0 && (
+              <Text style={sc.carPrestigeText}>+{car.prestigeValue} Prestige</Text>
+            )}
+          </View>
+        </Animated.View>
+      )}
+
+      {showWatermark && (
+        <View style={sc.watermarkWrap}>
+          <Text style={sc.watermarkText}>DisciplineOS</Text>
+        </View>
       )}
     </View>
   );
 }
-
-// ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function PhotoModeScreen() {
   const insets = useSafeAreaInsets();
@@ -296,14 +370,20 @@ export default function PhotoModeScreen() {
   const { user } = useAuth();
 
   const { data: photoData, isLoading } = useCarPhotoMode();
+  const { data: charData } = useCharacterStatus();
   const { data: identityData } = useIdentity();
   const { data: endgameData } = useEndgame();
 
   const ownedCars: Car[] = photoData?.ownedCars ?? [];
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
-  const [scene, setScene] = useState<Scene>("studio");
-  const [showOverlay, setShowOverlay] = useState(true);
-  const [screenshotHint, setScreenshotHint] = useState(false);
+  const [scene, setScene] = useState<Scene>("nightcity");
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("4:5");
+  const [showIdentity, setShowIdentity] = useState(true);
+  const [showCarName, setShowCarName] = useState(true);
+  const [showWatermark, setShowWatermark] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const viewShotRef = useRef<ViewShot>(null);
 
   const activeCar: Car | null =
     ownedCars.find((c) => c.id === selectedCarId) ??
@@ -311,18 +391,44 @@ export default function PhotoModeScreen() {
     ownedCars[0] ?? null;
 
   const username = user?.username ?? "Operator";
-  const prestige = endgameData?.prestige?.currentLabel ?? null;
+  const statusTier = charData?.statusTier ?? endgameData?.prestige?.currentLabel ?? null;
   const activeTitle = identityData?.activeTitle?.name ?? null;
   const classLabel = CLASS_LABELS[activeCar?.carClass ?? ""] ?? "";
   const rarityColor = activeCar ? (RARITY_COLORS[activeCar.rarity] ?? Colors.accent) : Colors.accent;
 
-  function handleScreenshot() {
+  const handleExport = useCallback(async () => {
+    if (!viewShotRef.current?.capture) return;
+    setIsExporting(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    setScreenshotHint(true);
-    setTimeout(() => setScreenshotHint(false), 2500);
-  }
+    try {
+      const uri = await viewShotRef.current.capture();
+      if (Platform.OS === "web") {
+        const link = document.createElement("a");
+        link.href = uri;
+        link.download = `disciplineos-${Date.now()}.png`;
+        link.click();
+        Alert.alert("Exported", "Image downloaded successfully.");
+      } else {
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Share your photo" });
+        } else {
+          const { status } = await MediaLibrary.requestPermissionsAsync();
+          if (status === "granted") {
+            await MediaLibrary.saveToLibraryAsync(uri);
+            Alert.alert("Saved", "Photo saved to your camera roll.");
+          } else {
+            Alert.alert("Permission Required", "Camera roll access is needed to save photos.");
+          }
+        }
+      }
+    } catch (err) {
+      Alert.alert("Export Failed", "Could not export the image. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  }, []);
 
-  // ── Loading ────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <View style={[styles.container, { paddingTop: topPad, alignItems: "center", justifyContent: "center", gap: 14 }]}>
@@ -336,7 +442,6 @@ export default function PhotoModeScreen() {
     );
   }
 
-  // ── No cars owned ──────────────────────────────────────────────────────────
   if (ownedCars.length === 0) {
     return (
       <View style={[styles.container, { paddingTop: topPad }]}>
@@ -355,7 +460,7 @@ export default function PhotoModeScreen() {
           </View>
           <Text style={styles.emptyTitle}>No Vehicles Owned</Text>
           <Text style={styles.emptyText}>
-            Unlock your first car from the Collection to compose a photo with your character. Trophies and prestige markers — all in one frame.
+            Unlock your first car from the Collection to compose a photo with your character.
           </Text>
           <Pressable style={styles.emptyBtn} onPress={() => router.replace("/cars")}>
             <Ionicons name="car-outline" size={14} color={Colors.bg} />
@@ -366,14 +471,12 @@ export default function PhotoModeScreen() {
     );
   }
 
-  // ── Main photo mode ────────────────────────────────────────────────────────
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]}
       >
-        {/* Header */}
         <Animated.View entering={FadeIn.duration(280)} style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={20} color={Colors.textSecondary} />
@@ -382,83 +485,102 @@ export default function PhotoModeScreen() {
             <Text style={styles.headerEyebrow}>CAPTURE YOUR STORY</Text>
             <Text style={styles.headerTitle}>Photo Mode</Text>
           </View>
-          <Pressable
-            style={[styles.collectionBtn]}
-            onPress={() => { Haptics.selectionAsync().catch(() => {}); router.back(); }}
-          >
+          <Pressable style={styles.collectionBtn} onPress={() => { Haptics.selectionAsync().catch(() => {}); router.back(); }}>
             <Ionicons name="grid-outline" size={15} color={Colors.textSecondary} />
           </Pressable>
         </Animated.View>
 
-        {/* Scene canvas */}
         {activeCar && (
           <Animated.View entering={FadeInDown.delay(20).springify()} style={styles.sceneContainer}>
-            <PhotoScene
-              car={activeCar}
-              scene={scene}
-              showOverlay={showOverlay}
-              username={username}
-              prestige={prestige}
-              activeTitle={activeTitle}
-              classLabel={classLabel}
-            />
-            {/* Screenshot hint overlay */}
-            {screenshotHint && (
-              <Animated.View entering={ZoomIn.duration(180)} exiting={FadeOut.duration(400)} style={styles.screenshotHintOverlay}>
-                <View style={styles.screenshotHintBox}>
-                  <Ionicons name="phone-portrait-outline" size={22} color={Colors.green} />
-                  <Text style={styles.screenshotHintTitle}>Take a Screenshot</Text>
-                  <Text style={styles.screenshotHintText}>
-                    {Platform.OS === "ios"
-                      ? "Hold Side + Volume Up to capture."
-                      : Platform.OS === "android"
-                      ? "Hold Power + Volume Down to capture."
-                      : "Use your system screenshot shortcut."}
-                  </Text>
-                </View>
-              </Animated.View>
-            )}
+            <ViewShot ref={viewShotRef} options={{ format: "png", quality: 1 }} style={{ backgroundColor: SCENE_META[scene].bg1 }}>
+              <PhotoScene
+                car={activeCar}
+                scene={scene}
+                showIdentity={showIdentity}
+                showCarName={showCarName}
+                showWatermark={showWatermark}
+                username={username}
+                statusTier={statusTier}
+                activeTitle={activeTitle}
+                classLabel={classLabel}
+                aspectRatio={aspectRatio}
+              />
+            </ViewShot>
           </Animated.View>
         )}
 
-        {/* Action row — screenshot + overlay toggle */}
         <Animated.View entering={FadeInDown.delay(40).springify()} style={styles.actionRow}>
           <Pressable
-            style={[styles.screenshotBtn, { backgroundColor: rarityColor }]}
-            onPress={handleScreenshot}
+            style={[styles.exportBtn, { backgroundColor: rarityColor, opacity: isExporting ? 0.7 : 1 }]}
+            onPress={handleExport}
+            disabled={isExporting}
           >
-            <Ionicons name="phone-portrait-outline" size={18} color="#000" />
-            <Text style={styles.screenshotBtnText}>Screenshot to Share</Text>
+            {isExporting ? (
+              <ActivityIndicator size="small" color="#000" />
+            ) : (
+              <Ionicons name="share-outline" size={18} color="#000" />
+            )}
+            <Text style={styles.exportBtnText}>{isExporting ? "Exporting..." : "Export & Share"}</Text>
           </Pressable>
-          <Pressable
-            style={[styles.overlayToggle, showOverlay && { backgroundColor: Colors.accentDim, borderColor: Colors.accent + "50" }]}
-            onPress={() => { Haptics.selectionAsync().catch(() => {}); setShowOverlay(!showOverlay); }}
-          >
-            <Ionicons
-              name={showOverlay ? "id-card" : "id-card-outline"}
-              size={17}
-              color={showOverlay ? Colors.accent : Colors.textMuted}
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(55).springify()} style={styles.sectionBlock}>
+          <View style={styles.sectionLabelRow}>
+            <Ionicons name="options-outline" size={12} color={Colors.textMuted} />
+            <Text style={styles.sectionLabel}>OVERLAYS</Text>
+          </View>
+          <View style={styles.toggleRow}>
+            <OverlayToggle
+              label="Identity"
+              icon="person-outline"
+              active={showIdentity}
+              onToggle={() => { Haptics.selectionAsync().catch(() => {}); setShowIdentity(!showIdentity); }}
             />
-          </Pressable>
+            <OverlayToggle
+              label="Car Name"
+              icon="car-sport-outline"
+              active={showCarName}
+              onToggle={() => { Haptics.selectionAsync().catch(() => {}); setShowCarName(!showCarName); }}
+            />
+            <OverlayToggle
+              label="Watermark"
+              icon="water-outline"
+              active={showWatermark}
+              onToggle={() => { Haptics.selectionAsync().catch(() => {}); setShowWatermark(!showWatermark); }}
+            />
+          </View>
         </Animated.View>
 
-        {/* Share tip */}
-        <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.shareTip}>
-          <Ionicons name="information-circle-outline" size={13} color={Colors.textMuted} />
-          <Text style={styles.shareTipText}>
-            Tap "Screenshot to Share" to get platform instructions, then capture using your device.
-          </Text>
+        <Animated.View entering={FadeInDown.delay(65).springify()} style={styles.sectionBlock}>
+          <View style={styles.sectionLabelRow}>
+            <Ionicons name="resize-outline" size={12} color={Colors.textMuted} />
+            <Text style={styles.sectionLabel}>ASPECT RATIO</Text>
+          </View>
+          <View style={styles.ratioRow}>
+            {(["4:5", "1:1"] as AspectRatio[]).map((r) => {
+              const active = aspectRatio === r;
+              return (
+                <Pressable
+                  key={r}
+                  style={[styles.ratioTab, active && { backgroundColor: Colors.accentDim, borderColor: Colors.accent + "50" }]}
+                  onPress={() => { Haptics.selectionAsync().catch(() => {}); setAspectRatio(r); }}
+                >
+                  <Text style={[styles.ratioLabel, active && { color: Colors.accent }]}>{r}</Text>
+                  <Text style={styles.ratioHint}>{r === "4:5" ? "Story / Reel" : "Square"}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </Animated.View>
 
-        {/* Scene selector */}
-        <Animated.View entering={FadeInDown.delay(60).springify()} style={styles.sectionBlock}>
+        <Animated.View entering={FadeInDown.delay(75).springify()} style={styles.sectionBlock}>
           <View style={styles.sectionLabelRow}>
             <Ionicons name="image-outline" size={12} color={Colors.textMuted} />
             <Text style={styles.sectionLabel}>SCENE</Text>
           </View>
           <View style={styles.sceneRow}>
-            {(["studio", "street", "command"] as Scene[]).map((s) => {
-              const sm = SCENE_META[s];
+            {(["nightcity", "coastal", "minimal", "track"] as Scene[]).map((s) => {
+              const meta = SCENE_META[s];
               const active = scene === s;
               return (
                 <Pressable
@@ -466,18 +588,17 @@ export default function PhotoModeScreen() {
                   style={[styles.sceneTab, active && { backgroundColor: Colors.accentDim, borderColor: Colors.accent + "50" }]}
                   onPress={() => { Haptics.selectionAsync().catch(() => {}); setScene(s); }}
                 >
-                  <Ionicons name={sm.icon as any} size={15} color={active ? Colors.accent : Colors.textMuted} />
-                  <Text style={[styles.sceneTabLabel, active && { color: Colors.accent }]}>{sm.label}</Text>
-                  <Text style={styles.sceneTabMood} numberOfLines={1}>{sm.mood}</Text>
+                  <Ionicons name={meta.icon as keyof typeof Ionicons.glyphMap} size={15} color={active ? Colors.accent : Colors.textMuted} />
+                  <Text style={[styles.sceneTabLabel, active && { color: Colors.accent }]}>{meta.label}</Text>
+                  <Text style={styles.sceneTabMood} numberOfLines={1}>{meta.mood}</Text>
                 </Pressable>
               );
             })}
           </View>
         </Animated.View>
 
-        {/* Vehicle selector (when multiple owned) */}
         {ownedCars.length > 1 && (
-          <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.sectionBlock}>
+          <Animated.View entering={FadeInDown.delay(85).springify()} style={styles.sectionBlock}>
             <View style={styles.sectionLabelRow}>
               <Ionicons name="car-outline" size={12} color={Colors.textMuted} />
               <Text style={styles.sectionLabel}>VEHICLE</Text>
@@ -487,24 +608,18 @@ export default function PhotoModeScreen() {
                 {ownedCars.map((c) => {
                   const active = activeCar?.id === c.id;
                   const rc = RARITY_COLORS[c.rarity] ?? Colors.textMuted;
+                  const hex = getVariantHex(c);
                   return (
                     <Pressable
                       key={c.id}
-                      style={[
-                        styles.carSelectItem,
-                        active && { borderColor: rc + "80", backgroundColor: rc + "10", borderWidth: 1.5 },
-                      ]}
+                      style={[styles.carSelectItem, active && { borderColor: rc + "80", backgroundColor: rc + "10", borderWidth: 1.5 }]}
                       onPress={() => { Haptics.selectionAsync().catch(() => {}); setSelectedCarId(c.id); }}
                     >
-                      <View style={[styles.carSelectIconBox, { backgroundColor: rc + "18" }]}>
-                        <Ionicons name="car-sport-outline" size={18} color={rc} />
+                      <View style={styles.carSelectVisual}>
+                        <PhotoCarVisual carClass={c.carClass} bodyColor={hex} size={60} />
                       </View>
-                      <Text style={[styles.carSelectName, { color: active ? rc : Colors.textSecondary }]} numberOfLines={1}>
-                        {c.name}
-                      </Text>
-                      <Text style={styles.carSelectClass} numberOfLines={1}>
-                        {CLASS_LABELS[c.carClass ?? ""] ?? ""}
-                      </Text>
+                      <Text style={[styles.carSelectName, { color: active ? rc : Colors.textSecondary }]} numberOfLines={1}>{c.name}</Text>
+                      <Text style={styles.carSelectClass} numberOfLines={1}>{CLASS_LABELS[c.carClass ?? ""] ?? ""}</Text>
                       {active && <View style={[styles.carSelectDot, { backgroundColor: rc }]} />}
                     </Pressable>
                   );
@@ -513,57 +628,19 @@ export default function PhotoModeScreen() {
             </ScrollView>
           </Animated.View>
         )}
-
-        {/* Car prestige card */}
-        {activeCar && (
-          <Animated.View
-            entering={FadeInDown.delay(100).springify()}
-            style={[styles.carPrestigeCard, { borderLeftColor: rarityColor, backgroundColor: rarityColor + "06" }]}
-          >
-            <View style={styles.carPrestigeHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.carPrestigeEyebrow}>{classLabel.toUpperCase()}</Text>
-                <Text style={[styles.carPrestigeName, { color: rarityColor }]}>{activeCar.name}</Text>
-              </View>
-              <View style={[styles.rarityBadge, { backgroundColor: rarityColor + "18" }]}>
-                <Text style={[styles.rarityBadgeText, { color: rarityColor }]}>{activeCar.rarity.toUpperCase()}</Text>
-              </View>
-            </View>
-
-            {activeCar.styleEffect ? (
-              <Text style={styles.carStyleEffect} numberOfLines={2}>{activeCar.styleEffect}</Text>
-            ) : activeCar.description ? (
-              <Text style={styles.carStyleEffect} numberOfLines={2}>{activeCar.description}</Text>
-            ) : null}
-
-            {activeCar.prestigeValue > 0 && (
-              <View style={styles.carPrestigeRow}>
-                <Ionicons name="shield-checkmark" size={13} color={Colors.gold} />
-                <Text style={styles.carPrestigeText}>+{activeCar.prestigeValue} Prestige Contribution</Text>
-                <View style={styles.carPrestigeBar}>
-                  <View style={[styles.carPrestigeBarFill, {
-                    width: `${Math.min(100, activeCar.prestigeValue * 10)}%` as any,
-                    backgroundColor: Colors.gold,
-                  }]} />
-                </View>
-              </View>
-            )}
-
-            {/* Overlay legend */}
-            <View style={styles.cardLegend}>
-              <View style={styles.cardLegendDot} />
-              <Text style={styles.cardLegendText}>
-                {showOverlay ? "Identity card visible in scene" : "Identity card hidden — tap the card icon to show"}
-              </Text>
-            </View>
-          </Animated.View>
-        )}
       </ScrollView>
     </View>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+function OverlayToggle({ label, icon, active, onToggle }: { label: string; icon: string; active: boolean; onToggle: () => void }) {
+  return (
+    <Pressable style={[styles.overlayToggleBtn, active && { backgroundColor: Colors.accentDim, borderColor: Colors.accent + "50" }]} onPress={onToggle}>
+      <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={14} color={active ? Colors.accent : Colors.textMuted} />
+      <Text style={[styles.overlayToggleLabel, active && { color: Colors.accent }]}>{label}</Text>
+    </Pressable>
+  );
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
@@ -579,42 +656,36 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.textPrimary, marginTop: 1 },
   collectionBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.bgCard, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
 
-  sceneContainer: {
-    height: 280, borderRadius: 22, overflow: "hidden",
-    backgroundColor: "#090C14",
-    borderWidth: 1, borderColor: Colors.border,
-  },
+  sceneContainer: { borderRadius: 22, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
 
   actionRow: { flexDirection: "row", gap: 10, alignItems: "center" },
-  screenshotBtn: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 9, borderRadius: 14, paddingVertical: 14,
-  },
-  screenshotBtnText: { fontFamily: "Inter_700Bold", fontSize: 15, color: "#000" },
-  overlayToggle: {
-    width: 48, height: 48, borderRadius: 14,
-    backgroundColor: Colors.bgCard, alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: Colors.border,
-  },
-
-  screenshotHintOverlay: {
-    position: "absolute", inset: 0, alignItems: "center", justifyContent: "center",
-    backgroundColor: "#000000BB",
-  },
-  screenshotHintBox: { alignItems: "center", gap: 10, padding: 24, backgroundColor: Colors.bgCard, borderRadius: 20, borderWidth: 1, borderColor: Colors.border, marginHorizontal: 24 },
-  screenshotHintTitle: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.textPrimary, textAlign: "center" },
-  screenshotHintText: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, textAlign: "center", lineHeight: 19 },
-
-  shareTip: { flexDirection: "row", alignItems: "flex-start", gap: 7, paddingHorizontal: 2 },
-  shareTipText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, lineHeight: 16 },
+  exportBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, borderRadius: 14, paddingVertical: 14 },
+  exportBtnText: { fontFamily: "Inter_700Bold", fontSize: 15, color: "#000" },
 
   sectionBlock: { gap: 10 },
   sectionLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   sectionLabel: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.5 },
 
-  sceneRow: { flexDirection: "row", gap: 8 },
+  toggleRow: { flexDirection: "row", gap: 8 },
+  overlayToggleBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    paddingVertical: 11, borderRadius: 12,
+    backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border,
+  },
+  overlayToggleLabel: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textMuted },
+
+  ratioRow: { flexDirection: "row", gap: 8 },
+  ratioTab: {
+    flex: 1, alignItems: "center", gap: 3,
+    paddingVertical: 11, paddingHorizontal: 8, borderRadius: 13,
+    backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border,
+  },
+  ratioLabel: { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.textMuted },
+  ratioHint: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted, opacity: 0.7 },
+
+  sceneRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   sceneTab: {
-    flex: 1, alignItems: "center", gap: 4,
+    width: (SCREEN_W - 32 - 8) / 2 - 4, alignItems: "center", gap: 4,
     paddingVertical: 11, paddingHorizontal: 6, borderRadius: 13,
     backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border,
   },
@@ -623,31 +694,13 @@ const styles = StyleSheet.create({
 
   carSelectRow: { flexDirection: "row", gap: 10 },
   carSelectItem: {
-    alignItems: "center", gap: 5, paddingVertical: 12, paddingHorizontal: 14,
+    alignItems: "center", gap: 5, paddingVertical: 10, paddingHorizontal: 10,
     backgroundColor: Colors.bgCard, borderRadius: 14, borderWidth: 1, borderColor: Colors.border, minWidth: 90,
   },
-  carSelectIconBox: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  carSelectVisual: { height: 36, justifyContent: "center" },
   carSelectName: { fontFamily: "Inter_600SemiBold", fontSize: 11, textAlign: "center" },
   carSelectClass: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted, textAlign: "center" },
   carSelectDot: { width: 6, height: 6, borderRadius: 3 },
-
-  carPrestigeCard: {
-    backgroundColor: Colors.bgCard, borderRadius: 16, padding: 15,
-    borderWidth: 1, borderColor: Colors.border, borderLeftWidth: 4, gap: 10,
-  },
-  carPrestigeHeader: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
-  carPrestigeEyebrow: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.5 },
-  carPrestigeName: { fontFamily: "Inter_700Bold", fontSize: 18, lineHeight: 22, marginTop: 2 },
-  rarityBadge: { borderRadius: 9, paddingHorizontal: 9, paddingVertical: 4, alignSelf: "flex-start", marginTop: 4 },
-  rarityBadgeText: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 0.8 },
-  carStyleEffect: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18, fontStyle: "italic" },
-  carPrestigeRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  carPrestigeText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.gold },
-  carPrestigeBar: { flex: 1, height: 4, backgroundColor: Colors.bgElevated, borderRadius: 2 },
-  carPrestigeBarFill: { height: 4, borderRadius: 2 },
-  cardLegend: { flexDirection: "row", alignItems: "center", gap: 6 },
-  cardLegendDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: Colors.textMuted },
-  cardLegendText: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, flex: 1 },
 
   emptyState: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 36, marginTop: 16 },
   emptyIconBox: { width: 74, height: 74, borderRadius: 20, backgroundColor: Colors.bgCard, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
@@ -657,27 +710,36 @@ const styles = StyleSheet.create({
   emptyBtnText: { fontFamily: "Inter_700Bold", fontSize: 14, color: "#000" },
 });
 
-const ps = StyleSheet.create({
-  sceneOuter: {
-    flex: 1, flexDirection: "row", alignItems: "flex-end",
-    paddingLeft: 12, paddingBottom: 12, position: "relative",
+const sc = StyleSheet.create({
+  outer: { position: "relative", overflow: "hidden" },
+  compositionWrap: {
+    position: "absolute", left: 0, right: 0, bottom: 0,
+    flexDirection: "row", alignItems: "flex-end",
+    paddingLeft: 16, paddingBottom: 20, paddingRight: 16,
   },
-  characterWrap: { zIndex: 2, marginBottom: 14, marginRight: -14 },
-  carWrap: { zIndex: 1 },
+  characterPos: { zIndex: 2, marginBottom: 0, marginRight: -16 },
+  carPos: { zIndex: 1, flex: 1, alignItems: "center" },
 
-  overlayCard: {
-    position: "absolute", top: 14, right: 14,
+  identityOverlay: { position: "absolute", top: 14, right: 14 },
+  identityCard: {
     borderRadius: 12, padding: 10, borderWidth: 1,
-    gap: 3, minWidth: 110, maxWidth: 150, overflow: "hidden",
+    backgroundColor: "#000000CC", gap: 2, minWidth: 100, maxWidth: 140, overflow: "hidden",
   },
-  overlayCorner: { position: "absolute", top: 0, right: 0, width: 4, height: 40, borderBottomLeftRadius: 2 },
-  overlayUsername: { fontFamily: "Inter_700Bold", fontSize: 13 },
-  overlayTitle: { fontFamily: "Inter_500Medium", fontSize: 9, color: Colors.gold, opacity: 0.9 },
-  overlayPrestige: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted, letterSpacing: 0.3 },
-  overlaySep: { height: 1, backgroundColor: "#FFFFFF15", marginVertical: 2 },
-  overlayCarRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  overlayCarName: { fontFamily: "Inter_700Bold", fontSize: 10, flex: 1 },
-  overlayClass: { fontFamily: "Inter_400Regular", fontSize: 8, letterSpacing: 0.3 },
-  overlayBrand: { marginTop: 4, borderTopWidth: 1, borderTopColor: "#FFFFFF12", paddingTop: 4 },
-  overlayBrandText: { fontFamily: "Inter_700Bold", fontSize: 7, color: "#FFFFFF40", letterSpacing: 1 },
+  identityAccent: { position: "absolute", top: 0, right: 0, width: 4, height: 36, borderBottomLeftRadius: 2 },
+  identityName: { fontFamily: "Inter_700Bold", fontSize: 13 },
+  identityTitle: { fontFamily: "Inter_500Medium", fontSize: 9, color: Colors.gold, opacity: 0.9 },
+  identityTier: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted, letterSpacing: 0.3 },
+
+  carNameOverlay: { position: "absolute", bottom: 14, right: 14 },
+  carNameCard: {
+    borderRadius: 10, padding: 8, borderWidth: 1,
+    backgroundColor: "#000000BB", gap: 2, minWidth: 90, maxWidth: 140, overflow: "hidden",
+  },
+  carNameDot: { width: 5, height: 5, borderRadius: 3 },
+  carNameText: { fontFamily: "Inter_700Bold", fontSize: 11, flex: 1 },
+  carClassText: { fontFamily: "Inter_400Regular", fontSize: 8, letterSpacing: 0.3 },
+  carPrestigeText: { fontFamily: "Inter_600SemiBold", fontSize: 8, color: Colors.gold },
+
+  watermarkWrap: { position: "absolute", bottom: 14, left: 14, opacity: 0.35 },
+  watermarkText: { fontFamily: "Inter_700Bold", fontSize: 8, color: Colors.textMuted, letterSpacing: 1.5 },
 });
