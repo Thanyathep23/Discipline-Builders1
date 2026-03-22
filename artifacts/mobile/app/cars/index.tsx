@@ -394,7 +394,7 @@ function FeaturedCarHero({
               onPress={(e) => { e.stopPropagation?.(); Haptics.selectionAsync().catch(() => {}); onChangeFeatured(); }}
             >
               <Ionicons name="swap-horizontal" size={12} color={Colors.textSecondary} />
-              <Text style={fh.actionBtnText}>Change</Text>
+              <Text style={fh.actionBtnText}>Change Featured</Text>
             </Pressable>
             <Pressable
               style={[fh.actionBtn, { backgroundColor: Colors.accentDim, borderColor: Colors.accent + "40" }]}
