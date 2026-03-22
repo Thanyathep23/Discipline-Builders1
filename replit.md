@@ -279,7 +279,7 @@ All tokens and components live in `artifacts/mobile/design-system/`. Import via 
 
 ### Hero Surface Migration
 - `app/character/index.tsx` — `LoadingScreen` replaces full-screen spinner; `Button` replaces inline CTA Pressable; TODO comment marks wearable-slot row for future `ActionCard` migration
-- `app/cars/index.tsx` — `LoadingScreen` + `ErrorState` replace full-screen loading/error states; `EmptyState preset="no_car"` replaces inline empty-collection view; TODO comment marks action row buttons for future `Button` flex:1 migration
+- `app/cars/index.tsx` — `LoadingScreen` replaces full-screen spinner; `EmptyState preset="no_car"` replaces inline empty-collection view; TODO comment marks action row buttons for future `Button` flex:1 migration
 - `app/wearables/index.tsx` — `LoadingScreen` + `ErrorState` replace loading/error views; `Button variant="secondary"` replaces empty-wardrobe-slot Pressable; `Button` imported from design-system
 - `app/premium/index.tsx` — `LoadingScreen inline` replaces `ActivityIndicator` inside ScrollView (uses new `inline` prop — no flex:1, no background)
 - `app/(tabs)/rewards.tsx` — `LoadingScreen inline` replaces overview tab spinner; `SkeletonList` replaces marketplace loading indicator; `EmptyState preset="no_purchases"` replaces inline empty marketplace view; TODO comment marks item cards for future CollectionCard migration

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Image, ActivityIndicator, StyleSheet, type ViewStyle } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../tokens/colors";
 import { radius } from "../../tokens/radius";
 import { elevation } from "../../tokens/elevation";
@@ -23,15 +24,21 @@ export function HeroCard({ children, accentColor, imageUri, imageHeight = 200, s
       elevation.hero,
       style,
     ]}>
-      {imageUri && !imgError ? (
+      {imageUri ? (
         <View style={[styles.imageArea, { height: imageHeight }]}>
-          <Image
-            source={{ uri: imageUri }}
-            style={styles.image}
-            onLoadEnd={() => setImgLoading(false)}
-            onError={() => { setImgError(true); setImgLoading(false); }}
-          />
-          {imgLoading && (
+          {!imgError ? (
+            <Image
+              source={{ uri: imageUri }}
+              style={styles.image}
+              onLoadEnd={() => setImgLoading(false)}
+              onError={() => { setImgError(true); setImgLoading(false); }}
+            />
+          ) : (
+            <View style={[styles.imagePlaceholder, { backgroundColor: (accentColor ?? colors.accent.primary) + "10" }]}>
+              <Ionicons name="image-outline" size={28} color={(accentColor ?? colors.accent.primary) + "60"} />
+            </View>
+          )}
+          {imgLoading && !imgError && (
             <View style={styles.imagePlaceholder}>
               <ActivityIndicator size="small" color={accentColor ?? colors.accent.primary} />
             </View>
