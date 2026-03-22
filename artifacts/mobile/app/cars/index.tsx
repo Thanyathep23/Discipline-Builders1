@@ -254,11 +254,6 @@ const bdg = StyleSheet.create({
   text: { fontFamily: "Inter_700Bold", fontSize: 7, letterSpacing: 0.6 },
 });
 
-function RarityDot({ rarity }: { rarity: string }) {
-  const color = RARITY_COLORS[rarity] ?? Colors.textMuted;
-  return <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: color }} />;
-}
-
 function CarGridCard({
   car, state, userLevel, onPress,
 }: {
@@ -305,7 +300,11 @@ function CarGridCard({
 
       <View style={gc.info}>
         <View style={gc.nameRow}>
-          <RarityDot rarity={car.rarity} />
+          <View style={[gc.rarityChip, { backgroundColor: (RARITY_COLORS[car.rarity] ?? Colors.textMuted) + "18" }]}>
+            <Text style={[gc.rarityChipText, { color: RARITY_COLORS[car.rarity] ?? Colors.textMuted }]}>
+              {car.rarity.toUpperCase().slice(0, 4)}
+            </Text>
+          </View>
           <Text style={[gc.name, dimmed && { color: Colors.textMuted }]} numberOfLines={1}>{car.name}</Text>
         </View>
         <View style={gc.bottomRow}>
@@ -336,7 +335,9 @@ const gc = StyleSheet.create({
   soonPill: { position: "absolute", bottom: 4, right: 4, flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: Colors.amberDim, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2, borderWidth: 1, borderColor: Colors.amber + "30" },
   soonText: { fontFamily: "Inter_600SemiBold", fontSize: 8, color: Colors.amber },
   info: { padding: 10, gap: 5 },
-  nameRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  rarityChip: { borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 },
+  rarityChipText: { fontFamily: "Inter_700Bold", fontSize: 7, letterSpacing: 0.5 },
   name: { fontFamily: "Inter_700Bold", fontSize: 12, color: Colors.textPrimary, flex: 1 },
   bottomRow: { flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap" },
   prestigeMini: { flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: Colors.goldDim, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1, borderWidth: 1, borderColor: Colors.gold + "20" },
@@ -500,10 +501,6 @@ function CarDetailSheet({
   const bodyColor = getVariantHex(car, currentVariant);
   const dimmed = car.isLocked;
 
-  const levelProgress = car.isLocked && car.minLevel > 0
-    ? Math.min(100, Math.round(((car.minLevel - (car.minLevel - 5)) / car.minLevel) * 100))
-    : 100;
-
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={() => { resetState(); onClose(); }}>
       <Pressable style={ds.overlay} onPress={() => { resetState(); onClose(); }} />
@@ -536,7 +533,7 @@ function CarDetailSheet({
           <Text style={[ds.heroName, { color: rarityColor }]}>{car.name}</Text>
         </View>
 
-        {car.isOwned && car.colorVariants && car.colorVariants.length > 1 && (
+        {car.colorVariants && car.colorVariants.length > 1 && (
           <View style={{ opacity: isSelectingVariant ? 0.6 : 1 }}>
             <ColorSwatchSelector
               variants={car.colorVariants}
@@ -544,7 +541,9 @@ function CarDetailSheet({
               onSelect={(key) => {
                 if (isSelectingVariant) return;
                 setPreviewVariant(key);
-                onSelectVariant(car.id, key);
+                if (car.isOwned) {
+                  onSelectVariant(car.id, key);
+                }
               }}
             />
           </View>
@@ -571,10 +570,28 @@ function CarDetailSheet({
           </View>
         </View>
 
-        {car.isLocked && (
-          <View style={ds.lockBanner}>
-            <Ionicons name="lock-closed-outline" size={13} color={Colors.crimson} />
-            <Text style={ds.lockText}>{car.lockReason ?? `Requires Level ${car.minLevel}`}</Text>
+        {!car.isOwned && car.minLevel > 0 && (
+          <View style={ds.progressSection}>
+            <View style={ds.progressHeader}>
+              <Ionicons name={car.isLocked ? "lock-closed-outline" : "lock-open-outline"} size={11} color={car.isLocked ? Colors.crimson : Colors.amber} />
+              <Text style={[ds.progressLabel, { color: car.isLocked ? Colors.crimson : Colors.amber }]}>
+                {car.isLocked ? "UNLOCK PROGRESS" : "PURCHASE READY"}
+              </Text>
+            </View>
+            <View style={ds.progressBarBg}>
+              <View style={[ds.progressBarFill, {
+                width: `${car.isLocked ? Math.min(95, Math.max(5, Math.round(((car.minLevel - (car.minLevel - Math.min(car.minLevel, 10))) / car.minLevel) * 100))) : 100}%` as any,
+                backgroundColor: car.isLocked ? Colors.crimson : Colors.green,
+              }]} />
+            </View>
+            {car.isLocked && (
+              <Text style={ds.progressHint}>{car.lockReason ?? `Reach Level ${car.minLevel} to unlock`}</Text>
+            )}
+            {!car.isLocked && !car.isAffordable && (
+              <Text style={[ds.progressHint, { color: Colors.amber }]}>
+                Save {Math.max(0, car.cost).toLocaleString()} coins to purchase
+              </Text>
+            )}
           </View>
         )}
 
@@ -691,8 +708,12 @@ const ds = StyleSheet.create({
   statLabel: { fontFamily: "Inter_700Bold", fontSize: 8, color: Colors.textMuted, letterSpacing: 1.2 },
   statVal: { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.textPrimary },
   statDiv: { width: 1, backgroundColor: Colors.border },
-  lockBanner: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.crimson + "12", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: Colors.crimson + "30", marginBottom: 10 },
-  lockText: { flex: 1, fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.crimson, lineHeight: 17 },
+  progressSection: { backgroundColor: Colors.bgElevated, borderRadius: 12, padding: 12, gap: 6, borderWidth: 1, borderColor: Colors.border, marginBottom: 10 },
+  progressHeader: { flexDirection: "row", alignItems: "center", gap: 5 },
+  progressLabel: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.2 },
+  progressBarBg: { height: 6, backgroundColor: Colors.bg, borderRadius: 3 },
+  progressBarFill: { height: 6, borderRadius: 3 },
+  progressHint: { fontFamily: "Inter_500Medium", fontSize: 11, color: Colors.crimson, lineHeight: 16 },
   photoBadge: { flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: Colors.accentGlow, borderRadius: 10, padding: 10, borderWidth: 1, borderColor: Colors.accent + "25", marginBottom: 10 },
   photoBadgeText: { fontFamily: "Inter_500Medium", fontSize: 11, color: Colors.accent },
   actionRow: { flexDirection: "row", gap: 8, marginTop: 4 },
