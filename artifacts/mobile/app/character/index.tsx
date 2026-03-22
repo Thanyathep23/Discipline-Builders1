@@ -17,14 +17,14 @@ import { useCharacterStatus, useUpdateCharacterAppearance } from "@/hooks/useApi
 
 // ─── Phase 29 — Wearable State Types ──────────────────────────────────────────
 
-type WearableTop = { id: string; slug: string; name: string; outfitTierOverride: number | null; styleEffect: string | null } | null;
-type WearableWatch = { id: string; slug: string; name: string; watchStyle: "basic" | "refined" | "elite"; styleEffect: string | null } | null;
-type WearableAccessory = { id: string; slug: string; name: string; accessoryStyle: "chain" | "pin"; styleEffect: string | null } | null;
-type EquippedWearableState = { top: WearableTop; watch: WearableWatch; accessory: WearableAccessory } | null;
+export type WearableTop = { id: string; slug: string; name: string; outfitTierOverride: number | null; styleEffect: string | null } | null;
+export type WearableWatch = { id: string; slug: string; name: string; watchStyle: "basic" | "refined" | "elite"; styleEffect: string | null } | null;
+export type WearableAccessory = { id: string; slug: string; name: string; accessoryStyle: "chain" | "pin"; styleEffect: string | null } | null;
+export type EquippedWearableState = { top: WearableTop; watch: WearableWatch; accessory: WearableAccessory } | null;
 
 // ─── Phase 28 — Visual State Types ────────────────────────────────────────────
 
-type VisualState = {
+export type VisualState = {
   bodyTone: number;
   posture: number;
   outfitTier: number;
@@ -247,7 +247,7 @@ function HairStylePreview({ style, color, size = 44 }: { style: string; color: s
 
 // ─── Evolved Character Renderer ───────────────────────────────────────────────
 
-function EvolvedCharacter({
+export function EvolvedCharacter({
   visualState,
   equippedWearables,
   skinTone = "tone-3",

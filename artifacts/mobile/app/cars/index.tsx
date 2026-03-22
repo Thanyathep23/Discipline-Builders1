@@ -79,7 +79,7 @@ function getVariantHex(car: Car, variantKey?: string | null): string {
   return v?.hex ?? RARITY_COLORS[car.rarity] ?? Colors.textMuted;
 }
 
-function CarVisual({
+export function CarVisual({
   carClass, bodyColor, size = 80, dimmed = false,
 }: {
   carClass: string | null; bodyColor: string; size?: number; dimmed?: boolean;

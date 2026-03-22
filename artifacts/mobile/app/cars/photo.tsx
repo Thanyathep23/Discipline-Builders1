@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown, FadeIn, ZoomIn, FadeOut } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeIn, FadeOut } from "react-native-reanimated";
 import Svg, {
   Path, Circle, Rect, Ellipse, LinearGradient, Defs, Stop,
   Line, G,
@@ -18,6 +18,8 @@ import * as MediaLibrary from "expo-media-library";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useCarPhotoMode, useCharacterStatus, useIdentity, useEndgame } from "@/hooks/useApi";
 import { useAuth } from "@/context/AuthContext";
+import { CarVisual } from "@/app/cars/index";
+import { EvolvedCharacter, type VisualState, type EquippedWearableState } from "@/app/character/index";
 
 const SCREEN_W = Dimensions.get("window").width;
 
@@ -82,155 +84,22 @@ function getVariantHex(car: Car, variantKey?: string | null): string {
   return v?.hex ?? RARITY_COLORS[car.rarity] ?? Colors.textMuted;
 }
 
-function PhotoCarVisual({ carClass, bodyColor, size = 200 }: { carClass: string | null; bodyColor: string; size?: number }) {
-  const c = bodyColor;
-  const w = size;
-  const h = size * 0.5;
-  const wheelR = h * 0.16;
-  const wheelY = h * 0.88;
-  const wlx = w * 0.22;
-  const wrx = w * 0.78;
-  const cls = carClass ?? "entry";
-
-  const shadowEl = <Ellipse cx={w / 2} cy={h + 8} rx={w * 0.38} ry={3.5} fill={c + "14"} />;
-  const wheelEls = (
-    <>
-      <Circle cx={wlx} cy={wheelY} r={wheelR} fill={c + "18"} stroke={c + "80"} strokeWidth={1.3} />
-      <Circle cx={wlx} cy={wheelY} r={wheelR * 0.45} fill={c + "50"} />
-      <Circle cx={wrx} cy={wheelY} r={wheelR} fill={c + "18"} stroke={c + "80"} strokeWidth={1.3} />
-      <Circle cx={wrx} cy={wheelY} r={wheelR * 0.45} fill={c + "50"} />
-    </>
-  );
-
-  let bodyEl: React.ReactNode;
-  if (cls === "entry") {
-    bodyEl = (
-      <>
-        <Rect x={w * 0.08} y={h * 0.42} width={w * 0.84} height={h * 0.42} rx={6} fill={c + "22"} stroke={c + "70"} strokeWidth={1.2} />
-        <Path d={`M${w * 0.28},${h * 0.42} L${w * 0.35},${h * 0.12} L${w * 0.65},${h * 0.12} L${w * 0.72},${h * 0.42} Z`} fill={c + "15"} stroke={c + "60"} strokeWidth={1} />
-        <Rect x={w * 0.88} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "80"} />
-        <Rect x={w * 0.08} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "50"} />
-      </>
-    );
-  } else if (cls === "sport") {
-    bodyEl = (
-      <>
-        <Rect x={w * 0.06} y={h * 0.40} width={w * 0.88} height={h * 0.44} rx={5} fill={c + "25"} stroke={c + "80"} strokeWidth={1.3} />
-        <Path d={`M${w * 0.26},${h * 0.40} L${w * 0.34},${h * 0.08} L${w * 0.62},${h * 0.08} L${w * 0.74},${h * 0.40} Z`} fill={c + "18"} stroke={c + "70"} strokeWidth={1.1} />
-        <Rect x={w * 0.90} y={h * 0.48} width={5} height={h * 0.14} rx={2} fill={c + "90"} />
-        <Rect x={w * 0.05} y={h * 0.48} width={5} height={h * 0.14} rx={2} fill={c + "55"} />
-      </>
-    );
-  } else if (cls === "performance") {
-    bodyEl = (
-      <>
-        <Path d={`M${w * 0.06},${h * 0.82} L${w * 0.06},${h * 0.42} Q${w * 0.06},${h * 0.36} ${w * 0.12},${h * 0.36} L${w * 0.88},${h * 0.36} Q${w * 0.94},${h * 0.36} ${w * 0.94},${h * 0.42} L${w * 0.94},${h * 0.82} Z`} fill={c + "25"} stroke={c + "80"} strokeWidth={1.3} />
-        <Path d={`M${w * 0.20},${h * 0.36} L${w * 0.30},${h * 0.06} L${w * 0.58},${h * 0.06} L${w * 0.78},${h * 0.36} Z`} fill={c + "18"} stroke={c + "70"} strokeWidth={1.1} />
-        <Rect x={w * 0.91} y={h * 0.44} width={5} height={h * 0.16} rx={2} fill={c + "90"} />
-        <Rect x={w * 0.04} y={h * 0.44} width={5} height={h * 0.16} rx={2} fill={c + "55"} />
-      </>
-    );
-  } else if (cls === "grandtouring") {
-    bodyEl = (
-      <>
-        <Path d={`M${w * 0.04},${h * 0.82} L${w * 0.04},${h * 0.40} Q${w * 0.04},${h * 0.34} ${w * 0.10},${h * 0.34} L${w * 0.90},${h * 0.34} Q${w * 0.96},${h * 0.34} ${w * 0.96},${h * 0.40} L${w * 0.96},${h * 0.82} Z`} fill={c + "22"} stroke={c + "75"} strokeWidth={1.3} />
-        <Path d={`M${w * 0.22},${h * 0.34} L${w * 0.32},${h * 0.06} Q${w * 0.34},${h * 0.02} ${w * 0.38},${h * 0.02} L${w * 0.68},${h * 0.02} Q${w * 0.72},${h * 0.02} ${w * 0.73},${h * 0.06} L${w * 0.80},${h * 0.34} Z`} fill={c + "18"} stroke={c + "65"} strokeWidth={1.1} />
-        <Rect x={w * 0.93} y={h * 0.42} width={5} height={h * 0.18} rx={2.5} fill={c + "85"} />
-        <Rect x={w * 0.02} y={h * 0.42} width={5} height={h * 0.18} rx={2.5} fill={c + "55"} />
-      </>
-    );
-  } else if (cls === "flagship") {
-    bodyEl = (
-      <>
-        <Path d={`M${w * 0.03},${h * 0.82} L${w * 0.03},${h * 0.38} Q${w * 0.03},${h * 0.30} ${w * 0.10},${h * 0.30} L${w * 0.90},${h * 0.30} Q${w * 0.97},${h * 0.30} ${w * 0.97},${h * 0.38} L${w * 0.97},${h * 0.82} Z`} fill={c + "22"} stroke={c + "80"} strokeWidth={1.4} />
-        <Path d={`M${w * 0.18},${h * 0.30} L${w * 0.28},${h * 0.04} Q${w * 0.30},${h * 0.00} ${w * 0.35},${h * 0.00} L${w * 0.70},${h * 0.00} Q${w * 0.75},${h * 0.00} ${w * 0.76},${h * 0.04} L${w * 0.84},${h * 0.30} Z`} fill={c + "18"} stroke={c + "70"} strokeWidth={1.2} />
-        <Rect x={w * 0.94} y={h * 0.38} width={6} height={h * 0.20} rx={3} fill={c} />
-        <Rect x={w * 0.01} y={h * 0.38} width={6} height={h * 0.20} rx={3} fill={c + "60"} />
-      </>
-    );
-  } else if (cls === "hypercar") {
-    bodyEl = (
-      <>
-        <Path d={`M${w * 0.04},${h * 0.82} L${w * 0.04},${h * 0.36} Q${w * 0.10},${h * 0.24} ${w * 0.20},${h * 0.24} L${w * 0.80},${h * 0.24} Q${w * 0.90},${h * 0.24} ${w * 0.96},${h * 0.36} L${w * 0.96},${h * 0.82} Z`} fill={c + "28"} stroke={c + "90"} strokeWidth={1.5} />
-        <Path d={`M${w * 0.16},${h * 0.24} L${w * 0.26},${h * 0.02} L${w * 0.60},${h * 0.02} L${w * 0.84},${h * 0.24} Z`} fill={c + "20"} stroke={c + "75"} strokeWidth={1.2} />
-        <Rect x={w * 0.94} y={h * 0.34} width={6} height={h * 0.22} rx={3} fill={c} />
-        <Rect x={w * 0.01} y={h * 0.34} width={6} height={h * 0.22} rx={3} fill={c + "70"} />
-        <Path d={`M${w * 0.04},${h * 0.78} L${w * 0.00},${h * 0.66} L${w * 0.04},${h * 0.66}`} fill={c + "35"} />
-        <Path d={`M${w * 0.96},${h * 0.78} L${w * 1.00},${h * 0.66} L${w * 0.96},${h * 0.66}`} fill={c + "35"} />
-      </>
-    );
-  } else {
-    bodyEl = (
-      <>
-        <Rect x={w * 0.08} y={h * 0.42} width={w * 0.84} height={h * 0.42} rx={6} fill={c + "22"} stroke={c + "70"} strokeWidth={1.2} />
-        <Path d={`M${w * 0.28},${h * 0.42} L${w * 0.35},${h * 0.12} L${w * 0.65},${h * 0.12} L${w * 0.72},${h * 0.42} Z`} fill={c + "15"} stroke={c + "60"} strokeWidth={1} />
-        <Rect x={w * 0.88} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "80"} />
-        <Rect x={w * 0.08} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "50"} />
-      </>
-    );
-  }
-
-  return (
-    <Svg width={w} height={h + 16} viewBox={`0 0 ${w} ${h + 16}`} style={{ opacity: 1 }}>
-      {shadowEl}
-      {bodyEl}
-      {wheelEls}
-    </Svg>
-  );
-}
-
-function PhotoCharacter({ size = 120 }: { size?: number }) {
-  const w = size / 2.2;
-  const h = size;
-  const skin = "#C8956C";
-  const skinS = "#B07C58";
-  const shirt = "#1A1A2E";
-  const shirtS = "#141428";
-  const pants = "#0F0F1E";
-  const belt = "#222240";
-  const shoe = "#0C0C1A";
-
-  return (
-    <Svg width={w} height={h} viewBox="0 0 100 220">
-      <Ellipse cx="50" cy="212" rx="30" ry="5" fill="#00000055" />
-      <Ellipse cx="36" cy="197" rx="16" ry="7.5" fill={shoe} />
-      <Ellipse cx="25" cy="195" rx="8" ry="5" fill={shoe} />
-      <Ellipse cx="64" cy="197" rx="16" ry="7.5" fill={shoe} />
-      <Ellipse cx="75" cy="195" rx="8" ry="5" fill={shoe} />
-      <Rect x="26" y="118" width="21" height="80" rx="4" fill={pants} />
-      <Rect x="53" y="118" width="21" height="80" rx="4" fill={pants} />
-      <Rect x="25" y="113" width="50" height="7" rx="2.5" fill={belt} />
-      <Rect x="43" y="113" width="14" height="7" rx="1.5" fill="#2A2A48" />
-      <Rect x="24" y="52" width="52" height="64" rx="6" fill={shirt} />
-      <Rect x="24" y="52" width="5" height="64" rx="2.5" fill={shirtS} />
-      <Rect x="71" y="52" width="5" height="64" rx="2.5" fill={shirtS} />
-      <Rect x="8" y="54" width="16" height="50" rx="8" fill={shirt} />
-      <Rect x="76" y="54" width="16" height="50" rx="8" fill={shirt} />
-      <Ellipse cx="16" cy="103" rx="7" ry="8" fill={skin} />
-      <Ellipse cx="84" cy="103" rx="7" ry="8" fill={skin} />
-      <Rect x="36" y="43" width="28" height="12" rx="4" fill={skin} />
-      <Ellipse cx="50" cy="28" rx="15" ry="16" fill={skin} />
-      <Ellipse cx="42" cy="27" rx="2" ry="1.5" fill="#0D0D0D" />
-      <Ellipse cx="58" cy="27" rx="2" ry="1.5" fill="#0D0D0D" />
-      <Path d="M47 33 Q50 36 53 33" stroke={skinS} strokeWidth="1" fill="none" strokeLinecap="round" />
-      <Ellipse cx="50" cy="12" rx="14" ry="9" fill="#141414" />
-      <Rect x="36" y="10" width="28" height="9" fill="#141414" />
-      <Ellipse cx="39" cy="17" rx="3" ry="6" fill="#141414" />
-      <Ellipse cx="61" cy="17" rx="3" ry="6" fill="#141414" />
-    </Svg>
-  );
-}
-
 const CANVAS_W = SCREEN_W - 32;
 const ASPECT_RATIOS: Record<AspectRatio, number> = { "4:5": 5 / 4, "1:1": 1 };
 
 function PhotoScene({
   car, scene, showIdentity, showCarName, showWatermark,
   username, statusTier, activeTitle, classLabel, aspectRatio,
+  visualState, equippedWearables, skinTone, hairStyle, hairColor,
 }: {
   car: Car; scene: Scene; showIdentity: boolean; showCarName: boolean; showWatermark: boolean;
   username: string; statusTier: string | null; activeTitle: string | null; classLabel: string;
   aspectRatio: AspectRatio;
+  visualState?: VisualState | null;
+  equippedWearables?: EquippedWearableState;
+  skinTone?: string;
+  hairStyle?: string;
+  hairColor?: string;
 }) {
   const sm = SCENE_META[scene];
   const rarityColor = RARITY_COLORS[car.rarity] ?? "#9CA3AF";
@@ -241,7 +110,7 @@ function PhotoScene({
   const groundY = vbH - 60;
 
   return (
-    <View style={[sc.outer, { height: canvasH }]}>
+    <View style={[psc.outer, { height: canvasH }]}>
       <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} viewBox={vb}>
         <Defs>
           <LinearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
@@ -309,10 +178,10 @@ function PhotoScene({
               <Rect key={i} x={x} y={groundY + 3} width={20} height={4} rx={1} fill={rarityColor + "10"} />
             ))}
             {[-30, -10, 20, 60, 110].map((y, i) => (
-              <Line key={i} x1={0} y1={groundY + y} x2={60 - i * 6} y2={groundY + y * 0.5} stroke={rarityColor + "06"} strokeWidth={0.6} />
+              <Line key={`l${i}`} x1={0} y1={groundY + y} x2={60 - i * 6} y2={groundY + y * 0.5} stroke={rarityColor + "06"} strokeWidth={0.6} />
             ))}
             {[-30, -10, 20, 60, 110].map((y, i) => (
-              <Line key={i} x1={380} y1={groundY + y} x2={320 + i * 6} y2={groundY + y * 0.5} stroke={rarityColor + "06"} strokeWidth={0.6} />
+              <Line key={`r${i}`} x1={380} y1={groundY + y} x2={320 + i * 6} y2={groundY + y * 0.5} stroke={rarityColor + "06"} strokeWidth={0.6} />
             ))}
             <Rect x={2} y={groundY - 20} width={3} height={20} rx={1} fill={rarityColor + "15"} />
             <Rect x={375} y={groundY - 20} width={3} height={20} rx={1} fill={rarityColor + "15"} />
@@ -320,44 +189,51 @@ function PhotoScene({
         )}
       </Svg>
 
-      <View style={[sc.compositionWrap, { height: canvasH }]}>
-        <View style={sc.characterPos}>
-          <PhotoCharacter size={canvasH * 0.38} />
+      <View style={[psc.compositionWrap, { height: canvasH }]}>
+        <View style={psc.characterPos}>
+          <EvolvedCharacter
+            visualState={visualState ?? undefined}
+            equippedWearables={equippedWearables ?? undefined}
+            skinTone={skinTone ?? "tone-3"}
+            hairStyle={hairStyle ?? "taper"}
+            hairColor={hairColor ?? "black"}
+            size={canvasH * 0.42}
+          />
         </View>
-        <View style={sc.carPos}>
-          <PhotoCarVisual carClass={car.carClass} bodyColor={bodyColor} size={CANVAS_W * 0.62} />
+        <View style={psc.carPos}>
+          <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={CANVAS_W * 0.62} />
         </View>
       </View>
 
       {showIdentity && (
-        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={sc.identityOverlay}>
-          <View style={[sc.identityCard, { borderColor: rarityColor + "50" }]}>
-            <View style={[sc.identityAccent, { backgroundColor: rarityColor }]} />
-            <Text style={[sc.identityName, { color: rarityColor }]}>{username}</Text>
-            {activeTitle && <Text style={sc.identityTitle}>{activeTitle}</Text>}
-            {statusTier && <Text style={sc.identityTier}>{statusTier}</Text>}
+        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={psc.identityOverlay}>
+          <View style={[psc.identityCard, { borderColor: rarityColor + "50" }]}>
+            <View style={[psc.identityAccent, { backgroundColor: rarityColor }]} />
+            <Text style={[psc.identityName, { color: rarityColor }]}>{username}</Text>
+            {activeTitle && <Text style={psc.identityTitle}>{activeTitle}</Text>}
+            {statusTier && <Text style={psc.identityTier}>{statusTier}</Text>}
           </View>
         </Animated.View>
       )}
 
       {showCarName && (
-        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={sc.carNameOverlay}>
-          <View style={[sc.carNameCard, { borderColor: rarityColor + "40" }]}>
+        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={psc.carNameOverlay}>
+          <View style={[psc.carNameCard, { borderColor: rarityColor + "40" }]}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <View style={[sc.carNameDot, { backgroundColor: rarityColor }]} />
-              <Text style={[sc.carNameText, { color: rarityColor }]} numberOfLines={1}>{car.name}</Text>
+              <View style={[psc.carNameDot, { backgroundColor: rarityColor }]} />
+              <Text style={[psc.carNameText, { color: rarityColor }]} numberOfLines={1}>{car.name}</Text>
             </View>
-            {classLabel ? <Text style={[sc.carClassText, { color: rarityColor + "90" }]}>{classLabel}</Text> : null}
+            {classLabel ? <Text style={[psc.carClassText, { color: rarityColor + "90" }]}>{classLabel}</Text> : null}
             {car.prestigeValue > 0 && (
-              <Text style={sc.carPrestigeText}>+{car.prestigeValue} Prestige</Text>
+              <Text style={psc.carPrestigeText}>+{car.prestigeValue} Prestige</Text>
             )}
           </View>
         </Animated.View>
       )}
 
       {showWatermark && (
-        <View style={sc.watermarkWrap}>
-          <Text style={sc.watermarkText}>DisciplineOS</Text>
+        <View style={psc.watermarkWrap}>
+          <Text style={psc.watermarkText}>DisciplineOS</Text>
         </View>
       )}
     </View>
@@ -396,6 +272,10 @@ export default function PhotoModeScreen() {
   const classLabel = CLASS_LABELS[activeCar?.carClass ?? ""] ?? "";
   const rarityColor = activeCar ? (RARITY_COLORS[activeCar.rarity] ?? Colors.accent) : Colors.accent;
 
+  const visualState = charData?.visualState ?? null;
+  const equippedWearables = charData?.equippedWearables ?? null;
+  const appearance = charData?.appearance;
+
   const handleExport = useCallback(async () => {
     if (!viewShotRef.current?.capture) return;
     setIsExporting(true);
@@ -422,7 +302,7 @@ export default function PhotoModeScreen() {
           }
         }
       }
-    } catch (err) {
+    } catch {
       Alert.alert("Export Failed", "Could not export the image. Please try again.");
     } finally {
       setIsExporting(false);
@@ -504,6 +384,11 @@ export default function PhotoModeScreen() {
                 activeTitle={activeTitle}
                 classLabel={classLabel}
                 aspectRatio={aspectRatio}
+                visualState={visualState}
+                equippedWearables={equippedWearables}
+                skinTone={appearance?.skinTone}
+                hairStyle={appearance?.hairStyle}
+                hairColor={appearance?.hairColor}
               />
             </ViewShot>
           </Animated.View>
@@ -616,7 +501,7 @@ export default function PhotoModeScreen() {
                       onPress={() => { Haptics.selectionAsync().catch(() => {}); setSelectedCarId(c.id); }}
                     >
                       <View style={styles.carSelectVisual}>
-                        <PhotoCarVisual carClass={c.carClass} bodyColor={hex} size={60} />
+                        <CarVisual carClass={c.carClass} bodyColor={hex} size={60} />
                       </View>
                       <Text style={[styles.carSelectName, { color: active ? rc : Colors.textSecondary }]} numberOfLines={1}>{c.name}</Text>
                       <Text style={styles.carSelectClass} numberOfLines={1}>{CLASS_LABELS[c.carClass ?? ""] ?? ""}</Text>
@@ -710,7 +595,7 @@ const styles = StyleSheet.create({
   emptyBtnText: { fontFamily: "Inter_700Bold", fontSize: 14, color: "#000" },
 });
 
-const sc = StyleSheet.create({
+const psc = StyleSheet.create({
   outer: { position: "relative", overflow: "hidden" },
   compositionWrap: {
     position: "absolute", left: 0, right: 0, bottom: 0,
