@@ -1,0 +1,72 @@
+Fix the active focus session controls so they work reliably on both web preview and mobile.
+
+Current issue:
+On the active focus session screen:
+- Pause does nothing
+- End Early does nothing
+- Abandon Session does nothing
+- Time keeps running
+- In Simulate on Web, no confirmation dialog appears
+
+Root cause hypothesis:
+1. Pause calls Haptics before pauseSession.mutateAsync, and if Haptics fails on web, the API call never runs.
+2. End Early and Abandon rely on Alert.alert(...) confirmation dialogs, which are unreliable or non-functional in web preview.
+3. confirmStop also calls Haptics first, and if that fails, the flow falls into Alert.alert error handling, which may also not show on web.
+
+Your task:
+Make Pause, End Early, and Abandon Session work reliably across web preview and mobile.
+
+Strict scope:
+- Only fix the active focus session control flow
+- Do NOT redesign unrelated screens
+- Do NOT change backend business rules unless absolutely necessary
+- Keep the patch minimal and safe
+
+Required fixes:
+
+1. Remove Haptics from the critical path
+- Haptics must never block pause/resume/stop logic
+- Wrap haptics calls in safe try/catch or make them fire-and-forget
+- If Haptics fails, the action must still continue normally
+
+2. Replace Alert.alert-based confirmation flow with a custom in-screen confirmation modal
+- Do this for:
+  - End Early
+  - Abandon Session
+  - completion confirmation if needed
+- The modal must work in both web preview and mobile
+- Do not rely on Alert.alert for the main action flow
+
+3. Add proper error handling for Pause / Resume / Stop actions
+- Wrap pauseSession.mutateAsync, resumeSession.mutateAsync, and stopSession.mutateAsync in try/catch
+- Show a visible in-app error message or modal if the API fails
+- Do not allow silent failure
+
+4. Keep CTA logic from the previous fix
+- If not eligible to complete, show End Early
+- If eligible, show Done — Submit Proof
+- Paused state should still show Resume
+- Abandon remains destructive and secondary
+
+5. Verify behavior in web preview
+- Pause should actually pause the session
+- Resume should actually resume
+- End Early should show a custom confirmation modal and then navigate correctly
+- Abandon should show a custom confirmation modal and then exit correctly
+- Errors should be visible in-app
+
+Acceptance criteria:
+1. Pause works on web preview and mobile
+2. Resume works on web preview and mobile
+3. End Early shows a custom confirmation modal and works correctly
+4. Abandon shows a custom confirmation modal and works correctly
+5. Haptics failure no longer blocks any action
+6. Silent no-op behavior is removed
+7. Existing proof/reward flow still works
+
+At the end, return:
+1. root cause confirmed
+2. files changed
+3. exact fix for Haptics handling
+4. exact fix for confirmation modals
+5. test results for Pause / Resume / End Early / Abandon on web preview
