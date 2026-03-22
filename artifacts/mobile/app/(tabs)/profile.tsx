@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import {
-  View, Text, ScrollView, Pressable, StyleSheet, Platform, Alert,
+  View, Text, ScrollView, Pressable, StyleSheet, Platform, Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -68,17 +68,17 @@ export default function ProfileScreen() {
   const topStrengths = sortedByLevel.slice(0, 2);
   const weakZones = sortedByLevel.slice(-2).reverse();
 
-  async function handleLogout() {
-    Alert.alert("Sign Out", "Are you sure?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign Out", style: "destructive",
-        onPress: async () => {
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-          await logout();
-        },
-      },
-    ]);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  function handleLogout() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    setShowLogoutModal(true);
+  }
+
+  async function confirmLogout() {
+    setShowLogoutModal(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    await logout();
   }
 
   return (
@@ -533,9 +533,45 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
       </ScrollView>
+
+      <Modal visible={showLogoutModal} transparent animationType="fade" onRequestClose={() => setShowLogoutModal(false)}>
+        <Pressable style={logoutModalStyles.overlay} onPress={() => setShowLogoutModal(false)}>
+          <Pressable style={logoutModalStyles.sheet} onPress={e => e.stopPropagation()}>
+            <View style={logoutModalStyles.iconRing}>
+              <Ionicons name="log-out-outline" size={26} color={Colors.crimson} />
+            </View>
+            <Text style={logoutModalStyles.title}>Sign Out?</Text>
+            <Text style={logoutModalStyles.sub}>You'll need to sign back in to access your character and progress.</Text>
+            <Pressable
+              style={({ pressed }) => [logoutModalStyles.confirmBtn, pressed && { opacity: 0.85 }]}
+              onPress={confirmLogout}
+            >
+              <Text style={logoutModalStyles.confirmText}>Sign Out</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [logoutModalStyles.cancelBtn, pressed && { opacity: 0.7 }]}
+              onPress={() => setShowLogoutModal(false)}
+            >
+              <Text style={logoutModalStyles.cancelText}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
+
+const logoutModalStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.75)", justifyContent: "center", alignItems: "center", padding: 32 },
+  sheet: { backgroundColor: Colors.bgCard, borderRadius: 24, padding: 28, gap: 12, width: "100%", maxWidth: 380, borderWidth: 1, borderColor: Colors.border, alignItems: "center" },
+  iconRing: { width: 60, height: 60, borderRadius: 30, backgroundColor: Colors.crimsonDim, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  title: { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.textPrimary, textAlign: "center" },
+  sub: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, textAlign: "center", lineHeight: 20 },
+  confirmBtn: { width: "100%", backgroundColor: Colors.crimson, borderRadius: 14, height: 50, alignItems: "center", justifyContent: "center", marginTop: 4 },
+  confirmText: { fontFamily: "Inter_700Bold", fontSize: 15, color: "#fff" },
+  cancelBtn: { width: "100%", alignItems: "center", justifyContent: "center", height: 40 },
+  cancelText: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.textMuted },
+});
 
 function MenuItem({ icon, label, onPress, accent, danger }: any) {
   return (

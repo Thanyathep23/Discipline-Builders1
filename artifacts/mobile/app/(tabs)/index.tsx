@@ -85,7 +85,7 @@ function DailyDirectiveCard({ state, message, suggestedAction, daysSinceLast, va
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onCTA?.();
     if (suggestedAction === "review_pending") {
-      router.push("/mission/ai");
+      router.push("/(tabs)/missions");
     } else {
       router.push("/mission/ai");
     }

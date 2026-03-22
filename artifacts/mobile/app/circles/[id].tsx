@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet, Platform,
-  ActivityIndicator, Alert, Clipboard, Share,
+  ActivityIndicator, TextInput, Modal, Clipboard, Share,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -44,6 +44,17 @@ export default function CircleDetailScreen() {
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const { id } = useLocalSearchParams<{ id: string }>();
 
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [removeMemberTarget, setRemoveMemberTarget] = useState<{ id: string; name: string } | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportText, setReportText] = useState("");
+
+  function showToastMsg(msg: string, ok = true) {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  }
+
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["circle", id],
     queryFn: () => request<any>(`/circles/${id}`),
@@ -56,60 +67,56 @@ export default function CircleDetailScreen() {
       queryClient.invalidateQueries({ queryKey: ["circles"] });
       router.replace("/circles");
     },
-    onError: (err: any) => Alert.alert("Error", err.message),
+    onError: (err: any) => showToastMsg(err?.message ?? "Failed to leave circle.", false),
   });
 
   const removeMemberMutation = useMutation({
     mutationFn: (targetUserId: string) =>
       request<any>(`/circles/${id}/members/${targetUserId}`, { method: "DELETE" }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["circle", id] }); refetch(); },
-    onError: (err: any) => Alert.alert("Error", err.message),
+    onError: (err: any) => showToastMsg(err?.message ?? "Failed to remove member.", false),
   });
 
   const joinChallengeMutation = useMutation({
     mutationFn: ({ challengeId, action }: { challengeId: string; action: string }) =>
       request<any>(`/circles/${id}/challenges/${challengeId}/${action}`, { method: "POST" }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["circle", id] }); refetch(); },
-    onError: (err: any) => Alert.alert("Error", err.message),
+    onError: (err: any) => showToastMsg(err?.message ?? "Action failed.", false),
   });
 
   const reportMutation = useMutation({
     mutationFn: (reason: string) =>
       request<any>(`/circles/${id}/report`, { method: "POST", body: JSON.stringify({ reason }) }),
-    onSuccess: () => Alert.alert("Reported", "Your report has been submitted. We take safety seriously."),
-    onError: (err: any) => Alert.alert("Error", err.message),
+    onSuccess: () => showToastMsg("Report submitted. We take safety seriously.", true),
+    onError: (err: any) => showToastMsg(err?.message ?? "Failed to submit report.", false),
   });
 
   function handleCopyCode() {
     if (!data?.inviteCode) return;
     Clipboard.setString(data.inviteCode);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    showToastMsg("Invite code copied!", true);
   }
 
   async function handleShareCode() {
     if (!data?.inviteCode) return;
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     Share.share({ message: `Join my accountability circle "${data.name}" on DisciplineOS.\n\nUse code: ${data.inviteCode}` });
   }
 
   function handleLeave() {
-    Alert.alert("Leave Circle", "Are you sure you want to leave this circle?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Leave", style: "destructive", onPress: () => leaveMutation.mutate() },
-    ]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    setShowLeaveModal(true);
   }
 
   function handleRemoveMember(memberId: string, memberName: string) {
-    Alert.alert("Remove Member", `Remove ${memberName} from this circle?`, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Remove", style: "destructive", onPress: () => removeMemberMutation.mutate(memberId) },
-    ]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    setRemoveMemberTarget({ id: memberId, name: memberName });
   }
 
   function handleReport() {
-    Alert.prompt("Report", "Briefly describe the issue:", (text) => {
-      if (text && text.trim().length >= 3) reportMutation.mutate(text.trim());
-    });
+    setReportText("");
+    setShowReportModal(true);
   }
 
   if (isLoading) {
@@ -322,9 +329,134 @@ export default function CircleDetailScreen() {
           </Pressable>
         </Animated.View>
       </ScrollView>
+
+      {/* Toast */}
+      {toast && (
+        <Pressable
+          style={[circleModalStyles.toast, { backgroundColor: toast.ok ? Colors.green + "EE" : Colors.crimson + "EE" }]}
+          onPress={() => setToast(null)}
+        >
+          <Ionicons name={toast.ok ? "checkmark-circle" : "alert-circle"} size={15} color="#fff" />
+          <Text style={circleModalStyles.toastText}>{toast.msg}</Text>
+        </Pressable>
+      )}
+
+      {/* Leave Modal */}
+      <Modal visible={showLeaveModal} transparent animationType="fade" onRequestClose={() => setShowLeaveModal(false)}>
+        <Pressable style={circleModalStyles.overlay} onPress={() => setShowLeaveModal(false)}>
+          <Pressable style={circleModalStyles.sheet} onPress={e => e.stopPropagation()}>
+            <View style={[circleModalStyles.iconRing, { backgroundColor: Colors.crimsonDim }]}>
+              <Ionicons name="exit-outline" size={26} color={Colors.crimson} />
+            </View>
+            <Text style={circleModalStyles.title}>Leave Circle?</Text>
+            <Text style={circleModalStyles.sub}>You'll lose access to this group's activity feed and challenges. The owner can invite you back with the code.</Text>
+            <Pressable
+              style={({ pressed }) => [circleModalStyles.dangerBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => { setShowLeaveModal(false); leaveMutation.mutate(); }}
+              disabled={leaveMutation.isPending}
+            >
+              <Text style={circleModalStyles.dangerBtnText}>Leave Circle</Text>
+            </Pressable>
+            <Pressable style={({ pressed }) => [circleModalStyles.cancelBtn, pressed && { opacity: 0.7 }]} onPress={() => setShowLeaveModal(false)}>
+              <Text style={circleModalStyles.cancelBtnText}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Remove Member Modal */}
+      <Modal visible={!!removeMemberTarget} transparent animationType="fade" onRequestClose={() => setRemoveMemberTarget(null)}>
+        <Pressable style={circleModalStyles.overlay} onPress={() => setRemoveMemberTarget(null)}>
+          <Pressable style={circleModalStyles.sheet} onPress={e => e.stopPropagation()}>
+            <View style={[circleModalStyles.iconRing, { backgroundColor: Colors.amberDim }]}>
+              <Ionicons name="person-remove-outline" size={26} color={Colors.amber} />
+            </View>
+            <Text style={circleModalStyles.title}>Remove Member?</Text>
+            <Text style={circleModalStyles.sub}>Remove {removeMemberTarget?.name} from this circle? They can rejoin with the invite code.</Text>
+            <Pressable
+              style={({ pressed }) => [circleModalStyles.dangerBtn, { backgroundColor: Colors.amber }, pressed && { opacity: 0.85 }]}
+              onPress={() => {
+                if (removeMemberTarget) { removeMemberMutation.mutate(removeMemberTarget.id); }
+                setRemoveMemberTarget(null);
+              }}
+              disabled={removeMemberMutation.isPending}
+            >
+              <Text style={[circleModalStyles.dangerBtnText, { color: "#000" }]}>Remove</Text>
+            </Pressable>
+            <Pressable style={({ pressed }) => [circleModalStyles.cancelBtn, pressed && { opacity: 0.7 }]} onPress={() => setRemoveMemberTarget(null)}>
+              <Text style={circleModalStyles.cancelBtnText}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal visible={showReportModal} transparent animationType="fade" onRequestClose={() => setShowReportModal(false)}>
+        <Pressable style={circleModalStyles.overlay} onPress={() => setShowReportModal(false)}>
+          <Pressable style={circleModalStyles.sheet} onPress={e => e.stopPropagation()}>
+            <View style={[circleModalStyles.iconRing, { backgroundColor: Colors.crimsonDim }]}>
+              <Ionicons name="flag-outline" size={26} color={Colors.crimson} />
+            </View>
+            <Text style={circleModalStyles.title}>Report an Issue</Text>
+            <Text style={circleModalStyles.sub}>Briefly describe what's wrong. We take safety seriously.</Text>
+            <TextInput
+              style={circleModalStyles.reportInput}
+              placeholder="Describe the issue..."
+              placeholderTextColor={Colors.textMuted}
+              multiline
+              numberOfLines={3}
+              value={reportText}
+              onChangeText={setReportText}
+            />
+            <Pressable
+              style={({ pressed }) => [
+                circleModalStyles.dangerBtn,
+                { backgroundColor: reportText.trim().length >= 3 ? Colors.accent : Colors.bgElevated },
+                pressed && { opacity: 0.85 },
+              ]}
+              onPress={() => {
+                if (reportText.trim().length >= 3) {
+                  reportMutation.mutate(reportText.trim());
+                  setShowReportModal(false);
+                  setReportText("");
+                }
+              }}
+              disabled={reportText.trim().length < 3 || reportMutation.isPending}
+            >
+              <Text style={[circleModalStyles.dangerBtnText, { color: "#fff" }]}>Submit Report</Text>
+            </Pressable>
+            <Pressable style={({ pressed }) => [circleModalStyles.cancelBtn, pressed && { opacity: 0.7 }]} onPress={() => setShowReportModal(false)}>
+              <Text style={circleModalStyles.cancelBtnText}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
+
+const circleModalStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.75)", justifyContent: "center", alignItems: "center", padding: 32 },
+  sheet: { backgroundColor: Colors.bgCard, borderRadius: 24, padding: 28, gap: 12, width: "100%", maxWidth: 380, borderWidth: 1, borderColor: Colors.border, alignItems: "center" },
+  iconRing: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  title: { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.textPrimary, textAlign: "center" },
+  sub: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, textAlign: "center", lineHeight: 20 },
+  dangerBtn: { width: "100%", backgroundColor: Colors.crimson, borderRadius: 14, height: 50, alignItems: "center", justifyContent: "center", marginTop: 4 },
+  dangerBtnText: { fontFamily: "Inter_700Bold", fontSize: 15, color: "#fff" },
+  cancelBtn: { width: "100%", alignItems: "center", justifyContent: "center", height: 40 },
+  cancelBtnText: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.textMuted },
+  toast: {
+    position: "absolute", bottom: 40, left: 20, right: 20, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12,
+    flexDirection: "row", alignItems: "center", gap: 8,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 8,
+  },
+  toastText: { fontFamily: "Inter_500Medium", fontSize: 13, color: "#fff", flex: 1, lineHeight: 18 },
+  reportInput: {
+    width: "100%", backgroundColor: Colors.bgElevated, borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
+    padding: 12, fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textPrimary, minHeight: 80,
+    textAlignVertical: "top",
+  },
+});
 
 const styles = StyleSheet.create({
   container:        { flex: 1, backgroundColor: Colors.bg },

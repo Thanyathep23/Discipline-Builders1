@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable, StyleSheet, Platform } from "react-native";
+import { View, Text, ScrollView, Pressable, StyleSheet, Platform, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -154,7 +154,13 @@ export default function SkillsScreen() {
   const insets = useSafeAreaInsets();
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
   const [expandedSuggestions, setExpandedSuggestions] = useState<Set<string>>(new Set());
-  const { data, isLoading } = useSkills();
+  const [refreshing, setRefreshing] = useState(false);
+  const { data, isLoading, refetch } = useSkills();
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try { await refetch(); } finally { setRefreshing(false); }
+  }
   const { data: eventsData } = useSkillEvents(selectedSkill ?? undefined, 7);
   const { data: endgameData } = useEndgame();
 
@@ -195,6 +201,7 @@ export default function SkillsScreen() {
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.accent} colors={[Colors.accent]} />}
       >
         <Animated.View entering={FadeInDown.springify()} style={styles.summaryCard}>
           <View style={styles.summaryRow}>

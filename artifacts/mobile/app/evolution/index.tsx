@@ -1,6 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
-  View, Text, ScrollView, Pressable, StyleSheet, Platform, ActivityIndicator,
+  View, Text, ScrollView, Pressable, StyleSheet, Platform, ActivityIndicator, RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -276,8 +276,14 @@ export default function CharacterEvolutionScreen() {
   const { user } = useAuth();
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
 
-  const { data: skillsData, isLoading: skillsLoading } = useSkills();
-  const { data: endgameData, isLoading: endgameLoading } = useEndgame();
+  const [refreshing, setRefreshing] = useState(false);
+  const { data: skillsData, isLoading: skillsLoading, refetch: refetchSkills } = useSkills();
+  const { data: endgameData, isLoading: endgameLoading, refetch: refetchEndgame } = useEndgame();
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try { await Promise.all([refetchSkills(), refetchEndgame()]); } finally { setRefreshing(false); }
+  }
   const { data: identityData } = useIdentity();
   const { data: titlesData } = useInventoryTitles();
   const { data: appliedState } = useAppliedState();
@@ -327,6 +333,7 @@ export default function CharacterEvolutionScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.accent} colors={[Colors.accent]} />}
         >
           {/* ── Hero character visualization ── */}
           <Animated.View entering={FadeIn.duration(400)} style={[styles.heroCard, { borderColor: characterState.tierColor + "30" }]}>

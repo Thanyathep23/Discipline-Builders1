@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import {
-  View, Text, Pressable, StyleSheet, ScrollView, Platform, Alert, Modal,
+  View, Text, Pressable, StyleSheet, ScrollView, Platform, Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +21,8 @@ export default function MissionDetailScreen() {
   const insets = useSafeAreaInsets();
   const [strictnessModal, setStrictnessModal] = useState(false);
   const [selectedStrictness, setSelectedStrictness] = useState<"normal" | "strict" | "extreme">("normal");
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   const { data: missions } = useMissions();
   const mission = missions?.find((m: any) => m.id === id);
@@ -54,26 +56,25 @@ export default function MissionDetailScreen() {
 
   async function confirmStartSession() {
     setStrictnessModal(false);
+    setStartError(null);
     try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
       await startSession.mutateAsync({ missionId: mission.id, strictnessMode: selectedStrictness });
       router.push("/focus/active");
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      setStartError(err?.message ?? "Failed to start session. Try again.");
     }
   }
 
-  async function handleArchive() {
-    Alert.alert("Archive Mission", "Move this mission to archive?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Archive",
-        onPress: async () => {
-          await updateMission.mutateAsync({ id: mission.id, data: { status: "archived" } });
-          router.back();
-        },
-      },
-    ]);
+  function handleArchive() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    setShowArchiveModal(true);
+  }
+
+  async function confirmArchive() {
+    setShowArchiveModal(false);
+    await updateMission.mutateAsync({ id: mission.id, data: { status: "archived" } });
+    router.back();
   }
 
   return (
@@ -87,6 +88,17 @@ export default function MissionDetailScreen() {
           <Ionicons name="archive-outline" size={18} color={Colors.textMuted} />
         </Pressable>
       </View>
+
+      {startError && (
+        <Pressable
+          style={styles.errorBanner}
+          onPress={() => setStartError(null)}
+        >
+          <Ionicons name="alert-circle-outline" size={15} color={Colors.crimson} />
+          <Text style={styles.errorBannerText} numberOfLines={2}>{startError}</Text>
+          <Ionicons name="close" size={14} color={Colors.crimson} />
+        </Pressable>
+      )}
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]}>
         {/* Title & Priority */}
@@ -175,6 +187,32 @@ export default function MissionDetailScreen() {
         )}
       </ScrollView>
 
+      {/* Archive Confirmation Modal */}
+      <Modal visible={showArchiveModal} transparent animationType="fade" onRequestClose={() => setShowArchiveModal(false)}>
+        <Pressable style={styles.confirmOverlay} onPress={() => setShowArchiveModal(false)}>
+          <Pressable style={styles.confirmSheet} onPress={e => e.stopPropagation()}>
+            <View style={styles.confirmIconRing}>
+              <Ionicons name="archive-outline" size={26} color={Colors.amber} />
+            </View>
+            <Text style={styles.confirmTitle}>Archive Mission?</Text>
+            <Text style={styles.confirmSub}>This mission will be moved to your archive. You can still view it but won't earn XP from it.</Text>
+            <Pressable
+              style={({ pressed }) => [styles.confirmBtn, pressed && { opacity: 0.85 }]}
+              onPress={confirmArchive}
+              disabled={updateMission.isPending}
+            >
+              <Text style={styles.confirmBtnText}>Archive</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.confirmCancel, pressed && { opacity: 0.7 }]}
+              onPress={() => setShowArchiveModal(false)}
+            >
+              <Text style={styles.confirmCancelText}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* Strictness Modal */}
       <Modal visible={strictnessModal} transparent animationType="slide" onRequestClose={() => setStrictnessModal(false)}>
         <View style={styles.modalOverlay}>
@@ -260,4 +298,18 @@ const styles = StyleSheet.create({
     shadowColor: Colors.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 7,
   },
   startBtnText: { fontFamily: "Inter_700Bold", fontSize: 16, color: "#fff" },
+  errorBanner: {
+    flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 20, marginBottom: 12,
+    backgroundColor: Colors.crimsonDim, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: Colors.crimson + "40",
+  },
+  errorBannerText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.crimson, lineHeight: 18 },
+  confirmOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.75)", justifyContent: "center", alignItems: "center", padding: 32 },
+  confirmSheet: { backgroundColor: Colors.bgCard, borderRadius: 24, padding: 28, gap: 12, width: "100%", maxWidth: 380, borderWidth: 1, borderColor: Colors.border, alignItems: "center" },
+  confirmIconRing: { width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.amberDim, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  confirmTitle: { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.textPrimary, textAlign: "center" },
+  confirmSub: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, textAlign: "center", lineHeight: 20 },
+  confirmBtn: { width: "100%", backgroundColor: Colors.amber, borderRadius: 14, height: 50, alignItems: "center", justifyContent: "center", marginTop: 4 },
+  confirmBtnText: { fontFamily: "Inter_700Bold", fontSize: 15, color: "#000" },
+  confirmCancel: { width: "100%", alignItems: "center", justifyContent: "center", height: 40 },
+  confirmCancelText: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.textMuted },
 });
