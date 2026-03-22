@@ -10,7 +10,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { useQueryClient } from "@tanstack/react-query";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useWearables, useEquipItem, useUnequipItem, useBuyItem } from "@/hooks/useApi";
-import { LoadingScreen, ErrorState } from "@/design-system";
+import { LoadingScreen, ErrorState, Button } from "@/design-system";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -366,14 +366,12 @@ export default function WardrobeScreen() {
               ))}
 
               {group.items.length === 0 && (
-                <Pressable
-                  style={({ pressed }) => [s.emptyCard, pressed && { opacity: 0.75 }]}
+                <Button
+                  label="Browse Store"
                   onPress={() => router.push("/(tabs)/rewards" as any)}
-                >
-                  <Ionicons name="cart-outline" size={16} color={Colors.textMuted} />
-                  <Text style={s.emptyCardText}>No items yet — browse the Store to unlock this slot.</Text>
-                  <Ionicons name="chevron-forward" size={13} color={Colors.textMuted} />
-                </Pressable>
+                  variant="secondary"
+                  iconLeft="cart-outline"
+                />
               )}
             </View>
           ))}

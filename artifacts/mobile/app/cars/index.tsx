@@ -11,7 +11,7 @@ import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import Svg, { Path, Circle, Rect, Ellipse } from "react-native-svg";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useCars, usePurchaseCar, useFeatureCar } from "@/hooks/useApi";
-import { LoadingScreen } from "@/design-system";
+import { LoadingScreen, EmptyState } from "@/design-system";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -835,19 +835,20 @@ export default function GarageScreen() {
 
         {/* ── Car list ─────────────────────────────────────────────── */}
         {filteredCars.length === 0 ? (
-          <Animated.View entering={FadeInDown.delay(75).springify()} style={styles.emptyState}>
-            <Ionicons name="car-outline" size={36} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>
-              {filter === "owned" ? "No vehicles owned yet" :
-               filter === "available" ? "Nothing in reach right now" :
-               "No locked vehicles"}
-            </Text>
-            <Text style={styles.emptyText}>
-              {filter === "owned" ? "Purchase your first vehicle to start your collection." :
-               filter === "available" ? "Keep earning coins to unlock vehicles." :
-               "Check the All tab for the full catalog."}
-            </Text>
-          </Animated.View>
+          <EmptyState
+            preset="no_car"
+            title={
+              filter === "owned" ? "No vehicles owned yet" :
+              filter === "available" ? "Nothing in reach right now" :
+              "No locked vehicles"
+            }
+            subtitle={
+              filter === "owned" ? "Purchase your first vehicle to start your collection." :
+              filter === "available" ? "Keep earning coins to unlock vehicles." :
+              "Check the All tab for the full catalog."
+            }
+            accentColor={Colors.accent}
+          />
         ) : (
           <View style={styles.carList}>
             {filteredCars.map(({ car, state }, i) => (

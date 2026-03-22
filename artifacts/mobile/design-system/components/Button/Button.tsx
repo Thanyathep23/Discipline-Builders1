@@ -108,6 +108,7 @@ export function Button({
           borderWidth:       isTertiary ? 0 : 1,
           borderRadius:      radius.md,
           alignSelf:         fullWidth ? undefined : ("flex-start" as const),
+          width:             fullWidth ? ("100%" as const) : undefined,
           gap:               s.gap,
         },
       ]}
