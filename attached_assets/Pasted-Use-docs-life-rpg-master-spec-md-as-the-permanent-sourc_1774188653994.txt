@@ -1,0 +1,268 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Upgrade the Character Status screen to feel world-class, premium, 
+and entrepreneurial — and add lightweight character customization 
+for face/skin tone and hair style/color.
+
+Reference:
+The current screen already has the correct structure:
+- full-body character
+- status tier chip
+- status score
+- tier progression dots
+- next evolution hint
+
+The problem:
+- Character style feels too cartoon/childish
+- No face or hair customization
+- Screen lacks premium visual weight
+- Character does not feel like a serious life-upgrade avatar
+
+==================================================
+PART 1 — CHARACTER VISUAL UPGRADE
+==================================================
+
+Upgrade the character renderer to feel like a premium entrepreneurial 
+avatar, not a children's game character.
+
+Target aesthetic direction:
+- stylized but serious
+- modern minimal human figure
+- clean proportions, confident posture
+- like a premium lifestyle/finance/business app character
+- NOT: big eyes, round childish face, cartoon proportions
+- THINK: flat design meets premium lifestyle brand
+  (reference feel: Headspace's character quality but more elite/dark)
+
+Character visual upgrade requirements:
+
+1. Face
+- more refined, adult proportions
+- subtle facial features, not exaggerated
+- neutral confident expression
+- small clean eyebrows
+- slim defined jawline
+
+2. Body
+- taller, more proportional adult figure
+- slightly more defined shoulder/chest width
+- relaxed but confident standing posture
+- not stocky or child-proportioned
+
+3. Starter outfit (keep as-is functionally):
+- white shirt, black/dark jeans
+- but render them with more quality
+- slight fabric/material feel if feasible with SVG/React Native
+
+4. Overall rendering approach:
+- use layered SVG or React Native SVG components
+- keep it deterministic and performant on mobile
+- must remain extensible for future outfit/accessory changes
+- do not attempt full 3D
+
+==================================================
+PART 2 — CHARACTER CUSTOMIZATION SYSTEM
+==================================================
+
+Add a lightweight customization layer for:
+- Skin tone
+- Hair style
+- Hair color
+
+This must be accessible from the Character Status screen
+via a small "Customize" or edit button.
+
+2A. Skin Tone Options
+
+Provide at minimum 5 skin tone options:
+- Very light
+- Light
+- Medium
+- Tan/olive
+- Dark
+
+Use natural, realistic color values.
+Present as circular swatches in the customization panel.
+
+2B. Hair Style Options
+
+Provide at minimum 6 hair styles:
+- Clean cut / short
+- Textured crop
+- Side part / business
+- Buzz cut
+- Medium length / natural
+- Bald / clean shaved
+
+Present as small illustrated preview icons in a horizontal scroll.
+
+2C. Hair Color Options
+
+Provide at minimum 8 hair colors:
+- Black
+- Dark brown
+- Medium brown
+- Light brown / dirty blonde
+- Blonde
+- Ash grey
+- White/silver
+- Custom (color picker if practical, otherwise skip for v1)
+
+Present as circular swatches.
+
+2D. Customization UX
+
+The customization panel should:
+- open as a bottom sheet or modal
+- show the character preview live as the user selects options
+- have a "Save" button
+- not block the main character screen
+- feel premium and minimal, not like a children's game dress-up
+- section headers: Skin Tone / Hair Style / Hair Color
+
+2E. Persistence
+
+Save customization settings:
+- per user in the backend
+- apply on character render everywhere the character appears
+- include in the character visual state model
+
+==================================================
+PART 3 — CHARACTER STATUS SCREEN POLISH
+==================================================
+
+While upgrading the character, also improve these areas 
+of the Character Status screen:
+
+3A. Layout and hierarchy
+
+- Give the character hero area more vertical breathing room
+- The character should feel like it "owns" the top half of the screen
+- Reduce visual noise around the character
+- Status tier and score should support, not compete
+
+3B. Status Score presentation
+
+- "0 STATUS SCORE" pill feels too flat — make it feel more premium
+- Consider: subtle glow or elevated surface treatment
+- Keep it readable but more visually weighted
+
+3C. Tier progression indicator
+
+- The bottom dot-progress row (Starter → Hustle → Rising → Refined → Elite)
+  currently looks too thin/small
+- Make it slightly larger and more legible
+- Active tier dot should feel clearly distinguished
+- Use tier color tokens from the design system
+
+3D. Next Evolution card
+
+- The "NEXT EVOLUTION" card at the bottom looks solid but generic
+- Add a subtle directional visual cue (chevron or progress arrow)
+- Make the skill name (e.g. "Fitness") feel more impactful — bolder
+- Add a brief secondary line like "X missions away" if data is available
+
+3E. Stats panel (Sessions / Badges)
+
+- Currently feels disconnected from the character
+- Consider integrating into the status card area more cleanly
+- Or give the stat numbers more visual weight
+
+3F. Typography pass
+
+- "CHARACTER STATUS" header — reduce to slightly smaller weight
+- Username — increase slightly and add a subtle rank/identity subtext if available
+- "Starter Kit — White Shirt" — this copy is fine, keep it or update to 
+  reflect actual equipped item dynamically
+
+3G. Background / ambient
+
+- The current dark background is good
+- Consider a very subtle radial glow or vignette behind the character
+  to give it more presence and depth
+- Keep it restrained — premium, not neon
+
+==================================================
+PART 4 — CUSTOMIZATION ICON / ENTRY POINT
+==================================================
+
+Add a small customization button on the Character Status screen:
+
+- Small icon button (pencil or sliders icon)
+- Position: top-right of the character hero area
+- On press: opens the customization bottom sheet
+- Must not clutter the main screen
+- Style: ghost/icon button using the design system
+
+==================================================
+TECHNICAL REQUIREMENTS
+==================================================
+
+- Character must be built as layered SVG or React Native SVG
+- Each layer must be separately colorable:
+  - skin layer
+  - hair layer
+  - outfit layer (for future extensibility)
+  - face detail layer
+- Customization values must be stored server-side per user
+- Apply customization everywhere the character is rendered
+- Keep rendering performant on real mobile devices
+- Must work in portrait orientation
+- All new UI must use design system tokens for colors, spacing, 
+  typography, radius, and elevation
+
+==================================================
+DO NOT BUILD
+==================================================
+
+- 3D rendering
+- Animation-heavy character system
+- Full avatar game editor
+- Facial expression control
+- Body shape sliders
+- Makeup or accessories in this phase
+- Player-to-player character comparison
+- New gameplay systems
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. Character looks premium, adult, and entrepreneurial — not childish
+2. User can customize skin tone with at minimum 5 options
+3. User can customize hair style with at minimum 6 options
+4. User can customize hair color with at minimum 8 options
+5. Customization is accessible via a clean icon button on the character screen
+6. Customization panel is a premium bottom sheet with live preview
+7. Customization saves per user and persists across sessions
+8. Character screen hierarchy is cleaner — character is the clear hero
+9. Status score, tier dots, and next evolution feel more premium
+10. No existing flows were broken
+11. All new UI uses design system tokens
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary of current screen weaknesses
+2. Character visual approach used (SVG layers / structure)
+3. Customization system built (options, persistence, UX)
+4. Screen polish changes made
+5. Files changed in this run only
+6. End-to-end test results:
+   - character renders correctly
+   - customization opens, saves, and applies
+   - character screen feels premium on mobile
+7. Remaining gaps for next phase
+
+Important:
+Keep this phase focused.
+Do not add new gameplay systems.
+Do not restart the project.
+Preserve all existing functionality.
