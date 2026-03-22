@@ -1,0 +1,245 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Upgrade the Car Collection system to use premium luxury car visuals
+that feel aspirational to entrepreneurs and high-performers.
+Replace any placeholder car visuals with a proper premium car
+presentation system.
+
+IMPORTANT LEGAL NOTE:
+Do NOT use real brand logos or copyrighted brand assets such as
+BMW, Mercedes, Porsche, Ferrari, or Lamborghini logos or trademarked
+names directly. Use inspired naming and visual language instead.
+
+==================================================
+PART 1 — CAR CATALOG UPGRADE
+==================================================
+
+Replace existing placeholder cars with this premium car lineup
+designed for the entrepreneurial target user:
+
+Define these cars in the catalog system:
+
+CAR 1 — Series M Black
+- inspired tier: executive sport sedan
+- rarity: Rare
+- level required: 15
+- coin cost: 2500
+- prestige value: high
+- description: "The daily driver of those who move fast."
+- color variants: Midnight Black, Mineral White, Sapphire Blue
+
+CAR 2 — Alpine GT
+- inspired tier: precision performance coupe
+- rarity: Epic
+- level required: 25
+- coin cost: 5000
+- prestige value: very high
+- description: "Built for those who treat every road as a proving ground."
+- color variants: Arctic Silver, Racing Yellow, Deep Black
+
+CAR 3 — Continental S
+- inspired tier: grand touring luxury
+- rarity: Epic
+- level required: 35
+- coin cost: 8500
+- prestige value: premium
+- description: "Effortless power. Unmistakable presence."
+- color variants: Onyx Black, Dove White, Cognac
+
+CAR 4 — Phantom Noir
+- inspired tier: ultra-luxury flagship
+- rarity: Legendary
+- level required: 50
+- coin cost: 15000
+- prestige value: elite
+- description: "Not earned by speed. Earned by discipline."
+- color variants: Black Crystal, Champagne Gold
+
+CAR 5 — Vulcan R
+- inspired tier: hypercar / track-focused
+- rarity: Legendary
+- level required: 65
+- coin cost: 25000
+- prestige value: legendary
+- description: "Most will never. You might."
+- color variants: Matte Black, Carbon Red
+
+CAR 6 — Starter Ride
+- inspired tier: entry executive
+- rarity: Common
+- level required: 5
+- coin cost: 500
+- prestige value: entry
+- description: "Every journey starts with the first key."
+- color variants: Graphite Grey, White
+
+==================================================
+PART 2 — CAR VISUAL PRESENTATION SYSTEM
+==================================================
+
+Build a premium car visual system using SVG or high-quality
+illustrated assets.
+
+For each car, create or reference:
+
+1. Side profile view (primary)
+   - clean 3/4 or pure side view
+   - dark background friendly
+   - premium silhouette rendering
+   - must feel like a luxury automotive ad, not a toy
+
+2. Color variant system
+   - each car must support color swapping
+   - use the defined color variants per car
+   - color selection visible in car detail view
+
+3. Lock/Unlock states
+   - locked: desaturated with lock icon overlay
+   - unlockable: subtle accent highlight with progress indicator
+   - owned: full color, owned badge
+   - featured/showcased: elevated display treatment
+
+Requirements:
+- cars must look aspirational to an entrepreneur
+- NOT: cartoon style, pixel art, toy-like proportions
+- YES: clean, modern, premium illustrated or SVG automotive style
+- if using SVG, make silhouettes accurate and proportional
+- dark mode friendly
+- must look good in photo mode composition with character
+
+==================================================
+PART 3 — CAR COLLECTION SCREEN UPGRADE
+==================================================
+
+Upgrade the collection screen layout:
+
+3A. Grid layout
+- 2-column card grid for collection browsing
+- each card shows:
+  - car silhouette/visual
+  - car name
+  - rarity chip
+  - lock status
+  - if locked: level required + coin cost
+  - if owned: "Owned" chip + "Showcase" button
+
+3B. Featured car area
+- top of screen: hero display of currently featured/active car
+- large visual
+- car name, tier, prestige class
+- "Change Featured" button
+- "Photo Mode" button
+
+3C. Filter bar
+- All / Owned / Locked / By Rarity
+
+3D. Car detail sheet
+- opens as bottom sheet on card tap
+- shows:
+  - large car visual
+  - color variant selector
+  - full description
+  - stats: level required, coin cost, prestige value
+  - unlock progress if partially achievable
+  - "Purchase" or "Locked" or "Already Owned" CTA
+
+==================================================
+PART 4 — PHOTO MODE UPGRADE
+==================================================
+
+Upgrade Photo Mode to feel premium and shareable:
+
+4A. Composition
+- character on left, car behind/beside
+- clean dark or gradient background options:
+  - Night City (dark urban)
+  - Coastal (horizon/ocean)
+  - Minimal (pure dark gradient)
+  - Track (subtle racing circuit feel)
+
+4B. Overlay options
+- show username + current status tier
+- show car name
+- toggle on/off
+
+4C. Export
+- save to camera roll / share sheet
+- premium aspect ratio: 4:5 or 1:1
+- subtle watermark with app name (optional toggle)
+
+4D. Presentation
+- the photo mode result should feel like a luxury lifestyle post
+- NOT: gaming screenshot
+- YES: premium editorial moment
+
+==================================================
+PART 5 — PRESTIGE LINKAGE
+==================================================
+
+Connect car ownership to the character/status system:
+
+- owning cars above Rare rarity adds a passive prestige signal
+  to the Character Status Hub
+- the featured car name appears subtly on the character profile
+- car collection milestone badges:
+  - "First Wheel" — first car purchased
+  - "The Collection" — 3 cars owned
+  - "Elite Garage" — 1 Legendary car owned
+
+==================================================
+TECHNICAL REQUIREMENTS
+==================================================
+
+- car visuals must be SVG or high-quality vector illustration
+- color variants must use fill/color token swapping on SVG layers
+- car data must come from the catalog system (no hardcoding)
+- coin + level unlock must be enforced server-side
+- ownership state must persist per user in database
+- photo mode export must be implemented with
+  react-native-view-shot or equivalent
+- all UI must use design system tokens
+
+==================================================
+DO NOT BUILD
+==================================================
+
+- real BMW/Porsche/Ferrari brand names or logos
+- 3D animated driving
+- racing gameplay
+- real-money car purchases
+- player-to-player car trading
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. 6 premium cars exist in the catalog with correct tiers
+2. Car visuals feel premium and entrepreneurial
+3. Color variant selection works
+4. Lock/unlock/owned states are clear
+5. Featured car hero section exists
+6. Car detail bottom sheet works
+7. Photo mode has at least 3 background options and overlay toggle
+8. Photo mode result looks share-worthy
+9. Car ownership links to character prestige
+10. Milestone badges exist for car collection
+11. All coin + level locks enforced server-side
+12. No real brand names or logos used
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. Car catalog created — list all 6 cars with specs
+2. Visual approach used for car rendering
+3. Color variant system implementation
+4. Collection screen structure
+5. Photo mode implementation details
+6. Prestige linkage details
+7. Files changed in this run only
+8. End-to-end test results
+9. Remaining gaps
