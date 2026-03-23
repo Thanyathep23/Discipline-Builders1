@@ -161,8 +161,11 @@ function getCardState(m: any): { style: any; icon: string | null; color: string 
       return { style: stateStyles.awaitingProof, icon: "alert-circle", color: Colors.amber, label: "Resubmit Proof" };
     }
   }
-  if (m.status === "active") {
+  if (m.status === "active" && m.hasActiveSession) {
     return { style: stateStyles.awaitingProof, icon: "shield-checkmark-outline", color: Colors.amber, label: "Awaiting Proof" };
+  }
+  if (m.status === "active") {
+    return { style: stateStyles.active, icon: "play-circle-outline", color: Colors.accent, label: "Active" };
   }
   return { style: null, icon: null, color: null, label: null };
 }
@@ -748,4 +751,5 @@ const stateStyles = StyleSheet.create({
   underReview: { borderColor: Colors.cyan + "40", backgroundColor: Colors.cyan + "08" },
   followup: { borderColor: "#A855F740", backgroundColor: "#A855F708" },
   awaitingProof: { borderColor: Colors.amber + "30", backgroundColor: Colors.amber + "06" },
+  active: { borderColor: Colors.accent + "30", backgroundColor: Colors.accent + "06" },
 });

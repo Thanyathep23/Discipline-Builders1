@@ -39,6 +39,8 @@ router.get("/", async (req, res) => {
 
   const missionIds = parsed.map((m: any) => m.id);
   let proofStatusMap: Record<string, string> = {};
+  const activeSessionMissions = new Set<string>();
+
   if (missionIds.length > 0) {
     const sessions = await db.select({
       missionId: focusSessionsTable.missionId,
@@ -47,7 +49,10 @@ router.get("/", async (req, res) => {
 
     const sessionMissionMap: Record<string, string> = {};
     for (const s of sessions) {
-      if (s.missionId) sessionMissionMap[s.sessionId] = s.missionId;
+      if (s.missionId) {
+        sessionMissionMap[s.sessionId] = s.missionId;
+        activeSessionMissions.add(s.missionId);
+      }
     }
 
     if (sessions.length > 0) {
@@ -71,6 +76,7 @@ router.get("/", async (req, res) => {
   res.json(parsed.map((m: any) => ({
     ...m,
     latestProofStatus: proofStatusMap[m.id] ?? null,
+    hasActiveSession: activeSessionMissions.has(m.id),
   })));
 });
 

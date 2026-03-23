@@ -446,7 +446,7 @@ export async function judgeProof(ctx: ProofContext & { excludeProofId?: string; 
         confidenceScore: 0.9,
         rewardMultiplier: 0,
         explanation: screen.feedback ?? "Your proof needs more detail.",
-        followupQuestions: "What specifically did you accomplish? What tools or methods did you use? What was the measurable outcome?",
+        followupQuestions: categoryConfig.followUpQuestion ?? "What specifically did you accomplish? What tools or methods did you use? What was the measurable outcome?",
         providerUsed: "pre_screen",
         rubric: { relevanceScore: 0.1, qualityScore: 0.05, plausibilityScore: 0.2, specificityScore: 0.05 },
       };

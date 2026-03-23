@@ -228,9 +228,8 @@ async function runJudgment(submissionId: string, userId: string, isFollowupRejud
     const proofQuality = (judgeResult.rubric.relevanceScore + judgeResult.rubric.qualityScore +
       judgeResult.rubric.specificityScore) / 3;
 
-    const effectiveMultiplier = judgeResult.verdict === "approved"
-      ? 1.0
-      : Math.min(judgeResult.rewardMultiplier ?? 0.5, 0.5);
+    const verdictCap = judgeResult.verdict === "approved" ? 1.0 : 0.5;
+    const effectiveMultiplier = Math.min(judgeResult.rewardMultiplier ?? verdictCap, verdictCap);
 
     coinsAwarded = await settleCompletionRewards({
       userId,
