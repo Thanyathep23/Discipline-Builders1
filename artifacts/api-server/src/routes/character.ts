@@ -12,6 +12,15 @@ import { z } from "zod/v4";
 import { getUserSkills } from "../lib/skill-engine.js";
 import { getMasteryState } from "../lib/mastery-engine.js";
 import { computePrestigeState } from "../lib/prestige-engine.js";
+import {
+  getDimensionStates,
+  computeStatusTier,
+  computeDimensionVisualState,
+  computeNextEvolution,
+  getDimensionDetail,
+  DIMENSION_IDS,
+} from "../lib/dimension-engine.js";
+import type { DimensionId } from "../lib/dimension-engine.js";
 
 const router = Router();
 
@@ -362,6 +371,18 @@ router.get("/status", requireAuth, async (req: any, res) => {
     // ── Phase 28: Compute visual evolution state ──────────────────────────────
     const visualState = computeVisualState(fitnessScore, disciplineScore, financeScore, prestigeScore);
 
+    // ── Dimension engine (XP-based levels 1–10) ─────────────────────────────
+    const dimensionStates = await getDimensionStates(userId);
+    const avgDimLevel = dimensionStates.reduce((s, d) => s + d.level, 0) / dimensionStates.length;
+    const dimensionTier = computeStatusTier(avgDimLevel);
+    const dimensionVisualState = computeDimensionVisualState(dimensionStates);
+    const dimensionNextEvolution = computeNextEvolution(dimensionStates);
+
+    const dimensionDetails: Record<string, any> = {};
+    for (const ds of dimensionStates) {
+      dimensionDetails[ds.id] = await getDimensionDetail(userId, ds.id as DimensionId, ds);
+    }
+
     // ── Phase 33: Featured car + car prestige from all owned rare+ cars ────
     const { CAR_PRESTIGE_VALUES } = await import("./cars.js");
 
@@ -445,6 +466,15 @@ router.get("/status", requireAuth, async (req: any, res) => {
       totalSkillXp: totalXp,
       featuredCar,
       carPrestigeBonus,
+      dimensionEngine: {
+        dimensions: dimensionStates,
+        avgLevel: Math.round(avgDimLevel * 10) / 10,
+        tier: dimensionTier,
+        visualState: dimensionVisualState,
+        nextEvolution: dimensionNextEvolution,
+        details: dimensionDetails,
+        statusScore: Math.round(dimensionStates.reduce((s, d) => s + d.totalXp, 0) / 100),
+      },
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

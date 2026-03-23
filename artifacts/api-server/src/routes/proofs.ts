@@ -9,6 +9,7 @@ import { hashText } from "../lib/ai-providers.js";
 import { computeRewardCoins, grantReward, updateStreak, applySystemPenalty, computeRarityBonus, computeAdaptiveDifficultyBonus } from "../lib/rewards.js";
 import { advanceChainStep } from "../lib/quest-chains.js";
 import { grantSessionSkillXp } from "../lib/skill-engine.js";
+import { grantDimensionXp, grantStreakDimensionXp } from "../lib/dimension-engine.js";
 import { incrementCycleProgress, markCycleRewardClaimed } from "../lib/cycle-engine.js";
 import { auditLogTable } from "@workspace/db";
 import { awardBadge, awardTitle } from "./inventory.js";
@@ -89,6 +90,15 @@ async function settleCompletionRewards(ctx: SettlementContext): Promise<number> 
   });
   await updateStreak(ctx.userId);
   await grantSessionSkillXp(ctx.userId, ctx.mission.category, actualMinutes, ctx.verdict);
+
+  await grantDimensionXp(ctx.userId, ctx.mission.category, ctx.proofQuality, coins, ctx.mission.id).catch((e) =>
+    console.error("[proofs] dimension XP grant error:", e.message)
+  );
+  const [updatedUser] = await db.select({ currentStreak: usersTable.currentStreak })
+    .from(usersTable).where(eq(usersTable.id, ctx.userId)).limit(1);
+  await grantStreakDimensionXp(ctx.userId, updatedUser?.currentStreak ?? 0).catch((e) =>
+    console.error("[proofs] streak dimension XP error:", e.message)
+  );
 
   const categorySkills = CATEGORY_SKILL_MAP[ctx.mission.category] ?? ["focus"];
   const cycleSkillsToCheck = [
