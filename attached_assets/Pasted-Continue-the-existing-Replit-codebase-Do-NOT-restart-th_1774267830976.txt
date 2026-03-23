@@ -1,0 +1,174 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT add new features.
+Do NOT change any business logic.
+
+Goal:
+Fix only the TypeScript compilation errors 
+caused by stale @workspace/db package types.
+Make validation pass. Nothing else.
+
+==================================================
+PROBLEM
+==================================================
+
+The DB schema was updated with new columns
+(textHash, followupCount on proofs, etc.)
+but the TypeScript compiler is seeing stale
+cached types from the @workspace/db package.
+
+This causes code_review validation to fail
+even though the actual database was updated.
+
+==================================================
+STEP 1 — DIAGNOSE
+==================================================
+
+1. Run: cd packages/db && npx tsc --noEmit
+   Report exact errors
+
+2. Check tsconfig.json in packages/db:
+   - Is it using composite: true?
+   - Is there a build output directory?
+   
+3. Check if @workspace/db uses:
+   - TypeScript project references
+   - Direct .ts imports
+   - Pre-built dist/ folder
+
+4. Check the root tsconfig.json for 
+   project references configuration
+
+5. Check packages/db/src/schema/index.ts
+   to confirm new columns are exported
+
+6. Check packages/db/src/index.ts
+   to confirm all tables are re-exported
+
+==================================================
+STEP 2 — FIX TYPE COMPILATION
+==================================================
+
+Based on diagnosis, apply the appropriate fix:
+
+FIX A — If db package has build script:
+  cd packages/db
+  npm run build
+  OR
+  npx tsc -p tsconfig.json
+
+FIX B — If using project references:
+  From root:
+  npx tsc --build --force
+  
+FIX C — If dist/ folder exists and is stale:
+  Delete dist/ in packages/db
+  Rebuild: npx tsc -p packages/db/tsconfig.json
+
+FIX D — If schema types are not exported:
+  Open packages/db/src/schema/index.ts
+  Ensure all updated tables are exported:
+  - proofSubmissionsTable (with textHash, followupCount)
+  - missionsTable (with any new columns)
+  - All other updated tables
+
+FIX E — If TypeScript project references 
+are broken:
+  Check root tsconfig.json references array
+  Ensure packages/db is listed
+  Run: npx tsc --build from root
+
+FIX F — Direct type declaration:
+  If all else fails, check if any file
+  imports types that don't exist yet
+  and add the missing type declarations
+  to the relevant schema file
+
+==================================================
+STEP 3 — VERIFY COMPILATION
+==================================================
+
+After fix, verify:
+
+1. cd artifacts/api-server
+   npx tsc --noEmit
+   Should show 0 errors related to @workspace/db
+
+2. cd artifacts/mobile  
+   npx tsc --noEmit
+   Should show 0 errors
+
+3. API server restarts without TypeScript errors
+
+4. Run validation (code_review)
+   Should pass
+
+==================================================
+STEP 4 — CONFIRM THESE EXPORTS EXIST
+==================================================
+
+Ensure packages/db exports these correctly:
+
+From proofSubmissionsTable:
+  - textHash column (text, nullable)
+  - followupCount column (integer, default 0)
+
+From missionsTable:
+  - All existing columns intact
+  - Any new columns added during Prompt 1
+
+From focusSessionsTable:
+  - distractionCount or equivalent
+
+If any column exists in the actual DB
+(confirmed by db:push succeeding)
+but NOT in the TypeScript schema definition,
+ADD it to the schema definition file.
+
+==================================================
+STEP 5 — CLEANUP DEAD IMPORTS
+==================================================
+
+After types are fixed, clean these up:
+
+In artifacts/api-server/src/lib/ai-judge.ts:
+  Remove: import { hashText } if unused
+
+In artifacts/api-server/src/routes/missions.ts:
+  Remove: import { VALID_CATEGORIES } if unused
+
+Only remove imports that TypeScript 
+explicitly flags as unused.
+
+==================================================
+DO NOT
+==================================================
+
+- Do not change business logic
+- Do not change reward calculations
+- Do not change the AI judge behavior
+- Do not add new features
+- Do not modify the actual DB schema further
+- Do not change migration files
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. npx tsc --noEmit passes in api-server
+2. npx tsc --noEmit passes in mobile
+3. API server starts without type errors
+4. Validation (code_review) passes
+5. No business logic was changed
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. Root cause of type errors (exact cause)
+2. Fix applied (which FIX A-F was used)
+3. Files changed in this run only
+4. tsc output before fix (errors)
+5. tsc output after fix (clean)
+6. Validation result: PASS or FAIL
+7. If still failing: exact remaining errors
