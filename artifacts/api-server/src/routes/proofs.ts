@@ -114,6 +114,8 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     const proofQuality = (judgeResult.rubric.relevanceScore + judgeResult.rubric.qualityScore +
       judgeResult.rubric.specificityScore) / 3;
 
+    const effectiveMultiplier = judgeResult.verdict === "partial" ? 0.5 : judgeResult.rewardMultiplier;
+
     const { coins, xp } = computeRewardCoins({
       missionPriority: mission.priority,
       missionImpact: mission.impactLevel,
@@ -126,7 +128,7 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
       userTrustScore: user.trustScore,
       currentStreak: user.currentStreak,
       missionValueScore: mission.missionValueScore ?? undefined,
-      rewardMultiplier: judgeResult.rewardMultiplier,
+      rewardMultiplier: effectiveMultiplier,
       distractionCount: session.blockedAttemptCount ?? 0,
     });
 
@@ -520,7 +522,9 @@ router.post("/:submissionId/followup", async (req, res) => {
         try {
           const { grantSessionSkillXp } = await import("../lib/skill-engine.js");
           await grantSessionSkillXp(userId, missions[0].category, actualMinutes, "partial");
-        } catch {}
+        } catch (err) {
+          console.error("[AutoPartial] Skill XP grant error:", err);
+        }
       }
 
       await db.update(missionsTable).set({ status: "completed", updatedAt: new Date() })

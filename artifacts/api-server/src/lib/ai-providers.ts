@@ -134,7 +134,8 @@ export async function preScreen(proof: ProofSubmission, categoryMinTextLength?: 
           feedback: "This is identical to a previous submission.",
         };
       }
-    } catch {
+    } catch (err) {
+      console.error("[PreScreen] Duplicate check DB error:", err);
     }
   }
 

@@ -167,7 +167,7 @@ function validateAndNormalizeAiResponse(raw: string, providerName: string): Judg
   try {
     const parsed = JSON.parse(raw);
 
-    const verdict = parsed.verdict ?? parsed.verdict;
+    const verdict = parsed.verdict;
     const confidenceScore = parsed.confidence_score ?? parsed.confidenceScore;
     const qualityScore = parsed.quality_score ?? parsed.qualityScore ?? parsed.rubric?.qualityScore;
     const relevanceScore = parsed.relevance_score ?? parsed.relevanceScore ?? parsed.rubric?.relevanceScore;
@@ -291,15 +291,18 @@ function enhancedRuleBasedJudge(ctx: ProofContext): JudgeResult {
 
   const qualityScore = lengthScore + specificityScore + relevanceScore;
 
+  const trust = ctx.userTrustScore ?? 1.0;
+  const strictnessOffset = trust < 0.4 ? 0.15 : trust < 0.7 ? 0.06 : 0;
+
   let verdict: JudgeResult["verdict"];
   let multiplier: number;
-  if (qualityScore > 0.7) {
+  if (qualityScore > 0.7 + strictnessOffset) {
     verdict = "approved";
     multiplier = 1.0;
-  } else if (qualityScore > 0.45) {
+  } else if (qualityScore > 0.45 + strictnessOffset) {
     verdict = "partial";
-    multiplier = 0.6;
-  } else if (qualityScore > 0.25) {
+    multiplier = 0.5;
+  } else if (qualityScore > 0.25 + strictnessOffset) {
     verdict = "followup_needed";
     multiplier = 0;
   } else {
@@ -373,9 +376,30 @@ const AI_PROVIDER_ORDER = ["groq", "gemini_flash", "openai_mini", "openai_full"]
 
 export { SYSTEM_PROMPT, buildUserPrompt, validateAndNormalizeAiResponse, enhancedRuleBasedJudge };
 
+function applyTrustStrictnessAdjustment(ctx: ProofContext): ProofContext {
+  const trust = ctx.userTrustScore ?? 1.0;
+  if (trust >= 0.7) {
+    return ctx;
+  }
+  if (trust >= 0.4) {
+    return {
+      ...ctx,
+      proofRubric: (ctx.proofRubric ?? "Must be specific to the task") +
+        "\n\nSTRICTNESS BOOST (+10%): User has moderate trust. Require 10% more specificity in proof details.",
+    };
+  }
+  return {
+    ...ctx,
+    proofRubric: (ctx.proofRubric ?? "Must be specific to the task") +
+      "\n\nSTRICTNESS BOOST (+25%): User has low trust. Require 25% more specificity and detail. Be extra skeptical of vague claims.",
+  };
+}
+
 export async function judgeProof(ctx: ProofContext & { excludeProofId?: string }): Promise<JudgeResult> {
   const categoryConfig = (await import("./category-proof-requirements.js")).getProofRequirements(ctx.missionCategory);
   const categoryMinTextLength = categoryConfig.minimumTextLength;
+
+  const adjustedCtx = applyTrustStrictnessAdjustment(ctx);
 
   const proofForScreening: ProofSubmission = {
     summary: ctx.textSummary,
@@ -422,15 +446,15 @@ export async function judgeProof(ctx: ProofContext & { excludeProofId?: string }
   const tryProvider = async (provider: string): Promise<JudgeResult> => {
     switch (provider) {
       case "gemini_flash":
-        return await geminiJudge(ctx);
+        return await geminiJudge(adjustedCtx);
       case "groq":
-        return await groqJudge(ctx);
+        return await groqJudge(adjustedCtx);
       case "openai_mini":
-        return await openaiJudge(ctx, "gpt-4o-mini");
+        return await openaiJudge(adjustedCtx, "gpt-4o-mini");
       case "openai_full":
-        return await openaiJudge(ctx, "gpt-4o");
+        return await openaiJudge(adjustedCtx, "gpt-4o");
       default:
-        return enhancedRuleBasedJudge(ctx);
+        return enhancedRuleBasedJudge(adjustedCtx);
     }
   };
 
@@ -451,5 +475,5 @@ export async function judgeProof(ctx: ProofContext & { excludeProofId?: string }
 
   console.log("[AI Judge] All AI providers failed, using enhanced rule-based fallback");
   rulesOnlyCount++;
-  return enhancedRuleBasedJudge(ctx);
+  return enhancedRuleBasedJudge(adjustedCtx);
 }
