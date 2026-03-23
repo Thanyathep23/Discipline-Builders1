@@ -14,6 +14,7 @@ import { Colors } from "@/constants/colors";
 import {
   useActiveSession, usePauseSession, useResumeSession, useStopSession, useHeartbeat,
 } from "@/hooks/useApi";
+import { useFocusSession } from "@/context/FocusSessionContext";
 
 // Fire-and-forget haptic helper — never throws, never blocks
 function haptic(type: "light" | "medium" | "success" | "warning") {
@@ -114,6 +115,8 @@ export default function ActiveFocusScreen() {
   const resumeSession = useResumeSession();
   const stopSession = useStopSession();
   const heartbeat = useHeartbeat();
+
+  const { distractionCount, totalDistractionSeconds } = useFocusSession();
 
   const [localElapsed, setLocalElapsed] = useState(0);
   const [showTip, setShowTip] = useState(true);
@@ -229,7 +232,12 @@ export default function ActiveFocusScreen() {
     setErrorMsg(null);
     haptic(reason === "completed" ? "success" : "warning");
     try {
-      await stopSession.mutateAsync({ sessionId: session!.id, reason });
+      await stopSession.mutateAsync({
+        sessionId: session!.id,
+        reason,
+        distractionCount,
+        totalDistractionSeconds,
+      });
       if (reason === "completed") {
         router.replace(`/proof/${session!.id}`);
       } else {

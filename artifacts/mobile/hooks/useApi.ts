@@ -112,8 +112,16 @@ export function useStopSession() {
   const { request } = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ sessionId, reason }: { sessionId: string; reason: string }) =>
-      request<any>(`/sessions/${sessionId}/stop`, { method: "POST", body: JSON.stringify({ reason }) }),
+    mutationFn: ({ sessionId, reason, distractionCount, totalDistractionSeconds }: {
+      sessionId: string;
+      reason: string;
+      distractionCount?: number;
+      totalDistractionSeconds?: number;
+    }) =>
+      request<any>(`/sessions/${sessionId}/stop`, {
+        method: "POST",
+        body: JSON.stringify({ reason, distractionCount, totalDistractionSeconds }),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["session"] });
       queryClient.invalidateQueries({ queryKey: ["missions"] });

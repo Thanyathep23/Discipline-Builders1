@@ -58,8 +58,17 @@ export function computeRewardCoins(input: RewardInput): { coins: number; xp: num
   // Proof quality factor (most important)
   const proofFactor = proofQuality * 0.7 + proofConfidence * 0.3;
 
-  // Distraction penalty
-  const distractionPenalty = Math.max(0, 1 - blockedAttemptCount * 0.05);
+  // Distraction penalty (tiered)
+  let distractionPenalty: number;
+  if (blockedAttemptCount === 0) {
+    distractionPenalty = 1.1;
+  } else if (blockedAttemptCount <= 2) {
+    distractionPenalty = 1.0;
+  } else if (blockedAttemptCount <= 5) {
+    distractionPenalty = 0.85;
+  } else {
+    distractionPenalty = 0.70;
+  }
 
   // Strictness bonus
   const strictnessBonus: Record<string, number> = { normal: 1.0, strict: 1.1, extreme: 1.2 };

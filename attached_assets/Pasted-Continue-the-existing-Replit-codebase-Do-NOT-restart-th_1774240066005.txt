@@ -1,0 +1,380 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Build two systems simultaneously:
+A) Focus Mode App Blocking (overlay + detection)
+B) Multi-provider AI Judge with cost optimization
+
+==================================================
+SYSTEM A — FOCUS MODE APP BLOCKING
+==================================================
+
+Platform reality:
+- iOS: cannot truly block other apps (Apple restriction)
+- Android: can detect app switching via AppState
+- Both: can track when user leaves the app during focus
+
+Build what is actually possible:
+
+A1. Focus Session Active State
+
+When a focus session starts:
+- set a global "focus_active" flag
+- store: session_id, mission_title, end_time, strictness_mode
+- make this accessible across the app
+
+A2. App Leave Detection (both iOS + Android)
+
+Use React Native AppState to detect when user 
+leaves the app during an active focus session:
+
+import { AppState } from 'react-native';
+
+When AppState changes to 'background' during focus:
+- record: left_at timestamp
+- record: duration_away when they return
+- if away > 2 minutes: log as "distraction event"
+- if away > 5 minutes: log as "focus broken"
+
+Store in focus_sessions:
+- distraction_count (number of times left app)
+- total_distraction_seconds
+- focus_break_events: [{left_at, returned_at, duration}]
+
+A3. Return Overlay (iOS + Android)
+
+When user returns to app during active focus session:
+
+Show a full-screen overlay with:
+- Dark background matching app theme
+- Current mission title: "You're working on: [mission]"
+- Time remaining: "Focus ends in: 47:23"
+- Distraction count: "You've left [X] times"
+- Two buttons:
+  - "Resume Focus" (primary) → dismiss overlay
+  - "End Session Early" (secondary/destructive) 
+    → confirm dialog → end session with penalty note
+
+Overlay must:
+- appear every time user returns from background
+- not be dismissible by swiping
+- show for minimum 3 seconds before Resume is tappable
+- use design system tokens (dark premium style)
+
+A4. Strictness Mode Integration
+
+Strict mode:
+- overlay shows for 5 seconds minimum
+- after 3+ distractions: show warning
+  "3 distractions recorded. This will affect your reward."
+- after 5+ distractions: show stronger warning
+  "Focus quality is low. Consider restarting this session."
+
+Balanced mode:
+- overlay shows for 2 seconds minimum
+- warning after 5+ distractions only
+
+A5. Distraction Impact on Reward
+
+Pass distraction data to the judge/reward engine:
+
+distraction_count affects reward_multiplier:
+- 0 distractions: +0.1 bonus multiplier
+- 1-2 distractions: no change
+- 3-5 distractions: -0.15 multiplier
+- 6+ distractions: -0.30 multiplier
+- total_distraction_seconds > 50% of session: 
+  flag as "low_confidence" session
+
+A6. Focus Status Bar (while in focus)
+
+When focus session is active and user is in the app:
+Show a persistent thin banner at the top of every screen:
+
+[🎯 Focusing: Trading Analysis — 47:23 remaining]
+
+- height: 36px
+- background: accent.primary at 90% opacity
+- text: mission name + time remaining
+- tap: navigates back to active focus screen
+- must appear on Home, Missions, Rewards, Profile screens
+- must NOT appear on the focus session screen itself
+
+A7. What NOT to claim
+
+Do NOT add code claiming to:
+- block TikTok/Facebook/YouTube/Instagram directly
+- modify iOS Screen Time
+- kill other app processes
+
+These are impossible without OS-level permissions
+that app stores do not allow.
+
+The honest version: 
+"We track when you leave and hold you accountable."
+This is actually more respectful and still effective.
+
+==================================================
+SYSTEM B — MULTI-PROVIDER AI JUDGE
+==================================================
+
+Replace the current single-provider judge with a 
+cost-optimized multi-tier system.
+
+B1. Provider Configuration
+
+Create: artifacts/api-server/src/lib/ai-providers.ts
+
+Define available providers in priority order:
+
+const AI_PROVIDERS = {
+  // Tier 1: Free rule-based (always available)
+  rules: { cost: 0, available: true },
+  
+  // Tier 2: Gemini Flash (cheapest with free tier)
+  gemini_flash: {
+    model: 'gemini-1.5-flash',
+    apiKey: process.env.GEMINI_API_KEY,
+    costPer1MTokens: 0.075,
+    freeTierPerDay: 1500,
+    supportsVision: true,
+    available: !!process.env.GEMINI_API_KEY
+  },
+  
+  // Tier 3: Groq (very fast, free tier)
+  groq: {
+    model: 'llama-3.1-8b-instant', 
+    apiKey: process.env.GROQ_API_KEY,
+    costPer1MTokens: 0.05,
+    freeTierPerDay: 14400,
+    supportsVision: false,
+    available: !!process.env.GROQ_API_KEY
+  },
+  
+  // Tier 4: OpenAI mini (fallback, cheapest OpenAI)
+  openai_mini: {
+    model: 'gpt-4o-mini',
+    apiKey: process.env.OPENAI_API_KEY,
+    costPer1MTokens: 0.15,
+    supportsVision: true,
+    available: !!process.env.OPENAI_API_KEY
+  },
+  
+  // Tier 5: OpenAI full (complex cases only)
+  openai_full: {
+    model: 'gpt-4o',
+    apiKey: process.env.OPENAI_API_KEY,
+    costPer1MTokens: 2.50,
+    supportsVision: true,
+    available: !!process.env.OPENAI_API_KEY
+  }
+}
+
+B2. Smart Routing Logic
+
+Before calling any AI, run rule-based pre-screening:
+
+function preScreen(proof: ProofSubmission): PreScreenResult {
+  
+  // Rule 1: Empty submission
+  if (!proof.summary && !proof.files?.length && !proof.linkUrl) {
+    return { verdict: 'rejected', reason: 'no_proof', skipAI: true }
+  }
+  
+  // Rule 2: Too short
+  if (proof.summary && proof.summary.trim().length < 20) {
+    return { verdict: 'rejected', reason: 'too_short', skipAI: true }
+  }
+  
+  // Rule 3: Duplicate detection
+  const textHash = hashText(proof.summary || '')
+  const isDuplicate = await checkDuplicateHash(proof.userId, textHash)
+  if (isDuplicate) {
+    return { verdict: 'rejected', reason: 'duplicate', skipAI: true }
+  }
+  
+  // Rule 4: Generic phrases detection
+  const genericPhrases = [
+    'i completed the task',
+    'done',
+    'finished',
+    'i did it',
+    'task complete',
+    'completed'
+  ]
+  const normalized = proof.summary?.toLowerCase().trim()
+  if (genericPhrases.includes(normalized)) {
+    return { verdict: 'followup_required', reason: 'too_generic', skipAI: true }
+  }
+  
+  return { skipAI: false }
+}
+
+If skipAI is true: return verdict immediately, save cost.
+Estimated: 35-40% of submissions caught by rules alone.
+
+B3. Provider Selection Logic
+
+function selectProvider(proof: ProofSubmission, context: JudgeContext): string {
+  
+  const hasImage = proof.files?.some(f => 
+    f.mimeType?.startsWith('image/'))
+  
+  // Has image: need vision capability
+  if (hasImage) {
+    if (AI_PROVIDERS.gemini_flash.available) return 'gemini_flash'
+    if (AI_PROVIDERS.openai_mini.available) return 'openai_mini'
+    return 'rules' // fallback: ignore image, judge text only
+  }
+  
+  // Text only: use cheapest available
+  if (AI_PROVIDERS.groq.available) return 'groq'
+  if (AI_PROVIDERS.gemini_flash.available) return 'gemini_flash'
+  if (AI_PROVIDERS.openai_mini.available) return 'openai_mini'
+  
+  // No API keys available
+  return 'rules'
+}
+
+B4. Gemini Flash Integration
+
+Install: @google/generative-ai
+
+Create: artifacts/api-server/src/lib/judges/gemini-judge.ts
+
+Use the same judge system prompt as defined in previous spec.
+Return the same structured JSON format.
+
+For image analysis with Gemini:
+- convert image to base64
+- send as inline_data part
+- ask: "Does this image provide evidence of [mission type]?"
+
+B5. Groq Integration
+
+Install: groq-sdk
+
+Create: artifacts/api-server/src/lib/judges/groq-judge.ts
+
+Use for text-only proof verification.
+Groq is 10x faster than OpenAI and has generous free tier.
+Model: llama-3.1-8b-instant (fast) or 
+       llama-3.1-70b-versatile (more accurate)
+
+B6. Cost Tracking
+
+Track AI usage per user per day:
+
+Store in a lightweight in-memory or DB counter:
+- provider used
+- tokens consumed (estimate)
+- cost estimate
+- date
+
+Log to console daily summary:
+"AI Judge Daily Summary:
+ - Rule-based: 847 requests (free)
+ - Groq: 412 requests (~$0.02)
+ - Gemini Flash: 156 requests (~$0.01)  
+ - OpenAI Mini: 23 requests (~$0.00)
+ - Total estimated: $0.03"
+
+B7. Fallback Chain
+
+If primary provider fails:
+1. Try next available provider
+2. If all AI providers fail: use enhanced rule-based judge
+3. Never return an error to the user
+4. Never grant reward if judge output is ambiguous
+
+Enhanced rule-based fallback scoring:
+- text length score: 0-0.3
+- specificity score (unique words, numbers, details): 0-0.4
+- relevance score (keyword match with mission): 0-0.3
+- combine for final quality_score
+
+==================================================
+ENVIRONMENT VARIABLES TO ADD
+==================================================
+
+Add these to Replit Secrets (not .env file):
+
+GEMINI_API_KEY    → get free at: aistudio.google.com
+GROQ_API_KEY      → get free at: console.groq.com  
+OPENAI_API_KEY    → optional, only if needed
+
+Priority for free usage:
+1. GROQ_API_KEY first (most generous free tier)
+2. GEMINI_API_KEY second (has Vision support)
+3. OPENAI_API_KEY only if needed for quality boost
+
+==================================================
+FOCUS STATUS INTEGRATION
+==================================================
+
+Update these existing screens to show focus banner
+when a session is active:
+
+- app/(tabs)/index.tsx (Home)
+- app/(tabs)/missions.tsx  
+- app/(tabs)/rewards/index.tsx
+- app/profile.tsx
+
+Add focus banner component:
+artifacts/mobile/components/focus/FocusBanner.tsx
+
+Props: { missionTitle: string, timeRemaining: number }
+Auto-hides when no active session.
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+System A (Focus Blocking):
+1. AppState listener detects when user leaves during focus
+2. Return overlay appears every time user comes back
+3. Overlay shows mission title and time remaining
+4. Distraction count increments correctly
+5. Distraction count affects reward multiplier
+6. Focus status banner appears on main screens
+7. No false claims about blocking iOS apps
+
+System B (AI Judge):
+1. Rule-based pre-screening catches empty/duplicate/generic
+2. Provider selection chooses cheapest available option
+3. Gemini Flash works for both text and image proof
+4. Groq works for text-only proof
+5. Fallback chain works if primary provider fails
+6. Cost tracking logs to console
+7. All verdicts return valid structured JSON
+8. No reward granted if judge fails or returns invalid output
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. System A implementation summary
+   - what AppState events are tracked
+   - overlay behavior and timing
+   - distraction impact on rewards
+
+2. System B implementation summary
+   - which providers are configured
+   - routing logic summary
+   - estimated cost per 1000 requests
+   
+3. Provider availability status
+   (which API keys are set and working)
+
+4. Files changed in this run only
+
+5. Test results:
+   - focus session → leave app → return → overlay appears
+   - empty proof → rejected without calling AI
+   - duplicate proof → rejected without calling AI
+   - text proof → routed to Groq/Gemini
+   - image proof → routed to vision-capable provider
+
+6. Estimated monthly cost at 1,000 active users

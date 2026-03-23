@@ -88,6 +88,7 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     links: JSON.parse(proof.links || "[]"),
     requiredProofTypes: JSON.parse(mission.requiredProofTypes || "[]"),
     followupAnswers: proof.followupAnswers,
+    userId,
     attachedFiles: attachedFiles.map((f) => ({
       name: f.originalName,
       type: f.mimeType,

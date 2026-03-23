@@ -1119,6 +1119,55 @@ Added: `useAdminDashboard`, `useAdminPlayers(params)`, `useAdminPlayerSnapshot(i
 - 3 new sections added: Economy Console, Recommendations, Funnels
 - Nav items: 13 → 16 items across 8 sections
 
+## Phase 35 — Focus Mode App Blocking + Multi-Provider AI Judge
+
+### System A: Focus Mode App Blocking
+- **FocusSessionContext** (`artifacts/mobile/context/FocusSessionContext.tsx`): Global context wrapping the app that tracks AppState transitions during active focus sessions
+  - Detects background/foreground transitions via React Native `AppState`
+  - Tracks `distractionCount`, `totalDistractionSeconds`, `focusBreakEvents` per session
+  - Exposes `showReturnOverlay` flag, `dismissOverlay()`, `endSessionEarly()`
+  - Resets tracking on new session start
+- **FocusReturnOverlay** (`artifacts/mobile/components/focus/FocusReturnOverlay.tsx`): Full-screen Modal overlay shown every time user returns from background during active focus
+  - Shows mission title, time remaining, distraction count
+  - Resume Focus button with timed delay (3s normal, 5s strict/extreme)
+  - End Session Early with confirmation dialog
+  - Strictness-based warnings at 3+ and 5+ distractions
+- **FocusBanner** (`artifacts/mobile/components/focus/FocusBanner.tsx`): 36px persistent banner at top of tab screens during active focus
+  - Shows mission name + time remaining
+  - Tap navigates to active focus screen
+  - Hidden on focus/active screen itself
+  - Wired into `app/(tabs)/_layout.tsx`
+- **Distraction reward impact**: Updated `rewards.ts` with tiered multiplier:
+  - 0 distractions: +10% bonus (1.1x)
+  - 1-2 distractions: no change (1.0x)
+  - 3-5 distractions: -15% penalty (0.85x)
+  - 6+ distractions: -30% penalty (0.70x)
+- **Session stop route** now accepts `distractionCount` and `totalDistractionSeconds` from client
+  - Flags sessions as `low_confidence` when distraction time > 50% of total session time
+- **useStopSession** hook updated to pass distraction data
+- No false claims about blocking iOS/Android apps — honest approach: "We track when you leave and hold you accountable"
+
+### System B: Multi-Provider AI Judge
+- **Provider config** (`artifacts/api-server/src/lib/ai-providers.ts`):
+  - Tier 1: Rule-based (free, always available)
+  - Tier 2: Gemini Flash (`gemini-1.5-flash`, $0.075/1M tokens, vision support)
+  - Tier 3: Groq (`llama-3.1-8b-instant`, $0.05/1M tokens, text only, fastest)
+  - Tier 4: OpenAI Mini (`gpt-4o-mini`, $0.15/1M tokens, vision support)
+  - Tier 5: OpenAI Full (`gpt-4o`, $2.50/1M tokens, complex cases)
+- **Pre-screening** catches 35-40% of submissions without AI:
+  - Empty submissions → rejected
+  - Too short (<20 chars) → rejected
+  - Duplicate text (SHA-256 hash) → rejected
+  - Generic phrases ("done", "finished", "i did it") → followup_needed
+- **Smart routing**: Cheapest available provider selected; vision-capable for image proofs
+- **Gemini judge** (`artifacts/api-server/src/lib/judges/gemini-judge.ts`): Uses `@google/generative-ai` SDK
+- **Groq judge** (`artifacts/api-server/src/lib/judges/groq-judge.ts`): Uses `groq-sdk`
+- **Fallback chain**: Primary → next available → enhanced rule-based (never fails to user)
+- **Enhanced rule-based** scoring: text length (0-0.3) + specificity/unique words/numbers (0-0.4) + keyword relevance (0-0.3)
+- **Cost tracking**: In-memory daily summary with provider breakdown
+- **ai-judge.ts** rewritten to orchestrate pre-screening → provider selection → fallback chain
+- Env vars needed: `GEMINI_API_KEY`, `GROQ_API_KEY` (both have free tiers), `OPENAI_API_KEY` (optional)
+
 ## Phase 32 — Character Appearance Backend
 
 ### Schema: `lib/db/src/schema/character-appearance.ts`

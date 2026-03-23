@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@types/multer": "^2.1.0",
     "@types/pdf-parse": "^1.1.5",
     "@workspace/api-zod": "workspace:*",
@@ -17,6 +18,7 @@
     "cors": "^2",
     "drizzle-orm": "catalog:",
     "express": "^5",
+    "groq-sdk": "^1.1.1",
     "multer": "^2.1.1",
     "openai": "^6.32.0",
     "pdf-parse": "^2.4.5",

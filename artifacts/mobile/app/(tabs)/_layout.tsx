@@ -7,6 +7,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { Colors } from "@/constants/colors";
+import { FocusBanner } from "@/components/focus/FocusBanner";
 
 function NativeTabLayout() {
   return (
@@ -100,6 +101,10 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  if (isLiquidGlassAvailable()) return <NativeTabLayout />;
-  return <ClassicTabLayout />;
+  return (
+    <View style={{ flex: 1 }}>
+      <FocusBanner />
+      {isLiquidGlassAvailable() ? <NativeTabLayout /> : <ClassicTabLayout />}
+    </View>
+  );
 }

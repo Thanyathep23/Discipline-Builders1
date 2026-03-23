@@ -222,6 +222,8 @@ router.post("/:sessionId/resume", async (req, res) => {
 router.post("/:sessionId/stop", async (req, res) => {
   const schema = z.object({
     reason: z.enum(["completed", "abandoned", "emergency"]),
+    distractionCount: z.number().int().min(0).optional(),
+    totalDistractionSeconds: z.number().int().min(0).optional(),
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
@@ -237,14 +239,23 @@ router.post("/:sessionId/stop", async (req, res) => {
   }
 
   const now = new Date();
-  const finalStatus = parsed.data.reason === "completed" ? "completed" : "abandoned";
+  let finalStatus = parsed.data.reason === "completed" ? "completed" as const : "abandoned" as const;
+
+  const clientDistractions = parsed.data.distractionCount ?? 0;
+  const clientDistractionSeconds = parsed.data.totalDistractionSeconds ?? 0;
+  const newBlockedCount = Math.max(data.session.blockedAttemptCount ?? 0, clientDistractions);
+
+  const startedAt = data.session.startedAt ? new Date(data.session.startedAt) : now;
+  const totalSessionSeconds = Math.floor((now.getTime() - startedAt.getTime()) / 1000);
+  const isLowConfidence = clientDistractionSeconds > 0 && totalSessionSeconds > 0 && clientDistractionSeconds > totalSessionSeconds * 0.5;
+
   await db.update(focusSessionsTable).set({
-    status: finalStatus,
+    status: isLowConfidence ? "low_confidence" : finalStatus,
     endedAt: now,
+    blockedAttemptCount: newBlockedCount,
   }).where(eq(focusSessionsTable.id, req.params.sessionId));
 
   // Close out the time entry for this session
-  const startedAt = data.session.startedAt ? new Date(data.session.startedAt) : now;
   const totalPaused = data.session.totalPausedSeconds ?? 0;
   const rawDuration = Math.floor((now.getTime() - startedAt.getTime()) / 1000);
   const durationSeconds = Math.max(0, rawDuration - totalPaused);
