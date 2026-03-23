@@ -47,7 +47,7 @@ function parseProof(p: any) {
   };
 }
 
-async function runJudgment(submissionId: string, userId: string, isFollowupRejudge = false): Promise<void> {
+async function runJudgment(submissionId: string, userId: string, isFollowupRejudge = false, skipPenaltiesForAutoPartial = false): Promise<void> {
   const proofs = await db.select().from(proofSubmissionsTable).where(eq(proofSubmissionsTable.id, submissionId)).limit(1);
   if (!proofs[0]) return;
   const proof = proofs[0];
@@ -230,7 +230,7 @@ async function runJudgment(submissionId: string, userId: string, isFollowupRejud
 
   const isDuplicate = judgeResult.preScreenReason === "duplicate_submission";
 
-  if (judgeResult.verdict === "rejected" && !isDuplicate) {
+  if (judgeResult.verdict === "rejected" && !isDuplicate && !skipPenaltiesForAutoPartial) {
     await applySystemPenalty(
       userId, 20, 10,
       "failed_proof",
@@ -239,7 +239,7 @@ async function runJudgment(submissionId: string, userId: string, isFollowupRejud
     );
   }
 
-  if (judgeResult.verdict === "rejected" || judgeResult.verdict === "flagged" || judgeResult.verdict === "followup_needed" || judgeResult.verdict === "manual_review") {
+  if (!skipPenaltiesForAutoPartial && (judgeResult.verdict === "rejected" || judgeResult.verdict === "flagged" || judgeResult.verdict === "followup_needed" || judgeResult.verdict === "manual_review")) {
     await grantReward(userId, 0, 1, `Attempt XP: ${mission.title}`, {
       missionId: mission.id, sessionId: session.id, proofId: submissionId,
     });
@@ -277,6 +277,10 @@ async function runJudgment(submissionId: string, userId: string, isFollowupRejud
     else if (judgeResult.verdict === "rejected") trustDelta = -0.05;
     else if (judgeResult.verdict === "flagged") trustDelta = -0.10;
     else if (judgeResult.verdict === "manual_review") trustDelta = -0.02;
+  }
+
+  if (skipPenaltiesForAutoPartial && trustDelta < 0) {
+    trustDelta = 0;
   }
 
   if (trustDelta !== 0) {
@@ -483,7 +487,7 @@ router.post("/:submissionId/followup", async (req, res) => {
     updatedAt: new Date(),
   }).where(eq(proofSubmissionsTable.id, req.params.submissionId));
 
-  runJudgment(req.params.submissionId, userId, true).then(async () => {
+  runJudgment(req.params.submissionId, userId, true, isLastFollowup).then(async () => {
     if (isLastFollowup) {
       const updated = await db.select().from(proofSubmissionsTable)
         .where(eq(proofSubmissionsTable.id, req.params.submissionId)).limit(1);
