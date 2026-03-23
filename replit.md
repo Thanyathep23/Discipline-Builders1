@@ -723,62 +723,90 @@ Six premium shareable card components, all screenshot-optimized with dark premiu
 
 ---
 
-## Phase 18 — World / Room / Lifestyle Presentation Layer
+## Phase 18 → Phase 36 — Room / Command Center Decoration System
 
 ### Overview
-A lightweight but premium "Command Center" presentation layer where progression, ownership, and identity live visually. Slot-based item display, room theme progression, and profile-world linkage.
+Full interactive room decoration system. Users buy decorations with coins, place items in zone-based layout, bring their character into the room, and progress through room tiers. The Command Center is a visual hub with SVG-rendered decorations, zone-tap placement, and integrated shop.
 
-### Command Center Screen
-- File: `artifacts/mobile/app/world/index.tsx`
-- Entry point from Profile tab via "Command Center" banner card
-- Zones:
-  - **Room Theme Hero** — shows active room theme (tier, accent color, description). Upgrade button if no theme set.
-  - **Identity Zone** — avatar, username, active title pill with rarity color, identity summary line
-  - **Arc / Season Zone** — current arc, arc stage progress, prestige tier badge
-  - **Room Theme Slot** — assign a purchased room upgrade item
-  - **Trophy Shelf** — 3 numbered slots for trophy-category items
-  - **Featured Display** — centerpiece slot (trophies/prestige) + prestige marker slot
-  - **Earned Badges** — horizontal scroll of all earned badges
-  - **In Storage** — owned items not yet displayed in any slot, with equip state indicator
+### Room Decoration Catalog (17 Items)
+All items seeded with `category: 'room_decor'`, `itemType: 'room_decor'` in `shop_items` table.
 
-### Slot-Based Display System
-- 6 slot types: `room_theme`, `centerpiece`, `trophy_shelf_1`, `trophy_shelf_2`, `trophy_shelf_3`, `prestige_marker`
-- Slot eligibility by `itemType`:
-  - `room_theme` → room items only
-  - `centerpiece` → trophy or prestige items
-  - `trophy_shelf_*` → trophy items only
-  - `prestige_marker` → prestige items only
-- Tap any slot to open item picker modal showing only eligible owned items
-- Current slot items show a clear button; users can swap/clear freely
+**Desk Zone** (3 items): Minimal Desk Setup (free/common), Premium Oak Desk (800/refined), Executive Carbon Desk (4500/elite)
+**Coffee Station Zone** (2 items): Espresso Machine (1200/refined), Premium Pour-Over Set (2800/prestige)
+**Monitor Zone** (3 items): Dual Monitor Setup (1500/refined), Ultrawide Command Screen (5000/elite), Trading Terminal Setup (3500/prestige)
+**Ambiance** (4 items): Minimal Bookshelf (600/refined), Premium Speaker System (2200/prestige), Indoor Plant Collection (300/common), Trophy Display Case (3000/elite)
+**Lighting Zone** (2 items): LED Ambient Lighting (900/refined), Premium Arc Floor Lamp (2500/prestige)
+**Room Theme Zone** (3 items): Dark Command Theme (1000/refined), Executive Suite Theme (6000/elite), Trading Floor Theme (4500/prestige)
+
+New rarity tiers: `refined`, `prestige`, `elite` (added to `RARITY_COLORS` in `constants/colors.ts`)
+
+### Zone-Based Room Layout
+9 placement zones: `room_theme`, `desk`, `coffee_station`, `monitor`, `bookshelf`, `audio`, `plants`, `trophy_case`, `lighting`
+- Each zone maps to specific item `roomZone` values via `SLOT_ROOM_ZONES`
+- Legacy slots preserved: `centerpiece`, `trophy_shelf_1/2/3`, `prestige_marker`
 - Display state stored server-side in `user_inventory.display_slot`
 
-### Theme / Environment Progression
-4 tiers of room environment:
-- **Standard Base** (Tier 0, default) — accent violet, no room item required
-- **Focus Shrine** (Tier 1) — cyan accent, `asset-focus-shrine` item required
-- **Command Terminal** (Tier 2) — gold accent, `asset-command-terminal` item required
-- **War Room** (Tier 3) — crimson accent, `asset-war-room` item required
+### Visual Room Canvas
+- File: `artifacts/mobile/components/room/RoomCanvas.tsx`
+- Zone-positioned absolute layout with SVG item rendering
+- Background changes based on equipped room theme
+- Lighting glow effect when lighting item equipped
+- Character overlay when character is "in room"
+- Empty zones show dashed outlines with tap targets
 
-Theme auto-resolves: if no `room_theme` slot set, shows highest-tier owned room item as active theme.
+### Room Item SVG Visuals
+- File: `artifacts/mobile/components/room/RoomItemVisuals.tsx`
+- 17 flat/minimal SVG components for all room items
+- Dark-background friendly, premium illustration style
+- `ROOM_ITEM_VISUALS` lookup map by item ID → React component
 
-### Profile-World Linkage
-- Profile tab shows a Command Center entry banner card (accent colored, always visible)
-- Active title shown both on profile header and in Command Center identity zone
-- Prestige tier visible in both arc/season zone and Command Center
-- Identity summary line pulled from `/inventory/identity` in both surfaces
-- Stats (owned count, displayed count) shown in Command Center header chip
+### Character In Room
+- Toggle button on room screen ("Enter Room" / "Exit Room")
+- Character rendered using existing `EvolvedCharacter` SVG component at smaller size
+- Character state persisted via `audit_log` entries with action `room_character_toggle`
+- Adds +5 points to room score when present
 
-### API Endpoints Added
-- `GET /api/world/room` — full room state: theme, slots, activeTitle, earnedBadges, ownedNotDisplayed, stats, profileDepth
-- `GET /api/world/room/eligibility` — per-slot eligible owned items for assignment picker
-- `POST /api/world/room/slots` — assign item to slot (validates ownership + eligibility server-side)
-- `DELETE /api/world/room/slots/:slot` — clear a slot
-- `GET /api/world/admin/stats` — admin view of slot usage, item display frequency
+### Room Progression System
+- **Score** = sum of placed item rarity weights + theme bonus (+20) + character bonus (+5) + lighting bonus (+8)
+- Rarity weights: common=3, refined=8, prestige=15, elite=25, legendary=40
+- **6 Tiers**: T0 Standard Base (0-29) → T1 Emerging Workspace (30-74) → T2 Professional Setup (75-149) → T3 Premium Command Center (150-249) → T4 Executive Suite (250-399) → T5 Iconic Command Center (400+)
 
-### Security
-- Ownership verified server-side before any slot assignment
-- Slot eligibility enforced server-side (item type must match slot's allowed types)
-- All slot assignments audited in `audit_log` table with action `world_slot_assigned`
+### Milestone Badges
+6 room-specific milestone badges auto-awarded on placement:
+- "First Decoration" — first room item placed
+- "Workspace Ready" — desk + monitor both placed
+- "Coffee Culture" — coffee item placed
+- "Command Center I" — reach Tier 2
+- "Executive Setup" — reach Tier 4
+- "Full Setup" — all 6 zone types filled
+Duplicate prevention: checks ownership before award, try/catch for concurrent requests.
+
+### Room Screen UI
+- Header: back button, "COMMAND CENTER", tier badge, coin balance
+- Room canvas: ~45% of screen, visual room with all placed items
+- Character toggle + view character buttons
+- Tier progress card: score, progress bar, evolution hints
+- Placed items horizontal scroll with item visuals
+- Inventory section for owned-but-not-placed items
+- Shop section with zone suggestions + "Browse All Room Items" button
+- Zone tap → picker modal (owned items) or shop modal (browse/buy)
+- Buy-and-place flow: purchase item from shop → auto-place in zone
+
+### API Endpoints
+- `GET /api/world/room` — full room state with slots, roomState, isCharacterInRoom, badges, ownedNotDisplayed
+- `GET /api/world/room/eligibility` — per-slot eligible owned items
+- `POST /api/world/room/slots` — assign item to zone (validates ownership + zone compatibility, awards milestones)
+- `DELETE /api/world/room/slots/:slot` — clear a zone
+- `POST /api/world/room/toggle-character` — toggle character in room (persisted via audit log)
+- `GET /api/world/room/shop-items` — browse room decor items with ownership/affordability/level status
+- `GET /api/world/admin/stats` — admin view of slot usage
+
+### Key Files
+- Backend: `artifacts/api-server/src/routes/world.ts`
+- Room canvas: `artifacts/mobile/components/room/RoomCanvas.tsx`
+- Item visuals: `artifacts/mobile/components/room/RoomItemVisuals.tsx`
+- Screen: `artifacts/mobile/app/world/index.tsx`
+- Hooks: `useToggleCharacterInRoom()`, `useRoomShopItems()` in `useApi.ts`
 
 ### DB Migration
 - File: `lib/db/drizzle/0005_phase18_world.sql`

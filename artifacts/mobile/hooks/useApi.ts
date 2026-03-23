@@ -483,6 +483,7 @@ export function useBuyItem() {
       queryClient.invalidateQueries({ queryKey: ["rewards", "balance"] });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["wearables"] });
+      queryClient.invalidateQueries({ queryKey: ["world"] });
     },
   });
 }
@@ -793,6 +794,28 @@ export function useClearDisplaySlot() {
       queryClient.invalidateQueries({ queryKey: ["world"] });
       queryClient.invalidateQueries({ queryKey: ["marketplace"] });
     },
+  });
+}
+
+export function useToggleCharacterInRoom() {
+  const { request } = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (inRoom: boolean) =>
+      request<any>("/world/room/toggle-character", { method: "POST", body: JSON.stringify({ inRoom }) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["world"] });
+    },
+  });
+}
+
+export function useRoomShopItems(zone?: string | null) {
+  const { request } = useApiClient();
+  const qs = zone ? `?zone=${zone}` : "";
+  return useQuery({
+    queryKey: ["world", "room-shop", zone],
+    queryFn: () => request<any>(`/world/room/shop-items${qs}`),
+    staleTime: 30000,
   });
 }
 

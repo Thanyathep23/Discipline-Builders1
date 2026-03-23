@@ -49,8 +49,11 @@ export const Colors = {
 export const RARITY_COLORS: Record<string, string> = {
   common:    "#9E9E9E",
   uncommon:  "#4CAF50",
+  refined:   "#4CAF50",
   rare:      "#2196F3",
+  prestige:  "#9C27B0",
   epic:      "#9C27B0",
+  elite:     "#FF7043",
   legendary: "#F5C842",
 };
 
