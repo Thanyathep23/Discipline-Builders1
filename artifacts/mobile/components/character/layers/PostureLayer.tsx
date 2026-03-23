@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { G, Rect, Ellipse, Path } from "react-native-svg";
 import type { PostureStage, RefinementStage } from "@/lib/characterEngine";
 
 export interface PostureMetrics {
@@ -74,6 +75,60 @@ function browPaths(cf: number, hY: number): [string, string] {
 
 export { mouthPath, browPaths };
 
-export const PostureLayer = memo(function PostureLayer() {
-  return null;
-});
+interface PostureProps {
+  stage: PostureStage;
+  skinTone: string;
+}
+
+const SKIN_SHADING: Record<string, string> = {
+  "tone-1": "#DABB90",
+  "tone-2": "#C49565",
+  "tone-3": "#A07650",
+  "tone-4": "#6A4828",
+  "tone-5": "#3E2010",
+};
+
+function PostureLayerInner({ stage, skinTone }: PostureProps) {
+  const m = POSTURE_METRICS[stage];
+  const shadeFill = SKIN_SHADING[skinTone] ?? SKIN_SHADING["tone-3"];
+
+  if (stage === "neutral") return null;
+
+  return (
+    <G opacity={0.5}>
+      {(stage === "upright" || stage === "athletic" || stage === "peak") && (
+        <Path
+          d={`M${m.torsoX + 2} 55 Q50 52 ${m.torsoX + m.torsoW - 2} 55`}
+          stroke={shadeFill}
+          strokeWidth="1.2"
+          fill="none"
+          strokeLinecap="round"
+        />
+      )}
+
+      {(stage === "athletic" || stage === "peak") && (
+        <>
+          <Rect x={m.armLX + 2} y="60" width={m.armW - 4} height="3" rx="1.5" fill={shadeFill} opacity={0.6} />
+          <Rect x={m.armRX + 2} y="60" width={m.armW - 4} height="3" rx="1.5" fill={shadeFill} opacity={0.6} />
+          <Ellipse cx="50" cy="85" rx={m.torsoW / 2 - 6} ry="4" fill={shadeFill} opacity={0.3} />
+        </>
+      )}
+
+      {stage === "peak" && (
+        <>
+          <Rect x={m.armLX + 1} y="64" width={m.armW - 2} height="2" rx="1" fill={shadeFill} opacity={0.4} />
+          <Rect x={m.armRX + 1} y="64" width={m.armW - 2} height="2" rx="1" fill={shadeFill} opacity={0.4} />
+          <Path
+            d={`M${m.torsoX + 8} 72 L50 78 L${m.torsoX + m.torsoW - 8} 72`}
+            stroke={shadeFill}
+            strokeWidth="0.8"
+            fill="none"
+            strokeLinecap="round"
+          />
+        </>
+      )}
+    </G>
+  );
+}
+
+export const PostureLayer = memo(PostureLayerInner);

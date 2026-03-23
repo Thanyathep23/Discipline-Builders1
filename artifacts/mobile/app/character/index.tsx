@@ -927,7 +927,9 @@ export default function CharacterStatusScreen() {
   const prevTierRef = useRef<string | null>(null);
 
   const characterOpacity = useSharedValue(1);
+  const prevCharOpacity = useSharedValue(0);
   const prevVisualStateRef = useRef<string | null>(null);
+  const prevCharacterVS = useRef<CharacterVisualState | null>(null);
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const botPad = insets.bottom + (Platform.OS === "web" ? 34 : 100);
@@ -974,16 +976,26 @@ export default function CharacterStatusScreen() {
   const vsKeyForFade = characterVS
     ? `${characterVS.postureStage}-${characterVS.outfitTier}-${characterVS.prestigeStage}-${characterVS.refinementStage}`
     : JSON.stringify(data?.visualState);
+  const [fadingOutVS, setFadingOutVS] = useState<CharacterVisualState | null>(null);
   useEffect(() => {
-    if (prevVisualStateRef.current && prevVisualStateRef.current !== vsKeyForFade) {
-      characterOpacity.value = 0.3;
-      characterOpacity.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) });
+    if (prevVisualStateRef.current && prevVisualStateRef.current !== vsKeyForFade && prevCharacterVS.current) {
+      setFadingOutVS(prevCharacterVS.current);
+      prevCharOpacity.value = 1;
+      prevCharOpacity.value = withTiming(0, { duration: 600, easing: Easing.out(Easing.cubic) });
+      characterOpacity.value = 0;
+      characterOpacity.value = withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) });
+      setTimeout(() => setFadingOutVS(null), 650);
     }
     prevVisualStateRef.current = vsKeyForFade;
+    if (characterVS) prevCharacterVS.current = characterVS;
   }, [vsKeyForFade]);
 
   const characterAnimStyle = useAnimatedStyle(() => ({
     opacity: characterOpacity.value,
+  }));
+  const prevCharAnimStyle = useAnimatedStyle(() => ({
+    opacity: prevCharOpacity.value,
+    position: "absolute" as const,
   }));
 
   const appearance = (data as any)?.appearance;
@@ -1064,6 +1076,11 @@ export default function CharacterStatusScreen() {
               </Pressable>
 
               {/* The character — full hero presence with cross-fade */}
+              {fadingOutVS && (
+                <Animated.View style={[styles.characterWrap, prevCharAnimStyle]}>
+                  <CharacterRenderer visualState={fadingOutVS} size="large" showShadow={false} />
+                </Animated.View>
+              )}
               <Animated.View style={[styles.characterWrap, characterAnimStyle]}>
                 {characterVS ? (
                   <CharacterRenderer

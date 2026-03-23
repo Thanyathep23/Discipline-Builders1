@@ -76,7 +76,7 @@ function HairLayerInner({ hairStyle, hairColor, headCY, groomingLevel }: Props) 
         </G>
       )}
 
-      {(hairStyle === "taper" || !["natural", "waves", "caesar", "low-fade"].includes(hairStyle)) && hairStyle !== "natural" && hairStyle !== "waves" && hairStyle !== "caesar" && hairStyle !== "low-fade" && (
+      {hairStyle === "taper" && (
         <G>
           <Ellipse cx="50" cy={hCY - 16} rx="20" ry={hcRy} fill={color} />
           <Rect x="30" y={hCY - 16} width="40" height="14" fill={color} />

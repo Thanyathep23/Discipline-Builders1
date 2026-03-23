@@ -3,7 +3,7 @@ import { View, StyleSheet } from "react-native";
 import Svg, { Ellipse, Path, G } from "react-native-svg";
 import type { CharacterVisualState } from "@/lib/characterEngine";
 import { BodyBaseLayer } from "./layers/BodyBaseLayer";
-import { getPostureMetrics, getGroomingLevel, getConfidenceLevel, mouthPath, browPaths } from "./layers/PostureLayer";
+import { PostureLayer, getPostureMetrics, getGroomingLevel, getConfidenceLevel, mouthPath, browPaths } from "./layers/PostureLayer";
 import { OutfitLayer, OuterwearLayer } from "./layers/OutfitLayer";
 import { WatchLayer } from "./layers/WatchLayer";
 import { AccessoryLayer } from "./layers/AccessoryLayer";
@@ -90,6 +90,8 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
           armRX={armRX}
           armW={armW}
         />
+
+        <PostureLayer stage={vs.postureStage} skinTone={vs.skinTone} />
 
         <G>
           <Path d={bl} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
