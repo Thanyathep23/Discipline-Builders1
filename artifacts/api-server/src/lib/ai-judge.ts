@@ -405,7 +405,7 @@ function applyTrustStrictnessAdjustment(ctx: ProofContext): ProofContext {
   };
 }
 
-export async function judgeProof(ctx: ProofContext & { excludeProofId?: string }): Promise<JudgeResult> {
+export async function judgeProof(ctx: ProofContext & { excludeProofId?: string; isFollowupRejudge?: boolean }): Promise<JudgeResult> {
   const categoryConfig = (await import("./category-proof-requirements.js")).getProofRequirements(ctx.missionCategory);
   const categoryMinTextLength = categoryConfig.minimumTextLength;
 
@@ -424,7 +424,7 @@ export async function judgeProof(ctx: ProofContext & { excludeProofId?: string }
     userId: ctx.userId ?? "unknown",
   };
 
-  const screen = await preScreen(proofForScreening, categoryMinTextLength, ctx.excludeProofId);
+  const screen = await preScreen(proofForScreening, categoryMinTextLength, ctx.excludeProofId, ctx.isFollowupRejudge);
   if (screen.skipAI) {
     rulesOnlyCount++;
     if (screen.verdict === "rejected") {

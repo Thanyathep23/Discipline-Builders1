@@ -47,7 +47,7 @@ function parseProof(p: any) {
   };
 }
 
-async function runJudgment(submissionId: string, userId: string): Promise<void> {
+async function runJudgment(submissionId: string, userId: string, isFollowupRejudge = false): Promise<void> {
   const proofs = await db.select().from(proofSubmissionsTable).where(eq(proofSubmissionsTable.id, submissionId)).limit(1);
   if (!proofs[0]) return;
   const proof = proofs[0];
@@ -99,6 +99,7 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     missionPriority: mission.priority,
     missionImpactLevel: mission.impactLevel,
     excludeProofId: submissionId,
+    isFollowupRejudge,
     attachedFiles: attachedFiles.map((f) => ({
       name: f.originalName,
       type: f.mimeType,
@@ -482,7 +483,7 @@ router.post("/:submissionId/followup", async (req, res) => {
     updatedAt: new Date(),
   }).where(eq(proofSubmissionsTable.id, req.params.submissionId));
 
-  runJudgment(req.params.submissionId, userId).then(async () => {
+  runJudgment(req.params.submissionId, userId, true).then(async () => {
     if (isLastFollowup) {
       const updated = await db.select().from(proofSubmissionsTable)
         .where(eq(proofSubmissionsTable.id, req.params.submissionId)).limit(1);

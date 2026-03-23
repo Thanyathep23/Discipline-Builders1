@@ -72,12 +72,12 @@ const GENERIC_PHRASES = [
   "task complete",
 ];
 
-export async function preScreen(proof: ProofSubmission, categoryMinTextLength?: number, excludeProofId?: string): Promise<PreScreenResult> {
+export async function preScreen(proof: ProofSubmission, categoryMinTextLength?: number, excludeProofId?: string, isFollowupRejudge?: boolean): Promise<PreScreenResult> {
   const hasText = (proof.summary ?? "").trim().length > 0;
   const hasFiles = (proof.files?.length ?? 0) > 0;
   const hasLinks = (proof.links?.length ?? 0) > 0 || !!proof.linkUrl;
 
-  if (!hasText && !hasFiles && !hasLinks) {
+  if (!hasText && !hasFiles && !hasLinks && !isFollowupRejudge) {
     return {
       verdict: "rejected",
       reason: "no_proof_submitted",
@@ -88,7 +88,7 @@ export async function preScreen(proof: ProofSubmission, categoryMinTextLength?: 
 
   const trimmed = (proof.summary ?? "").trim();
 
-  if (trimmed.length > 0 && trimmed.length < 15) {
+  if (!isFollowupRejudge && trimmed.length > 0 && trimmed.length < 15) {
     return {
       verdict: "followup_required",
       reason: "too_short",
@@ -98,7 +98,7 @@ export async function preScreen(proof: ProofSubmission, categoryMinTextLength?: 
   }
 
   const normalized = trimmed.toLowerCase();
-  if (normalized && GENERIC_PHRASES.includes(normalized)) {
+  if (!isFollowupRejudge && normalized && GENERIC_PHRASES.includes(normalized)) {
     return {
       verdict: "followup_required",
       reason: "too_generic",
