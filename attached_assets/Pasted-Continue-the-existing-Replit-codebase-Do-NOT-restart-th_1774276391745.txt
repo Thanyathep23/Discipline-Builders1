@@ -1,0 +1,456 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Build a working Garage + Wardrobe system.
+Basic but premium. MVP quality — not full feature set.
+Users should be able to buy, own, and equip items
+that visibly affect their character.
+
+==================================================
+STEP 1 — AUDIT CURRENT STATE
+==================================================
+
+Before changing anything:
+1. Check current Wardrobe screen state
+2. Check current shop_items for wardrobe items
+3. Check current car collection/garage state
+4. Check buy/equip API endpoints
+5. Check character renderer wearable slots
+6. Report what exists vs what is broken
+
+==================================================
+PART 1 — WARDROBE (BASIC VERSION)
+==================================================
+
+1A. Item Catalog (Seed if not exists)
+
+WATCHES (4 items for MVP):
+
+Watch 1 — Starter Timepiece
+  slot: watch
+  rarity: Common
+  level: 1
+  price: 0 (auto-owned)
+  description: "Time is your only real asset."
+  characterEffect: basic_watch
+
+Watch 2 — Chrono Sport 38
+  slot: watch
+  rarity: Refined
+  level: 8
+  price: 900
+  description: "Track every second of your ascent."
+  characterEffect: sport_watch
+
+Watch 3 — Mariner Black 40
+  slot: watch
+  rarity: Prestige
+  level: 20
+  price: 3500
+  description: "Depth-rated. Boardroom ready."
+  characterEffect: premium_watch
+
+Watch 4 — Royal Series 41
+  slot: watch
+  rarity: Elite
+  level: 35
+  price: 7500
+  description: "The watch that changed what luxury meant."
+  characterEffect: elite_watch
+
+CLOTHING — TOPS (4 items):
+
+Top 1 — Starter White Shirt
+  slot: top
+  rarity: Common
+  level: 1
+  price: 0 (auto-owned)
+  characterEffect: starter_outfit
+
+Top 2 — Silk Business Shirt
+  slot: top
+  rarity: Refined
+  level: 12
+  price: 1500
+  description: "Cut for the boardroom."
+  characterEffect: refined_top
+
+Top 3 — Executive Suit — Midnight
+  slot: top
+  rarity: Elite
+  level: 30
+  price: 6000
+  description: "The uniform of those who close."
+  characterEffect: elite_suit
+
+Top 4 — Premium Hoodie Series 1
+  slot: top
+  rarity: Refined
+  level: 8
+  price: 800
+  description: "Elevated casual. Never basic."
+  characterEffect: premium_casual
+
+CLOTHING — BOTTOMS (2 items):
+
+Bottom 1 — Dark Denim Premium
+  slot: bottom
+  rarity: Common
+  level: 1
+  price: 0 (auto-owned)
+
+Bottom 2 — Executive Slim Trouser
+  slot: bottom
+  rarity: Refined
+  level: 15
+  price: 1500
+  characterEffect: refined_bottom
+
+ACCESSORIES (2 items):
+
+Acc 1 — Leather Bifold Milano
+  slot: accessory
+  rarity: Refined
+  level: 10
+  price: 600
+  description: "Slim. Serious. No logo needed."
+
+Acc 2 — Carbon Fiber Card Case
+  slot: accessory
+  rarity: Prestige
+  level: 22
+  price: 1200
+  description: "Details signal status."
+
+Total: 12 items for MVP
+
+1B. Auto-Own on Signup
+
+When user account is created:
+  Auto-add to inventory:
+  - Starter Timepiece
+  - Starter White Shirt
+  - Dark Denim Premium
+
+1C. Wardrobe Screen Structure
+
+HEADER:
+  Back button
+  "WARDROBE"
+  Coin balance chip
+
+TABS: Watches | Clothing | Equipped
+
+FILTER ROW: All | Owned | Available | Locked
+
+ITEM GRID (2 columns):
+Each card shows:
+  - Item SVG visual (centered, 80px)
+  - Item name
+  - Rarity chip (colored by rarity)
+  - State chip: Locked/Available/Owned/Equipped
+  - Price OR level requirement
+
+Cards tap → Item Detail Sheet
+
+1D. Item Detail Sheet
+
+Large item visual (160px)
+Item name + series
+Rarity chip
+Description
+Effect: "Appears on character wrist" etc
+
+CTA States:
+  LOCKED: "Reach Level X" (disabled)
+  AVAILABLE & can afford: "Purchase · X coins"
+  AVAILABLE & cannot afford: "Need X more coins"
+  OWNED not equipped: "Equip"
+  OWNED & equipped: "Equipped ✓" + "Unequip"
+
+1E. Character Connection
+
+Equipped watch → renders on character wrist layer
+Equipped top → overrides character outfit layer
+Equipped bottom → affects character lower body
+
+These connect to CharacterRenderer from Prompt 2.
+
+1F. Item SVG Visuals
+
+Create clean flat SVG for each item:
+
+WATCHES — circular watch face:
+  Simple case + dial + hands
+  Color based on item rarity
+  Premium but minimal style
+  Size: 80x80px in card, 160x160 in detail
+
+CLOTHING:
+  Flat lay / hanging view
+  Shows collar + body shape
+  Color based on item variant
+  Premium flat illustration
+
+Keep SVGs simple but clearly premium.
+NOT cartoon. Clean product photography feel.
+
+==================================================
+PART 2 — GARAGE (BASIC VERSION)
+==================================================
+
+2A. Garage is FREE
+
+All users auto-unlock The Garage at signup.
+No level or coin requirement.
+
+2B. What Garage Contains (MVP)
+
+The garage is the car display + basic customization room.
+
+Main view:
+  Dark industrial room
+  Circular platform in center
+  Featured car displayed on platform
+  Car switches via horizontal scroll below
+
+2C. Car Catalog (Basic — 3 cars for MVP)
+
+Car 1 — Starter Ride (FREE, auto-owned)
+  slug: starter_ride
+  rarity: Common
+  level: 1
+  price: 0
+  description: "Every journey starts with the first key."
+  platformColor: graphite grey
+
+Car 2 — Series M Black
+  slug: series_m_black
+  rarity: Rare
+  level: 10
+  price: 2500
+  description: "The daily driver of those who move fast."
+  platformColor: midnight black
+
+Car 3 — Alpine GT
+  slug: alpine_gt
+  rarity: Epic
+  level: 25
+  price: 5000
+  description: "Built for those who treat every road 
+                as a proving ground."
+  platformColor: arctic silver
+
+2D. Car SVG Visuals
+
+For each car, create:
+  Side profile SVG (main view)
+  3/4 front view (detail view)
+  
+Style requirements:
+  Clean modern car silhouette
+  Recognizable as a premium car
+  NOT cartoon, NOT overly detailed
+  Dark background friendly
+  Size: 200x100px for platform display
+
+Each car SVG accepts:
+  paintColor prop (hex string)
+  Changes the main body fill
+
+2E. Basic Car Customization
+
+Simple customization only for MVP:
+
+PAINT COLOR (12 colors):
+  Midnight Black (#1A1A1A)
+  Pearl White (#F5F5F5)
+  Titanium Silver (#9E9E9E)
+  Racing Red (#B91C1C)
+  Cobalt Blue (#1E40AF)
+  Forest Green (#166534)
+  Champagne Gold (#B7934C)
+  Gunmetal Grey (#4B5563)
+  Matte Black (#111111)
+  Deep Purple (#4C1D95)
+  Bronze (#92400E)
+  Candy Red (#DC2626)
+
+Color picker: circle swatches in 4×3 grid
+Selected: white ring border
+Live preview updates instantly
+
+WHEEL STYLE (3 options):
+  Classic 5-Spoke (default, free)
+  Multi-Spoke Sport (500 coins)
+  Turbine Design (800 coins)
+
+That's it for MVP. Keep it simple.
+
+2F. Garage Screen Layout
+
+HEADER:
+  Back button
+  "THE GARAGE"
+  Coin balance
+
+CAR PLATFORM (60% of screen):
+  Dark industrial background
+  Circular platform with subtle glow
+  Car SVG centered on platform
+  Spotlights from above (SVG)
+
+CAR SWITCHER (below platform):
+  Horizontal scroll of owned cars
+  Active: highlighted
+  Locked: greyed with level/price
+
+CUSTOMIZE BUTTON:
+  [🎨 Customize] full width button
+  Opens customization bottom sheet
+
+2G. Customization Sheet
+
+Bottom sheet (60% height):
+
+  CAR NAME
+  "Series M Black"
+  
+  PAINT COLOR
+  "Select Paint"
+  [● ● ● ● ● ● ● ● ● ● ● ●]
+  Currently: Midnight Black
+  
+  WHEELS
+  [Classic][Sport][Turbine]
+  Classic: Free
+  Sport: 500 coins [Buy]
+  Turbine: 800 coins [Buy]
+  
+  [💾 Save Build]
+
+Save immediately on close.
+
+2H. Car Purchase Flow
+
+Tap locked car → detail sheet:
+  Car SVG preview
+  Car name + rarity
+  Description
+  Level requirement + coin cost
+  [Purchase · X coins] or [Level X Required]
+
+2I. Build Save System
+
+Save per car:
+  userId
+  carId
+  paintColor
+  wheelStyle
+  savedAt
+
+GET /api/garage/build/:carId
+POST /api/garage/save-build { carId, paintColor, wheelStyle }
+
+==================================================
+PART 3 — INTEGRATION
+==================================================
+
+3A. Rewards Screen Game Mode Buttons
+
+Wardrobe → navigates to Wardrobe screen
+Garage → navigates to Garage screen
+Both must work without crashes
+
+3B. Character Integration
+
+Equipped wardrobe items must affect character:
+  Watch → wrist layer in CharacterRenderer
+  Top → outfit layer in CharacterRenderer
+  
+When item equipped:
+  CharacterRenderer receives new props
+  Visual updates smoothly
+
+3C. Coin Gate Enforcement
+
+ALL purchase logic server-side:
+  POST /api/marketplace/buy
+  Checks: owns item? level met? coins sufficient?
+  Deducts coins atomically
+  Adds to inventory
+  Returns updated state
+
+Never trust client-side purchase signals.
+
+==================================================
+PART 4 — ITEM STATES CONSISTENCY
+==================================================
+
+Across ALL screens (Wardrobe, Garage, Shop):
+
+Use same language always:
+  LOCKED = level requirement not met
+  AVAILABLE = level met, can afford
+  AFFORDABLE = level met, cannot afford yet
+  OWNED = purchased/auto-owned
+  EQUIPPED = currently active
+
+Use same visual chips:
+  LOCKED: 🔒 + "Lvl X" — amber chip
+  AVAILABLE: price — accent chip
+  AFFORDABLE: price in red — muted chip
+  OWNED: "Owned" — green chip
+  EQUIPPED: "Equipped ✓" — accent border
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+WARDROBE:
+1. 12 items seeded correctly
+2. 3 auto-owned items given at signup
+3. Wardrobe screen loads without crash
+4. All tabs work (Watches/Clothing/Equipped)
+5. Filter chips work
+6. Item detail sheet works for all states
+7. Purchase flow deducts coins server-side
+8. Equip/unequip works
+9. Equipped items affect character visual
+
+GARAGE:
+10. Garage is free and accessible
+11. 3 cars seeded
+12. Starter car auto-owned
+13. Car platform displays featured car
+14. Car switcher works
+15. Customization sheet opens
+16. Paint color selection updates car SVG live
+17. 3 wheel options available
+18. Save build persists
+19. Car purchase works
+
+GENERAL:
+20. No crashes on navigation
+21. All states use consistent language/chips
+22. Server-side enforcement on all purchases
+23. Coin balance updates in real-time
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. Items seeded (count confirmed)
+2. Wardrobe screen implementation status
+3. Garage screen implementation status
+4. Car customization system details
+5. Character integration confirmed
+6. Files changed only
+7. Test results:
+   - Buy watch → equipped → character shows watch
+   - Buy car → appears in garage
+   - Paint car → updates SVG live
+   - Save build → persists after navigation
+8. Remaining gaps
