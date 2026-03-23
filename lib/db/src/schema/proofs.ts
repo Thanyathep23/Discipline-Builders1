@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const proofStatusEnum = pgEnum("proof_status", [
-  "pending", "reviewing", "approved", "partial", "rejected", "flagged", "followup_needed"
+  "pending", "reviewing", "approved", "partial", "rejected", "flagged", "followup_needed", "manual_review"
 ]);
 
 export const proofSubmissionsTable = pgTable("proof_submissions", {

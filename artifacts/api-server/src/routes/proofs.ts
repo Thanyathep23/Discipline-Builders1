@@ -511,7 +511,7 @@ router.post("/:submissionId/followup", async (req, res) => {
             missionImpact: missions[0].impactLevel,
             targetDurationMinutes: missions[0].targetDurationMinutes,
             actualDurationMinutes: actualMinutes,
-            proofQuality: (updated[0].aiRubricRelevance ?? 0.3 + (updated[0].aiRubricQuality ?? 0.3) + (updated[0].aiRubricSpecificity ?? 0.3)) / 3,
+            proofQuality: ((updated[0].aiRubricRelevance ?? 0.3) + (updated[0].aiRubricQuality ?? 0.3) + (updated[0].aiRubricSpecificity ?? 0.3)) / 3,
             proofConfidence: updated[0].aiConfidenceScore ?? 0.5,
             blockedAttemptCount: sessions[0].blockedAttemptCount ?? 0,
             strictnessMode: sessions[0].strictnessMode,

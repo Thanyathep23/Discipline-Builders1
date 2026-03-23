@@ -373,7 +373,7 @@ async function openaiJudge(ctx: ProofContext, model: string): Promise<JudgeResul
   if (!validated) {
     console.log(`[AI Judge] ${providerName} returned invalid response, falling back to rules`);
     const fallback = enhancedRuleBasedJudge(ctx);
-    return { ...fallback, verdict: "flagged", providerUsed: `${providerName}_fallback` };
+    return { ...fallback, verdict: "manual_review", rewardMultiplier: 0, providerUsed: `${providerName}_fallback` };
   }
 
   return validated;
