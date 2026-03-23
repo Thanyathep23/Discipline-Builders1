@@ -917,17 +917,43 @@ Maps 4 dimension scores to 6 visual axes: bodyTone (0-4), posture (0-2), outfitT
 - Added columns: `wearableSlot` (text: top/watch/accessory), `minLevel` (integer, default 0), `styleEffect` (text)
 
 ### Backend: `routes/wearables.ts`
-- Idempotent seed of 9 wearables: 4 tops (Executive White free, Premium Grey Lv3, Refined Charcoal Lv6, Elite Black Lv9), 3 watches (Classic Lv2, Refined Lv5, Elite Chronograph Lv8), 2 accessories (Gold Chain Lv4, Elite Lapel Pin Lv7)
-- `GET /wearables` — returns items grouped by slot with ownership/equipped/lock/affordability state per user
-- Slot mutual exclusivity enforced in the equip route (unequips same-slot item)
+- Idempotent seed of 17 wardrobe items across 5 slots: 6 watches, 3 tops, 2 outerwear, 2 bottoms, 4 accessories
+- Each item has series name, colorVariants JSON, minLevel, styleEffect, rarity
+- `GET /wearables` — returns flat + grouped items with ownership/equipped/lock/affordability/selectedVariant per user
+- `GET /wearables/equipped` — returns equipped items per slot with variant info
+- `POST /wearables/:itemId/variant` — persist user's selected color variant
+- `POST /wearables/ensure-starters` — grants starter items (top, bottom, watch) on first visit
+- Slot mutual exclusivity enforced in the marketplace equip route (unequips same-slot item)
 - Level lock enforcement in equip route (403 if under-leveled)
-- `GET /character/status` now includes `equippedWearables: {top, watch, accessory}` with visual override metadata
 
-### Frontend
-- `EvolvedCharacter`: accepts `equippedWearables` prop; drives `effectiveOutfitTier`, `watchStyle` (basic/refined/elite), `accessoryStyle` (chain/pin/null); 3 distinct watch SVG renders
-- `EquippedStyleRow` component: 3 tappable slot cards (TOP/WATCH/ACCESSORY) shown on character screen; navigates to /wearables
-- `app/wearables/index.tsx`: Wardrobe screen with 3 slot sections, per-item buy/equip/unequip with confirm modal, level lock display, rarity color dots, style effect text
-- `useWearables()` hook in `hooks/useApi.ts`
+### Backend: `routes/character.ts`
+- `GET /character/status` includes `equippedWearables: {top, watch, accessory, outerwear, bottom}` with visual override metadata
+- `computeEquippedWearableState()` resolves user's selected colorVariant from inventory records (not first catalog variant)
+- `WEARABLE_ACCESSORY_STYLE` map supports chain, pin, and ring styles
+
+### Frontend: Wardrobe screen (`app/wardrobe/index.tsx`)
+- 4-tab layout: Watches, Clothing, Accessories, Equipped
+- Filter bar: All/Owned/Available/Locked
+- Grid view with SVG item previews, rarity chips, status badges
+- Pull-to-refresh, skeleton loading states, empty states
+- `WardrobeItemSheet` bottom sheet: color swatch picker, stats row, rarity chip, contextual CTAs (Buy/Equip/Unequip/Lock)
+- Supports `?tab=equipped` query param for deep linking from character hub
+
+### Frontend: SVG item visuals (`components/wardrobe/WardrobeItemVisuals.tsx`)
+- 17 hand-crafted SVG visuals for all catalog items with `colorVariant` prop support
+- Covers watches (6), shirts (3), outerwear (2), trousers (2), accessories (4)
+
+### Frontend: Character hub (`app/character/index.tsx`)
+- `EquippedStyleRow` expanded to 5 slots (watch, top, outerwear, bottom, accessory)
+- Wardrobe shortcut button on hero navigates to equipped tab
+- Gold "Wardrobe Boost" chip shows when prestige+ items are equipped
+- `EvolvedCharacter` renderer supports all 5 wearable layers:
+  - Top: outfitTierOverride drives shirt/outfit color
+  - Watch: 3 styles (basic/refined/elite)
+  - Accessory: chain/pin/ring rendering
+  - Outerwear: coat/jacket layer over shirt with colorVariant
+  - Bottom: trouser color driven by equipped bottom's colorVariant
+- `useWearables()`, `useWardrobeEquipped()`, `useSetVariant()`, `useEnsureStarters()` hooks
 
 ## Phase 30 — Room Progression / Workspace Decor
 

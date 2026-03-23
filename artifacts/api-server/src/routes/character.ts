@@ -91,36 +91,72 @@ const WEARABLE_WATCH_STYLE: Record<string, "basic" | "refined" | "elite"> = {
   "elite-chronograph": "elite",
 };
 
-const WEARABLE_ACCESSORY_STYLE: Record<string, "chain" | "pin"> = {
+const WEARABLE_ACCESSORY_STYLE: Record<string, "chain" | "pin" | "ring"> = {
   "gold-chain":      "chain",
   "elite-lapel-pin": "pin",
+  "titanium-ring-zero": "ring",
 };
 
-function computeEquippedWearableState(equippedWearableItems: any[]) {
+function getSelectedVariantHex(item: any, invRecords?: any[]): string | undefined {
+  try {
+    const variants = JSON.parse(item.colorVariants ?? "[]");
+    const inv = invRecords?.find((r: any) => r.itemId === item.id);
+    const selectedKey = inv?.colorVariant;
+    if (selectedKey) {
+      const match = variants.find((v: any) => v.key === selectedKey);
+      if (match) return match.hex;
+    }
+    return variants[0]?.hex;
+  } catch { return undefined; }
+}
+
+function computeEquippedWearableState(equippedWearableItems: any[], equippedInvRecords?: any[]) {
   const top       = equippedWearableItems.find((i) => i.wearableSlot === "top")       ?? null;
   const watch     = equippedWearableItems.find((i) => i.wearableSlot === "watch")     ?? null;
   const accessory = equippedWearableItems.find((i) => i.wearableSlot === "accessory") ?? null;
+  const outerwear = equippedWearableItems.find((i) => i.wearableSlot === "outerwear") ?? null;
+  const bottom    = equippedWearableItems.find((i) => i.wearableSlot === "bottom")    ?? null;
   return {
     top: top ? {
       id:               top.id,
       slug:             top.slug,
       name:             top.name,
+      rarity:           top.rarity,
       outfitTierOverride: WEARABLE_OUTFIT_TIER[top.slug ?? ""] ?? null,
       styleEffect:      top.styleEffect,
+      colorVariant:     getSelectedVariantHex(top, equippedInvRecords),
     } : null,
     watch: watch ? {
       id:          watch.id,
       slug:        watch.slug,
       name:        watch.name,
+      rarity:      watch.rarity,
       watchStyle:  WEARABLE_WATCH_STYLE[watch.slug ?? ""] ?? "basic",
       styleEffect: watch.styleEffect,
+      colorVariant: getSelectedVariantHex(watch, equippedInvRecords),
     } : null,
     accessory: accessory ? {
       id:             accessory.id,
       slug:           accessory.slug,
       name:           accessory.name,
-      accessoryStyle: WEARABLE_ACCESSORY_STYLE[accessory.slug ?? ""] ?? "chain",
+      rarity:         accessory.rarity,
+      accessoryStyle: WEARABLE_ACCESSORY_STYLE[accessory.slug ?? ""] ?? "ring",
       styleEffect:    accessory.styleEffect,
+      colorVariant:   getSelectedVariantHex(accessory, equippedInvRecords),
+    } : null,
+    outerwear: outerwear ? {
+      id:           outerwear.id,
+      slug:         outerwear.slug,
+      name:         outerwear.name,
+      rarity:       outerwear.rarity,
+      colorVariant: getSelectedVariantHex(outerwear, equippedInvRecords),
+    } : null,
+    bottom: bottom ? {
+      id:           bottom.id,
+      slug:         bottom.slug,
+      name:         bottom.name,
+      rarity:       bottom.rarity,
+      colorVariant: getSelectedVariantHex(bottom, equippedInvRecords),
     } : null,
   };
 }
@@ -308,7 +344,7 @@ router.get("/status", requireAuth, async (req: any, res) => {
 
     // ── Phase 29: Equipped wearables ─────────────────────────────────────────
     const equippedInv = await db
-      .select({ itemId: userInventoryTable.itemId })
+      .select({ itemId: userInventoryTable.itemId, colorVariant: userInventoryTable.colorVariant })
       .from(userInventoryTable)
       .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.isEquipped, true)));
     const equippedItemIds = equippedInv.map((r) => r.itemId);
@@ -321,7 +357,7 @@ router.get("/status", requireAuth, async (req: any, res) => {
         : Promise.resolve([]),
       getOrDefaultAppearance(userId),
     ]);
-    const equippedWearables = computeEquippedWearableState(equippedWearableItems);
+    const equippedWearables = computeEquippedWearableState(equippedWearableItems, equippedInv);
 
     // ── Phase 28: Compute visual evolution state ──────────────────────────────
     const visualState = computeVisualState(fitnessScore, disciplineScore, financeScore, prestigeScore);

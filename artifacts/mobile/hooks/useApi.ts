@@ -474,6 +474,7 @@ export function useBuyItem() {
       queryClient.invalidateQueries({ queryKey: ["marketplace"] });
       queryClient.invalidateQueries({ queryKey: ["rewards", "balance"] });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["wearables"] });
     },
   });
 }
@@ -489,6 +490,8 @@ export function useEquipItem() {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["inventory", "applied-state"] });
       queryClient.invalidateQueries({ queryKey: ["showcase"] });
+      queryClient.invalidateQueries({ queryKey: ["wearables"] });
+      queryClient.invalidateQueries({ queryKey: ["character", "status"] });
     },
   });
 }
@@ -504,6 +507,8 @@ export function useUnequipItem() {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["inventory", "applied-state"] });
       queryClient.invalidateQueries({ queryKey: ["showcase"] });
+      queryClient.invalidateQueries({ queryKey: ["wearables"] });
+      queryClient.invalidateQueries({ queryKey: ["character", "status"] });
     },
   });
 }

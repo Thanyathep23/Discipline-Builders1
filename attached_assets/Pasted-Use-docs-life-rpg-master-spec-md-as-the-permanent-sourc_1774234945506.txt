@@ -1,0 +1,374 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Context:
+T001 is already complete:
+- schema columns added: colorVariants, series on shop_items
+- migration applied successfully
+- 17 catalog items seeded (6 watches, 7 clothing, 4 accessories)
+- wearables API route updated with full catalog
+- useWearables / wardrobe hooks added to useApi.ts
+- buy/equip/unequip routes already handle all wearable slots
+
+Your task:
+Complete T002 through T005 only.
+Do NOT redo T001 or touch the backend schema/seed again
+unless a specific bug requires it.
+
+==================================================
+T002 — SVG ITEM VISUALS + WARDROBE SCREEN REWRITE
+==================================================
+
+Build the complete Wardrobe screen UI.
+
+2A. Create SVG item visuals file
+
+Create: artifacts/mobile/components/wardrobe/WardrobeItemVisuals.tsx
+
+This file must export one component per item type that renders
+a premium SVG visual. Group by category:
+
+WATCHES — 6 SVGs
+Each watch SVG must show:
+- circular or shaped case
+- dial with color variant support (fill prop)
+- crown detail
+- bracelet/strap suggestion at bottom
+- clean premium look, NOT cartoon
+
+Required watch visuals:
+- MinerBlackSVG (round dive watch, dark dial)
+- RoyalSeriesSVG (octagonal case, integrated bracelet)
+- GenevePerpetualSVG (ultra-thin round, minimalist)
+- CarbonRMSVG (tonneau/skeletonized, carbon texture)
+- ChronoSportSVG (round chronograph, sub-dials)
+- StarterTimepieceSVG (clean minimal round)
+
+CLOTHING — 7 SVGs
+Each clothing SVG must show:
+- flat lay / folded garment view
+- color variant support (fill prop)
+- clean premium flat illustration
+- NOT cartoon, NOT low-detail
+
+Required clothing visuals:
+- MilanoCashmereCoatSVG
+- SilkBusinessShirtSVG
+- TechnicalSlimTrouserSVG
+- ExecutiveSuitSVG
+- PremiumHoodieSVG
+- StarterWhiteShirtSVG
+- DarkDenimSVG
+
+ACCESSORIES — 4 SVGs
+- LeatherBifoldSVG
+- CarbonFiberCardCaseSVG
+- SilkPocketSquareSVG
+- TitaniumRingSVG
+
+SVG requirements:
+- each SVG accepts: colorVariant prop (string hex or token)
+- use SVG fills/strokes that respond to colorVariant
+- dark background friendly
+- size: fits within a 160x160 or 180x180 container cleanly
+- must feel premium, not like a mobile game icon
+
+2B. Create rarity color helper
+
+Create: artifacts/mobile/components/wardrobe/wardrobeHelpers.ts
+
+Export:
+- getRarityColor(rarity: string): string
+  Common → subtle grey
+  Refined → accent.primary (blue-ish)
+  Prestige → purple
+  Elite → gold/amber
+  Legendary → gradient-like or deep gold
+
+- getRarityLabel(rarity: string): string
+- getSlotLabel(slot: string): string
+  watch → "Watch"
+  top → "Shirt / Top"
+  outerwear → "Outerwear"
+  bottom → "Trousers"
+  accessory → "Accessory"
+
+2C. Rewrite the Wardrobe screen
+
+File: artifacts/mobile/app/wardrobe/index.tsx
+(create if it does not exist, or rewrite if it exists as a placeholder)
+
+Screen structure:
+
+HEADER:
+- Back button (left)
+- Title: "WARDROBE" (typography.h2, text.primary)
+- Coin balance chip (top right, matches existing design)
+
+TAB BAR (below header):
+- 4 tabs: Watches | Clothing | Accessories | Equipped
+- active tab: accent.primary underline
+- use ScrollView horizontal if needed on small screens
+
+FILTER BAR (below tabs, only on Watches/Clothing/Accessories tabs):
+- horizontal scroll chips: All | Owned | Available | Locked
+- active chip: filled accent.primary
+
+ITEM GRID:
+- 2-column FlatList/ScrollView grid
+- each ItemCard shows:
+  - item SVG visual (top, centered, with current color variant)
+  - item name (typography.label, text.primary)
+  - series name (typography.micro, text.secondary)
+  - rarity chip (use getRarityColor)
+  - price chip OR level chip:
+    if locked: "Lvl X" chip (accent.warning)
+    if available: "X Coins" chip (accent.primary)
+    if owned: "Owned" chip (accent.success)
+    if equipped: "Equipped" chip (accent.progression)
+  - on tap: open Item Detail Bottom Sheet (T003)
+
+Loading state: SkeletonCard grid while fetching
+Empty state: EmptyState component with relevant message
+
+2D. Use existing hooks
+
+Use useWearables() to fetch catalog items.
+Use useUserInventory() or equivalent to get owned/equipped state.
+Use useWallet() for coin balance display.
+Map owned/equipped status onto each catalog item client-side
+before rendering.
+
+==================================================
+T003 — ITEM DETAIL BOTTOM SHEET
+==================================================
+
+Create: artifacts/mobile/components/wardrobe/WardrobeItemSheet.tsx
+
+This bottom sheet opens when user taps any item card.
+
+CONTENT (top to bottom):
+
+1. Handle bar (centered top)
+
+2. Item visual
+- large SVG visual (240x240)
+- color variant swatches below the visual
+- tapping a swatch updates the visual color live
+- selected swatch has border ring
+
+3. Item name + series
+- name: typography.h3, text.primary
+- series: typography.bodySmall, text.secondary
+
+4. Rarity chip + category label
+
+5. Description text
+- typography.body, text.secondary
+- max 2 lines
+
+6. Stats row:
+- "Level Required": X
+- "Coin Cost": X coins (or "Free" for starter items)
+- "Effect": character effect description
+
+7. Color variant selector
+- horizontal row of circular swatches
+- each swatch: 28px circle, filled with color hex
+- selected: ring border using accent.primary
+- swatch label shown below when selected
+
+8. CTA Button (full width, bottom):
+
+LOCKED (level too low):
+- button text: "Reach Level X to Unlock"
+- button state: disabled
+- show small XP progress bar below button:
+  "X / Y XP to Level X"
+
+AVAILABLE + can afford:
+- button text: "Purchase for X Coins"
+- button state: primary
+- on press: call buy API with selected colorVariant
+- show loading spinner in button during API call
+- on success: update local state, show "Purchased!" feedback
+- on error: show error message inline
+
+AVAILABLE + cannot afford:
+- button text: "Need X More Coins"
+- button state: disabled
+- secondary link below: "Complete missions to earn →"
+
+OWNED, not equipped:
+- button text: "Equip"
+- button state: primary
+- on press: call equip API
+- on success: update local equipped state
+
+OWNED + EQUIPPED:
+- button text: "Unequip"
+- button state: secondary
+- "Currently Equipped" chip above button
+
+9. Close behavior
+- swipe down or tap outside to close
+
+Technical:
+- use @gorhom/bottom-sheet or equivalent already in the project
+- if not installed, use a Modal with slide animation
+- all state changes must call existing buy/equip/unequip API endpoints
+- update local state optimistically, then confirm with server response
+- do NOT refetch the entire catalog on every action; update cache locally
+
+==================================================
+T004 — EQUIPPED TAB
+==================================================
+
+When user taps "Equipped" tab, show the active loadout screen.
+
+SLOTS displayed (vertical list):
+
+For each slot: Watch | Top | Outerwear | Bottom | Accessory
+
+FILLED SLOT (item equipped):
+- slot label (e.g. "Watch")
+- item SVG visual (80x80)
+- item name + series
+- rarity chip
+- "Change" button → switches to relevant category tab
+
+EMPTY SLOT (nothing equipped):
+- slot icon (generic outline icon for that category)
+- slot label
+- "None equipped" text (text.tertiary)
+- "Browse [Category]" CTA chip → switches to relevant tab
+
+OUTFIT SUMMARY (top of Equipped tab):
+- character mini-preview or outfit composition summary
+  (if character preview is too complex, show a styled
+  summary card listing equipped items instead)
+- total equipped items count
+- combined prestige/lifestyle signal if already available
+
+==================================================
+T005 — CHARACTER RENDERER CONNECTION
+==================================================
+
+Connect equipped wardrobe items to the Character Status Hub.
+
+5A. Character renderer update
+
+File: artifacts/mobile/components/character/CharacterRenderer.tsx
+(or equivalent existing character rendering file)
+
+Add support for these additional wearable layers that
+may not yet be fully connected:
+
+- outerwear layer (coat/jacket over shirt)
+- bottom layer (trousers)
+- accessory layer (ring, pocket square)
+
+Each layer must:
+- accept the equipped item's colorVariant
+- render above/below the correct base layers
+- remain optional (if nothing equipped, layer is transparent)
+
+Layer order (bottom to top):
+1. base body
+2. bottom / trousers
+3. shirt / top
+4. outerwear
+5. watch (on wrist)
+6. accessory (ring on hand or pocket detail)
+7. prestige overlay (if elite/legendary item equipped)
+
+5B. Lifestyle/prestige signal update
+
+When items above Prestige rarity are equipped:
+- Finance/Lifestyle dimension gets a small display boost indicator
+- show a small "Wardrobe Boost" chip on the Character Status Hub
+  near the Finance/Lifestyle dimension stat
+
+Do NOT fake the underlying progression score.
+This is a display signal only, clearly labeled as equipment bonus.
+
+5C. Sync behavior
+
+- when user equips/unequips from Wardrobe screen,
+  character should reflect the change immediately
+  without requiring app restart or full navigation reset
+- use existing state management (context/zustand/query)
+  to propagate equipped state changes to character renderer
+
+5D. Character Status Hub small wardrobe entry
+
+Add a small "Wardrobe" icon button near the character
+on the Character Status Hub screen:
+- position: bottom-right of character hero area
+- icon: shirt or hanger icon
+- on press: navigate to Wardrobe screen, Equipped tab active
+
+==================================================
+FINAL INTEGRATION CHECK
+==================================================
+
+After completing T002–T005, verify end-to-end:
+
+1. From Rewards screen → Game Mode → Wardrobe → opens correctly
+2. Watches tab shows 6 items with correct SVG visuals
+3. Clothing tab shows 7 items
+4. Accessories tab shows 4 items
+5. Filter chips (All/Owned/Available/Locked) work correctly
+6. Tapping item card opens detail bottom sheet
+7. Color variant swatch selection updates SVG live
+8. Purchase flow: coins deducted server-side, item moves to Owned
+9. Level lock correctly shown for items above user's level
+10. Equip flow: character updates on Character Status Hub
+11. Equipped tab shows all 5 slots correctly
+12. Empty slots show Browse CTA correctly
+13. Unequip works and character reverts
+14. Default starter items (White Shirt, Dark Denim, Starter Timepiece)
+    are auto-owned for all users
+15. No real brand names visible anywhere in the UI
+
+==================================================
+DO NOT BUILD IN THIS SESSION
+==================================================
+
+- new backend schema changes (T001 is done)
+- new gameplay systems
+- real brand names or logos
+- 3D rendering
+- player-to-player trading
+- real-money purchases
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. Wardrobe screen is fully functional with 3 category tabs
+2. Equipped tab shows all 5 slots
+3. All 17 items have premium SVG visuals
+4. Item detail bottom sheet works for all states
+5. Purchase/equip/unequip all call existing API correctly
+6. Character Status Hub reflects equipped items
+7. Color variants work in both grid and detail view
+8. All design system tokens used (no raw hex in components)
+9. Mobile-first, thumb-friendly layout throughout
+10. No existing screens broken
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end return exactly:
+
+1. T002 summary: SVG visuals created + screen structure
+2. T003 summary: bottom sheet states and actions
+3. T004 summary: equipped tab slots
+4. T005 summary: character renderer connection
+5. Files changed in this run only
+6. End-to-end test results for all 15 verification points
+7. Remaining gaps if any
