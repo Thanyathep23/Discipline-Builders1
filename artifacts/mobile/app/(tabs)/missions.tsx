@@ -137,6 +137,36 @@ function PriorityBar({ priority }: { priority: string }) {
   );
 }
 
+function getCardState(m: any): { style: any; icon: string | null; color: string | null; label: string | null } {
+  if (m.status === "completed") {
+    return { style: stateStyles.completed, icon: "checkmark-circle", color: "#4CAF50", label: "Completed" };
+  }
+  if (m.status === "rejected") {
+    return { style: stateStyles.rejected, icon: "close-circle", color: Colors.crimson, label: "Rejected" };
+  }
+  if (m.status === "archived") {
+    return { style: stateStyles.archived, icon: "archive", color: Colors.textMuted, label: "Archived" };
+  }
+  if (m.status === "active" && m.latestProofStatus) {
+    if (m.latestProofStatus === "pending" || m.latestProofStatus === "reviewing") {
+      return { style: stateStyles.underReview, icon: "hourglass-outline", color: Colors.cyan, label: "Under Review" };
+    }
+    if (m.latestProofStatus === "followup_needed") {
+      return { style: stateStyles.followup, icon: "help-circle", color: "#A855F7", label: "Follow-up Needed" };
+    }
+    if (m.latestProofStatus === "approved" || m.latestProofStatus === "partial") {
+      return { style: stateStyles.completed, icon: "checkmark-circle", color: "#4CAF50", label: "Proof Accepted" };
+    }
+    if (m.latestProofStatus === "rejected" || m.latestProofStatus === "flagged") {
+      return { style: stateStyles.awaitingProof, icon: "alert-circle", color: Colors.amber, label: "Resubmit Proof" };
+    }
+  }
+  if (m.status === "active") {
+    return { style: stateStyles.awaitingProof, icon: "shield-checkmark-outline", color: Colors.amber, label: "Awaiting Proof" };
+  }
+  return { style: null, icon: null, color: null, label: null };
+}
+
 export default function MissionsScreen() {
   const insets = useSafeAreaInsets();
   const [boardTab, setBoardTab] = useState<(typeof BOARD_TABS)[number]>("mine");
@@ -328,19 +358,10 @@ export default function MissionsScreen() {
               </View>
             ) : (
               missions.map((m: any, i: number) => {
-                const statusStyle = m.status === "completed"
-                  ? stateStyles.completed
-                  : m.status === "rejected"
-                    ? stateStyles.rejected
-                    : m.status === "archived"
-                      ? stateStyles.archived
-                      : null;
-                const statusIcon = m.status === "completed" ? "checkmark-circle" :
-                  m.status === "rejected" ? "close-circle" :
-                  m.status === "archived" ? "archive" : null;
-                const statusColor = m.status === "completed" ? "#4CAF50" :
-                  m.status === "rejected" ? Colors.crimson :
-                  m.status === "archived" ? Colors.textMuted : null;
+                const cardState = getCardState(m);
+                const statusStyle = cardState.style;
+                const statusIcon = cardState.icon;
+                const statusColor = cardState.color;
 
                 return (
                 <Animated.View key={m.id} entering={FadeInDown.delay(i * 50).springify()}>
@@ -366,6 +387,11 @@ export default function MissionsScreen() {
                             {m.difficultyColor && <DifficultyDot color={m.difficultyColor} />}
                           </View>
                         </View>
+                        {cardState.label && (
+                          <View style={[styles.statusChip, { borderColor: (statusColor ?? Colors.textMuted) + "40", backgroundColor: (statusColor ?? Colors.textMuted) + "12" }]}>
+                            <Text style={[styles.statusChipText, { color: statusColor ?? Colors.textMuted }]}>{cardState.label}</Text>
+                          </View>
+                        )}
                         {m.description ? (
                           <Text style={styles.cardDesc} numberOfLines={2}>{m.description}</Text>
                         ) : null}
@@ -645,6 +671,8 @@ const styles = StyleSheet.create({
   aiChip:             { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: Colors.accentGlow, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
   aiChipText:         { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.accent },
   focusBtn:           { width: 38, height: 38, borderRadius: 12, backgroundColor: Colors.green, alignItems: "center", justifyContent: "center" },
+  statusChip:         { alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
+  statusChipText:     { fontFamily: "Inter_600SemiBold", fontSize: 10, letterSpacing: 0.5 },
   emptyBox:           { alignItems: "center", paddingTop: 80, gap: 12 },
   emptyTitle:         { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.textSecondary },
   emptyText:          { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textMuted, textAlign: "center", paddingHorizontal: 24 },
@@ -695,4 +723,7 @@ const stateStyles = StyleSheet.create({
   completed: { borderColor: "#4CAF5040", backgroundColor: "#4CAF5008" },
   rejected: { borderColor: Colors.crimson + "40", backgroundColor: Colors.crimson + "08" },
   archived: { borderColor: Colors.textMuted + "30", opacity: 0.7 },
+  underReview: { borderColor: Colors.cyan + "40", backgroundColor: Colors.cyan + "08" },
+  followup: { borderColor: "#A855F740", backgroundColor: "#A855F708" },
+  awaitingProof: { borderColor: Colors.amber + "30", backgroundColor: Colors.amber + "06" },
 });

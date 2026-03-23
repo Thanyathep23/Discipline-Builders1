@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, missionsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, missionsTable, proofSubmissionsTable, focusSessionsTable } from "@workspace/db";
+import { eq, and, desc } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth.js";
 import { calculateRewardPotential } from "../lib/rewards.js";
@@ -35,7 +35,43 @@ router.get("/", async (req, res) => {
       req.query.status ? eq(missionsTable.status, req.query.status as any) : undefined
     ) as any);
 
-  res.json(missions.map(parseMission));
+  const parsed = missions.map(parseMission);
+
+  const missionIds = parsed.map((m: any) => m.id);
+  let proofStatusMap: Record<string, string> = {};
+  if (missionIds.length > 0) {
+    const sessions = await db.select({
+      missionId: focusSessionsTable.missionId,
+      sessionId: focusSessionsTable.id,
+    }).from(focusSessionsTable).where(eq(focusSessionsTable.userId, userId));
+
+    const sessionMissionMap: Record<string, string> = {};
+    for (const s of sessions) {
+      if (s.missionId) sessionMissionMap[s.sessionId] = s.missionId;
+    }
+
+    if (sessions.length > 0) {
+      const proofs = await db.select({
+        sessionId: proofSubmissionsTable.sessionId,
+        status: proofSubmissionsTable.status,
+        createdAt: proofSubmissionsTable.createdAt,
+      }).from(proofSubmissionsTable)
+        .where(eq(proofSubmissionsTable.userId, userId))
+        .orderBy(desc(proofSubmissionsTable.createdAt));
+
+      for (const p of proofs) {
+        const mid = sessionMissionMap[p.sessionId];
+        if (mid && !proofStatusMap[mid]) {
+          proofStatusMap[mid] = p.status;
+        }
+      }
+    }
+  }
+
+  res.json(parsed.map((m: any) => ({
+    ...m,
+    latestProofStatus: proofStatusMap[m.id] ?? null,
+  })));
 });
 
 router.post("/", async (req, res) => {

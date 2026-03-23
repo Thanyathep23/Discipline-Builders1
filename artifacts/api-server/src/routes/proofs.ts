@@ -114,7 +114,9 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     const proofQuality = (judgeResult.rubric.relevanceScore + judgeResult.rubric.qualityScore +
       judgeResult.rubric.specificityScore) / 3;
 
-    const effectiveMultiplier = judgeResult.verdict === "approved" ? 1.0 : 0.5;
+    const verdictCap = judgeResult.verdict === "approved" ? 1.0 : 0.5;
+    const aiMult = judgeResult.rewardMultiplier ?? 1.0;
+    const effectiveMultiplier = Math.min(aiMult, verdictCap);
 
     const { coins, xp } = computeRewardCoins({
       missionPriority: mission.priority,
@@ -133,104 +135,95 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     });
 
     coinsAwarded = coins;
-    const finalXp = judgeResult.verdict === "approved" ? Math.max(10, xp) : xp;
+    const finalXp = judgeResult.verdict === "approved" ? Math.max(10, xp) : Math.max(1, xp);
 
-    if (coinsAwarded > 0) {
-      await grantReward(userId, coinsAwarded, finalXp, `Mission completed: ${mission.title}`, {
-        missionId: mission.id,
-        sessionId: session.id,
-        proofId: submissionId,
-      });
-      await updateStreak(userId);
-      await grantSessionSkillXp(userId, mission.category, actualMinutes, judgeResult.verdict);
+    await grantReward(userId, coinsAwarded, finalXp, `Mission completed: ${mission.title}`, {
+      missionId: mission.id,
+      sessionId: session.id,
+      proofId: submissionId,
+    });
+    await updateStreak(userId);
+    await grantSessionSkillXp(userId, mission.category, actualMinutes, judgeResult.verdict);
 
-      // Gap 1: Auto-increment cycle progress based on mission skill/category
-      const categorySkills = CATEGORY_SKILL_MAP[mission.category] ?? ["focus"];
-      const cycleSkillsToCheck = [
-        ...new Set([
-          ...categorySkills,
-          "focus",
-          ...(judgeResult.verdict === "approved" ? ["discipline"] : []),
-        ]),
-      ];
-      let cycleRewardProcessed = false;
-      for (const skillId of cycleSkillsToCheck) {
-        const cycleResult = await incrementCycleProgress(userId, skillId).catch(() => null);
-        if (cycleResult?.completed && cycleResult.cycleId && cycleResult.cycleType && !cycleRewardProcessed) {
-          cycleRewardProcessed = true;
-          // Gap 3: Auto-claim cycle completion reward and title
-          const def = CYCLE_DEFINITIONS[cycleResult.cycleType as CycleType];
-          if (def) {
-            const titleId = "title-" + def.rewardTitle.toLowerCase().replace(/\s+/g, "-");
-            await awardTitle(userId, titleId).catch(() => {});
-            await grantReward(userId, 200, 100, `Cycle completed: ${def.label}`);
-            await markCycleRewardClaimed(cycleResult.cycleId);
-          }
+    const categorySkills = CATEGORY_SKILL_MAP[mission.category] ?? ["focus"];
+    const cycleSkillsToCheck = [
+      ...new Set([
+        ...categorySkills,
+        "focus",
+        ...(judgeResult.verdict === "approved" ? ["discipline"] : []),
+      ]),
+    ];
+    let cycleRewardProcessed = false;
+    for (const skillId of cycleSkillsToCheck) {
+      const cycleResult = await incrementCycleProgress(userId, skillId).catch(() => null);
+      if (cycleResult?.completed && cycleResult.cycleId && cycleResult.cycleType && !cycleRewardProcessed) {
+        cycleRewardProcessed = true;
+        const def = CYCLE_DEFINITIONS[cycleResult.cycleType as CycleType];
+        if (def) {
+          const titleId = "title-" + def.rewardTitle.toLowerCase().replace(/\s+/g, "-");
+          await awardTitle(userId, titleId).catch(() => {});
+          await grantReward(userId, 200, 100, `Cycle completed: ${def.label}`);
+          await markCycleRewardClaimed(cycleResult.cycleId);
         }
       }
+    }
 
-      // Update mission to completed
-      await db.update(missionsTable).set({ status: "completed", updatedAt: new Date() })
-        .where(eq(missionsTable.id, mission.id));
+    await db.update(missionsTable).set({ status: "completed", updatedAt: new Date() })
+      .where(eq(missionsTable.id, mission.id));
 
-      // AI mission bonus reward
-      if (mission.source === "ai_generated" && mission.aiMissionId) {
-        const [aiMission] = await db
-          .select()
-          .from(aiMissionsTable)
-          .where(eq(aiMissionsTable.id, mission.aiMissionId))
-          .limit(1);
+    if (mission.source === "ai_generated" && mission.aiMissionId) {
+      const [aiMission] = await db
+        .select()
+        .from(aiMissionsTable)
+        .where(eq(aiMissionsTable.id, mission.aiMissionId))
+        .limit(1);
 
-        if (aiMission && aiMission.suggestedRewardBonus > 0) {
-          await grantReward(
-            userId,
-            aiMission.suggestedRewardBonus,
-            Math.round(aiMission.suggestedRewardBonus * 0.5),
-            `AI Mission bonus: ${mission.title}`,
-            { missionId: mission.id },
-          );
-        }
+      if (aiMission && aiMission.suggestedRewardBonus > 0) {
+        await grantReward(
+          userId,
+          aiMission.suggestedRewardBonus,
+          Math.round(aiMission.suggestedRewardBonus * 0.5),
+          `AI Mission bonus: ${mission.title}`,
+          { missionId: mission.id },
+        );
+      }
 
-        // Award AI champion badge after 5 completed AI missions
-        const [{ value: aiCompletedCount }] = await db
-          .select({ value: count() })
-          .from(missionsTable)
-          .where(and(eq(missionsTable.userId, userId), eq(missionsTable.source, "ai_generated"), eq(missionsTable.status, "completed")));
+      const [{ value: aiCompletedCount }] = await db
+        .select({ value: count() })
+        .from(missionsTable)
+        .where(and(eq(missionsTable.userId, userId), eq(missionsTable.source, "ai_generated"), eq(missionsTable.status, "completed")));
 
-        if (Number(aiCompletedCount) >= 5) {
-          await awardBadge(userId, "badge-ai-champion");
-        }
-        if (Number(aiCompletedCount) >= 1) {
-          await awardTitle(userId, "title-grind-architect");
-        }
+      if (Number(aiCompletedCount) >= 5) {
+        await awardBadge(userId, "badge-ai-champion");
+      }
+      if (Number(aiCompletedCount) >= 1) {
+        await awardTitle(userId, "title-grind-architect");
+      }
+    }
 
-        // Rarity bonus coins (in addition to base reward)
-        const rarityBonus = computeRarityBonus(mission.rarity);
-        const difficultyBonus = computeAdaptiveDifficultyBonus(mission.difficultyColor);
-        const rarityTotalBonus = rarityBonus + difficultyBonus;
-        if (rarityTotalBonus > 0) {
-          await grantReward(
-            userId,
-            rarityTotalBonus,
-            Math.round(rarityTotalBonus * 0.5),
-            `${mission.rarity ?? "normal"} mission bonus: ${mission.title}`,
-            { missionId: mission.id },
-          );
-        }
+    const rarityBonus = computeRarityBonus(mission.rarity);
+    const difficultyBonus = computeAdaptiveDifficultyBonus(mission.difficultyColor);
+    const rarityTotalBonus = rarityBonus + difficultyBonus;
+    if (rarityTotalBonus > 0) {
+      await grantReward(
+        userId,
+        rarityTotalBonus,
+        Math.round(rarityTotalBonus * 0.5),
+        `${mission.rarity ?? "normal"} mission bonus: ${mission.title}`,
+        { missionId: mission.id },
+      );
+    }
 
-        // Chain step advancement — advance and grant completion bonus if chain is done
-        if (mission.chainId) {
-          const chainResult = await advanceChainStep(mission.chainId, userId);
-          if (chainResult?.completed && chainResult.bonusCoins > 0) {
-            await grantReward(
-              userId,
-              chainResult.bonusCoins,
-              Math.round(chainResult.bonusCoins * 0.75),
-              `Quest chain completed: ${chainResult.chainName}`,
-              { missionId: mission.id },
-            );
-          }
-        }
+    if (mission.chainId) {
+      const chainResult = await advanceChainStep(mission.chainId, userId);
+      if (chainResult?.completed && chainResult.bonusCoins > 0) {
+        await grantReward(
+          userId,
+          chainResult.bonusCoins,
+          Math.round(chainResult.bonusCoins * 0.75),
+          `Quest chain completed: ${chainResult.chainName}`,
+          { missionId: mission.id },
+        );
       }
     }
   }

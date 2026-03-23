@@ -24,7 +24,7 @@ const VERDICT_CONFIG: Record<string, {
   partial:        { color: Colors.amber,   icon: "alert-circle",          label: "Partial Approval",  headline: "Partially Accepted",    gradColors: [Colors.amber + "22",  "#100E06"] },
   rejected:       { color: Colors.crimson, icon: "close-circle",          label: "Rejected",          headline: "Not Approved",          gradColors: [Colors.crimson + "22","#100608"] },
   flagged:        { color: Colors.crimson, icon: "flag",                  label: "Flagged for Review",headline: "Under Review",          gradColors: [Colors.crimson + "18","#100608"] },
-  followup_needed:{ color: Colors.amber,   icon: "chatbubble-ellipses",   label: "Follow-up Needed",  headline: "Clarification Needed",  gradColors: [Colors.amber + "20",  "#100E06"] },
+  followup_needed:{ color: "#A855F7",      icon: "help-circle",            label: "Follow-up Required", headline: "Evidence Needs Clarification", gradColors: ["#A855F722", "#0C0610"] },
   reviewing:      { color: Colors.cyan,    icon: "hourglass-outline",     label: "AI Reviewing...",   headline: "",                      gradColors: [Colors.cyan + "14",   "#060C10"] },
   pending:        { color: Colors.textMuted,icon: "time-outline",         label: "Pending",           headline: "",                      gradColors: [Colors.bgElevated,    Colors.bgCard] },
 };
