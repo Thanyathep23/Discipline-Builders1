@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { buildFileContentSummary } from "./content-extractor.js";
-import { preScreen, selectProvider, trackCost, hashText, type ProofSubmission } from "./ai-providers.js";
+import { preScreen, selectProvider, trackCost, type ProofSubmission } from "./ai-providers.js";
 import { geminiJudge } from "./judges/gemini-judge.js";
 import { groqJudge } from "./judges/groq-judge.js";
 

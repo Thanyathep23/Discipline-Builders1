@@ -7,7 +7,7 @@ import { calculateRewardPotential } from "../lib/rewards.js";
 import { generateId } from "../lib/auth.js";
 import { trackEvent, Events } from "../lib/telemetry.js";
 import { dispatchWebhookEvent } from "../lib/webhook-dispatcher.js";
-import { getProofRequirements, calculateMissionValueScore, VALID_CATEGORIES } from "../lib/category-proof-requirements.js";
+import { getProofRequirements, calculateMissionValueScore } from "../lib/category-proof-requirements.js";
 
 const router = Router();
 
