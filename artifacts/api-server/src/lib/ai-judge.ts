@@ -46,6 +46,7 @@ export interface JudgeResult {
   verdict: "approved" | "partial" | "rejected" | "flagged" | "followup_needed" | "manual_review";
   confidenceScore: number;
   rewardMultiplier: number;
+  preScreenReason?: string;
   explanation: string;
   followupQuestions?: string;
   providerUsed?: string;
@@ -433,6 +434,7 @@ export async function judgeProof(ctx: ProofContext & { excludeProofId?: string }
         rewardMultiplier: 0,
         explanation: screen.feedback ?? "Proof rejected.",
         providerUsed: "pre_screen",
+        preScreenReason: screen.reason,
         trustScoreDelta: screen.trustScoreDelta,
         rubric: { relevanceScore: 0, qualityScore: 0, plausibilityScore: 0, specificityScore: 0 },
       };

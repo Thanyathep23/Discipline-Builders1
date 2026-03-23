@@ -227,7 +227,7 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     }
   }
 
-  const isDuplicate = judgeResult.providerUsed === "pre_screen" && judgeResult.explanation?.includes("identical");
+  const isDuplicate = judgeResult.preScreenReason === "duplicate_submission";
 
   if (judgeResult.verdict === "rejected" && !isDuplicate) {
     await applySystemPenalty(
@@ -468,6 +468,10 @@ router.post("/:submissionId/followup", async (req, res) => {
   }
 
   const currentFollowupCount = proofs[0].followupCount ?? 0;
+  if (currentFollowupCount >= 2) {
+    res.status(400).json({ error: "Maximum follow-up attempts reached" });
+    return;
+  }
   const newFollowupCount = currentFollowupCount + 1;
   const isLastFollowup = newFollowupCount >= 2;
 
