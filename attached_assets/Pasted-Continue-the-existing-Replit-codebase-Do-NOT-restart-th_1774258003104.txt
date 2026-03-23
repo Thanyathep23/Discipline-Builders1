@@ -1,0 +1,524 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Make the Mission + Proof + AI Judge system 
+bulletproof, fair, and genuinely motivating.
+This is the core engine of the entire app.
+If this is broken or gameable, nothing else matters.
+
+==================================================
+STEP 1 — AUDIT CURRENT STATE
+==================================================
+
+Before changing anything, inspect and report:
+
+1. Current mission creation flow
+2. Current proof submission flow  
+3. Current AI judge implementation
+   - Is it using real AI or rule-based fallback?
+   - Which provider is active?
+4. Current reward calculation logic
+5. Current duplicate detection
+6. Current trust score system
+7. Any known bugs or gaps
+
+Report findings before making changes.
+
+==================================================
+PART 1 — MISSION CREATION (FAIR SETUP)
+==================================================
+
+1A. Mission Form Requirements
+
+Every mission must capture:
+- title (required, 3-100 chars)
+- description (optional but encouraged)
+- category (required):
+  trading / fitness / learning / 
+  deep_work / habit / sleep / other
+- target_duration_minutes (required, 5-480)
+- priority: low / medium / high / critical
+- impact_level: 1-5
+- proof_required: boolean (default true)
+- due_at: optional datetime
+
+1B. Category-Based Proof Requirements
+
+Auto-assign proof requirements based on category:
+
+trading:
+  minimumTextLength: 100
+  requiresSpecifics: true
+  followUpQuestion: "What specific pattern or 
+    setup did you analyze? What was the outcome?"
+  rubric: "Must include: what was analyzed, 
+    why, and what was learned or decided"
+
+fitness:
+  minimumTextLength: 50
+  followUpQuestion: "What exercises, sets, and 
+    reps did you complete? How do you feel?"
+  rubric: "Must include specific activities 
+    and measurable effort"
+
+learning:
+  minimumTextLength: 150
+  followUpQuestion: "What are the 3 most 
+    important things you learned?"
+  rubric: "Must demonstrate understanding, 
+    not just presence during study"
+
+deep_work:
+  minimumTextLength: 100
+  requiresOutputLink: true (optional but strongly encouraged)
+  followUpQuestion: "What specific output 
+    did you produce? Show evidence."
+  rubric: "Must have concrete output or 
+    clear progress on deliverable"
+
+habit:
+  minimumTextLength: 30
+  followUpQuestion: "How did this compare 
+    to yesterday? Any friction?"
+  rubric: "Brief honest reflection acceptable"
+
+sleep:
+  minimumTextLength: 0
+  requiresSleepLog: true
+  rubric: "Validated against sleep log data"
+
+other:
+  minimumTextLength: 50
+  followUpQuestion: "What specifically 
+    did you accomplish?"
+  rubric: "Must be specific to the task"
+
+Store proof_requirements JSON with each mission.
+
+1C. Mission Value Scoring
+
+Calculate mission_value_score on creation:
+
+base_value = priority_weight × impact_level × duration_weight
+
+priority_weight:
+  low: 0.8
+  medium: 1.0
+  high: 1.3
+  critical: 1.6
+
+impact_level: 1-5 multiplier (1.0 to 1.8)
+
+duration_weight:
+  < 15 min: 0.7
+  15-30 min: 0.9
+  30-60 min: 1.0
+  60-120 min: 1.2
+  > 120 min: 1.4
+
+Store mission_value_score with mission.
+Used by reward engine.
+
+==================================================
+PART 2 — PROOF SUBMISSION (EVIDENCE LAYER)
+==================================================
+
+2A. Pre-Submission Validation (client-side hints)
+
+Before user submits, check and warn:
+- Summary too short: "Add more detail for better reward"
+- No image when category recommends one: 
+  "Adding a screenshot improves your score"
+- No file when deep_work: 
+  "Showing your output gets higher rewards"
+
+These are hints only, not hard blocks.
+Let user submit anyway.
+
+2B. Server-Side Pre-Screening
+
+Before calling AI, run rule checks:
+
+RULE 1 — Empty submission
+if no text AND no files AND no link:
+  return { verdict: "rejected", 
+           reason: "no_proof_submitted",
+           feedback: "Please provide evidence 
+             of your work before submitting." }
+  skipAI: true
+
+RULE 2 — Too short
+if text.trim().length < 15:
+  return { verdict: "followup_required",
+           reason: "too_short",
+           feedback: "Your summary is too brief. 
+             Please describe what you actually did." }
+  skipAI: true
+
+RULE 3 — Generic phrases
+genericPhrases = [
+  "done", "finished", "completed", "did it",
+  "task done", "i did this", "complete",
+  "i finished", "done!", "finished!", "ok done"
+]
+if summary.toLowerCase().trim() is in genericPhrases:
+  return { verdict: "followup_required",
+           reason: "too_generic",
+           feedback: "This doesn't tell us what 
+             you actually did. Please be specific." }
+  skipAI: true
+
+RULE 4 — Duplicate detection
+hash = SHA256(userId + summary.trim().toLowerCase())
+check against last 30 days of user's submissions
+if exact match found:
+  return { verdict: "rejected",
+           reason: "duplicate_submission",
+           feedback: "This is identical to a 
+             previous submission.",
+           trustScoreDelta: -0.15 }
+  skipAI: true
+
+RULE 5 — Minimum length by category
+if category requires minimumTextLength:
+  if summary.length < minimumTextLength * 0.5:
+    push to followup_required with category hint
+
+2C. Duplicate Hash Storage
+
+Store proof hash in proof_submissions:
+  textHash: SHA256(normalized_text)
+  
+Check before every new submission.
+Index on (userId, textHash) for fast lookup.
+
+==================================================
+PART 3 — AI JUDGE (MULTI-PROVIDER)
+==================================================
+
+3A. Provider Selection Logic
+
+Check available providers in order:
+
+function selectProvider(hasImage: boolean): string {
+  if (hasImage) {
+    // Need vision capability
+    if (GEMINI_API_KEY available) return 'gemini_flash'
+    if (OPENAI_API_KEY available) return 'openai_mini'
+    return 'rules' // no vision available
+  }
+  // Text only - cheapest first
+  if (GROQ_API_KEY available) return 'groq'
+  if (GEMINI_API_KEY available) return 'gemini_flash'
+  if (OPENAI_API_KEY available) return 'openai_mini'
+  return 'rules'
+}
+
+3B. AI Judge System Prompt
+
+Use this exact system prompt for ALL AI providers:
+
+"""
+You are a strict but fair AI judge for a Life RPG app.
+
+Your job: evaluate if the user actually completed 
+meaningful work based on their submitted proof.
+
+Your standards:
+- DO NOT approve based on time alone
+- DO NOT approve vague/generic descriptions
+- DO approve specific, detailed, honest submissions
+- DO ask follow-up when evidence is unclear
+- BE strict but never punitive — be a fair coach
+
+For each submission, evaluate:
+1. RELEVANCE: Does proof match the mission type?
+2. SPECIFICITY: Does it show real work was done?
+3. QUALITY: Is the output/learning meaningful?
+4. PLAUSIBILITY: Is the claimed effort believable?
+
+Return ONLY valid JSON. No markdown. No extra text.
+"""
+
+3C. AI Judge User Prompt Template
+
+Build this prompt per submission:
+
+"""
+MISSION:
+Title: {title}
+Category: {category}
+Duration target: {targetMinutes} minutes
+Priority: {priority}
+Impact level: {impactLevel}/5
+Purpose: {description}
+
+PROOF RUBRIC:
+{proofRequirements.rubric}
+
+SESSION DATA:
+Actual duration: {actualMinutes} minutes
+Left app count: {distractionCount} times
+
+USER CONTEXT:
+Trust score: {trustScore}
+Strictness: {strictnessMode}
+
+SUBMITTED PROOF:
+Text: "{summary}"
+Has image: {hasImage}
+Has file: {hasFile}
+Has link: {hasLink}
+
+If image present, analyze:
+- Is it relevant to this mission?
+- Does it show actual work?
+
+Evaluate and return JSON:
+{
+  "verdict": "approved|partial|rejected|followup_required",
+  "confidence_score": 0.0-1.0,
+  "quality_score": 0.0-1.0,
+  "relevance_score": 0.0-1.0,
+  "reward_multiplier": 0.0-1.5,
+  "needs_followup": boolean,
+  "followup_question": "specific question or null",
+  "flags": [],
+  "feedback_short": "1-2 sentences",
+  "feedback_detailed": "specific actionable feedback",
+  "trust_score_delta": -0.15 to 0.05
+}
+
+Flags can include:
+LOW_EVIDENCE, GENERIC_SUMMARY, IRRELEVANT_PROOF,
+DURATION_IMPLAUSIBLE, SUSPICIOUS_PATTERN
+"""
+
+3D. Response Validation
+
+After AI responds:
+1. Parse JSON strictly
+2. Validate all required fields exist
+3. Validate score ranges (0-1)
+4. Validate verdict is valid enum value
+5. If validation fails:
+   - Log the raw invalid response
+   - Fall back to enhanced rule-based judge
+   - Verdict: "manual_review"
+   - Never grant reward on invalid AI output
+
+3E. Enhanced Rule-Based Fallback
+
+When no AI available or AI fails:
+
+Calculate scores from text analysis:
+
+lengthScore = min(summary.length / 200, 1.0) × 0.3
+
+specificityScore = (
+  hasNumbers ? 0.2 : 0
+  + hasTimeReference ? 0.1 : 0
+  + wordCount > 30 ? 0.2 : 0
+  + hasSpecificTerms(category) ? 0.3 : 0
+) 
+
+relevanceScore = keywordOverlap(summary, missionTitle) × 0.4
+
+qualityScore = (lengthScore + specificityScore + relevanceScore)
+
+if qualityScore > 0.7: verdict = "approved", multiplier = 1.0
+elif qualityScore > 0.45: verdict = "partial", multiplier = 0.6
+elif qualityScore > 0.25: verdict = "followup_required"
+else: verdict = "rejected", multiplier = 0
+
+==================================================
+PART 4 — REWARD CALCULATION (FAIR ENGINE)
+==================================================
+
+4A. Final Reward Formula
+
+Calculate server-side ONLY:
+
+base_reward = mission_value_score × 10
+
+quality_adjusted = base_reward × quality_score
+confidence_adjusted = quality_adjusted × confidence_score
+multiplier_applied = confidence_adjusted × reward_multiplier
+
+distraction_penalty = (
+  0 distractions: × 1.1 bonus
+  1-2: × 1.0
+  3-5: × 0.85
+  6+: × 0.70
+)
+
+final_reward = max(0, round(multiplier_applied × distraction_penalty))
+
+4B. Verdict → Reward Rules
+
+approved (quality ≥ 0.7): full formula above
+partial (quality 0.4-0.69): formula × 0.5
+followup_required: no reward yet, wait for answers
+rejected: reward = 0
+duplicate: reward = 0
+manual_review: reward = 0 until resolved
+
+4C. XP Calculation
+
+xp_earned = final_reward / 5 (rounded up)
+Minimum XP for completed attempt: 1 (even if rejected)
+Minimum XP for approved: 10
+
+4D. Trust Score Updates
+
+After every verdict:
+approved strong (quality > 0.75): trust += 0.05
+approved adequate: trust += 0.02
+partial: trust += 0.01
+followup_resolved: trust += 0.01
+rejected low quality: trust -= 0.05
+duplicate detected: trust -= 0.15
+suspicious pattern: trust -= 0.10
+
+Clamp trust score: 0.1 to 1.0
+Never let trust go below 0.1 (assume good faith)
+
+4E. Trust Score Affects Strictness
+
+trust > 0.7: standard thresholds
+trust 0.4-0.7: require 10% more specificity
+trust < 0.4: require 25% more specificity,
+             followup more likely
+
+==================================================
+PART 5 — FOLLOW-UP QUESTION FLOW
+==================================================
+
+When verdict is "followup_required":
+
+5A. UI Flow
+- Show verdict: "We need a bit more detail"
+- Show followup_question prominently
+- Text input for answer
+- Submit answer button
+- User can also add additional files
+
+5B. Follow-up Processing
+Submit follow-up answer → re-run judge
+Include in prompt: "FOLLOW-UP ANSWER: {answer}"
+Max follow-ups: 2 per submission
+After 2 follow-ups without approval: 
+  verdict = partial with 0.4× multiplier
+  "We appreciate the effort. Here's a partial reward."
+
+==================================================
+PART 6 — MISSION RESULT SCREEN
+==================================================
+
+After verdict, show a clear result screen:
+
+APPROVED:
+  ✓ Large green checkmark
+  "Mission Complete"
+  +{coins} COINS  (animated count-up)
+  +{xp} XP
+  Quality: ████████░░ {score}/10
+  "{feedback_short}"
+  [View Character Progress] [Next Mission]
+
+PARTIAL:
+  ◑ Amber partial icon
+  "Partial Credit"
+  +{coins} COINS (smaller)
+  "{feedback_short}"
+  "Next time: {feedback_detailed}"
+  [Try to Improve] [Accept & Continue]
+
+REJECTED:
+  ✗ Muted red X
+  "Not Approved"
+  +0 coins
+  "{feedback_short}"
+  "{feedback_detailed}"
+  [Resubmit with Better Proof] [Move On]
+
+FOLLOWUP_REQUIRED:
+  ? Purple question mark
+  "Tell Us More"
+  "{followup_question}"
+  [Answer Question]
+
+All screens must feel:
+- Clear and fair
+- Not harsh or punishing
+- Motivating to try again
+- Premium dark style
+
+==================================================
+PART 7 — MISSION LIST UX
+==================================================
+
+Mission list must clearly show mission states:
+
+ACTIVE mission card:
+  Title + category chip
+  Time remaining (if has due date)
+  Priority indicator (color left border)
+  [Start Focus] button
+
+AWAITING PROOF mission card:
+  Title
+  Session complete: {duration} min
+  [Submit Proof] button (prominent)
+  Amber/gold border to draw attention
+
+UNDER REVIEW card:
+  "AI is reviewing your submission..."
+  Animated processing indicator
+
+APPROVED card:
+  ✓ check
+  Coins earned
+  Faded/completed style
+
+REJECTED card:
+  ✗ 
+  Brief reason
+  [Resubmit] small button
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. Mission creation captures all required fields
+2. Proof requirements auto-assigned by category
+3. Pre-screening catches empty/generic/duplicate
+4. AI judge uses real provider (Groq/Gemini/OpenAI)
+5. Fallback to rule-based if AI unavailable
+6. Reward calculation is server-side only
+7. Trust score updates after every verdict
+8. Follow-up question flow works
+9. Result screen shows clearly per verdict type
+10. Duplicate submissions are caught and penalized
+11. All reward grants create transaction records
+12. No reward granted on invalid AI output
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. Current state audit results
+2. What was changed vs what was already correct
+3. AI provider status (which is active)
+4. Pre-screening rules implemented
+5. Trust score logic confirmed
+6. Test results:
+   - Empty submission → rejected
+   - "Done" submission → followup_required
+   - Duplicate → rejected + trust penalty
+   - Good detailed submission → approved
+   - Image proof → vision provider used
+7. Files changed only
+8. Remaining gaps
