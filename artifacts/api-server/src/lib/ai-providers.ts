@@ -1,5 +1,6 @@
 import crypto from "crypto";
-import { db } from "@workspace/db";
+import { db, proofSubmissionsTable } from "@workspace/db";
+import { eq, and, gt, ne } from "drizzle-orm";
 
 export interface ProviderConfig {
   model: string;
@@ -55,61 +56,95 @@ export interface PreScreenResult {
   verdict?: "rejected" | "followup_required";
   reason?: string;
   skipAI: boolean;
+  trustScoreDelta?: number;
+  feedback?: string;
 }
 
-const recentHashes = new Map<string, Set<string>>();
-
-function hashText(text: string): string {
-  return crypto.createHash("sha256").update(text.trim().toLowerCase()).digest("hex").slice(0, 16);
-}
-
-function checkDuplicateHash(userId: string, textHash: string): boolean {
-  const userHashes = recentHashes.get(userId);
-  if (!userHashes) {
-    recentHashes.set(userId, new Set([textHash]));
-    return false;
-  }
-  if (userHashes.has(textHash)) return true;
-  userHashes.add(textHash);
-  if (userHashes.size > 100) {
-    const first = userHashes.values().next().value;
-    if (first) userHashes.delete(first);
-  }
-  return false;
+export function hashText(text: string): string {
+  return crypto.createHash("sha256").update(text.trim().toLowerCase()).digest("hex");
 }
 
 const GENERIC_PHRASES = [
-  "i completed the task",
-  "done",
-  "finished",
-  "i did it",
+  "done", "finished", "completed", "did it",
+  "task done", "i did this", "complete",
+  "i finished", "done!", "finished!", "ok done",
+  "i completed the task", "yes", "all done",
   "task complete",
-  "completed",
-  "yes",
-  "did it",
-  "all done",
 ];
 
-export function preScreen(proof: ProofSubmission): PreScreenResult {
-  if (!proof.summary && (!proof.files || proof.files.length === 0) && !proof.linkUrl && (!proof.links || proof.links.length === 0)) {
-    return { verdict: "rejected", reason: "no_proof", skipAI: true };
+export async function preScreen(proof: ProofSubmission, categoryMinTextLength?: number, excludeProofId?: string): Promise<PreScreenResult> {
+  const hasText = (proof.summary ?? "").trim().length > 0;
+  const hasFiles = (proof.files?.length ?? 0) > 0;
+  const hasLinks = (proof.links?.length ?? 0) > 0 || !!proof.linkUrl;
+
+  if (!hasText && !hasFiles && !hasLinks) {
+    return {
+      verdict: "rejected",
+      reason: "no_proof_submitted",
+      skipAI: true,
+      feedback: "Please provide evidence of your work before submitting.",
+    };
   }
 
-  if (proof.summary && proof.summary.trim().length < 20 && (!proof.files || proof.files.length === 0)) {
-    return { verdict: "rejected", reason: "too_short", skipAI: true };
+  const trimmed = (proof.summary ?? "").trim();
+
+  if (trimmed.length > 0 && trimmed.length < 15) {
+    return {
+      verdict: "followup_required",
+      reason: "too_short",
+      skipAI: true,
+      feedback: "Your summary is too brief. Please describe what you actually did.",
+    };
   }
 
-  if (proof.summary) {
-    const textHash = hashText(proof.summary);
-    const isDuplicate = checkDuplicateHash(proof.userId, textHash);
-    if (isDuplicate) {
-      return { verdict: "rejected", reason: "duplicate", skipAI: true };
+  const normalized = trimmed.toLowerCase();
+  if (normalized && GENERIC_PHRASES.includes(normalized)) {
+    return {
+      verdict: "followup_required",
+      reason: "too_generic",
+      skipAI: true,
+      feedback: "This doesn't tell us what you actually did. Please be specific.",
+    };
+  }
+
+  if (trimmed.length > 0) {
+    const textHash = hashText(trimmed);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    try {
+      const conditions = [
+        eq(proofSubmissionsTable.userId, proof.userId),
+        eq(proofSubmissionsTable.textHash, textHash),
+        gt(proofSubmissionsTable.createdAt, thirtyDaysAgo),
+      ];
+      if (excludeProofId) {
+        conditions.push(ne(proofSubmissionsTable.id, excludeProofId));
+      }
+      const duplicates = await db
+        .select({ id: proofSubmissionsTable.id })
+        .from(proofSubmissionsTable)
+        .where(and(...conditions))
+        .limit(1);
+
+      if (duplicates.length > 0) {
+        return {
+          verdict: "rejected",
+          reason: "duplicate_submission",
+          skipAI: true,
+          trustScoreDelta: -0.15,
+          feedback: "This is identical to a previous submission.",
+        };
+      }
+    } catch {
     }
   }
 
-  const normalized = proof.summary?.toLowerCase().trim();
-  if (normalized && GENERIC_PHRASES.includes(normalized)) {
-    return { verdict: "followup_required", reason: "too_generic", skipAI: true };
+  if (categoryMinTextLength && categoryMinTextLength > 0 && trimmed.length < categoryMinTextLength * 0.5) {
+    return {
+      verdict: "followup_required",
+      reason: "below_category_minimum",
+      skipAI: true,
+      feedback: `This category expects more detail. Please provide at least ${categoryMinTextLength} characters describing your work.`,
+    };
   }
 
   return { skipAI: false };

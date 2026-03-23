@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View, Text, TextInput, Pressable, StyleSheet, ScrollView,
   Platform, ActivityIndicator, Alert,
@@ -7,12 +7,31 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useCreateMission } from "@/hooks/useApi";
 
 const PRIORITIES = ["low", "medium", "high", "critical"] as const;
-const CATEGORIES = ["Work", "Study", "Creative", "Health", "Finance", "Personal", "Learning", "Project"];
+
+const CATEGORIES: { key: string; label: string; icon: string; hint: string }[] = [
+  { key: "trading",   label: "Trading",   icon: "trending-up",  hint: "Include analysis details, setups, and outcomes" },
+  { key: "fitness",   label: "Fitness",    icon: "barbell",      hint: "List exercises, sets, reps, or distance" },
+  { key: "learning",  label: "Learning",   icon: "book",         hint: "Describe what you studied and key takeaways" },
+  { key: "deep_work", label: "Deep Work",  icon: "code-slash",   hint: "Show concrete output — code, writing, designs" },
+  { key: "habit",     label: "Habit",      icon: "repeat",       hint: "Brief honest reflection is enough" },
+  { key: "sleep",     label: "Sleep",      icon: "moon",         hint: "Log bed time and wake time" },
+  { key: "other",     label: "Other",      icon: "ellipsis-horizontal", hint: "Be specific about what you accomplished" },
+];
+
 const PROOF_TYPES = ["text", "image", "screenshot", "link", "file"] as const;
+
+const IMPACT_LABELS: Record<number, string> = {
+  1: "Minor task",
+  2: "Useful step",
+  3: "Meaningful progress",
+  4: "High impact work",
+  5: "Critical milestone",
+};
 
 export default function NewMissionScreen() {
   const insets = useSafeAreaInsets();
@@ -20,14 +39,19 @@ export default function NewMissionScreen() {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    category: "Work",
+    category: "deep_work",
     targetDurationMinutes: 30,
     priority: "medium" as typeof PRIORITIES[number],
-    impactLevel: 5,
+    impactLevel: 3,
     purpose: "",
     requiredProofTypes: ["text"] as typeof PROOF_TYPES[number][],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const selectedCategory = useMemo(
+    () => CATEGORIES.find(c => c.key === form.category) ?? CATEGORIES[3],
+    [form.category],
+  );
 
   function validate() {
     const e: Record<string, string> = {};
@@ -63,7 +87,6 @@ export default function NewMissionScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
-      {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={Colors.textPrimary} />
@@ -73,8 +96,7 @@ export default function NewMissionScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]} keyboardShouldPersistTaps="handled">
-        {/* Title */}
-        <View style={styles.field}>
+        <Animated.View entering={FadeInDown.delay(0).springify()} style={styles.field}>
           <Text style={styles.label}>Mission Title <Text style={{ color: Colors.crimson }}>*</Text></Text>
           <TextInput
             style={[styles.input, errors.title && styles.inputError]}
@@ -84,10 +106,9 @@ export default function NewMissionScreen() {
             onChangeText={t => setForm(f => ({ ...f, title: t }))}
           />
           {errors.title && <Text style={styles.errorText}>{errors.title}</Text>}
-        </View>
+        </Animated.View>
 
-        {/* Description */}
-        <View style={styles.field}>
+        <Animated.View entering={FadeInDown.delay(40).springify()} style={styles.field}>
           <Text style={styles.label}>Description</Text>
           <TextInput
             style={[styles.input, styles.textarea]}
@@ -99,10 +120,9 @@ export default function NewMissionScreen() {
             numberOfLines={3}
             textAlignVertical="top"
           />
-        </View>
+        </Animated.View>
 
-        {/* Purpose */}
-        <View style={styles.field}>
+        <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.field}>
           <Text style={styles.label}>Why does this matter?</Text>
           <TextInput
             style={[styles.input, styles.textarea]}
@@ -114,26 +134,32 @@ export default function NewMissionScreen() {
             numberOfLines={2}
             textAlignVertical="top"
           />
-        </View>
+        </Animated.View>
 
-        {/* Category */}
-        <View style={styles.field}>
+        <Animated.View entering={FadeInDown.delay(120).springify()} style={styles.field}>
           <Text style={styles.label}>Category</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-            {CATEGORIES.map(c => (
-              <Pressable
-                key={c}
-                style={[styles.chip, form.category === c && styles.chipActive]}
-                onPress={() => { setForm(f => ({ ...f, category: c })); Haptics.selectionAsync(); }}
-              >
-                <Text style={[styles.chipText, form.category === c && styles.chipTextActive]}>{c}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
+          <View style={styles.categoryGrid}>
+            {CATEGORIES.map(c => {
+              const active = form.category === c.key;
+              return (
+                <Pressable
+                  key={c.key}
+                  style={[styles.categoryCard, active && styles.categoryCardActive]}
+                  onPress={() => { setForm(f => ({ ...f, category: c.key })); Haptics.selectionAsync(); }}
+                >
+                  <Ionicons name={c.icon as any} size={18} color={active ? Colors.accent : Colors.textMuted} />
+                  <Text style={[styles.categoryLabel, active && { color: Colors.accent }]}>{c.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={styles.hintBox}>
+            <Ionicons name="information-circle-outline" size={14} color={Colors.textMuted} />
+            <Text style={styles.hintText}>Proof tip: {selectedCategory.hint}</Text>
+          </View>
+        </Animated.View>
 
-        {/* Duration */}
-        <View style={styles.field}>
+        <Animated.View entering={FadeInDown.delay(160).springify()} style={styles.field}>
           <Text style={styles.label}>Target Duration: <Text style={{ color: Colors.textPrimary }}>{form.targetDurationMinutes} min</Text></Text>
           <View style={styles.durationRow}>
             {[15, 25, 30, 45, 60, 90, 120].map(d => (
@@ -147,10 +173,9 @@ export default function NewMissionScreen() {
             ))}
           </View>
           {errors.duration && <Text style={styles.errorText}>{errors.duration}</Text>}
-        </View>
+        </Animated.View>
 
-        {/* Priority */}
-        <View style={styles.field}>
+        <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.field}>
           <Text style={styles.label}>Priority</Text>
           <View style={styles.priorityRow}>
             {PRIORITIES.map(p => {
@@ -171,24 +196,25 @@ export default function NewMissionScreen() {
               );
             })}
           </View>
-        </View>
+        </Animated.View>
 
-        {/* Impact Level */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Impact Level: <Text style={{ color: Colors.accent }}>{form.impactLevel}/10</Text></Text>
+        <Animated.View entering={FadeInDown.delay(240).springify()} style={styles.field}>
+          <Text style={styles.label}>Impact Level: <Text style={{ color: Colors.accent }}>{form.impactLevel}/5</Text></Text>
+          <Text style={styles.impactDesc}>{IMPACT_LABELS[form.impactLevel]}</Text>
           <View style={styles.impactRow}>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+            {[1, 2, 3, 4, 5].map(n => (
               <Pressable
                 key={n}
-                style={[styles.impactDot, n <= form.impactLevel && { backgroundColor: Colors.accent }]}
+                style={[styles.impactBlock, n <= form.impactLevel && { backgroundColor: Colors.accent }]}
                 onPress={() => { setForm(f => ({ ...f, impactLevel: n })); Haptics.selectionAsync(); }}
-              />
+              >
+                <Text style={[styles.impactNum, n <= form.impactLevel && { color: "#fff" }]}>{n}</Text>
+              </Pressable>
             ))}
           </View>
-        </View>
+        </Animated.View>
 
-        {/* Required Proof Types */}
-        <View style={styles.field}>
+        <Animated.View entering={FadeInDown.delay(280).springify()} style={styles.field}>
           <Text style={styles.label}>Required Proof <Text style={{ color: Colors.crimson }}>*</Text></Text>
           <Text style={styles.sublabel}>AI judge uses this to evaluate your submission</Text>
           <View style={styles.proofRow}>
@@ -219,9 +245,8 @@ export default function NewMissionScreen() {
             })}
           </View>
           {errors.proof && <Text style={styles.errorText}>{errors.proof}</Text>}
-        </View>
+        </Animated.View>
 
-        {/* Submit */}
         <Pressable
           style={({ pressed }) => [styles.submitBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }, createMission.isPending && styles.btnDisabled]}
           onPress={handleCreate}
@@ -258,13 +283,24 @@ const styles = StyleSheet.create({
   inputError: { borderColor: Colors.crimson },
   textarea: { minHeight: 80, paddingTop: 14 },
   errorText: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.crimson },
-  chip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border,
-  },
   chipActive: { backgroundColor: Colors.accentGlow, borderColor: Colors.accent },
   chipText: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.textSecondary },
   chipTextActive: { color: Colors.accent },
+
+  categoryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  categoryCard: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12,
+    backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border,
+  },
+  categoryCardActive: { backgroundColor: Colors.accentGlow, borderColor: Colors.accent },
+  categoryLabel: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.textSecondary },
+  hintBox: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: Colors.bgElevated, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8,
+  },
+  hintText: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, flex: 1 },
+
   durationRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   durationChip: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
@@ -273,8 +309,15 @@ const styles = StyleSheet.create({
   priorityRow: { flexDirection: "row", gap: 8 },
   priorityChip: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center", backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
   priorityText: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 0.8 },
-  impactRow: { flexDirection: "row", gap: 6 },
-  impactDot: { flex: 1, height: 8, borderRadius: 4, backgroundColor: Colors.border },
+
+  impactRow: { flexDirection: "row", gap: 8 },
+  impactBlock: {
+    flex: 1, height: 40, borderRadius: 10, alignItems: "center", justifyContent: "center",
+    backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border,
+  },
+  impactNum: { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.textMuted },
+  impactDesc: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, marginTop: -6 },
+
   proofRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   proofChip: {
     flexDirection: "row", alignItems: "center", gap: 6,

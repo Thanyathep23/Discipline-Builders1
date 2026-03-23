@@ -35,13 +35,39 @@ Key design mandates:
 - Accepted AI missions auto-create a real mission in the missions table
 - Variants (easier/harder) generated automatically for each AI mission
 
-### Proof Requirement Engine (D)
-- Each AI mission generates proof requirements at creation time
-- Stored in `mission_proof_requirements` table
-- Proof difficulty tiers: basic, standard, rich, expert
-- Fraud risk levels: low, medium, high
-- Review rubric summary per mission
-- Alternate proof requests supported via `alternate_proof_requests` table
+### Proof Requirement Engine (D) — Overhauled
+- **Category-based proof requirements** defined in `category-proof-requirements.ts`
+- 7 categories: trading, fitness, learning, deep_work, habit, sleep, other
+- Each category has: minimumTextLength, rubric, followUpQuestion, and optional flags (requiresSpecifics, requiresOutputLink, requiresSleepLog)
+- Proof requirements auto-assigned on mission creation, stored as JSON in `missions.proof_requirements`
+- **Mission value score** formula: priority_weight × impact_multiplier × duration_weight → stored in `missions.mission_value_score`
+- Impact level: 1-5 (was 1-10), with 5 labeled tiers (Minor → Critical milestone)
+
+### Pre-Screening + Duplicate Detection (D.2)
+- 5-rule pipeline: empty check → length check (<15 chars) → generic phrase list → SHA-256 DB hash check (30 days) → category minimum length
+- DB-backed duplicate detection via `proofs.text_hash` column (SHA-256)
+- Duplicates within 30 days: auto-reject with -0.15 trust penalty
+
+### AI Judge Engine (D.3) — Multi-Provider
+- Provider order: Groq (text) → Gemini Flash (vision) → OpenAI Mini → OpenAI Full
+- Strict system prompt with 4-axis rubric (relevance, quality, plausibility, specificity)
+- Strict JSON response validation with normalization
+- Enhanced rule-based fallback with category-specific term matching
+- Cost tracking per provider with daily summary
+
+### Follow-up Flow (D.4)
+- Max 2 follow-ups per proof (tracked via `proofs.followup_count`)
+- After 2 unanswered → auto-resolve to "partial" with 0.4× reward multiplier
+
+### Reward Formula (D.5) — Overhauled
+- Base = missionValueScore × 10
+- Multiplied by: qualityFactor × distractionPenalty × strictnessBonus × trustFactor × streakBonus × aiRewardMultiplier
+- XP = coins/5 (min 10 if coins > 0, min 1 otherwise)
+
+### Trust Score (D.6) — Overhauled
+- New deltas: approved_strong +0.05, approved +0.02, partial +0.01, rejected -0.05, flagged -0.10, duplicate -0.15
+- Clamped to [0.1, 1.0]
+- AI judge can set custom trust_score_delta per verdict
 
 ### Inventory / Assets (E)
 - 10 default badges: Focus Initiate, 7-Day Discipline, Trading Apprentice, Recovery Rebuilder, Command Room, Proof Master, Sleep Guardian, Fitness Warrior, Learning Engine, AI Mission Champion

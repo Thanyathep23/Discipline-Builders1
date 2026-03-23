@@ -33,18 +33,20 @@ const VERDICT_CONFIG: Record<string, {
 
 const IMPACT_APPROVED = [
   { icon: "flash",             color: Colors.gold,   text: "Coins credited to your wallet" },
+  { icon: "star",              color: Colors.cyan,    text: "XP earned toward next level" },
   { icon: "trending-up",       color: Colors.green,  text: "Skill XP applied to targeted skills" },
   { icon: "checkmark-circle",  color: Colors.green,  text: "Mission marked complete" },
-  { icon: "person-outline",    color: Colors.accent, text: "Character status reflects this growth" },
+  { icon: "shield-checkmark",  color: Colors.accent, text: "Trust score increased" },
 ];
 const IMPACT_PARTIAL = [
   { icon: "flash",             color: Colors.gold,   text: "Partial coins credited" },
+  { icon: "star",              color: Colors.cyan,    text: "Partial XP earned" },
   { icon: "trending-up",       color: Colors.amber,  text: "Partial skill XP applied" },
   { icon: "arrow-redo-outline",color: Colors.amber,  text: "Retry with fuller evidence for 100% credit" },
 ];
 const IMPACT_REJECTED = [
   { icon: "close-circle",          color: Colors.crimson, text: "No coins awarded this attempt" },
-  { icon: "shield-checkmark-outline", color: Colors.cyan, text: "Trust score preserved — honest attempts aren't penalized" },
+  { icon: "shield-checkmark-outline", color: Colors.cyan, text: "Trust score may decrease slightly" },
   { icon: "arrow-redo-outline",    color: Colors.accent,  text: "Retry with clearer, specific evidence" },
 ];
 
@@ -216,8 +218,8 @@ export default function ProofSubmissionScreen() {
 
   async function handleFollowup() {
     setFollowupError(null);
-    if (followupAnswer.trim().length < 20) {
-      setFollowupError("Please provide a more detailed answer (at least 20 characters).");
+    if (followupAnswer.trim().length < 10) {
+      setFollowupError("Please provide a more detailed answer (at least 10 characters).");
       return;
     }
     try {
@@ -529,6 +531,12 @@ export default function ProofSubmissionScreen() {
                       <Ionicons name="chatbubble-ellipses" size={18} color={Colors.amber} />
                       <Text style={styles.followupTitle}>The AI needs more information</Text>
                     </View>
+                    <View style={styles.followupCountRow}>
+                      <Ionicons name="repeat-outline" size={14} color={Colors.textMuted} />
+                      <Text style={styles.followupCountText}>
+                        Follow-up {Math.min((proof as any).followupCount ?? 0, 2) + 1} of 2 max
+                      </Text>
+                    </View>
                     <Text style={styles.followupQuestions}>{proof.followupQuestions}</Text>
                     <TextInput
                       style={styles.textarea}
@@ -816,6 +824,11 @@ const styles = StyleSheet.create({
   },
   followupHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   followupTitle: { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.amber, flex: 1 },
+  followupCountRow: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: Colors.bg + "60", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+  },
+  followupCountText: { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.textMuted },
   followupQuestions: {
     fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary,
     lineHeight: 21, backgroundColor: Colors.bg + "60", borderRadius: 10, padding: 12,

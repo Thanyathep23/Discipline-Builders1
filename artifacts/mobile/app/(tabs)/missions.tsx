@@ -38,6 +38,13 @@ const CAT_LABELS: Record<string, string> = {
   skill_growth:     "Skill Growth",
   trading_practice: "Trading Practice",
   recovery_reset:   "Recovery & Reset",
+  trading:   "Trading",
+  fitness:   "Fitness",
+  learning:  "Learning",
+  deep_work: "Deep Work",
+  habit:     "Habit",
+  sleep:     "Sleep",
+  other:     "Other",
 };
 
 const RARITY_COLORS: Record<string, string> = {
@@ -346,7 +353,7 @@ export default function MissionsScreen() {
                         ) : null}
                         <View style={styles.cardMeta}>
                           <MetaItem icon="time-outline" text={`${m.targetDurationMinutes}min`} />
-                          <MetaItem icon="layers-outline" text={m.category} />
+                          <MetaItem icon="layers-outline" text={CAT_LABELS[m.category] ?? m.category} />
                           {m.relatedSkill && (
                             <MetaItem icon={(SKILL_ICONS[m.relatedSkill] ?? "star") as any} text={m.relatedSkill} color={Colors.cyan} />
                           )}

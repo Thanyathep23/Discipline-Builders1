@@ -5,6 +5,7 @@ import { eq, and, count, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, generateId } from "../lib/auth.js";
 import { judgeProof } from "../lib/ai-judge.js";
+import { hashText } from "../lib/ai-providers.js";
 import { computeRewardCoins, grantReward, updateStreak, applySystemPenalty, computeRarityBonus, computeAdaptiveDifficultyBonus } from "../lib/rewards.js";
 import { advanceChainStep } from "../lib/quest-chains.js";
 import { grantSessionSkillXp } from "../lib/skill-engine.js";
@@ -37,6 +38,7 @@ function parseProof(p: any) {
       specificityScore: p.aiRubricSpecificity,
     } : null,
     followupQuestions: p.followupQuestions ?? null,
+    followupCount: p.followupCount ?? 0,
     rewardMultiplier: p.rewardMultiplier ?? null,
     coinsAwarded: p.coinsAwarded ?? null,
     manualReviewNote: p.manualReviewNote ?? null,
@@ -77,6 +79,8 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
   const endedAt = session.endedAt ? new Date(session.endedAt) : new Date();
   const actualMinutes = Math.floor((endedAt.getTime() - startedAt.getTime()) / 60000) - Math.floor((session.totalPausedSeconds ?? 0) / 60);
 
+  const proofReqs = mission.proofRequirements ? JSON.parse(mission.proofRequirements) : null;
+
   const judgeResult = await judgeProof({
     missionTitle: mission.title,
     missionDescription: mission.description,
@@ -89,6 +93,12 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     requiredProofTypes: JSON.parse(mission.requiredProofTypes || "[]"),
     followupAnswers: proof.followupAnswers,
     userId,
+    proofRubric: proofReqs?.rubric,
+    userTrustScore: user.trustScore,
+    distractionCount: session.blockedAttemptCount ?? 0,
+    missionPriority: mission.priority,
+    missionImpactLevel: mission.impactLevel,
+    excludeProofId: submissionId,
     attachedFiles: attachedFiles.map((f) => ({
       name: f.originalName,
       type: f.mimeType,
@@ -115,9 +125,12 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
       strictnessMode: session.strictnessMode,
       userTrustScore: user.trustScore,
       currentStreak: user.currentStreak,
+      missionValueScore: mission.missionValueScore ?? undefined,
+      rewardMultiplier: judgeResult.rewardMultiplier,
+      distractionCount: session.blockedAttemptCount ?? 0,
     });
 
-    coinsAwarded = Math.round(coins * judgeResult.rewardMultiplier);
+    coinsAwarded = coins;
 
     if (coinsAwarded > 0) {
       await grantReward(userId, coinsAwarded, xp, `Mission completed: ${mission.title}`, {
@@ -253,14 +266,17 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     } catch {}
   }
 
-  // Adjust trust score based on verdict
-  let trustDelta = 0;
-  if (judgeResult.verdict === "rejected") trustDelta = -0.05;
-  if (judgeResult.verdict === "flagged") trustDelta = -0.1;
-  if (judgeResult.verdict === "approved") trustDelta = 0.02;
+  let trustDelta = judgeResult.trustScoreDelta ?? 0;
+  if (trustDelta === 0) {
+    if (judgeResult.verdict === "approved" && judgeResult.confidenceScore >= 0.8) trustDelta = 0.05;
+    else if (judgeResult.verdict === "approved") trustDelta = 0.02;
+    else if (judgeResult.verdict === "partial") trustDelta = 0.01;
+    else if (judgeResult.verdict === "rejected") trustDelta = -0.05;
+    else if (judgeResult.verdict === "flagged") trustDelta = -0.10;
+  }
 
   if (trustDelta !== 0) {
-    const newTrust = Math.max(0.1, Math.min(2.0, user.trustScore + trustDelta));
+    const newTrust = Math.max(0.1, Math.min(1.0, user.trustScore + trustDelta));
     await db.update(usersTable).set({ trustScore: newTrust, updatedAt: new Date() }).where(eq(usersTable.id, userId));
   }
 
@@ -382,6 +398,9 @@ router.post("/", async (req, res) => {
     }
   }
 
+  const textContent = (parsed.data.textSummary ?? "").trim();
+  const textHash = textContent.length > 0 ? hashText(textContent) : null;
+
   const id = generateId();
   await db.insert(proofSubmissionsTable).values({
     id,
@@ -391,6 +410,8 @@ router.post("/", async (req, res) => {
     status: "reviewing",
     textSummary: parsed.data.textSummary ?? null,
     links: JSON.stringify(parsed.data.links),
+    textHash,
+    followupCount: 0,
   });
 
   if (hasFileIds) {
@@ -425,11 +446,11 @@ router.get("/:submissionId", async (req, res) => {
 
 router.post("/:submissionId/followup", async (req, res) => {
   const schema = z.object({
-    answers: z.string().min(20),
+    answers: z.string().min(10),
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Answers too short" });
+    res.status(400).json({ error: "Answers too short (minimum 10 characters)" });
     return;
   }
 
@@ -443,8 +464,64 @@ router.post("/:submissionId/followup", async (req, res) => {
     return;
   }
 
+  const currentFollowupCount = proofs[0].followupCount ?? 0;
+
+  if (currentFollowupCount >= 2) {
+    await db.update(proofSubmissionsTable).set({
+      status: "partial",
+      rewardMultiplier: 0.4,
+      aiVerdict: "partial",
+      aiExplanation: "Auto-resolved to partial after maximum follow-up attempts reached.",
+      followupCount: currentFollowupCount,
+      updatedAt: new Date(),
+    }).where(eq(proofSubmissionsTable.id, req.params.submissionId));
+
+    const sessions = await db.select().from(focusSessionsTable)
+      .where(eq(focusSessionsTable.id, proofs[0].sessionId)).limit(1);
+    const missions = await db.select().from(missionsTable)
+      .where(eq(missionsTable.id, proofs[0].missionId)).limit(1);
+    const users = await db.select().from(usersTable)
+      .where(eq(usersTable.id, userId)).limit(1);
+
+    if (sessions[0] && missions[0] && users[0]) {
+      const startedAt = new Date(sessions[0].startedAt);
+      const endedAt = sessions[0].endedAt ? new Date(sessions[0].endedAt) : new Date();
+      const actualMinutes = Math.floor((endedAt.getTime() - startedAt.getTime()) / 60000);
+
+      const { coins, xp } = computeRewardCoins({
+        missionPriority: missions[0].priority,
+        missionImpact: missions[0].impactLevel,
+        targetDurationMinutes: missions[0].targetDurationMinutes,
+        actualDurationMinutes: actualMinutes,
+        proofQuality: 0.3,
+        proofConfidence: 0.5,
+        blockedAttemptCount: sessions[0].blockedAttemptCount ?? 0,
+        strictnessMode: sessions[0].strictnessMode,
+        userTrustScore: users[0].trustScore,
+        currentStreak: users[0].currentStreak,
+        missionValueScore: missions[0].missionValueScore ?? undefined,
+        rewardMultiplier: 0.4,
+      });
+
+      if (coins > 0) {
+        await grantReward(userId, coins, xp, `Partial completion: ${missions[0].title}`, {
+          missionId: missions[0].id,
+          sessionId: sessions[0].id,
+          proofId: req.params.submissionId,
+        });
+      }
+
+      await db.update(proofSubmissionsTable).set({ coinsAwarded: coins }).where(eq(proofSubmissionsTable.id, req.params.submissionId));
+    }
+
+    const proof = await db.select().from(proofSubmissionsTable).where(eq(proofSubmissionsTable.id, req.params.submissionId)).limit(1);
+    res.json(parseProof(proof[0]));
+    return;
+  }
+
   await db.update(proofSubmissionsTable).set({
     followupAnswers: parsed.data.answers,
+    followupCount: currentFollowupCount + 1,
     status: "reviewing",
     updatedAt: new Date(),
   }).where(eq(proofSubmissionsTable.id, req.params.submissionId));

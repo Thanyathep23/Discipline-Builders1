@@ -7,6 +7,7 @@ import { calculateRewardPotential } from "../lib/rewards.js";
 import { generateId } from "../lib/auth.js";
 import { trackEvent, Events } from "../lib/telemetry.js";
 import { dispatchWebhookEvent } from "../lib/webhook-dispatcher.js";
+import { getProofRequirements, calculateMissionValueScore, VALID_CATEGORIES } from "../lib/category-proof-requirements.js";
 
 const router = Router();
 
@@ -16,6 +17,7 @@ function parseMission(m: any) {
   return {
     ...m,
     requiredProofTypes: JSON.parse(m.requiredProofTypes || "[]"),
+    proofRequirements: m.proofRequirements ? JSON.parse(m.proofRequirements) : null,
     createdAt: m.createdAt?.toISOString(),
     updatedAt: m.updatedAt?.toISOString(),
     dueDate: m.dueDate ?? null,
@@ -26,7 +28,6 @@ function parseMission(m: any) {
 
 router.get("/", async (req, res) => {
   const userId = (req as any).userId;
-  let query = db.select().from(missionsTable).where(eq(missionsTable.userId, userId));
 
   const missions = await db.select().from(missionsTable)
     .where(and(
@@ -48,6 +49,7 @@ router.post("/", async (req, res) => {
     dueDate: z.string().optional().nullable(),
     purpose: z.string().optional().nullable(),
     requiredProofTypes: z.array(z.enum(["image", "screenshot", "file", "link", "text"])).min(1),
+    proofRequired: z.boolean().optional().default(true),
   });
 
   const parsed = schema.safeParse(req.body);
@@ -59,6 +61,10 @@ router.post("/", async (req, res) => {
   const userId = (req as any).userId;
   const data = parsed.data;
   const rewardPotential = calculateRewardPotential(data.priority, data.impactLevel, data.targetDurationMinutes);
+
+  const proofReqs = getProofRequirements(data.category);
+  const clampedImpact = Math.max(1, Math.min(5, data.impactLevel));
+  const missionValueScore = calculateMissionValueScore(data.priority, clampedImpact, data.targetDurationMinutes);
 
   const id = generateId();
   await db.insert(missionsTable).values({
@@ -73,6 +79,8 @@ router.post("/", async (req, res) => {
     dueDate: data.dueDate ?? null,
     purpose: data.purpose ?? null,
     requiredProofTypes: JSON.stringify(data.requiredProofTypes),
+    proofRequirements: JSON.stringify(proofReqs),
+    missionValueScore,
     status: "active",
     rewardPotential,
   });
@@ -86,6 +94,7 @@ router.post("/", async (req, res) => {
     priority: data.priority,
     targetDurationMinutes: data.targetDurationMinutes,
     rewardPotential,
+    missionValueScore,
   }).catch(() => {});
   res.status(201).json(parseMission(mission[0]));
 });
@@ -119,17 +128,24 @@ router.put("/:missionId", async (req, res) => {
 
   if (body.title !== undefined) updates.title = body.title;
   if (body.description !== undefined) updates.description = body.description;
-  if (body.category !== undefined) updates.category = body.category;
-  if (body.targetDurationMinutes !== undefined) {
-    updates.targetDurationMinutes = body.targetDurationMinutes;
-    updates.rewardPotential = calculateRewardPotential(
-      body.priority ?? mission[0].priority,
-      body.impactLevel ?? mission[0].impactLevel,
-      body.targetDurationMinutes
-    );
+  if (body.category !== undefined) {
+    updates.category = body.category;
+    const proofReqs = getProofRequirements(body.category);
+    updates.proofRequirements = JSON.stringify(proofReqs);
   }
+  if (body.targetDurationMinutes !== undefined) updates.targetDurationMinutes = body.targetDurationMinutes;
   if (body.priority !== undefined) updates.priority = body.priority;
   if (body.impactLevel !== undefined) updates.impactLevel = body.impactLevel;
+
+  const needsValueRecalc = body.priority !== undefined || body.impactLevel !== undefined || body.targetDurationMinutes !== undefined;
+  if (needsValueRecalc) {
+    const finalPriority = body.priority ?? mission[0].priority;
+    const finalImpact = Math.max(1, Math.min(5, body.impactLevel ?? mission[0].impactLevel));
+    const finalDuration = body.targetDurationMinutes ?? mission[0].targetDurationMinutes;
+    updates.missionValueScore = calculateMissionValueScore(finalPriority, finalImpact, finalDuration);
+    updates.rewardPotential = calculateRewardPotential(finalPriority, body.impactLevel ?? mission[0].impactLevel, finalDuration);
+  }
+
   if (body.dueDate !== undefined) updates.dueDate = body.dueDate;
   if (body.purpose !== undefined) updates.purpose = body.purpose;
   if (body.status !== undefined) updates.status = body.status;

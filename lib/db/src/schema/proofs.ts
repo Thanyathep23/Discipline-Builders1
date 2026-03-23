@@ -27,6 +27,8 @@ export const proofSubmissionsTable = pgTable("proof_submissions", {
   rewardMultiplier: real("reward_multiplier"),
   coinsAwarded: integer("coins_awarded"),
   manualReviewNote: text("manual_review_note"),
+  textHash: text("text_hash"),
+  followupCount: integer("followup_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

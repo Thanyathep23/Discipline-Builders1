@@ -35,7 +35,13 @@ export interface RewardInput {
   currentStreak: number;
 }
 
-export function computeRewardCoins(input: RewardInput): { coins: number; xp: number; multiplier: number } {
+export interface ComputeRewardInput extends RewardInput {
+  missionValueScore?: number;
+  rewardMultiplier?: number;
+  distractionCount?: number;
+}
+
+export function computeRewardCoins(input: ComputeRewardInput): { coins: number; xp: number; multiplier: number } {
   const {
     missionPriority,
     missionImpact,
@@ -47,44 +53,42 @@ export function computeRewardCoins(input: RewardInput): { coins: number; xp: num
     strictnessMode,
     userTrustScore,
     currentStreak,
+    missionValueScore,
+    rewardMultiplier: aiRewardMult,
+    distractionCount,
   } = input;
 
-  // Base from priority and impact
-  const base = calculateRewardPotential(missionPriority, missionImpact, targetDurationMinutes);
+  const base = missionValueScore
+    ? missionValueScore * 10
+    : calculateRewardPotential(missionPriority, missionImpact, targetDurationMinutes);
 
-  // Duration ratio (capped at 1.2 to prevent marathon padding)
-  const durationRatio = Math.min(actualDurationMinutes / targetDurationMinutes, 1.2);
+  const qualityFactor = proofQuality * 0.7 + proofConfidence * 0.3;
 
-  // Proof quality factor (most important)
-  const proofFactor = proofQuality * 0.7 + proofConfidence * 0.3;
-
-  // Distraction penalty (tiered)
+  const distractions = distractionCount ?? blockedAttemptCount;
   let distractionPenalty: number;
-  if (blockedAttemptCount === 0) {
+  if (distractions === 0) {
     distractionPenalty = 1.1;
-  } else if (blockedAttemptCount <= 2) {
+  } else if (distractions <= 2) {
     distractionPenalty = 1.0;
-  } else if (blockedAttemptCount <= 5) {
+  } else if (distractions <= 5) {
     distractionPenalty = 0.85;
   } else {
     distractionPenalty = 0.70;
   }
 
-  // Strictness bonus
   const strictnessBonus: Record<string, number> = { normal: 1.0, strict: 1.1, extreme: 1.2 };
   const strictBonus = strictnessBonus[strictnessMode] ?? 1.0;
 
-  // Trust score factor
   const trustFactor = Math.max(0.5, Math.min(1.5, userTrustScore));
 
-  // Streak bonus (max 20% at streak 10+)
   const streakBonus = Math.min(1.2, 1 + (currentStreak * 0.02));
 
-  const multiplier = durationRatio * proofFactor * distractionPenalty * strictBonus * trustFactor * streakBonus;
+  const aiMult = aiRewardMult ?? 1.0;
+
+  const multiplier = qualityFactor * distractionPenalty * strictBonus * trustFactor * streakBonus * aiMult;
   const coins = Math.max(0, Math.round(base * multiplier));
 
-  // XP is always earned relative to actual time (0.5 xp per minute, min 5)
-  const xp = Math.max(5, Math.round(actualDurationMinutes * 0.5 * proofFactor * streakBonus));
+  const xp = Math.max(coins > 0 ? 10 : 1, Math.round(coins / 5));
 
   return { coins, xp, multiplier: Math.round(multiplier * 100) / 100 };
 }
