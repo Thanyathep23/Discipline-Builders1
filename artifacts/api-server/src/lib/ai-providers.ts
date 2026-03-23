@@ -97,8 +97,8 @@ export async function preScreen(proof: ProofSubmission, categoryMinTextLength?: 
     };
   }
 
-  const normalized = trimmed.toLowerCase();
-  if (!isFollowupRejudge && normalized && GENERIC_PHRASES.includes(normalized)) {
+  const normalized = trimmed.toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+  if (!isFollowupRejudge && normalized && GENERIC_PHRASES.some(phrase => normalized === phrase || normalized.startsWith(phrase + " "))) {
     return {
       verdict: "followup_required",
       reason: "too_generic",
