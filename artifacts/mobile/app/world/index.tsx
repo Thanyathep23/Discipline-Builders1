@@ -16,8 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   useWorldRoom, useWorldEligibility,
   useAssignDisplaySlot, useClearDisplaySlot,
-  useToggleCharacterInRoom, useRoomShopItems,
-  useBuyItem, useCharacterStatus,
+  useRoomShopItems, useBuyItem, useCharacterStatus,
 } from "@/hooks/useApi";
 import { RoomCanvas } from "@/components/room/RoomCanvas";
 import { RoomItemVisual } from "@/components/room/RoomItemVisuals";
@@ -136,7 +135,6 @@ export default function CommandCenterScreen() {
 
   const assignSlot = useAssignDisplaySlot();
   const clearSlot = useClearDisplaySlot();
-  const toggleChar = useToggleCharacterInRoom();
   const buyItem = useBuyItem();
 
   const [pickerZone, setPickerZone] = useState<string | null>(null);
@@ -207,14 +205,6 @@ export default function CommandCenterScreen() {
       setPickerVisible(false);
     } catch (e: any) { setPickerVisible(false); setErrorMsg(e.message ?? "Could not remove item"); }
   }, [clearSlot]);
-
-  const handleToggleCharacter = useCallback(async () => {
-    if (toggleChar.isPending) return;
-    try {
-      await toggleChar.mutateAsync(!isCharacterInRoom);
-      Haptics.selectionAsync().catch(() => {});
-    } catch (e: any) { setErrorMsg(e.message ?? "Could not toggle character"); }
-  }, [toggleChar, isCharacterInRoom]);
 
   const handleBuyAndPlace = useCallback(async (itemId: string, zone: string) => {
     setBuyingId(itemId);
@@ -303,61 +293,31 @@ export default function CommandCenterScreen() {
           </Pressable>
         )}
 
-        {/* ─── ROOM CANVAS ─── */}
-        <Animated.View entering={FadeInDown.delay(30).springify()}>
-          <RoomCanvas
-            placedItems={placedItems}
-            roomTheme={slots["room_theme"]?.itemId ?? null}
-            showCharacter={isCharacterInRoom}
-            characterComponent={characterNode}
-            onZoneTap={handleZoneTap}
-            hasLighting={!!slots["lighting"]}
-            highlightedZone={highlightedZone}
-          />
-        </Animated.View>
-
-        {/* ─── CHARACTER CARD ─── */}
-        <Animated.View entering={FadeInDown.delay(50).springify()}>
-          {isCharacterInRoom ? (
-            <View style={st.charCardWrap}>
-              <LinearGradient colors={["rgba(139,92,246,0.12)", "rgba(59,130,246,0.08)"]}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.charCardGrad}>
-                <View style={st.charCardTop}>
-                  <View style={st.charAvatar}>
-                    <Ionicons name="person" size={20} color="#8B5CF6" />
-                    <View style={st.onlineDot} />
-                  </View>
-                  <View style={st.charInfo}>
-                    <Text style={st.charTitle}>You're in your command center</Text>
-                    <Text style={st.charSub}>{roomTierLabel} · T{roomTier} · {roomScore} pts</Text>
-                  </View>
-                </View>
-                <View style={st.charDivider} />
-                <View style={st.charActions}>
-                  <PressableScale onPress={handleToggleCharacter} style={st.charExitBtn}>
-                    <Ionicons name="log-out-outline" size={14} color="#fff" />
-                    <Text style={st.charExitText}>Exit Room</Text>
-                  </PressableScale>
-                </View>
-              </LinearGradient>
-            </View>
-          ) : (
-            <PressableScale onPress={handleToggleCharacter} disabled={toggleChar.isPending}>
-              <View style={st.charEnterCard}>
-                <View style={[st.charAvatar, { opacity: 0.35 }]}>
-                  <Ionicons name="person-outline" size={22} color="rgba(255,255,255,0.5)" />
-                </View>
-                <View style={st.charInfo}>
-                  <Text style={st.charEnterTitle}>Your command center awaits</Text>
-                  <Text style={st.charSub}>{roomTierLabel} · T{roomTier} · {roomScore} pts</Text>
-                </View>
-                <View style={st.charEnterBtn}>
-                  <Text style={st.charEnterBtnText}>Enter Room</Text>
-                  <Ionicons name="arrow-forward" size={13} color="#fff" />
-                </View>
-              </View>
-            </PressableScale>
-          )}
+        {/* ─── ROOM PREVIEW CARD ─── */}
+        <Animated.View entering={FadeInDown.delay(30).springify()} style={st.previewCard}>
+          <View style={st.previewHeader}>
+            <Text style={st.previewTitle}>COMMAND CENTER</Text>
+            <Text style={st.previewSub}>{roomTierLabel} · T{roomTier} · {roomScore} pts</Text>
+          </View>
+          <View style={st.previewCanvasWrap}>
+            <RoomCanvas
+              placedItems={placedItems}
+              roomTheme={slots["room_theme"]?.itemId ?? null}
+              showCharacter={isCharacterInRoom}
+              characterComponent={characterNode}
+              onZoneTap={() => router.push("/room/editor")}
+              hasLighting={!!slots["lighting"]}
+              highlightedZone={highlightedZone}
+            />
+          </View>
+          <PressableScale onPress={() => {
+            Haptics.selectionAsync().catch(() => {});
+            router.push("/room/editor");
+          }} style={st.customizeBtn}>
+            <Ionicons name="home-outline" size={15} color="#fff" />
+            <Text style={st.customizeBtnText}>Customize Room</Text>
+            <Ionicons name="arrow-forward" size={14} color="rgba(255,255,255,0.5)" />
+          </PressableScale>
         </Animated.View>
 
         {/* ─── TIER CARD ─── */}
@@ -781,23 +741,13 @@ const st = StyleSheet.create({
   errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(239,68,68,0.1)", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "rgba(239,68,68,0.25)" },
   errorText: { flex: 1, fontFamily: "Inter_500Medium", fontSize: 12, color: "#EF4444", lineHeight: 17 },
 
-  charCardWrap: { borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: "rgba(139,92,246,0.3)" },
-  charCardGrad: { padding: 16, gap: 12 },
-  charCardTop: { flexDirection: "row", alignItems: "center", gap: 12 },
-  charAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(139,92,246,0.2)", alignItems: "center", justifyContent: "center" },
-  onlineDot: { position: "absolute", bottom: 1, right: 1, width: 10, height: 10, borderRadius: 5, backgroundColor: "#22C55E", borderWidth: 2, borderColor: "#0E0F1A" },
-  charInfo: { flex: 1, gap: 2 },
-  charTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: "#fff" },
-  charSub: { fontFamily: "Inter_400Regular", fontSize: 11, color: "rgba(255,255,255,0.45)" },
-  charDivider: { height: 1, backgroundColor: "rgba(255,255,255,0.08)" },
-  charActions: { flexDirection: "row", justifyContent: "flex-end" },
-  charExitBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#8B5CF6", borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8 },
-  charExitText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: "#fff" },
-
-  charEnterCard: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
-  charEnterTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: "rgba(255,255,255,0.7)" },
-  charEnterBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#8B5CF6", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
-  charEnterBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: "#fff" },
+  previewCard: { backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)", overflow: "hidden" },
+  previewHeader: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
+  previewTitle: { fontFamily: "Inter_700Bold", fontSize: 10, color: "rgba(255,255,255,0.35)", letterSpacing: 2 },
+  previewSub: { fontFamily: "Inter_500Medium", fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 2 },
+  previewCanvasWrap: { paddingHorizontal: 8 },
+  customizeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#8B5CF6", margin: 12, borderRadius: 12, paddingVertical: 14 },
+  customizeBtnText: { fontFamily: "Inter_700Bold", fontSize: 14, color: "#fff" },
 
   tierCard: { backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.07)", gap: 12 },
   tierCardTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },

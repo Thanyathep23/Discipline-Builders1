@@ -798,24 +798,38 @@ New rarity tiers: `refined`, `prestige`, `elite` (added to `RARITY_COLORS` in `c
 - "Full Setup" — all 6 zone types filled
 Duplicate prevention: checks ownership before award, try/catch for concurrent requests.
 
-### Room Screen UI (Premium Overhaul v2)
-- Header: back button, "COMMAND CENTER" eyebrow, tier name, tier badge, coin balance
-- Room canvas: perspective room with all placed items + character
-- Character toggle card: avatar, online dot, tier info, Enter/Exit button
-- Tier progress card: score pill, animated progress bar with X/Y fraction, next tier hint
-  - Tappable upgrade hint cards: "Add Monitor +8 pts" → highlights zone then opens shop
-  - Tier milestone peek: "Reach T1: Unlock Emerging Workspace badge"
-- YOUR SETUP section: zone fill progress bar (X/9 zones), placed item cards + empty zone cards
-  - Empty zone cards show icon, zone name, "Add +Xpts" CTA button
-- IN INVENTORY section: owned-but-not-placed items with "Place" button
-- DECORATE YOUR SPACE section: motivational quote, featured empty zone cards with points
-  - Category quick-access pill row (all zone types as shortcuts to filtered shop)
-  - "Browse All Room Items" button
-- Zone tap → zone highlight/dim + picker modal (filled: replace/remove actions) or shop
-- Shop modal: icons in tabs, all 9 zone categories, points shown on each card
+### Room Overview Screen (world/index.tsx)
+- Shows room preview card with non-interactive mini canvas
+- "Customize Room" button → navigates to full-screen editor `/room/editor`
+- Tier progress card, YOUR SETUP section, INVENTORY, DECORATE, MILESTONES remain
+- Zone taps on canvas also navigate to editor
+- Shop modal still accessible from upgrade hint cards
 - Shop uses API fields `cost` and `minLevel` (not coinCost/levelRequired)
-- MILESTONES section: earned badge chips in horizontal scroll
-- Buy-and-place flow: purchase item from shop → auto-place in zone
+
+### Full-Screen Room Editor (app/room/editor.tsx)
+- Route: `/room/editor`, registered in `_layout.tsx` with `slide_from_bottom` animation
+- Full-screen: no tab bar, no scroll, fixed viewport
+- Header (52px + insets): back button, "COMMAND CENTER" label, Save button
+  - Save button: shows "Save" / "Saving..." / "Saved ✓" states
+  - Unsaved changes: orange dot indicator + pulsing border
+  - Back with unsaved changes: Alert with Save/Discard/Stay options
+- Room Canvas fills ~72% of screen (screenH - header - panel)
+  - Full perspective room: wall gradient, baseboard, floor grid, vanishing-point lines
+  - Wall panel lines every 80px, floor glow ellipse
+  - Zones scaled per perspective row (back=0.80, mid=0.88, floor=1.0)
+  - Character at scale 0.9 with 60×12px floor shadow
+  - Zone tap: empty → opens shop tab, filled → opens action menu (Replace/Remove)
+  - Zone highlight/dim on tap
+- Floating tier info card (top-right): tier label, progress bar, score
+- Character toggle FAB (bottom-right): 44px circle, green dot when active
+- Bottom Shop Panel (220px, always visible):
+  - Coin balance header with live count
+  - Category pills (horizontal scroll, 10 tabs with icons)
+  - Items grid (horizontal scroll, 88×110px cards)
+  - Card states: Available (+Add), Owned (Place), Placed (checkmark), Locked (Lvl X)
+  - Purchase confirmation bottom sheet with item preview, price, Buy & Place / Cancel
+- Auto-save: every 30 seconds if changes exist (silent refetch)
+- Uses same API hooks: useAssignDisplaySlot, useClearDisplaySlot, useToggleCharacterInRoom, useBuyItem
 
 ### API Endpoints
 - `GET /api/world/room` — full room state with slots, roomState, isCharacterInRoom, badges, ownedNotDisplayed

@@ -1,0 +1,582 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+When user taps "Enter Room" — open a completely separate
+FULL-SCREEN IMMERSIVE ROOM EDITOR that takes over the 
+entire screen like a real game environment.
+
+This is the most important UX change in the app.
+The room must feel like entering a real space,
+not viewing a small card on a scroll screen.
+
+==================================================
+PART 1 — FULL SCREEN ROOM EDITOR ARCHITECTURE
+==================================================
+
+1A. Navigation Structure
+
+"Enter Room" button → navigate to new screen:
+  Route: /room/editor
+  
+This screen is:
+- Full screen (no tab bar)
+- No scroll — fixed viewport
+- Landscape-style room fills entire screen height
+- Only back button + save button in header
+- Everything else is the room
+
+1B. Screen Layout (Fixed, No Scroll)
+┌─────────────────────────────────────────┐  ← status bar
+│ [←]  COMMAND CENTER        [💾 Save]    │  ← 52px header
+├─────────────────────────────────────────┤
+│                                         │
+│                                         │
+│                                         │
+│         ROOM CANVAS                     │  ← fills ~72%
+│         (full width, tall)              │    of screen
+│                                         │
+│                                         │
+│                                         │
+├─────────────────────────────────────────┤
+│  [SHOP PANEL — slides up from bottom]   │  ← 28% bottom
+└─────────────────────────────────────────┘
+
+1C. Header (minimal, stays on top)
+Height: 52px
+Background: rgba(8,9,16,0.95) with blur
+Border bottom: 1px rgba(255,255,255,0.06)
+Left: [← back icon] "COMMAND CENTER"
+Right: [💾 Save] button
+Save button:
+Background: accent.primary
+Text: "Save"
+Icon: checkmark or save icon
+Width: 80px
+Shows "Saving..." when API call in progress
+Shows "Saved ✓" briefly on success
+When unsaved changes exist:
+Save button pulses gently (attention animation)
+Small orange dot on button
+
+==================================================
+PART 2 — FULL SCREEN ROOM CANVAS
+==================================================
+
+2A. Canvas Dimensions
+Width: 100% screen width
+Height: screen height - header (52px) - shop panel (220px)
+= approximately 72% of screen height
+On iPhone 14: ~550px tall, full width
+This is 3x taller than the current small canvas
+
+2B. Room Perspective (Full Size)
+WALL AREA (top 40% of canvas):
+Background: #0C0D1A
+Subtle wall panel lines:
+Vertical lines every 80px
+Color: rgba(255,255,255,0.025)
+Height: full wall area
+Baseboard at bottom of wall:
+1px line rgba(255,255,255,0.06)
+Makes wall/floor transition clear
+FLOOR AREA (bottom 60% of canvas):
+Background gradient:
+#111220 → #080910 (front is darker)
+Floor grid perspective lines:
+10 horizontal lines, increasing spacing
+toward bottom (perspective convergence)
+Color: rgba(255,255,255,0.03)
+5 lines converging to center-top vanishing point
+(creates real 3D floor feel)
+AMBIENT GLOW:
+Large soft ellipse center-floor
+rgba(109,40,217,0.15) center → transparent
+Width: 65%, Height: 30%
+Position: 60% from top
+
+2C. Zone Positions (Full Screen Scale)
+
+Zones are now much larger and properly spaced:
+BACK ROW (on wall, y: 18%):
+[LIGHTING zone]    [THEME zone]
+x: 15%             x: 72%
+Size: 64x80px      Size: 64x80px
+Scale: 0.8 (perspective)
+SHELF ROW (mid-wall, y: 28%):
+[SHELF]     [MONITOR]      [TROPHY]
+x: 8%       x: 38%         x: 74%
+Size: 72x90px each
+Scale: 0.88
+DESK ROW (floor level, y: 48%):
+[DESK] centered
+x: 30%, width: 40%
+Size: 140x80px (wider for desk)
+Scale: 1.0
+CHARACTER (front-center, y: 58%):
+x: center (42%)
+Character height: 120px in full screen
+Shadow ellipse beneath: 50x10px
+FRONT ROW (y: 68%):
+[PLANTS]          [AUDIO]    [COFFEE]
+x: 6%             x: 64%     x: 76%
+Size: 68x85px
+Scale: 1.1 (closer = bigger)
+
+2D. Zone Visual Design (Full Size)
+
+Empty zone:
+Background: rgba(255,255,255,0.04)
+Border: 1.5px solid rgba(255,255,255,0.12)
+Border radius: 14px
+Icon: 26px, 35% opacity
+Label: 9px uppercase, 40% opacity
+Letter spacing: 1px
+TAP BEHAVIOR:
+Press in → scale 0.95, border brightens
+Hold → gentle pulse animation
+Release → opens item picker
+
+Filled zone:
+No background card
+Item SVG renders directly at zone size
+Drop shadow: 0 8px 20px rgba(0,0,0,0.7)
+Scale animates in on placement (spring)
+TAP BEHAVIOR:
+Tap → shows action menu:
+┌─────────────────┐
+│ 🔄  Replace     │
+│ 📦  Remove      │
+└─────────────────┘
+Menu appears at zone position
+Backdrop: rgba(0,0,0,0.5)
+
+==================================================
+PART 3 — BOTTOM SHOP PANEL
+==================================================
+
+This panel sits at the bottom of the full-screen editor.
+It is always visible and provides quick shopping access.
+
+3A. Panel Structure (Collapsed State — always visible)
+Height: 220px
+Background: rgba(10,11,20,0.98)
+Border top: 1px rgba(255,255,255,0.08)
+Border radius top: 20px 20px 0 0
+HANDLE: small drag indicator at top center
+CONTENT:
+Row 1 — Category Pills (horizontal scroll):
+[All] [🖥 Desk] [📺 Monitor] [☕ Coffee]
+[🪴 Plants] [💡 Light] [🎨 Theme] [🏆 Trophy]
+Height: 36px
+Pill style: compact, 8px padding
+Row 2 — Items Grid (horizontal scroll):
+Shows items for selected category
+Each item card: 88x110px
+┌──────────┐
+│  [SVG]   │  ← 56px item illustration
+│ Name     │  ← 10px, 2 line max
+│ 800 ₿   │  ← price in amber
+│ [+Add]   │  ← or "Owned" or "Lvl X"
+└──────────┘
+Card states:
+
+Available: normal card, [+Add] button
+Owned (not placed): green border, [Place] button
+Placed: accent border, [Placed ✓]
+Locked: gray, lock icon, "Lvl X"
+Cannot afford: price in red, [+X more]
+
+
+3B. Panel Expanded State (drag up)
+When user drags handle up:
+Panel expands to 60% of screen height
+Shows:
+
+Same category pills
+2-column grid of items (more items visible)
+Item cards become 100x130px
+Room canvas shrinks to 40% above
+
+Drag handle down to collapse back
+
+3C. Item Quick-Buy Flow
+
+When user taps [+Add] on an item:
+IF OWNED:
+Item immediately placed in its default zone
+Placement animation plays
+Panel shows "Placed!" briefly
+IF NOT OWNED (can afford):
+Small confirmation sheet rises:
+┌─────────────────────────────┐
+│  [Item SVG large]           │
+│  Espresso Machine           │
+│  Refined · +8 pts           │
+│                             │
+│  Purchase & Place           │
+│  1,200 coins                │
+│                             │
+│  [Buy & Place →]  [Cancel]  │
+└─────────────────────────────┘
+Height: 320px bottom sheet
+IF CANNOT AFFORD:
+Same sheet but:
+"Need 1,100 more coins"
+[Earn Coins →] button (goes to missions)
+
+3D. Coin Balance Always Visible
+
+In the bottom panel header area:
+💰 100 coins available
+Shows real-time as purchases made
+Updates with animation when coins spent
+
+==================================================
+PART 4 — FREE PLACEMENT SYSTEM
+==================================================
+
+4A. Drag to Reposition (Premium Feature)
+
+After placing an item, user can drag it:
+Long press on placed item → item lifts up
+Scale: 1.1, drop shadow increases
+Slight opacity: 0.9 (lifted feel)
+Drag to new position:
+Item follows finger
+Valid zones highlight when item hovers over them
+Invalid positions: item snaps back
+Release on valid zone:
+Item drops into zone with spring animation
+Floor shadow appears
+Release on empty space:
+Item snaps back to original zone
+
+4B. Zone Snapping
+
+Available zones highlight as item is dragged near:
+Active zone: border glows accent.primary
+background: rgba(139,92,246,0.12)
+Incompatible zone: no highlight
+
+4C. Multi-Item Management
+
+Show a small "PLACED" indicator when zone is full:
+Small pill in corner of filled zone:
+"1 item" or item name abbreviated
+tap to manage
+
+==================================================
+PART 5 — SAVE SYSTEM
+==================================================
+
+5A. Auto-save vs Manual Save
+Auto-save: every 30 seconds if changes exist
+silent, no UI notification
+Manual save: tap [💾 Save] button
+Shows loading state in button
+Calls POST /api/room/save
+Body: { placedItems: { zone: itemId },
+isCharacterInRoom: boolean }
+On success: "Saved ✓" for 2 seconds
+On error: "Save failed" with retry
+
+5B. Unsaved Changes Detection
+Track: hasUnsavedChanges (boolean state)
+Sets to true when:
+
+item placed
+item removed
+item repositioned
+
+Sets to false when:
+
+save completes
+
+When leaving with unsaved changes:
+Show alert:
+"Save changes to your room?"
+[Save & Exit]  [Discard]  [Stay]
+
+5C. Save API Endpoint
+
+POST /api/room/save
+Body:
+{
+placedItems: {
+desk: "item-id-or-null",
+monitor: "item-id-or-null",
+coffee_station: "item-id-or-null",
+plants: "item-id-or-null",
+shelf: "item-id-or-null",
+trophy_case: "item-id-or-null",
+audio: "item-id-or-null",
+lighting: "item-id-or-null",
+room_theme: "item-id-or-null"
+},
+isCharacterInRoom: boolean
+}
+Response:
+{
+success: true,
+newRoomScore: 42,
+newTier: 1,
+tierUpgraded: false,
+badgesEarned: []
+}
+
+==================================================
+PART 6 — CHARACTER IN FULL SCREEN ROOM
+==================================================
+
+6A. Character Presence
+
+In full-screen editor, character is more prominent:
+Character height: 120px (vs 60px in old view)
+Character position: center-floor, in front of desk
+Character faces slight 3/4 angle (not straight forward)
+Floor shadow:
+Ellipse: 60x12px
+rgba(0,0,0,0.6)
+blur: 8px
+"YOU" label:
+Appears briefly (3 seconds) when entering room
+Small pill above character head
+rgba(139,92,246,0.8) background
+"YOU" in 9px white
+Fades out after 3 seconds
+
+6B. Character Toggle in Editor
+
+Small floating button in room canvas:
+Position: bottom-right of canvas
+Size: 44x44px circle
+Background: rgba(10,11,20,0.9)
+Border: 1px rgba(255,255,255,0.15)
+Icon: person icon
+When in room: person icon filled, green dot
+When not in room: person icon outline
+Tap: toggles character presence
+slide-in/out animation
+
+==================================================
+PART 7 — ROOM ENTRY/EXIT TRANSITION
+==================================================
+
+7A. Enter Room Animation
+
+From Rewards screen → Room Editor:
+The room canvas card on rewards screen:
+Scales up from its position
+Expands to fill the screen
+Duration: 350ms, ease-in-out
+If transition API not available:
+Simple fade in transition
+Duration: 250ms
+
+7B. Exit Room Animation
+Save confirmation if needed
+Screen slides down (like a drawer closing)
+Duration: 300ms
+
+==================================================
+PART 8 — ROOM STATE DISPLAY IN EDITOR
+==================================================
+
+Small floating info card in top-right of canvas:
+Position: top-right corner
+Size: compact, 120x56px
+Background: rgba(8,9,16,0.85)
+Border: 1px rgba(255,255,255,0.08)
+Border radius: 12px
+Content:
+Standard Base  T0
+████░░░░  8 pts
+Score bar: 4px height, mini version
+Tier label: small
+Points: amber color
+Tapping this shows full tier details
+
+==================================================
+PART 9 — ITEM SVGS FOR FULL SCREEN SIZE
+==================================================
+
+Redraw key item SVGs at higher detail for full screen:
+
+All SVGs must now look good at 80-120px size
+(vs old 48px — more detail needed)
+
+DESK (most prominent - center of room):
+MinimalDeskSVG at full quality:
+
+Desk surface with slight 3D perspective top
+Two legs visible
+Small items on surface: tiny laptop or book
+Subtle surface reflection line
+Colors: dark grey top (#2A2B3D),
+darker legs (#1A1B2A)
+
+
+ESPRESSO MACHINE (character motivation):
+Classic espresso machine:
+
+Rounded rectangular body (silver/chrome)
+Group head visible front
+Steam wand right side
+Drip tray at base
+Small espresso cup in front
+Subtle chrome highlight line
+Colors: #C0C0C0 body, #909090 darker areas
+
+
+DUAL MONITOR:
+Two monitors side by side:
+
+Thin bezels
+Subtle blue screen glow
+Abstract chart/data on screens
+Single stand/arm
+Looks like real productivity setup
+
+
+BOOKSHELF:
+Floating wall shelf:
+
+4-5 book spines varying heights
+One plant/succulent
+Small decorative object
+Feels curated and intentional
+
+
+PLANT:
+Monstera in white ceramic pot:
+
+3-4 distinctive leaves
+Clear pot shape
+Feels premium not generic
+
+
+==================================================
+PART 10 — REWARDS SCREEN UPDATE
+==================================================
+
+On the Rewards screen (non-editor view):
+
+Replace the small room canvas with:
+A premium ROOM PREVIEW CARD:
+┌─────────────────────────────────────────┐
+│  COMMAND CENTER                         │
+│  Standard Base · T0 · 8pts             │
+│                                         │
+│  ┌─────────────────────────────────┐   │
+│  │  [Mini room preview - 160px tall│   │
+│  │   Shows current room state      │   │
+│  │   with items placed]            │   │
+│  └─────────────────────────────────┘   │
+│                                         │
+│  [🏠 Customize Room →]                  │
+└─────────────────────────────────────────┘
+Background: dark card
+Border: 1px rgba(255,255,255,0.08)
+"Customize Room" button: full width, primary
+The preview canvas is non-interactive
+(just a read-only view of current state)
+Only the button opens the full editor
+
+==================================================
+TECHNICAL REQUIREMENTS
+==================================================
+
+Navigation:
+- New screen: app/room/editor.tsx
+- Full screen, no tab bar
+- Back navigation with unsaved changes guard
+
+State management:
+- Local state for unsaved placement changes
+- Sync with server only on Save
+- Optimistic UI: show changes immediately
+
+Performance:
+- Room canvas: memoized, no re-render on panel scroll
+- Item SVGs: memoized per item
+- Animations: Reanimated 2 shared values
+- Target: < 100ms render time for canvas
+
+Gesture handling:
+- react-native-gesture-handler for drag/drop
+- PanGestureHandler for item dragging
+- TapGestureHandler for zone taps
+
+==================================================
+DO NOT BUILD
+==================================================
+
+- Multiplayer room viewing
+- Real-money purchases  
+- 3D rendering engine
+- New gameplay outside room editor
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. "Enter Room" opens a FULL SCREEN editor
+2. Room canvas fills ~72% of screen (tall, wide)
+3. Bottom panel shows item shop always
+4. Items can be purchased and placed from panel
+5. Save button works with unsaved changes detection
+6. Drag to reposition items works
+7. Character is prominent (120px) with shadow
+8. Zone taps open filtered item picker
+9. Quick-buy flow works for new items
+10. Room preview card on Rewards screen
+11. Tier info visible in canvas (floating card)
+12. Entry/exit transitions feel premium
+13. Auto-save every 30 seconds
+14. Unsaved changes prompt on exit
+15. Performance: 60fps maintained
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. New screen created: /room/editor
+2. Navigation flow (Rewards → Editor)
+3. Canvas dimensions and zone layout
+4. Shop panel implementation
+5. Save system details
+6. Drag/drop implementation
+7. Files changed only
+8. End-to-end test results
+9. Performance notes
+10. Remaining gaps
+
+ภาพที่จะได้
+FULL SCREEN MODE (เมื่อกด Enter Room):
+
+┌─────────────────────────────────────┐
+│ ←  COMMAND CENTER         [💾 Save] │ ← 52px
+├─────────────────────────────────────┤
+│  ┌─── T0  Standard Base  8pts ───┐  │
+│  │                               │  │
+│  │  [Light]         [Theme]      │  │ ← wall
+│  │  [Shelf]  [MONITOR]  [Trophy] │  │ ← mid
+│  │                               │  │
+│  │     ════════[DESK]════════    │  │ ← floor
+│  │           [CHARACTER 👤]      │  │
+│  │  [Plant]    shadow   [Coffee] │  │
+│  │        [Audio]                │  │
+│  └───────────────────────────────┘  │
+│                          [👤 toggle]│
+├─────────────────────────────────────┤ ← drag up
+│  💰 100 coins                       │
+│  [All][Desk][Monitor][Coffee][Light]│ ← pills
+│  ┌──────┐┌──────┐┌──────┐┌──────┐  │
+│  │[SVG] ││[SVG] ││[SVG] ││[SVG] │  │ ← items
+│  │Desk  ││Moni  ││Espresso│Plants│  │
+│  │800₿  ││1500₿ ││1200₿  │300₿  │  │
+│  │[+Add]││[+Add]││[+Add] │[+Add]│  │
+│  └──────┘└──────┘└──────┘└──────┘  │
+└─────────────────────────────────────┘
