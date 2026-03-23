@@ -748,20 +748,23 @@ New rarity tiers: `refined`, `prestige`, `elite` (added to `RARITY_COLORS` in `c
 
 ### Visual Room Canvas (Premium Overhaul)
 - File: `artifacts/mobile/components/room/RoomCanvas.tsx`
-- CANVAS_HEIGHT=310, perspective room with ceiling gradient, wall panels, floor with vanishing-point grid
-- 4 atmosphere layers: ceiling → wall with vertical panel lines → floor with VP grid → vignette
-- Smaller focused floor glow (not full-canvas oval) for realistic light pooling
-- Theme-reactive backgrounds with `panelLine` color per theme
-- Lighting-reactive ambient glow (LED = purple, Arc Lamp = warm amber)
-- Slow ambient pulse on floor area (bottom 30%, not center)
-- Responsive width via `useWindowDimensions()`
-- Zone-specific tint colors for empty zone backgrounds (coffee=amber, plants=green, etc.)
-- Zone highlight + dim: tapped zone gets accent pulse, others dim to 35% opacity
-- `ZonePulse` animated component: scale 1→1.03 + glow on highlighted zone
-- Perspective-aware zone `scale` prop (back wall items smaller, floor items full size)
-- Item drop shadows under placed items
-- Character shadow (dark ellipse under feet) for ground contact
-- Empty zones: dashed borders at 10% white, zone tint at 8% background
+- CANVAS_HEIGHT=320, floor surface at 55% (wall top + floor bottom)
+- Wall gradient (#0D0E1A → #080910) + floor gradient (#111220 → #0C0D18)
+- 5 vertical wall panel lines (subtle structural depth)
+- Floor perspective: 7 vanishing-point lines from center + 4 horizontal gridlines
+- Floor glow: SVG Ellipse (radial gradient, 35% rx, 40% ry) centered on floor
+- Horizontal vignette (L/R dark edges, 0.3 opacity) + vertical vignette (top/bottom)
+- Theme-reactive: wall1/wall2/floor1/floor2/glow/panel per theme
+- Lighting-reactive: radial glow from top when lighting zone occupied
+- Ambient pulse: 4.5s sine cycle on floor area (bottom 35%)
+- Zone-specific tint colors for empty zone backgrounds (0A opacity)
+- Zone highlight + dim: tapped zone gets accent pulse, others dim to 30% opacity
+- `ZonePulse`: border glow 0→0.5→0.12 with accent bg tint
+- Perspective-aware zone scale: back=0.75, mid=0.88, floor=1.0
+- Item drop shadows (45% opacity, 6px height, 45% zone width)
+- Character at scale 0.62, shadow ellipse 40×8px, opacity 0.5
+- Empty zones: 12px borderRadius, 1px solid at 10% white, zone tint bg
+- Responsive via `useWindowDimensions()`
 
 ### Room Item SVG Visuals (Premium Redesign)
 - File: `artifacts/mobile/components/room/RoomItemVisuals.tsx`
