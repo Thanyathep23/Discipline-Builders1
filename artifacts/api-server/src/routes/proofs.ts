@@ -547,6 +547,68 @@ router.post("/:submissionId/followup", async (req, res) => {
           await db.update(missionsTable).set({ status: "completed", updatedAt: new Date() })
             .where(eq(missionsTable.id, missions[0].id));
 
+          try {
+            const categorySkills = CATEGORY_SKILL_MAP[missions[0].category] ?? ["focus"];
+            const cycleSkillsToCheck = [...new Set([...categorySkills, "focus"])];
+            let cycleRewardProcessed = false;
+            for (const skillId of cycleSkillsToCheck) {
+              const cycleResult = await incrementCycleProgress(userId, skillId).catch(() => null);
+              if (cycleResult?.completed && cycleResult.cycleId && cycleResult.cycleType && !cycleRewardProcessed) {
+                cycleRewardProcessed = true;
+                const def = CYCLE_DEFINITIONS[cycleResult.cycleType as CycleType];
+                if (def) {
+                  const titleId = "title-" + def.rewardTitle.toLowerCase().replace(/\s+/g, "-");
+                  await awardTitle(userId, titleId).catch(() => {});
+                  await grantReward(userId, 200, 100, `Cycle completed: ${def.label}`);
+                  await markCycleRewardClaimed(cycleResult.cycleId);
+                }
+              }
+            }
+          } catch (err) {
+            console.error("[AutoPartial] Cycle progression error:", err);
+          }
+
+          try {
+            if (missions[0].source === "ai_generated" && missions[0].aiMissionId) {
+              const [aiMission] = await db.select().from(aiMissionsTable)
+                .where(eq(aiMissionsTable.id, missions[0].aiMissionId)).limit(1);
+              if (aiMission && aiMission.suggestedRewardBonus > 0) {
+                await grantReward(userId, aiMission.suggestedRewardBonus,
+                  Math.round(aiMission.suggestedRewardBonus * 0.5),
+                  `AI Mission bonus: ${missions[0].title}`, { missionId: missions[0].id });
+              }
+            }
+          } catch (err) {
+            console.error("[AutoPartial] AI mission bonus error:", err);
+          }
+
+          try {
+            const rarityBonus = computeRarityBonus(missions[0].rarity);
+            const difficultyBonus = computeAdaptiveDifficultyBonus(missions[0].difficultyColor);
+            const rarityTotalBonus = rarityBonus + difficultyBonus;
+            if (rarityTotalBonus > 0) {
+              await grantReward(userId, rarityTotalBonus, Math.round(rarityTotalBonus * 0.5),
+                `${missions[0].rarity ?? "normal"} mission bonus: ${missions[0].title}`,
+                { missionId: missions[0].id });
+            }
+          } catch (err) {
+            console.error("[AutoPartial] Rarity/difficulty bonus error:", err);
+          }
+
+          try {
+            if (missions[0].chainId) {
+              const chainResult = await advanceChainStep(missions[0].chainId, userId);
+              if (chainResult?.completed && chainResult.bonusCoins > 0) {
+                await grantReward(userId, chainResult.bonusCoins,
+                  Math.round(chainResult.bonusCoins * 0.75),
+                  `Quest chain completed: ${chainResult.chainName}`,
+                  { missionId: missions[0].id });
+              }
+            }
+          } catch (err) {
+            console.error("[AutoPartial] Chain advancement error:", err);
+          }
+
           const trustDelta = 0.01;
           const newTrust = Math.max(0.1, Math.min(1.0, users[0].trustScore + trustDelta));
           await db.update(usersTable).set({ trustScore: newTrust, updatedAt: new Date() }).where(eq(usersTable.id, userId));
