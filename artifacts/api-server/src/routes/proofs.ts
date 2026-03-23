@@ -487,7 +487,7 @@ router.post("/:submissionId/followup", async (req, res) => {
     if (isLastFollowup) {
       const updated = await db.select().from(proofSubmissionsTable)
         .where(eq(proofSubmissionsTable.id, req.params.submissionId)).limit(1);
-      if (updated[0] && updated[0].status === "followup_needed") {
+      if (updated[0] && (updated[0].status === "followup_needed" || updated[0].status === "rejected")) {
         await db.update(proofSubmissionsTable).set({
           status: "partial",
           rewardMultiplier: 0.4,
