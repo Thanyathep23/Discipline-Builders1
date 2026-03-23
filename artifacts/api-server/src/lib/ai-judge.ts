@@ -177,8 +177,9 @@ function validateAndNormalizeAiResponse(raw: string, providerName: string): Judg
     const followupQuestion = parsed.followup_question ?? parsed.followupQuestions;
     const trustDelta = parsed.trust_score_delta ?? parsed.trustScoreDelta ?? 0;
 
-    if (verdict === undefined || confidenceScore === undefined) {
-      console.error(`[AI Judge] Invalid response from ${providerName}: missing verdict or confidence_score`, raw.slice(0, 500));
+    if (verdict === undefined || confidenceScore === undefined || rewardMultiplier === undefined ||
+        qualityScore === undefined || relevanceScore === undefined || !feedbackShort) {
+      console.error(`[AI Judge] Invalid response from ${providerName}: missing required fields (verdict, confidence_score, reward_multiplier, quality_score, relevance_score, feedback_short)`, raw.slice(0, 500));
       return null;
     }
 
