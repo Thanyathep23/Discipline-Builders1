@@ -131,9 +131,10 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     });
 
     coinsAwarded = coins;
+    const finalXp = judgeResult.verdict === "approved" ? Math.max(10, xp) : xp;
 
     if (coinsAwarded > 0) {
-      await grantReward(userId, coinsAwarded, xp, `Mission completed: ${mission.title}`, {
+      await grantReward(userId, coinsAwarded, finalXp, `Mission completed: ${mission.title}`, {
         missionId: mission.id,
         sessionId: session.id,
         proofId: submissionId,
@@ -472,6 +473,11 @@ router.post("/:submissionId/followup", async (req, res) => {
       rewardMultiplier: 0.4,
       aiVerdict: "partial",
       aiExplanation: "Auto-resolved to partial after maximum follow-up attempts reached.",
+      aiConfidenceScore: 0.5,
+      aiRubricRelevance: 0.4,
+      aiRubricQuality: 0.3,
+      aiRubricPlausibility: 0.5,
+      aiRubricSpecificity: 0.3,
       followupCount: currentFollowupCount,
       updatedAt: new Date(),
     }).where(eq(proofSubmissionsTable.id, req.params.submissionId));
@@ -509,9 +515,32 @@ router.post("/:submissionId/followup", async (req, res) => {
           sessionId: sessions[0].id,
           proofId: req.params.submissionId,
         });
+        await updateStreak(userId);
+
+        try {
+          const { grantSessionSkillXp } = await import("../lib/skill-engine.js");
+          await grantSessionSkillXp(userId, missions[0].category, actualMinutes, "partial");
+        } catch {}
       }
 
+      await db.update(missionsTable).set({ status: "completed", updatedAt: new Date() })
+        .where(eq(missionsTable.id, missions[0].id));
+
+      const trustDelta = 0.01;
+      const newTrust = Math.max(0.1, Math.min(1.0, users[0].trustScore + trustDelta));
+      await db.update(usersTable).set({ trustScore: newTrust, updatedAt: new Date() }).where(eq(usersTable.id, userId));
+
       await db.update(proofSubmissionsTable).set({ coinsAwarded: coins }).where(eq(proofSubmissionsTable.id, req.params.submissionId));
+
+      await db.insert(auditLogTable).values({
+        id: generateId(),
+        actorId: null,
+        actorRole: "system",
+        action: "proof_judged",
+        targetId: req.params.submissionId,
+        targetType: "proof",
+        details: JSON.stringify({ verdict: "partial", coins, reason: "auto_resolve_max_followups" }),
+      });
     }
 
     const proof = await db.select().from(proofSubmissionsTable).where(eq(proofSubmissionsTable.id, req.params.submissionId)).limit(1);

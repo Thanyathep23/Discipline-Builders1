@@ -1,4 +1,4 @@
-import { pgTable, text, integer, real, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, real, timestamp, pgEnum, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -31,7 +31,9 @@ export const proofSubmissionsTable = pgTable("proof_submissions", {
   followupCount: integer("followup_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => [
+  index("idx_proof_user_text_hash").on(table.userId, table.textHash),
+]);
 
 export const insertProofSchema = createInsertSchema(proofSubmissionsTable).omit({
   createdAt: true,

@@ -88,7 +88,7 @@ export function computeRewardCoins(input: ComputeRewardInput): { coins: number; 
   const multiplier = qualityFactor * distractionPenalty * strictBonus * trustFactor * streakBonus * aiMult;
   const coins = Math.max(0, Math.round(base * multiplier));
 
-  const xp = Math.max(coins > 0 ? 10 : 1, Math.round(coins / 5));
+  const xp = Math.max(1, Math.round(coins / 5));
 
   return { coins, xp, multiplier: Math.round(multiplier * 100) / 100 };
 }

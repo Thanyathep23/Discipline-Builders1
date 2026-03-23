@@ -42,10 +42,10 @@ router.post("/", async (req, res) => {
   const schema = z.object({
     title: z.string().min(3).max(200),
     description: z.string().optional().nullable(),
-    category: z.string().min(1),
+    category: z.enum(["trading", "fitness", "learning", "deep_work", "habit", "sleep", "other"]),
     targetDurationMinutes: z.number().int().min(5).max(480),
     priority: z.enum(["low", "medium", "high", "critical"]),
-    impactLevel: z.number().int().min(1).max(10),
+    impactLevel: z.number().int().min(1).max(5),
     dueDate: z.string().optional().nullable(),
     purpose: z.string().optional().nullable(),
     requiredProofTypes: z.array(z.enum(["image", "screenshot", "file", "link", "text"])).min(1),
@@ -129,13 +129,21 @@ router.put("/:missionId", async (req, res) => {
   if (body.title !== undefined) updates.title = body.title;
   if (body.description !== undefined) updates.description = body.description;
   if (body.category !== undefined) {
+    const validCategories = ["trading", "fitness", "learning", "deep_work", "habit", "sleep", "other"];
+    if (!validCategories.includes(body.category)) {
+      res.status(400).json({ error: "Invalid category" });
+      return;
+    }
     updates.category = body.category;
     const proofReqs = getProofRequirements(body.category);
     updates.proofRequirements = JSON.stringify(proofReqs);
   }
   if (body.targetDurationMinutes !== undefined) updates.targetDurationMinutes = body.targetDurationMinutes;
   if (body.priority !== undefined) updates.priority = body.priority;
-  if (body.impactLevel !== undefined) updates.impactLevel = body.impactLevel;
+  if (body.impactLevel !== undefined) {
+    const impact = Math.max(1, Math.min(5, body.impactLevel));
+    updates.impactLevel = impact;
+  }
 
   const needsValueRecalc = body.priority !== undefined || body.impactLevel !== undefined || body.targetDurationMinutes !== undefined;
   if (needsValueRecalc) {
