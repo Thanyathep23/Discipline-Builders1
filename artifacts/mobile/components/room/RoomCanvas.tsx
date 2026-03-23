@@ -6,7 +6,7 @@ import Animated, {
   withRepeat, withTiming, Easing, withSequence,
 } from "react-native-reanimated";
 import Svg, {
-  Rect, Line, Defs, LinearGradient, RadialGradient, Stop, Ellipse,
+  Rect, Line, Defs, LinearGradient, RadialGradient, Stop, Ellipse, Polygon,
 } from "react-native-svg";
 import { RoomItemVisual } from "./RoomItemVisuals";
 
@@ -121,14 +121,28 @@ function RoomBackground({ theme, hasLighting, lightingItemId, cw }: {
 
       <Rect x="0" y="0" width={cw} height={floorY} fill="url(#wallG)" />
 
-      {[0.18, 0.36, 0.54, 0.72, 0.88].map((f, i) => (
+      <Polygon
+        points={`0,0 ${cw * 0.14 + 4},0 ${cw * 0.14},${floorY} 0,${floorY}`}
+        fill={theme.panel} opacity="0.6"
+      />
+      <Polygon
+        points={`${cw - cw * 0.14 - 4},0 ${cw},0 ${cw},${floorY} ${cw - cw * 0.14},${floorY}`}
+        fill={theme.panel} opacity="0.6"
+      />
+
+      <Line x1={cw * 0.14} y1={0} x2={cw * 0.14} y2={floorY}
+        stroke="rgba(255,255,255,0.04)" strokeWidth="0.8" />
+      <Line x1={cw - cw * 0.14} y1={0} x2={cw - cw * 0.14} y2={floorY}
+        stroke="rgba(255,255,255,0.04)" strokeWidth="0.8" />
+
+      {[0.30, 0.50, 0.70].map((f, i) => (
         <Line key={`wp${i}`} x1={cw * f} y1={0} x2={cw * f} y2={floorY}
-          stroke={theme.panel} strokeWidth="0.5" opacity="0.2" />
+          stroke={theme.panel} strokeWidth="0.5" opacity="0.15" />
       ))}
 
       <Rect x="0" y={floorY} width={cw} height={floorH} fill="url(#floorG)" />
       <Line x1="0" y1={floorY} x2={cw} y2={floorY}
-        stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+        stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" />
 
       {[0.1, 0.25, 0.4, 0.55, 0.7, 0.85, 0.95].map((f, i) => (
         <Line key={`fl${i}`} x1={vpX} y1={floorY} x2={cw * f} y2={CANVAS_HEIGHT}

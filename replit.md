@@ -814,10 +814,25 @@ Duplicate prevention: checks ownership before award, try/catch for concurrent re
   - Unsaved changes: orange dot indicator + pulsing border
   - Back with unsaved changes: Alert with Save/Discard/Stay options
 - Room Canvas fills ~72% of screen (screenH - header - panel)
-  - Full perspective room: wall gradient, baseboard, floor grid, vanishing-point lines
-  - Wall panel lines every 80px, floor glow ellipse
-  - Zones scaled per perspective row (back=0.80, mid=0.88, floor=1.0)
-  - Character at scale 0.9 with 60×12px floor shadow
+  - **3-Wall Architecture**: back wall (42% height) + left/right side wall trapezoids (14% width) + floor (58% height)
+  - Side walls: SVG Polygon perspective trapezoids (slightly darker than back wall)
+  - Wall edge highlight lines at wall junctions
+  - Baseboard line (1.5px) at wall-floor join
+  - Wall panel lines on back wall between side wall edges
+  - Floor: perspective vanishing-point lines + horizontal depth markers
+  - **Environment Theming**: driven by `room_theme` slot item
+    - Starter Studio (default): warm grey walls, dark wood floor
+    - Dark Office (room-decor-theme-dark): cool blue-white, herringbone floor, night skyline window
+    - Tech Command (room-decor-theme-trading): dark with green accent, night city window
+    - Executive Suite (room-decor-theme-executive): warm wood panels, marble floor, day skyline window
+  - **Window**: rendered on right side wall via SVG for applicable environments (city skyline with buildings + lit windows)
+  - **LED strip**: visible 2px accent at ceiling edge when LED lighting equipped
+  - Dual vignette overlays (horizontal + vertical)
+  - **Surface-based zones**: wall zones (monitor, bookshelf, trophy_case) on back wall, floor zones (desk, plants, audio, coffee) on floor, ceiling zone (lighting) at top
+  - `room_theme` zone removed from canvas rendering (controls environment visuals instead)
+  - Wall zones: smaller border radius (8px), 1px border, wall mount shadow
+  - Floor zones: larger border radius (14px), 1.5px border, elliptical ground shadow
+  - Character at scale 0.9 positioned on floor area
   - Zone tap: empty → opens shop tab, filled → opens action menu (Replace/Remove)
   - Zone highlight/dim on tap
 - Floating tier info card (top-right): tier label, progress bar, score

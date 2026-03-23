@@ -1,0 +1,607 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Completely reimagine the Room Editor as a real 
+architectural space with walls, ceiling, floor,
+selectable room environments, and premium atmosphere.
+
+The current version looks like floating icons on a dark screen.
+The new version must feel like walking into a REAL room.
+
+==================================================
+VISION: WHAT THIS MUST FEEL LIKE
+==================================================
+
+Reference feeling:
+- The Sims meets a luxury interior design app
+- Each room has a distinct personality and atmosphere
+- Items placed on real surfaces (desk ON floor, 
+  art ON wall, monitor ON desk)
+- Lighting affects the whole room mood
+- Feels like YOUR personal space, not a game menu
+
+==================================================
+PART 1 — ROOM ENVIRONMENT SYSTEM
+==================================================
+
+Replace the current flat canvas with a proper
+3-wall perspective room view (like a dollhouse cutaway).
+
+1A. Room Architecture
+
+The room shows 3 surfaces simultaneously:
+┌─────────────────────────────────────────┐
+│▓▓▓▓▓▓▓▓ BACK WALL ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓│ ← 40% height
+│▓  [wall art]  [window]  [shelf] [art] ▓│
+│▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓│
+│░░ LEFT ░│                   │░ RIGHT ░░│
+│░░ WALL ░│   [items on floor]│░ WALL  ░░│ ← 35% height
+│░░░░░░░░│  [desk] [character]│░░░░░░░░░│
+├─────────┴───────────────────┴──────────┤
+│▒▒▒▒▒▒▒▒▒▒▒▒ FLOOR ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│ ← 25% height
+│▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
+└─────────────────────────────────────────┘
+
+1B. Wall Surfaces
+
+BACK WALL:
+This is where wall items live:
+
+Zones: [Wall Art] [Window/Mirror] [Shelf] [Clock]
+Items render directly on wall surface
+Wall color/texture changes per room theme
+
+
+LEFT WALL (angled, partial):
+Creates depth illusion
+Zones: [Side shelf] or decorative only
+Width: 15% of canvas
+Rendered at perspective angle
+
+RIGHT WALL (angled, partial):
+Same as left, mirror
+Width: 15% of canvas
+Zones: [Lighting fixture] or decorative
+
+FLOOR:
+Where all standing items live:
+Desk, Plants, Character, Coffee machine, Audio
+Floor material changes per room theme
+
+CEILING (optional, top edge):
+2% of canvas height
+Subtle ceiling edge
+Can show lighting effects from it
+
+1C. Zone Reorganization by Surface
+
+WALL ZONES (items on wall):
+- wall_art — paintings, prints
+- window — window/mirror
+- shelf — floating shelf with books
+- clock — wall clock
+
+FLOOR ZONES (items on floor):
+- desk — main work desk
+- plants — floor plants
+- audio — speaker system
+- coffee — espresso machine
+
+DESK SURFACE ZONES (items on desk):
+- monitor — screen setup
+- desk_lamp — task lighting
+- desk_decor — small items
+
+CEILING/OVERHEAD:
+- overhead_light — pendant/chandelier
+
+This creates a REAL room hierarchy.
+
+==================================================
+PART 2 — ROOM ENVIRONMENTS (LEVEL-GATED)
+==================================================
+
+6 distinct room environments, each with:
+- Unique wall color/texture
+- Unique floor material
+- Unique ambient lighting
+- Unique atmosphere
+- Unique available items
+
+ENVIRONMENT 1 — The Starter Studio
+Unlock: Level 1 (free)
+Atmosphere: humble but clean beginning
+Back wall: muted warm grey (#1E1F2E)
+Floor: simple dark wood planks (#0F1018)
+Left/Right walls: slightly darker grey
+Ambient: warm dim light
+Ceiling: plain dark
+Mood: "This is where it begins"
+Special items available: basic desk, plants, starter lamp
+
+ENVIRONMENT 2 — The Dark Office
+Unlock: Level 8
+Price: 1,000 coins
+Back wall: deep charcoal with subtle panel lines (#171825)
+Floor: dark herringbone pattern (#0D0E1A)
+Left wall: one frosted glass panel
+Right wall: exposed concrete texture effect
+Ambient: cool blue-white lighting
+Window: city skyline view (simple SVG)
+Mood: "Serious. Focused. Professional."
+Special items: executive desk, dual monitors, leather chair
+
+ENVIRONMENT 3 — The Tech Command Center
+Unlock: Level 15
+Price: 2,500 coins
+Back wall: dark with subtle LED strip accent (#0A0B16)
+LED strips along ceiling edge: RGB glow
+Floor: dark polished concrete (#0B0C14)
+Left wall: one floor-to-ceiling window (night city)
+Right wall: screens/monitors wall-mounted
+Ambient: cool blue + accent RGB
+Mood: "Mission control. This is where decisions happen."
+Special items: trading terminal, ultrawide monitor,
+ambient RGB lighting, carbon desk
+
+ENVIRONMENT 4 — The Executive Suite
+Unlock: Level 25
+Price: 5,000 coins
+Back wall: warm dark wood paneling (#18120E)
+Floor: dark marble effect (#0E0B0A with vein lines)
+Left wall: floor-to-ceiling bookcase silhouette
+Right wall: frosted window, city day view
+Ambient: warm golden/amber lighting
+Accent: subtle warm glow from hidden sources
+Mood: "Corner office. This is earned."
+Special items: executive oak desk, arc floor lamp,
+premium bookshelves, leather chair
+
+ENVIRONMENT 5 — The Penthouse
+Unlock: Level 40
+Price: 12,000 coins
+Back wall: floor-to-ceiling windows — city panorama
+Day/night cycle based on time of day
+Floor: light marble with dark inlay (#F5F5F0 tinted dark)
+Left wall: partial wall, open plan feel
+Right wall: art gallery — one large artwork
+Ambient: natural light from windows + ceiling
+Special: city lights visible outside at night
+Mood: "Above the city. Above the noise."
+Special items: ultra premium furniture only
+
+ENVIRONMENT 6 — The Legendary Atelier
+Unlock: Level 60
+Price: 25,000 coins
+Back wall: exposed raw concrete + backlit panels
+Floor: dark industrial poured concrete
+Ceiling: visible raw concrete with pendant lights
+Left/Right: full glass walls
+Ambient: dramatic contrast lighting
+Special: floating shelves mounted in wall,
+dramatic accent lighting
+Mood: "Where legends are built."
+Only accessible to highest-level players
+Shows as "LEGENDARY" badge in room list
+
+==================================================
+PART 3 — ROOM SELECTION SCREEN
+==================================================
+
+NEW SCREEN: Before the room editor opens
+
+When user taps "Customize Room" from Rewards screen:
+Opens ROOM SELECTION SCREEN first
+
+Layout:
+Header: "CHOOSE YOUR SPACE"
+Subtitle: "Your environment shapes your mindset"
+Horizontal scroll of room cards:
+┌─────────────────────┐
+│                     │
+│   [Room Preview]    │  ← 160x200px preview
+│   (mini version     │
+│    of the room)     │
+│                     │
+├─────────────────────┤
+│ The Dark Office     │
+│ ⬡ Refined          │
+│ Level 8 Required    │
+│                     │
+│ [Select →]          │  ← if available
+│ [🔒 Lvl 8 Req]     │  ← if locked
+└─────────────────────┘
+Card size: 160x280px
+Horizontal scroll (peek next card)
+Active room: accent border, "CURRENT" chip
+Locked room: dark overlay, lock icon center, level badge
+
+Room Preview Cards:
+Each card shows a mini version of the room environment
+rendered as a small SVG scene
+Just enough to show the vibe (wall color, floor, 
+general atmosphere — no detailed items needed)
+
+Lock System:
+LOCKED:
+Gray overlay 60% opacity
+🔒 icon center
+"Level X Required" pill
+UNLOCKABLE (level met, need coins):
+Gold/amber border
+Price shown prominently
+[Purchase Environment] button
+CURRENT:
+Accent border glow
+"CURRENT" chip top-right
+[Edit Room →] button
+OWNED (not current):
+Subtle border
+"Owned" chip
+[Switch to This →] button
+
+==================================================
+PART 4 — ROOM EDITOR WITH WALLS
+==================================================
+
+4A. Canvas With 3-Wall Architecture
+
+The room canvas now renders a proper perspective room:
+Total canvas height: fills ~68% of screen
+BACK WALL (React Native View):
+Height: 42% of canvas
+Background: room theme wall color
+Wall texture: SVG pattern overlay (very subtle)
+Wall surface items positioned here:
+
+Shelf zone: left 1/3, y: 30%
+Wall art zone: center, y: 25%
+Clock zone: right 1/3, y: 25%
+Window zone: right side, y: 20-65%
+
+LEFT WALL PANEL:
+Position: left edge of canvas
+Width: 14%
+Background: slightly darker than back wall
+Transform: perspective skew to suggest angle
+RIGHT WALL PANEL:
+Position: right edge of canvas
+Width: 14%
+Same treatment as left
+FLOOR-WALL JOIN LINE:
+1.5px line between wall and floor
+rgba(255,255,255,0.06)
+Full width
+FLOOR:
+Height: 33% of canvas
+Background: room theme floor color
+Floor texture: SVG pattern
+FLOOR ITEMS positioned on floor:
+Desk: center-bottom of wall section
+Character: center of floor section
+Plants: floor left
+Coffee: floor right
+Audio: floor far right
+
+4B. Wall Item Zones
+
+Wall zones render differently than floor zones:
+WALL ZONE EMPTY:
+Outline on wall surface
+Icon represents item type
+Dashed border: rgba(255,255,255,0.15)
+No background (wall shows through)
+For window zone:
+Shows window frame outline (60x80px)
+Light blue tint inside: rgba(100,180,255,0.08)
+For shelf zone:
+Shows shelf bracket outline
+For art zone:
+Shows picture frame outline
+WALL ZONE FILLED:
+Item renders on wall
+Drop shadow going down: suggests item mounted to wall
+No floating effect
+
+4C. Window/Skyline
+
+Each environment's window shows:
+Starter Studio: no window (blank wall)
+Dark Office: simple city night skyline (SVG)
+Tech Command: city night with more lights
+Executive Suite: city day view
+Penthouse: full panoramic city
+Legendary: multiple glass walls
+City skyline SVG:
+Simple geometric buildings
+Dark blue/grey shapes
+Some windows lit (small yellow squares)
+Night: dark background, lit windows
+The skyline adds massive atmosphere
+even as a simple SVG
+
+==================================================
+PART 5 — IMPROVED ITEM SVGS FOR WALL DISPLAY
+==================================================
+
+New items specifically designed for wall mounting:
+
+WALL SHELF WITH BOOKS:
+ViewBox: 0 0 120 60
+Shelf: horizontal plank, dark wood
+4-5 book spines varying colors/heights
+Small succulent between books
+Books: premium minimal colors
+(deep green, dark red, cream, navy)
+
+WALL CLOCK:
+ViewBox: 0 0 60 60
+Clean minimal clock face
+Thin hour/minute hands
+Premium brushed metal look
+No numbers (marker lines only)
+
+ABSTRACT WALL ART:
+ViewBox: 0 0 100 120
+Framed artwork
+Frame: thin dark metal
+Content: abstract geometric (not identifiable brand)
+Options: dark blue palette, or warm amber palette
+Premium gallery aesthetic
+
+CITY WINDOW:
+ViewBox: 0 0 80 100
+Window frame: dark metal, thin
+Glass: dark blue tint
+City skyline: simple geometric buildings
+Some lit windows
+Optional: moon in upper corner
+
+==================================================
+PART 6 — LIGHTING SYSTEM
+==================================================
+
+Each room has dynamic lighting that changes
+based on equipped lighting items:
+
+DEFAULT LIGHTING:
+Ambient: subtle room-specific glow
+No strong light sources
+
+LED AMBIENT (equipped):
+Top ceiling edge: 2px LED strip SVG
+Color: soft purple/blue by default
+Casts downward glow gradient on back wall
+
+ARC FLOOR LAMP (equipped):
+Warm cone of light on floor
+Radial gradient from lamp position
+rgba(255,220,100,0.12) glow
+Affects nearby area only
+
+PENDANT LIGHT (new item for exec/penthouse):
+Light source from ceiling center
+Creates warm top-down illumination
+rgba(255,200,80,0.08) full room tint
+
+Lighting system implementation:
+
+Each lighting item exports a LightEffect component
+RoomCanvas accepts activeLight prop
+LightEffect renders as absolute overlay
+on room canvas with appropriate blend mode
+Use: opacity blend (not multiply - too dark)
+
+
+==================================================
+PART 7 — BOTTOM SHOP PANEL REDESIGN
+==================================================
+
+Reorganize shop to match new surface system:
+
+Category tabs now organized by SURFACE:
+[All] [🧱 Wall] [🪑 Floor] [🖥 Desk] [💡 Light] [🏠 Room]
+↑          ↑          ↑          ↑          ↑
+wall items  floor    desk top   lighting  environments
+
+When "Room" tab selected:
+  Shows the environment selection cards (mini versions)
+  "Switch Environment" flow
+
+Item cards in panel now show:
+  WHERE the item goes: "Wall · Shelf" or "Floor · Right"
+  This helps users understand placement
+
+==================================================
+PART 8 — ROOM SELECTION → EDITOR FLOW
+==================================================
+
+Complete user flow:
+Rewards Screen
+↓ tap "Customize Room"
+Room Selection Screen
+├── See all 6 environments
+├── Current one highlighted
+├── Locked ones show level requirement
+└── Tap "Edit Room →" on current
+OR: tap "Purchase" on unlockable room
+    → Coin deduction → Environment unlocked
+    → Auto-navigate to that room's editor
+
+↓ tap "Edit Room →"
+Full Screen Room Editor
+├── Room renders with current environment
+├── Items placed in correct surface positions
+├── Tap zones to add/replace items
+├── Drag to reposition
+└── Save button → back to Rewards
+
+==================================================
+PART 9 — ENVIRONMENT PURCHASE FLOW
+==================================================
+
+When user taps locked environment:
+Environment Detail Sheet rises:
+┌─────────────────────────────────────┐
+│  The Executive Suite                │
+│                                     │
+│  [Full preview of room - 200px]     │
+│                                     │
+│  Level 25 required        ✓ or 🔒  │
+│  5,000 coins required               │
+│                                     │
+│  What's included:                   │
+│  • Warm wood panel walls            │
+│  • Dark marble floor                │
+│  • Bookcase wall feature            │
+│  • City window view                 │
+│  • Exclusive: Executive Desk unlock │
+│                                     │
+│  [Purchase Environment — 5,000 ₿]  │
+│  or                                 │
+│  [Level 25 Required — X more XP]   │
+└─────────────────────────────────────┘
+
+==================================================
+PART 10 — BACKEND UPDATES
+==================================================
+
+New API endpoints:
+
+GET /api/room/environments
+Returns all environments with user's unlock status
+
+POST /api/room/purchase-environment
+Body: { environmentId }
+Deducts coins, unlocks environment
+Returns: updated wallet, unlocked environments list
+
+POST /api/room/set-environment  
+Body: { environmentId }
+Sets active environment (must own)
+
+GET /api/room/state
+Updated to include:
+  activeEnvironment: environmentId
+  placedItems with surface info: 
+    { slot, surface, itemId }
+
+New schema:
+room_environments table:
+  - id, slug, name, requiredLevel, price
+  - isDefault (starter = true)
+  
+user_room_environments:
+  - userId, environmentId, purchasedAt
+
+Update room_state:
+  - Add: activeEnvironmentId
+
+Seed 6 environments on startup.
+
+==================================================
+TECHNICAL REQUIREMENTS
+==================================================
+
+Room Canvas rendering:
+  - Use React Native Views for surfaces (walls/floor)
+  - SVG items positioned absolutely within surfaces
+  - Perspective effect via:
+    transform: perspective(800px) rotateX for floor
+    OR use calculated positions to simulate perspective
+
+Performance:
+  - Canvas: useMemo for static backgrounds
+  - Items: React.memo per item
+  - Animations: Reanimated 2 only
+  - No re-render when shop panel scrolls
+
+Environment SVG previews:
+  - Each environment has a small preview SVG
+  - Used in selection screen cards
+  - Pre-rendered, no state dependency
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+Environments:
+1. 6 environments defined with distinct visual identity
+2. Environment selection screen works
+3. Lock/unlock based on level works correctly
+4. Environment purchase deducts coins server-side
+5. Switching environments updates room canvas
+
+Room Canvas:
+6. Back wall visible with proper surface material
+7. Left and right wall panels create depth
+8. Floor has distinct material from wall
+9. Wall zones appear ON the wall (not floating)
+10. Floor zones appear ON the floor
+11. Desk surface shows items placed ON the desk
+12. Window shows appropriate skyline per environment
+13. Lighting items affect room atmosphere
+
+Shop & Flow:
+14. Category tabs organized by surface type
+15. Items show which surface they go on
+16. Room selection screen precedes editor
+17. Save system works with environment + items
+
+Visual Quality:
+18. No flat/floating icon zones
+19. Walls feel like real surfaces
+20. Character looks grounded in real space
+21. City window adds atmosphere where applicable
+22. Each environment has distinct mood/feel
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. 6 environments defined and seeded
+2. Room canvas architecture (3 surfaces)
+3. Wall vs floor zone system
+4. Room selection screen
+5. Environment purchase flow
+6. New backend endpoints
+7. Files changed only
+8. Visual description of each environment
+9. End-to-end flow test
+10. Performance notes
+
+ภาพที่จะได้ทั้ง 6 environments
+STARTER STUDIO        DARK OFFICE
+┌──────────────┐      ┌──────────────┐
+│▓ warm grey  ▓│      │▓ dark panel ▓│
+│▓  [shelf]   ▓│      │▓ [shelf][win]▓│
+│░wall░│  │░wall░     │░░│city│░░░░░│
+│   [desk]    │       │  [exec desk] │
+│  [char]     │       │  [char]      │
+│▒ wood floor ▒│      │▒ herringbone ▒│
+└──────────────┘      └──────────────┘
+Lvl 1 (Free)          Lvl 8 (1,000₿)
+
+TECH COMMAND          EXECUTIVE SUITE
+┌──────────────┐      ┌──────────────┐
+│▓ dark+LEDs  ▓│      │▓ wood panel ▓│
+│▓[screens][w]▓│      │▓[bookcase]  ▓│
+│░░│night│░░░░│       │░│dayview│░░░│
+│ [trading terminal]  │ [exec desk]  │
+│ [char]      │       │ [char]       │
+│▒ concrete   ▒│      │▒ dark marble ▒│
+└──────────────┘      └──────────────┘
+Lvl 15 (2,500₿)       Lvl 25 (5,000₿)
+
+PENTHOUSE             LEGENDARY ATELIER
+┌──────────────┐      ┌──────────────┐
+│ panorama win │      │ glass walls  │
+│    city view │      │ raw concrete │
+│   open plan  │      │[pendant lamp]│
+│  [premium]   │      │[carbon desk] │
+│  [char]      │      │[char]        │
+│▒ light marble▒│     │▒ industrial  ▒│
+└──────────────┘      └──────────────┘
+Lvl 40 (12,000₿)      Lvl 60 (25,000₿)

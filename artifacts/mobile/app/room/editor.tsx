@@ -11,7 +11,7 @@ import Animated, {
   FadeIn, FadeInUp,
 } from "react-native-reanimated";
 import Svg, {
-  Rect, Line, Defs, LinearGradient, RadialGradient, Stop, Ellipse,
+  Rect, Line, Defs, LinearGradient, RadialGradient, Stop, Ellipse, Polygon, G,
 } from "react-native-svg";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
@@ -49,28 +49,65 @@ const ROOM_ZONES = [
 ];
 const SHOP_TABS = [
   { key: null, label: "All", icon: "grid-outline" },
-  { key: "desk", label: "Desk", icon: "desktop-outline" },
   { key: "monitor", label: "Monitor", icon: "tv-outline" },
+  { key: "bookshelf", label: "Shelf", icon: "book-outline" },
+  { key: "trophy_case", label: "Display", icon: "trophy-outline" },
+  { key: "desk", label: "Desk", icon: "desktop-outline" },
+  { key: "plants", label: "Plants", icon: "leaf-outline" },
+  { key: "audio", label: "Audio", icon: "musical-notes-outline" },
   { key: "coffee_station", label: "Coffee", icon: "cafe-outline" },
   { key: "lighting", label: "Light", icon: "bulb-outline" },
-  { key: "room_theme", label: "Theme", icon: "color-palette-outline" },
-  { key: "bookshelf", label: "Shelf", icon: "book-outline" },
-  { key: "audio", label: "Audio", icon: "musical-notes-outline" },
-  { key: "plants", label: "Plants", icon: "leaf-outline" },
-  { key: "trophy_case", label: "Trophy", icon: "trophy-outline" },
+  { key: "room_theme", label: "Room", icon: "color-palette-outline" },
 ];
 const ELITE_RARITIES = new Set(["elite", "legendary", "prestige"]);
 
-const ZONE_LAYOUT: Record<string, { x: number; y: number; w: number; h: number; scale: number }> = {
-  lighting:       { x: 0.08, y: 0.04, w: 0.20, h: 0.14, scale: 0.80 },
-  room_theme:     { x: 0.68, y: 0.04, w: 0.22, h: 0.14, scale: 0.80 },
-  bookshelf:      { x: 0.03, y: 0.20, w: 0.16, h: 0.22, scale: 0.88 },
-  monitor:        { x: 0.28, y: 0.18, w: 0.44, h: 0.20, scale: 0.90 },
-  trophy_case:    { x: 0.81, y: 0.20, w: 0.16, h: 0.22, scale: 0.88 },
-  desk:           { x: 0.22, y: 0.40, w: 0.56, h: 0.16, scale: 1.0 },
-  plants:         { x: 0.02, y: 0.62, w: 0.18, h: 0.20, scale: 1.0 },
-  audio:          { x: 0.62, y: 0.62, w: 0.16, h: 0.18, scale: 1.0 },
-  coffee_station: { x: 0.80, y: 0.68, w: 0.18, h: 0.18, scale: 1.0 },
+type RoomEnv = {
+  wallTop: string; wallBot: string; sideWall: string;
+  floorTop: string; floorBot: string;
+  accent: string; accentOp: number;
+  baseboard: string; panelLine: string;
+  windowType: "none" | "night" | "nightBright" | "day";
+};
+const ENVIRONMENTS: Record<string, RoomEnv> = {
+  default: {
+    wallTop: "#1E1F2E", wallBot: "#181926", sideWall: "#161728",
+    floorTop: "#111220", floorBot: "#0D0E18",
+    accent: "#6D28D9", accentOp: 0.10,
+    baseboard: "rgba(255,255,255,0.06)", panelLine: "rgba(255,255,255,0.02)",
+    windowType: "none",
+  },
+  "room-decor-theme-dark": {
+    wallTop: "#171825", wallBot: "#121320", sideWall: "#0E1020",
+    floorTop: "#0D0E1A", floorBot: "#090A14",
+    accent: "#448AFF", accentOp: 0.08,
+    baseboard: "rgba(100,180,255,0.06)", panelLine: "rgba(255,255,255,0.025)",
+    windowType: "night",
+  },
+  "room-decor-theme-trading": {
+    wallTop: "#0A0B16", wallBot: "#080912", sideWall: "#060810",
+    floorTop: "#0B0C14", floorBot: "#080910",
+    accent: "#00E676", accentOp: 0.06,
+    baseboard: "rgba(0,230,118,0.05)", panelLine: "rgba(255,255,255,0.018)",
+    windowType: "nightBright",
+  },
+  "room-decor-theme-executive": {
+    wallTop: "#1A140E", wallBot: "#14100C", sideWall: "#100C08",
+    floorTop: "#0E0B0A", floorBot: "#0A0806",
+    accent: "#FFB300", accentOp: 0.08,
+    baseboard: "rgba(255,179,0,0.06)", panelLine: "rgba(255,255,255,0.018)",
+    windowType: "day",
+  },
+};
+
+const ZONE_LAYOUT: Record<string, { x: number; y: number; w: number; h: number; surface: "wall" | "floor" | "ceiling" }> = {
+  lighting:       { x: 0.30, y: 0.01, w: 0.40, h: 0.08, surface: "ceiling" },
+  bookshelf:      { x: 0.15, y: 0.12, w: 0.17, h: 0.27, surface: "wall" },
+  monitor:        { x: 0.32, y: 0.10, w: 0.36, h: 0.24, surface: "wall" },
+  trophy_case:    { x: 0.69, y: 0.12, w: 0.17, h: 0.27, surface: "wall" },
+  desk:           { x: 0.22, y: 0.44, w: 0.56, h: 0.14, surface: "floor" },
+  plants:         { x: 0.02, y: 0.60, w: 0.18, h: 0.22, surface: "floor" },
+  audio:          { x: 0.56, y: 0.64, w: 0.16, h: 0.18, surface: "floor" },
+  coffee_station: { x: 0.78, y: 0.62, w: 0.18, h: 0.20, surface: "floor" },
 };
 
 const ZONE_TINTS: Record<string, string> = {
@@ -84,68 +121,171 @@ function FullRoomCanvas({ cw, ch, placedItems, roomTheme, showCharacter, charact
   roomTheme: string | null; showCharacter: boolean; characterComponent?: React.ReactNode;
   onZoneTap: (zone: string) => void; hasLighting: boolean; highlightedZone?: string | null;
 }) {
+  const env = ENVIRONMENTS[roomTheme ?? ""] ?? ENVIRONMENTS.default;
   const placedMap = new Map(placedItems.map(p => [p.zone, p]));
   const lightingItem = placedMap.get("lighting");
-  const wallH = ch * 0.40;
+  const wallH = ch * 0.42;
   const floorH = ch - wallH;
+  const sideW = cw * 0.14;
   const vpX = cw * 0.5;
   const lc = (lightingItem?.itemId === "room-decor-lighting-led") ? "#7C4DFF"
     : (lightingItem?.itemId === "room-decor-lighting-arc") ? "#FFE082" : "#FFD54F";
+  const hasLED = hasLighting && lightingItem?.itemId === "room-decor-lighting-led";
 
   return (
     <View style={[s.roomCanvas, { width: cw, height: ch }]}>
       <Svg width={cw} height={ch} style={StyleSheet.absoluteFill}>
         <Defs>
           <LinearGradient id="rwg" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#0C0D1A" />
-            <Stop offset="1" stopColor="#0A0B16" />
+            <Stop offset="0" stopColor={env.wallTop} />
+            <Stop offset="1" stopColor={env.wallBot} />
           </LinearGradient>
           <LinearGradient id="rfg" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#111220" />
-            <Stop offset="1" stopColor="#080910" />
+            <Stop offset="0" stopColor={env.floorTop} />
+            <Stop offset="1" stopColor={env.floorBot} />
           </LinearGradient>
-          <RadialGradient id="rgl" cx="0.5" cy="0.25" rx="0.35" ry="0.35">
-            <Stop offset="0" stopColor="#6D28D9" stopOpacity="0.15" />
-            <Stop offset="0.5" stopColor="#6D28D9" stopOpacity="0.05" />
-            <Stop offset="1" stopColor="#6D28D9" stopOpacity="0" />
+          <RadialGradient id="rgl" cx="0.5" cy="0.38" rx="0.32" ry="0.28">
+            <Stop offset="0" stopColor={env.accent} stopOpacity={String(env.accentOp)} />
+            <Stop offset="0.6" stopColor={env.accent} stopOpacity={String(env.accentOp * 0.3)} />
+            <Stop offset="1" stopColor={env.accent} stopOpacity="0" />
           </RadialGradient>
           {hasLighting && (
-            <RadialGradient id="rlg" cx="0.5" cy="0.05" r="0.5">
-              <Stop offset="0" stopColor={lc} stopOpacity="0.12" />
-              <Stop offset="0.4" stopColor={lc} stopOpacity="0.03" />
+            <RadialGradient id="rlg" cx="0.5" cy="0.05" r="0.6">
+              <Stop offset="0" stopColor={lc} stopOpacity="0.15" />
+              <Stop offset="0.5" stopColor={lc} stopOpacity="0.04" />
               <Stop offset="1" stopColor={lc} stopOpacity="0" />
             </RadialGradient>
           )}
           <LinearGradient id="rvh" x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0" stopColor="#000" stopOpacity="0.25" />
-            <Stop offset="0.12" stopColor="#000" stopOpacity="0" />
-            <Stop offset="0.88" stopColor="#000" stopOpacity="0" />
+            <Stop offset="0" stopColor="#000" stopOpacity="0.30" />
+            <Stop offset="0.10" stopColor="#000" stopOpacity="0" />
+            <Stop offset="0.90" stopColor="#000" stopOpacity="0" />
+            <Stop offset="1" stopColor="#000" stopOpacity="0.30" />
+          </LinearGradient>
+          <LinearGradient id="rvv" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#000" stopOpacity="0.15" />
+            <Stop offset="0.08" stopColor="#000" stopOpacity="0" />
+            <Stop offset="0.92" stopColor="#000" stopOpacity="0" />
             <Stop offset="1" stopColor="#000" stopOpacity="0.25" />
           </LinearGradient>
         </Defs>
+
+        {/* ─── BACK WALL ─── */}
         <Rect x="0" y="0" width={cw} height={wallH} fill="url(#rwg)" />
-        {Array.from({ length: Math.floor(cw / 80) + 1 }, (_, i) => (
-          <Line key={`wl${i}`} x1={i * 80} y1={0} x2={i * 80} y2={wallH}
+
+        {/* ─── LEFT SIDE WALL (perspective trapezoid) ─── */}
+        <Polygon
+          points={`0,0 ${sideW + 6},0 ${sideW},${wallH} 0,${wallH}`}
+          fill={env.sideWall}
+        />
+
+        {/* ─── RIGHT SIDE WALL (perspective trapezoid) ─── */}
+        <Polygon
+          points={`${cw - sideW - 6},0 ${cw},0 ${cw},${wallH} ${cw - sideW},${wallH}`}
+          fill={env.sideWall}
+        />
+
+        {/* Side wall edge highlight lines */}
+        <Line x1={sideW} y1={0} x2={sideW} y2={wallH}
+          stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+        <Line x1={cw - sideW} y1={0} x2={cw - sideW} y2={wallH}
+          stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+
+        {/* Ceiling edge line */}
+        <Line x1={sideW} y1={0} x2={cw - sideW} y2={0}
+          stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+
+        {/* Wall panel lines on back wall */}
+        {Array.from({ length: Math.floor((cw - 2 * sideW) / 80) + 1 }, (_, i) => {
+          const x = sideW + i * 80;
+          return x < cw - sideW ? (
+            <Line key={`wl${i}`} x1={x} y1={0} x2={x} y2={wallH}
+              stroke={env.panelLine} strokeWidth="0.5" />
+          ) : null;
+        })}
+
+        {/* ─── BASEBOARD (wall-floor join) ─── */}
+        <Line x1={0} y1={wallH} x2={cw} y2={wallH}
+          stroke={env.baseboard} strokeWidth="1.5" />
+
+        {/* ─── FLOOR ─── */}
+        <Rect x="0" y={wallH} width={cw} height={floorH} fill="url(#rfg)" />
+
+        {/* Floor perspective lines from baseboard center */}
+        {[0.06, 0.18, 0.32, 0.46, 0.60, 0.74, 0.88, 0.94].map((f, i) => (
+          <Line key={`fl${i}`} x1={vpX} y1={wallH} x2={cw * f} y2={ch}
             stroke="rgba(255,255,255,0.025)" strokeWidth="0.5" />
         ))}
-        <Line x1="0" y1={wallH} x2={cw} y2={wallH} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
-        <Rect x="0" y={wallH} width={cw} height={floorH} fill="url(#rfg)" />
-        {[0.08, 0.2, 0.34, 0.48, 0.62, 0.76, 0.92].map((f, i) => (
-          <Line key={`fl${i}`} x1={vpX} y1={wallH} x2={cw * f} y2={ch}
-            stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
-        ))}
-        {[0.48, 0.56, 0.64, 0.72, 0.80, 0.88, 0.94].map((f, i) => (
+
+        {/* Floor horizontal depth markers */}
+        {[0.50, 0.58, 0.66, 0.74, 0.82, 0.90, 0.96].map((f, i) => (
           <Line key={`fh${i}`} x1={0} y1={ch * f} x2={cw} y2={ch * f}
-            stroke="rgba(255,255,255,0.02)" strokeWidth="0.4" />
+            stroke="rgba(255,255,255,0.015)" strokeWidth="0.4" />
         ))}
-        <Ellipse cx={cw * 0.5} cy={wallH + floorH * 0.3}
-          rx={cw * 0.32} ry={floorH * 0.35} fill="url(#rgl)" />
+
+        {/* ─── WINDOW on right side wall ─── */}
+        {env.windowType !== "none" && (() => {
+          const wx = cw - sideW + 4;
+          const wy = wallH * 0.12;
+          const ww = sideW - 10;
+          const wh = wallH * 0.62;
+          const isDay = env.windowType === "day";
+          const glassTint = isDay ? "rgba(135,206,235,0.08)" : "rgba(15,25,45,0.35)";
+          const bldgFill = isDay ? "rgba(100,120,140,0.22)" : "rgba(25,35,55,0.50)";
+          const bldgDark = isDay ? "rgba(80,100,120,0.25)" : "rgba(20,30,50,0.55)";
+          return (
+            <G>
+              <Rect x={wx} y={wy} width={ww} height={wh} rx={2}
+                fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+              <Rect x={wx + 1} y={wy + 1} width={ww - 2} height={wh - 2} rx={1}
+                fill={glassTint} />
+              <Line x1={wx + ww / 2} y1={wy} x2={wx + ww / 2} y2={wy + wh}
+                stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
+              <Line x1={wx} y1={wy + wh / 2} x2={wx + ww} y2={wy + wh / 2}
+                stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
+              <Rect x={wx + 2} y={wy + wh * 0.45} width={ww * 0.22} height={wh * 0.53} fill={bldgDark} />
+              <Rect x={wx + ww * 0.28} y={wy + wh * 0.30} width={ww * 0.20} height={wh * 0.68} fill={bldgFill} />
+              <Rect x={wx + ww * 0.52} y={wy + wh * 0.40} width={ww * 0.18} height={wh * 0.58} fill={bldgDark} />
+              <Rect x={wx + ww * 0.74} y={wy + wh * 0.25} width={ww * 0.22} height={wh * 0.73} fill={bldgFill} />
+              {!isDay && (
+                <>
+                  <Rect x={wx + ww * 0.31} y={wy + wh * 0.38} width={1.5} height={1.5} fill="#FFE082" opacity="0.6" />
+                  <Rect x={wx + ww * 0.36} y={wy + wh * 0.52} width={1.5} height={1.5} fill="#FFE082" opacity="0.4" />
+                  <Rect x={wx + ww * 0.56} y={wy + wh * 0.50} width={1.5} height={1.5} fill="#FFE082" opacity="0.5" />
+                  <Rect x={wx + ww * 0.79} y={wy + wh * 0.34} width={1.5} height={1.5} fill="#FFE082" opacity="0.5" />
+                  <Rect x={wx + ww * 0.82} y={wy + wh * 0.55} width={1.5} height={1.5} fill="#FFE082" opacity="0.3" />
+                  <Rect x={wx + ww * 0.08} y={wy + wh * 0.55} width={1.5} height={1.5} fill="#FFE082" opacity="0.4" />
+                </>
+              )}
+            </G>
+          );
+        })()}
+
+        {/* ─── AMBIENT ROOM GLOW ─── */}
+        <Ellipse cx={vpX} cy={wallH + floorH * 0.25}
+          rx={cw * 0.30} ry={floorH * 0.30} fill="url(#rgl)" />
+
+        {/* Lighting overlay */}
         {hasLighting && (
           <Rect x="0" y="0" width={cw} height={ch} fill="url(#rlg)" />
         )}
+
+        {/* LED strip at ceiling edge */}
+        {hasLED && (
+          <>
+            <Rect x={sideW} y={0} width={cw - 2 * sideW} height={2}
+              fill="#7C4DFF" opacity="0.5" />
+            <Rect x={sideW} y={2} width={cw - 2 * sideW} height={6}
+              fill="#7C4DFF" opacity="0.06" />
+          </>
+        )}
+
+        {/* Vignette overlays */}
         <Rect x="0" y="0" width={cw} height={ch} fill="url(#rvh)" />
+        <Rect x="0" y="0" width={cw} height={ch} fill="url(#rvv)" />
       </Svg>
 
+      {/* ─── ZONE RENDERING ─── */}
       {Object.entries(ZONE_LAYOUT).map(([zone, layout]) => {
         const placed = placedMap.get(zone);
         const isOcc = !!placed;
@@ -155,6 +295,7 @@ function FullRoomCanvas({ cw, ch, placedItems, roomTheme, showCharacter, charact
         const tint = ZONE_TINTS[zone] ?? "#888";
         const zW = layout.w * cw;
         const zH = layout.h * ch;
+        const isWall = layout.surface === "wall" || layout.surface === "ceiling";
         return (
           <Pressable key={zone} style={[s.zone, {
             left: layout.x * cw, top: layout.y * ch, width: zW, height: zH,
@@ -165,13 +306,20 @@ function FullRoomCanvas({ cw, ch, placedItems, roomTheme, showCharacter, charact
               <Animated.View entering={FadeIn.duration(350)} style={s.placedWrap}>
                 {isElite && <View style={s.eliteGlow} />}
                 <RoomItemVisual itemId={placed.itemId}
-                  width={zW * 0.82 * layout.scale} height={zH * 0.82 * layout.scale} />
-                <View style={[s.itemShadow, { width: zW * 0.45 }]} />
+                  width={zW * 0.85} height={zH * 0.85} />
+                {isWall ? (
+                  <View style={[s.wallMountShadow, { width: zW * 0.7 }]} />
+                ) : (
+                  <View style={[s.itemShadow, { width: zW * 0.45 }]} />
+                )}
               </Animated.View>
             ) : (
-              <View style={[s.emptySlot, { backgroundColor: tint + "0A" }]}>
-                <Ionicons name={(ZONE_ICONS[zone] ?? "add") as any} size={zH > 80 ? 26 : 18}
-                  color="rgba(255,255,255,0.35)" />
+              <View style={[
+                isWall ? s.emptyWallSlot : s.emptySlot,
+                { backgroundColor: tint + "06" },
+              ]}>
+                <Ionicons name={(ZONE_ICONS[zone] ?? "add") as any}
+                  size={zH > 80 ? 24 : 16} color="rgba(255,255,255,0.25)" />
                 <Text style={s.emptyLabel}>{ZONE_LABELS[zone]}</Text>
               </View>
             )}
@@ -179,9 +327,10 @@ function FullRoomCanvas({ cw, ch, placedItems, roomTheme, showCharacter, charact
         );
       })}
 
+      {/* ─── CHARACTER on floor ─── */}
       {showCharacter && characterComponent && (
         <Animated.View entering={FadeIn.duration(500)} style={[s.charInCanvas, {
-          left: 0.35 * cw, top: 0.52 * ch, width: 0.30 * cw, height: 0.40 * ch,
+          left: 0.36 * cw, top: 0.55 * ch, width: 0.28 * cw, height: 0.38 * ch,
         }]}>
           <View style={{ transform: [{ scale: 0.9 }] }}>
             {characterComponent}
@@ -635,7 +784,15 @@ const s = StyleSheet.create({
   },
   emptySlot: {
     flex: 1, alignItems: "center", justifyContent: "center", margin: 3,
-    borderWidth: 1.5, borderColor: "rgba(255,255,255,0.12)", borderRadius: 14, gap: 4,
+    borderWidth: 1.5, borderColor: "rgba(255,255,255,0.08)", borderRadius: 14, gap: 4,
+  },
+  emptyWallSlot: {
+    flex: 1, alignItems: "center", justifyContent: "center", margin: 2,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.10)", borderRadius: 8, gap: 3,
+  },
+  wallMountShadow: {
+    position: "absolute", bottom: -1, height: 5, borderRadius: 3,
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
   emptyLabel: {
     fontFamily: "Inter_500Medium", fontSize: 9, color: "rgba(255,255,255,0.4)",
