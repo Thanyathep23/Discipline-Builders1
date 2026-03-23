@@ -114,7 +114,7 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     const proofQuality = (judgeResult.rubric.relevanceScore + judgeResult.rubric.qualityScore +
       judgeResult.rubric.specificityScore) / 3;
 
-    const effectiveMultiplier = judgeResult.verdict === "partial" ? 0.5 : judgeResult.rewardMultiplier;
+    const effectiveMultiplier = judgeResult.verdict === "approved" ? 1.0 : 0.5;
 
     const { coins, xp } = computeRewardCoins({
       missionPriority: mission.priority,
@@ -235,19 +235,18 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     }
   }
 
-  if (judgeResult.verdict === "rejected") {
+  const isDuplicate = judgeResult.providerUsed === "pre_screen" && judgeResult.explanation?.includes("identical");
+
+  if (judgeResult.verdict === "rejected" && !isDuplicate) {
     await applySystemPenalty(
       userId, 20, 10,
       "failed_proof",
       `Proof rejected by AI for mission: ${mission.title}`,
       { sessionId: session.id, missionId: mission.id, proofId: submissionId }
     );
-    await grantReward(userId, 0, 1, `Attempt XP: ${mission.title}`, {
-      missionId: mission.id, sessionId: session.id, proofId: submissionId,
-    });
   }
 
-  if (judgeResult.verdict === "followup_needed" || judgeResult.verdict === "flagged") {
+  if (judgeResult.verdict === "rejected" || judgeResult.verdict === "flagged" || judgeResult.verdict === "followup_needed") {
     await grantReward(userId, 0, 1, `Attempt XP: ${mission.title}`, {
       missionId: mission.id, sessionId: session.id, proofId: submissionId,
     });
@@ -489,6 +488,7 @@ router.post("/:submissionId/followup", async (req, res) => {
       aiRubricQuality: 0.3,
       aiRubricPlausibility: 0.5,
       aiRubricSpecificity: 0.3,
+      followupAnswers: parsed.data.answers,
       followupCount: newFollowupCount,
       updatedAt: new Date(),
     }).where(eq(proofSubmissionsTable.id, req.params.submissionId));

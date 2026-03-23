@@ -327,17 +327,35 @@ export default function MissionsScreen() {
                 )}
               </View>
             ) : (
-              missions.map((m: any, i: number) => (
+              missions.map((m: any, i: number) => {
+                const statusStyle = m.status === "completed"
+                  ? stateStyles.completed
+                  : m.status === "rejected"
+                    ? stateStyles.rejected
+                    : m.status === "archived"
+                      ? stateStyles.archived
+                      : null;
+                const statusIcon = m.status === "completed" ? "checkmark-circle" :
+                  m.status === "rejected" ? "close-circle" :
+                  m.status === "archived" ? "archive" : null;
+                const statusColor = m.status === "completed" ? "#4CAF50" :
+                  m.status === "rejected" ? Colors.crimson :
+                  m.status === "archived" ? Colors.textMuted : null;
+
+                return (
                 <Animated.View key={m.id} entering={FadeInDown.delay(i * 50).springify()}>
                   <Pressable
-                    style={({ pressed }) => [styles.missionCard, pressed && { opacity: 0.92 }]}
+                    style={({ pressed }) => [styles.missionCard, statusStyle, pressed && { opacity: 0.92 }]}
                     onPress={() => router.push(`/mission/${m.id}`)}
                   >
                     <View style={{ flexDirection: "row", gap: 12, flex: 1 }}>
                       <PriorityBar priority={m.priority} />
                       <View style={{ flex: 1, gap: 6 }}>
                         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                          <Text style={styles.cardTitle} numberOfLines={1}>{m.title}</Text>
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
+                            {statusIcon && <Ionicons name={statusIcon as any} size={16} color={statusColor!} />}
+                            <Text style={[styles.cardTitle, m.status === "completed" && { color: "#4CAF50" }, m.status === "rejected" && { color: Colors.crimson }]} numberOfLines={1}>{m.title}</Text>
+                          </View>
                           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                             {m.source === "ai_generated" && (
                               <View style={styles.aiChip}>
@@ -380,7 +398,8 @@ export default function MissionsScreen() {
                     )}
                   </Pressable>
                 </Animated.View>
-              ))
+                );
+              })
             )}
           </ScrollView>
         </>
@@ -670,4 +689,10 @@ const styles = StyleSheet.create({
   aiFeatureList:      { gap: 8, alignSelf: "stretch", paddingHorizontal: 8 },
   aiFeatureRow:       { flexDirection: "row", alignItems: "center", gap: 8 },
   aiFeatureText:      { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
+});
+
+const stateStyles = StyleSheet.create({
+  completed: { borderColor: "#4CAF5040", backgroundColor: "#4CAF5008" },
+  rejected: { borderColor: Colors.crimson + "40", backgroundColor: Colors.crimson + "08" },
+  archived: { borderColor: Colors.textMuted + "30", opacity: 0.7 },
 });
