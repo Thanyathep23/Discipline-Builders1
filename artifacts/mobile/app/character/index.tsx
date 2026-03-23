@@ -975,12 +975,14 @@ export default function CharacterStatusScreen() {
     }
     const prevIdx = TIER_ORDER.indexOf(prevTierRef.current);
     const newIdx = TIER_ORDER.indexOf(tierName);
+    let tierTimer: ReturnType<typeof setTimeout> | null = null;
     if (newIdx > prevIdx && prevIdx >= 0) {
       setShowTierCelebration(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      setTimeout(() => setShowTierCelebration(false), 2500);
+      tierTimer = setTimeout(() => setShowTierCelebration(false), 2500);
     }
     prevTierRef.current = tierName;
+    return () => { if (tierTimer) clearTimeout(tierTimer); };
   }, [tierName]);
 
   const vsKeyForFade = characterVS
@@ -988,16 +990,18 @@ export default function CharacterStatusScreen() {
     : JSON.stringify(data?.visualState);
   const [fadingOutVS, setFadingOutVS] = useState<CharacterVisualState | null>(null);
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
     if (prevVisualStateRef.current && prevVisualStateRef.current !== vsKeyForFade && prevCharacterVS.current) {
       setFadingOutVS(prevCharacterVS.current);
       prevCharOpacity.value = 1;
       prevCharOpacity.value = withTiming(0, { duration: 800, easing: Easing.out(Easing.cubic) });
       characterOpacity.value = 0;
       characterOpacity.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) });
-      setTimeout(() => setFadingOutVS(null), 850);
+      timer = setTimeout(() => setFadingOutVS(null), 850);
     }
     prevVisualStateRef.current = vsKeyForFade;
     if (characterVS) prevCharacterVS.current = characterVS;
+    return () => { if (timer) clearTimeout(timer); };
   }, [vsKeyForFade]);
 
   const characterAnimStyle = useAnimatedStyle(() => ({
