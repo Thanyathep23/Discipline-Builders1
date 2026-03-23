@@ -63,8 +63,8 @@ Key design mandates:
 
 ### Reward Formula (D.5) — Overhauled
 - Base = missionValueScore × 10
-- Multiplied by: qualityFactor × distractionPenalty × aiRewardMultiplier
-- Partial verdict: fixed 0.5× multiplier
+- Multiplied by: proofQuality × proofConfidence × rewardMultiplier × distractionPenalty
+- Partial verdict: fixed 0.5× reward multiplier
 - XP = ceil(coins/5), min 1 for any attempt, min 10 for approved
 - All judged attempts (including rejected/flagged/followup) get min 1 XP
 

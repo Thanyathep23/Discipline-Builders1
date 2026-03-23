@@ -178,12 +178,22 @@ function validateAndNormalizeAiResponse(raw: string, providerName: string): Judg
     const trustDelta = parsed.trust_score_delta ?? parsed.trustScoreDelta ?? 0;
 
     if (verdict === undefined || confidenceScore === undefined) {
-      console.error(`[AI Judge] Invalid response from ${providerName}: missing required fields`, raw.slice(0, 500));
+      console.error(`[AI Judge] Invalid response from ${providerName}: missing verdict or confidence_score`, raw.slice(0, 500));
       return null;
     }
 
     if (typeof confidenceScore !== "number" || confidenceScore < 0 || confidenceScore > 1) {
       console.error(`[AI Judge] Invalid confidence_score from ${providerName}:`, confidenceScore);
+      return null;
+    }
+
+    if (!VALID_VERDICTS.includes(verdict) && verdict !== "manual_review") {
+      console.error(`[AI Judge] Unknown verdict from ${providerName}: "${verdict}"`);
+      return null;
+    }
+
+    if (rewardMultiplier !== undefined && (typeof rewardMultiplier !== "number" || rewardMultiplier < 0 || rewardMultiplier > 1.5)) {
+      console.error(`[AI Judge] Invalid reward_multiplier from ${providerName}:`, rewardMultiplier);
       return null;
     }
 

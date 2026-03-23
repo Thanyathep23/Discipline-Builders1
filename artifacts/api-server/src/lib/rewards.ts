@@ -62,8 +62,6 @@ export function computeRewardCoins(input: ComputeRewardInput): { coins: number; 
     ? missionValueScore * 10
     : calculateRewardPotential(missionPriority, missionImpact, targetDurationMinutes);
 
-  const qualityFactor = proofQuality * 0.7 + proofConfidence * 0.3;
-
   const distractions = distractionCount ?? blockedAttemptCount;
   let distractionPenalty: number;
   if (distractions === 0) {
@@ -78,7 +76,7 @@ export function computeRewardCoins(input: ComputeRewardInput): { coins: number; 
 
   const aiMult = aiRewardMult ?? 1.0;
 
-  const multiplier = qualityFactor * distractionPenalty * aiMult;
+  const multiplier = proofQuality * proofConfidence * aiMult * distractionPenalty;
   const coins = Math.max(0, Math.round(base * multiplier));
 
   const xp = Math.max(1, Math.ceil(coins / 5));
