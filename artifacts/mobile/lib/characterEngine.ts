@@ -2,6 +2,28 @@ export type StatusTier = "Starter" | "Hustle" | "Rising" | "Refined" | "Elite";
 
 export type DimensionId = "fitness" | "discipline" | "finance" | "prestige";
 
+export type PostureStage = "neutral" | "upright" | "athletic" | "peak";
+export type OutfitTier = "starter" | "rising" | "premium" | "elite";
+export type PrestigeStage = "none" | "subtle" | "visible" | "legendary";
+export type RefinementStage = "casual" | "composed" | "sharp" | "commanding";
+
+export interface CharacterVisualState {
+  postureStage: PostureStage;
+  outfitTier: OutfitTier;
+  prestigeStage: PrestigeStage;
+  refinementStage: RefinementStage;
+  skinTone: string;
+  hairStyle: string;
+  hairColor: string;
+  equippedWatchStyle: string | null;
+  equippedTopStyle: string | null;
+  equippedBottomStyle: string | null;
+  equippedAccessoryStyle: string | null;
+  equippedOuterwearStyle: string | null;
+  outerwearColor: string | null;
+  bottomColor: string | null;
+}
+
 export interface DimensionLevel {
   id: DimensionId;
   label: string;
@@ -81,6 +103,8 @@ export interface CharacterState {
   hasEquippedCosmetic: boolean;
   itemPrestigeBoost: number;
 
+  visualState: CharacterVisualState;
+
   bodyState: string;
   postureState: string;
   outfitTier: string;
@@ -109,6 +133,74 @@ function clamp(v: number, min = 0, max = 10) {
   return Math.min(max, Math.max(min, v));
 }
 
+export function getPostureStage(fitnessLevel: number): PostureStage {
+  if (fitnessLevel >= 9) return "peak";
+  if (fitnessLevel >= 7) return "athletic";
+  if (fitnessLevel >= 4) return "upright";
+  return "neutral";
+}
+
+export function getOutfitTier(financeLevel: number): OutfitTier {
+  if (financeLevel >= 9) return "elite";
+  if (financeLevel >= 7) return "premium";
+  if (financeLevel >= 4) return "rising";
+  return "starter";
+}
+
+export function getPrestigeStage(prestigeLevel: number): PrestigeStage {
+  if (prestigeLevel >= 9) return "legendary";
+  if (prestigeLevel >= 7) return "visible";
+  if (prestigeLevel >= 4) return "subtle";
+  return "none";
+}
+
+export function getDisciplineRefinement(disciplineLevel: number): RefinementStage {
+  if (disciplineLevel >= 9) return "commanding";
+  if (disciplineLevel >= 7) return "sharp";
+  if (disciplineLevel >= 4) return "composed";
+  return "casual";
+}
+
+const POSTURE_LABELS: Record<PostureStage, string> = {
+  neutral: "Relaxed", upright: "Upright", athletic: "Athletic", peak: "Commanding",
+};
+const OUTFIT_LABELS: Record<OutfitTier, string> = {
+  starter: "Casual", rising: "Smart", premium: "Premium", elite: "Elite",
+};
+
+const VISUAL_THRESHOLDS: Record<DimensionId, { nextStage: string; atLevel: number }[]> = {
+  fitness: [
+    { nextStage: "Upright posture", atLevel: 4 },
+    { nextStage: "Athletic posture", atLevel: 7 },
+    { nextStage: "Peak posture", atLevel: 9 },
+  ],
+  discipline: [
+    { nextStage: "Composed refinement", atLevel: 4 },
+    { nextStage: "Sharp refinement", atLevel: 7 },
+    { nextStage: "Commanding presence", atLevel: 9 },
+  ],
+  finance: [
+    { nextStage: "Rising outfit", atLevel: 4 },
+    { nextStage: "Premium outfit", atLevel: 7 },
+    { nextStage: "Elite outfit", atLevel: 9 },
+  ],
+  prestige: [
+    { nextStage: "Subtle prestige markers", atLevel: 4 },
+    { nextStage: "Visible prestige overlay", atLevel: 7 },
+    { nextStage: "Legendary prestige aura", atLevel: 9 },
+  ],
+};
+
+function getSpecificEvolutionHint(dim: DimensionLevel): string {
+  const thresholds = VISUAL_THRESHOLDS[dim.id] ?? [];
+  for (const t of thresholds) {
+    if (dim.level < t.atLevel) {
+      return `Improve ${dim.label} to L${t.atLevel} to unlock ${t.nextStage}`;
+    }
+  }
+  return `${dim.label} is at maximum visual evolution`;
+}
+
 export function computeCharacterState(
   apiResponse: any,
   equippedItems?: any[],
@@ -131,6 +223,39 @@ export function computeCharacterState(
   const sorted = [...dimensions].sort((a, b) => a.level - b.level || a.totalXp - b.totalXp);
   const weakestDimension = sorted.length > 0 ? sorted[0] : null;
   const strongestDimension = sorted.length > 0 ? sorted[sorted.length - 1] : null;
+
+  const dimMap: Record<string, number> = {};
+  for (const d of dimensions) dimMap[d.id] = d.level;
+
+  const fitnessLevel = dimMap.fitness ?? 1;
+  const disciplineLevel = dimMap.discipline ?? 1;
+  const financeLevel = dimMap.finance ?? 1;
+  const prestigeLevel = dimMap.prestige ?? 1;
+
+  const postureStage = getPostureStage(fitnessLevel);
+  const outfitTierStage = getOutfitTier(financeLevel);
+  const prestigeStage = getPrestigeStage(prestigeLevel);
+  const refinementStage = getDisciplineRefinement(disciplineLevel);
+
+  const appearance = apiResponse?.appearance ?? {};
+  const wearables = apiResponse?.equippedWearables ?? {};
+
+  const characterVisualState: CharacterVisualState = {
+    postureStage,
+    outfitTier: outfitTierStage,
+    prestigeStage,
+    refinementStage,
+    skinTone: appearance.skinTone ?? "tone-3",
+    hairStyle: appearance.hairStyle ?? "taper",
+    hairColor: appearance.hairColor ?? "black",
+    equippedWatchStyle: wearables.watch?.watchStyle ?? null,
+    equippedTopStyle: wearables.top?.slug ?? null,
+    equippedBottomStyle: wearables.bottom?.slug ?? null,
+    equippedAccessoryStyle: wearables.accessory?.accessoryStyle ?? null,
+    equippedOuterwearStyle: wearables.outerwear?.slug ?? null,
+    outerwearColor: wearables.outerwear?.colorVariant ?? null,
+    bottomColor: wearables.bottom?.colorVariant ?? null,
+  };
 
   const equipped = equippedItems ?? [];
   const equippedGear: EquippedGearItem[] = equipped.map((item: any) => ({
@@ -163,26 +288,11 @@ export function computeCharacterState(
   const topStrengths = dimScores.filter(s => s.isStrength);
   const weakZones = dimScores.filter(s => s.isWeakZone);
 
-  const rawVs = de?.visualState ?? apiResponse?.visualState ?? {};
-  const bodyDescriptors = ["Base", "Lean", "Athletic", "Defined", "Sculpted"];
-  const postureDescriptors = ["Relaxed", "Upright", "Confident", "Commanding", "Dominant"];
-  const outfitDescriptors = ["Casual", "Smart", "Professional", "Premium", "Elite"];
-
-  function toDescriptor(val: unknown, descriptors: string[], fallback: string): string {
-    if (typeof val === "string" && val.length > 0) return val;
-    if (typeof val === "number") return descriptors[clamp(Math.round(val), 0, descriptors.length - 1)] ?? fallback;
-    return fallback;
+  const specificHint = weakestDimension ? getSpecificEvolutionHint(weakestDimension) : "";
+  const evolutionHints: { message: string; urgency: string }[] = [];
+  if (nextEvolution) {
+    evolutionHints.push({ message: specificHint || nextEvolution.hint, urgency: "medium" });
   }
-
-  const visualState = {
-    body: toDescriptor(rawVs.body ?? rawVs.bodyTone, bodyDescriptors, "Base"),
-    posture: toDescriptor(
-      typeof rawVs.posture === "string" ? rawVs.posture : rawVs.posture ?? rawVs.postureLevel,
-      postureDescriptors,
-      "Relaxed",
-    ),
-    outfit: toDescriptor(rawVs.outfit ?? rawVs.outfitTier, outfitDescriptors, "Casual"),
-  };
 
   return {
     statusTier: tierName,
@@ -204,9 +314,11 @@ export function computeCharacterState(
     hasEquippedCosmetic,
     itemPrestigeBoost,
 
-    bodyState: visualState.body ?? "Base",
-    postureState: visualState.posture ?? "Relaxed",
-    outfitTier: visualState.outfit ?? tierName,
+    visualState: characterVisualState,
+
+    bodyState: POSTURE_LABELS[postureStage],
+    postureState: POSTURE_LABELS[postureStage],
+    outfitTier: OUTFIT_LABELS[outfitTierStage],
     arcLabel: apiResponse?.arc?.label ?? null,
     arcStageLabel: apiResponse?.arc?.stage ?? null,
     hasPrestige: tierConfig.index >= 3,
@@ -217,8 +329,6 @@ export function computeCharacterState(
     specialistIcon: apiResponse?.specialistIcon ?? "flash-outline",
     specialistRole: apiResponse?.specialistRole ?? tierName,
     energyTone: apiResponse?.energyTone ?? "Steady",
-    evolutionHints: nextEvolution
-      ? [{ message: nextEvolution.hint, urgency: "medium" }]
-      : [],
+    evolutionHints,
   };
 }

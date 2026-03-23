@@ -1024,10 +1024,23 @@ Duplicate prevention: checks ownership before award, try/catch for concurrent re
 ## Phase 28 — Character Evolution Engine
 
 ### Backend: `computeVisualState()` in `routes/character.ts`
-Maps 4 dimension scores to 6 visual axes: bodyTone (0-4), posture (0-2), outfitTier (0-4), grooming (0-3), prestigeAccent (0-3), confidenceFace (0-2)
+Maps 4 dimension scores to 6 visual axes: bodyTone (0-4), posture (0-3, 4-stage), outfitTier (0-4), grooming (0-3), prestigeAccent (0-3), confidenceFace (0-2)
 
-### Frontend: `EvolvedCharacter` 17-layer SVG renderer in `app/character/index.tsx`
-- Dynamic outfit/posture/grooming/prestige SVG layers
+### Frontend: 7-Layer Character Visual Evolution System
+- **Architecture**: Composable layer components in `components/character/layers/`
+  - `BodyBaseLayer` — skin tone, head, ears, neck, hands
+  - `PostureLayer` — metrics provider (4 stages: neutral/upright/athletic/peak), mouth/brow path helpers
+  - `OutfitLayer` — tier-based outfit palettes (starter/rising/premium/elite) with equipped top style override
+  - `OuterwearLayer` — jacket/coat layer from equipped wearables
+  - `WatchLayer` — equipped watch rendering
+  - `AccessoryLayer` — chain/pin/ring accessories
+  - `PrestigeLayer` — 4 stages (none/subtle/visible/legendary) with sparkle/glow effects
+  - `HairLayer` — 6 styles with grooming-level detail
+- **CharacterRenderer** (`components/character/CharacterRenderer.tsx`): Composes all 7 layers, supports size variants (small/medium/large/full), shadow control, memoized
+- **CharacterVisualState** (`lib/characterEngine.ts`): Typed interface mapping dimension levels → visual stages via `computeCharacterState()`
+  - Stage thresholds: posture neutral(<4)/upright(4-6)/athletic(7-8)/peak(9+); outfit starter(<4)/rising(4-6)/premium(7-8)/elite(9+); prestige none(<4)/subtle(4-6)/visible(7-8)/legendary(9+); refinement casual(<4)/composed(4-6)/sharp(7-8)/commanding(9+)
+- **Integration**: `CharacterRenderer` used in character status hub with graceful fallback to legacy `EvolvedCharacter`; cross-fade animation triggers on visual state changes
+- Legacy `EvolvedCharacter` still exists in `app/character/index.tsx` as fallback
 - "WHY YOUR CHARACTER LOOKS LIKE THIS" explanation section
 
 ## Phase 29 — Wearables / Style / Identity

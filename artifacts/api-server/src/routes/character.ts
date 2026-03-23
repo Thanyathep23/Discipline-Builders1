@@ -198,7 +198,7 @@ function computeVisualState(
   prestigeScore: number,
 ): VisualStateResult {
   const bodyTone       = fitnessScore    < 20 ? 0 : fitnessScore    < 40 ? 1 : fitnessScore    < 60 ? 2 : fitnessScore    < 80 ? 3 : 4;
-  const posture        = fitnessScore    < 30 ? 0 : fitnessScore    < 65 ? 1 : 2;
+  const posture        = fitnessScore    < 20 ? 0 : fitnessScore    < 40 ? 1 : fitnessScore    < 65 ? 2 : 3;
   const outfitTier     = financeScore    < 20 ? 0 : financeScore    < 40 ? 1 : financeScore    < 60 ? 2 : financeScore    < 80 ? 3 : 4;
   const grooming       = disciplineScore < 20 ? 0 : disciplineScore < 50 ? 1 : disciplineScore < 80 ? 2 : 3;
   const prestigeAccent = prestigeScore   < 20 ? 0 : prestigeScore   < 50 ? 1 : prestigeScore   < 80 ? 2 : 3;

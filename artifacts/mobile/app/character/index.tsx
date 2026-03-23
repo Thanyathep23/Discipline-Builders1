@@ -17,7 +17,9 @@ import { Colors } from "@/constants/colors";
 import { LoadingScreen, Button } from "@/design-system";
 import { useAuth } from "@/context/AuthContext";
 import { useCharacterStatus, useUpdateCharacterAppearance } from "@/hooks/useApi";
-import type { DimensionLevel, DimensionDetail } from "@/lib/characterEngine";
+import type { DimensionLevel, DimensionDetail, CharacterVisualState } from "@/lib/characterEngine";
+import { computeCharacterState } from "@/lib/characterEngine";
+import { CharacterRenderer } from "@/components/character";
 
 // ─── Phase 29 — Wearable State Types ──────────────────────────────────────────
 
@@ -941,6 +943,9 @@ export default function CharacterStatusScreen() {
   const nextEvolution = de?.nextEvolution ?? null;
   const dimensionDetails = de?.details ?? {};
 
+  const charState = data ? computeCharacterState(data) : null;
+  const characterVS: CharacterVisualState | null = charState?.visualState ?? null;
+
   let weakestIdx = -1;
   let strongestIdx = -1;
   if (dims.length > 0) {
@@ -966,14 +971,16 @@ export default function CharacterStatusScreen() {
     prevTierRef.current = tierName;
   }, [tierName]);
 
+  const vsKeyForFade = characterVS
+    ? `${characterVS.postureStage}-${characterVS.outfitTier}-${characterVS.prestigeStage}-${characterVS.refinementStage}`
+    : JSON.stringify(data?.visualState);
   useEffect(() => {
-    const vsKey = JSON.stringify(data?.visualState);
-    if (prevVisualStateRef.current && prevVisualStateRef.current !== vsKey) {
+    if (prevVisualStateRef.current && prevVisualStateRef.current !== vsKeyForFade) {
       characterOpacity.value = 0.3;
       characterOpacity.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) });
     }
-    prevVisualStateRef.current = vsKey;
-  }, [data?.visualState]);
+    prevVisualStateRef.current = vsKeyForFade;
+  }, [vsKeyForFade]);
 
   const characterAnimStyle = useAnimatedStyle(() => ({
     opacity: characterOpacity.value,
@@ -1058,14 +1065,22 @@ export default function CharacterStatusScreen() {
 
               {/* The character — full hero presence with cross-fade */}
               <Animated.View style={[styles.characterWrap, characterAnimStyle]}>
-                <EvolvedCharacter
-                  visualState={data?.visualState as VisualState | null}
-                  equippedWearables={(data as any)?.equippedWearables as EquippedWearableState ?? null}
-                  skinTone={currentSkinTone}
-                  hairStyle={currentHairStyle}
-                  hairColor={currentHairColor}
-                  size={250}
-                />
+                {characterVS ? (
+                  <CharacterRenderer
+                    visualState={characterVS}
+                    size="large"
+                    showShadow={false}
+                  />
+                ) : (
+                  <EvolvedCharacter
+                    visualState={data?.visualState as VisualState | null}
+                    equippedWearables={(data as any)?.equippedWearables as EquippedWearableState ?? null}
+                    skinTone={currentSkinTone}
+                    hairStyle={currentHairStyle}
+                    hairColor={currentHairColor}
+                    size={250}
+                  />
+                )}
                 <Pressable
                   style={{
                     position: "absolute", bottom: 0, right: 0,
@@ -1182,7 +1197,7 @@ export default function CharacterStatusScreen() {
                     <Text style={{ fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted }}>→ Lv {nextEvolution.targetLevel}</Text>
                   </View>
                 </View>
-                <Text style={styles.evolutionHint}>{nextEvolution.hint}</Text>
+                <Text style={styles.evolutionHint}>{charState?.evolutionHints?.[0]?.message ?? nextEvolution.hint}</Text>
                 <Button
                   label={nextEvolution.action}
                   onPress={() => {
