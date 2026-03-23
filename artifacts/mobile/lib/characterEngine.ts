@@ -167,10 +167,21 @@ export function computeCharacterState(
   const bodyDescriptors = ["Base", "Lean", "Athletic", "Defined", "Sculpted"];
   const postureDescriptors = ["Relaxed", "Upright", "Confident", "Commanding", "Dominant"];
   const outfitDescriptors = ["Casual", "Smart", "Professional", "Premium", "Elite"];
+
+  function toDescriptor(val: unknown, descriptors: string[], fallback: string): string {
+    if (typeof val === "string" && val.length > 0) return val;
+    if (typeof val === "number") return descriptors[clamp(Math.round(val), 0, descriptors.length - 1)] ?? fallback;
+    return fallback;
+  }
+
   const visualState = {
-    body: rawVs.body ?? bodyDescriptors[clamp(rawVs.bodyTone ?? 0, 0, 4)] ?? "Base",
-    posture: rawVs.posture ?? postureDescriptors[clamp(rawVs.posture ?? 0, 0, 4)] ?? "Relaxed",
-    outfit: rawVs.outfit ?? outfitDescriptors[clamp(rawVs.outfitTier ?? 0, 0, 4)] ?? "Casual",
+    body: toDescriptor(rawVs.body ?? rawVs.bodyTone, bodyDescriptors, "Base"),
+    posture: toDescriptor(
+      typeof rawVs.posture === "string" ? rawVs.posture : rawVs.posture ?? rawVs.postureLevel,
+      postureDescriptors,
+      "Relaxed",
+    ),
+    outfit: toDescriptor(rawVs.outfit ?? rawVs.outfitTier, outfitDescriptors, "Casual"),
   };
 
   return {

@@ -8,7 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Animated, {
-  FadeIn, FadeInDown, SlideInDown, FadeInUp,
+  FadeIn, FadeInDown, FadeOut, SlideInDown, FadeInUp,
   useSharedValue, useAnimatedStyle, withTiming, Easing,
 } from "react-native-reanimated";
 import Svg, { Circle, Ellipse, Rect, Path, G, Line } from "react-native-svg";
@@ -812,10 +812,11 @@ function TierCelebration({ tier, color, visible }: { tier: string; color: string
   if (!visible) return null;
   return (
     <Animated.View
-      entering={FadeIn.duration(300)}
+      entering={FadeIn.duration(800)}
+      exiting={FadeOut.duration(800)}
       style={celebrationStyles.overlay}
     >
-      <Animated.View entering={FadeInUp.delay(100).duration(400).springify()} style={celebrationStyles.content}>
+      <Animated.View entering={FadeInUp.delay(200).duration(800)} style={celebrationStyles.content}>
         <LinearGradient
           colors={[color + "40", color + "18", "transparent"]}
           style={celebrationStyles.glow}

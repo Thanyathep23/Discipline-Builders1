@@ -9,7 +9,7 @@ import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
 import { useCharacterStatus, useInventoryTitles, useAppliedState } from "@/hooks/useApi";
-import { computeCharacterState, type CharacterState, type DimensionScore, type EquippedGearItem } from "@/lib/characterEngine";
+import { computeCharacterState, type CharacterState, type DimensionLevel, type EquippedGearItem } from "@/lib/characterEngine";
 
 // ─── Character Figure ────────────────────────────────────────────────────────
 
@@ -196,8 +196,8 @@ const figStyles = StyleSheet.create({
 
 // ─── Dimension Bar ───────────────────────────────────────────────────────────
 
-function DimensionBar({ dim, isStrength, isWeakest, delay }: { dim: any; isStrength?: boolean; isWeakest?: boolean; delay: number }) {
-  const pct = dim.progressPct ?? dim.pct ?? 0;
+function DimensionBar({ dim, isStrength, isWeakest, delay }: { dim: DimensionLevel; isStrength?: boolean; isWeakest?: boolean; delay: number }) {
+  const pct = dim.progressPct;
   return (
     <Animated.View entering={FadeInDown.delay(delay).springify()} style={dimStyles.row}>
       <View style={dimStyles.labelRow}>
