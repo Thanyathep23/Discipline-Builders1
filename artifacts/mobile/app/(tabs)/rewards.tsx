@@ -652,7 +652,7 @@ export default function RewardsScreen() {
                   <View style={s.gameModeGrid}>
                     {([
                       { icon: "person-outline",    label: "Character",  route: "/character"  },
-                      { icon: "shirt-outline",     label: "Wardrobe",   route: "/wearables"  },
+                      { icon: "shirt-outline",     label: "Wardrobe",   route: "/wardrobe"  },
                       { icon: "home-outline",      label: "Room",       route: "/world"      },
                       { icon: "car-sport-outline", label: "Garage",     route: "/cars"       },
                     ] as const).map((item) => (
