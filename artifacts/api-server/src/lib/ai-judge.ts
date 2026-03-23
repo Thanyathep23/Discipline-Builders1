@@ -154,11 +154,10 @@ function filesHaveUsefulContent(files: AttachedFileInfo[]): boolean {
   );
 }
 
-const VALID_VERDICTS = ["approved", "partial", "rejected", "flagged", "followup_needed", "followup_required"];
+const VALID_VERDICTS = ["approved", "partial", "rejected", "flagged", "followup_needed", "followup_required", "manual_review"];
 
 function normalizeVerdict(v: string): JudgeResult["verdict"] {
   if (v === "followup_required") return "followup_needed";
-  if (v === "manual_review") return "flagged";
   if (VALID_VERDICTS.includes(v)) return v as JudgeResult["verdict"];
   return "rejected";
 }

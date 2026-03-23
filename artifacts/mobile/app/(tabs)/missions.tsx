@@ -414,13 +414,34 @@ export default function MissionsScreen() {
                         )}
                       </View>
                     </View>
-                    {missionTab === "active" && (
+                    {missionTab === "active" && !m.latestProofStatus && (
                       <Pressable
                         style={({ pressed }) => [styles.focusBtn, pressed && { opacity: 0.85 }]}
                         onPress={(e) => { e.stopPropagation?.(); handleStartFocus(m.id); }}
                       >
                         <Ionicons name="play" size={16} color="#fff" />
                       </Pressable>
+                    )}
+                    {missionTab === "active" && m.latestProofStatus === "followup_needed" && (
+                      <Pressable
+                        style={({ pressed }) => [styles.ctaBtn, { backgroundColor: "#A855F7" }, pressed && { opacity: 0.85 }]}
+                        onPress={(e) => { e.stopPropagation?.(); router.push(`/mission/${m.id}`); }}
+                      >
+                        <Ionicons name="chatbubble-ellipses" size={14} color="#fff" />
+                      </Pressable>
+                    )}
+                    {missionTab === "active" && (m.latestProofStatus === "rejected" || m.latestProofStatus === "flagged") && (
+                      <Pressable
+                        style={({ pressed }) => [styles.ctaBtn, { backgroundColor: Colors.amber }, pressed && { opacity: 0.85 }]}
+                        onPress={(e) => { e.stopPropagation?.(); handleStartFocus(m.id); }}
+                      >
+                        <Ionicons name="reload" size={14} color="#fff" />
+                      </Pressable>
+                    )}
+                    {missionTab === "active" && (m.latestProofStatus === "pending" || m.latestProofStatus === "reviewing") && (
+                      <View style={[styles.ctaBtn, { backgroundColor: Colors.cyan + "30" }]}>
+                        <Ionicons name="hourglass-outline" size={14} color={Colors.cyan} />
+                      </View>
                     )}
                   </Pressable>
                 </Animated.View>
@@ -673,6 +694,7 @@ const styles = StyleSheet.create({
   focusBtn:           { width: 38, height: 38, borderRadius: 12, backgroundColor: Colors.green, alignItems: "center", justifyContent: "center" },
   statusChip:         { alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
   statusChipText:     { fontFamily: "Inter_600SemiBold", fontSize: 10, letterSpacing: 0.5 },
+  ctaBtn:             { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   emptyBox:           { alignItems: "center", paddingTop: 80, gap: 12 },
   emptyTitle:         { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.textSecondary },
   emptyText:          { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textMuted, textAlign: "center", paddingHorizontal: 24 },

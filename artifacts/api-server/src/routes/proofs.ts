@@ -239,7 +239,7 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     );
   }
 
-  if (judgeResult.verdict === "rejected" || judgeResult.verdict === "flagged" || judgeResult.verdict === "followup_needed") {
+  if (judgeResult.verdict === "rejected" || judgeResult.verdict === "flagged" || judgeResult.verdict === "followup_needed" || judgeResult.verdict === "manual_review") {
     await grantReward(userId, 0, 1, `Attempt XP: ${mission.title}`, {
       missionId: mission.id, sessionId: session.id, proofId: submissionId,
     });
@@ -276,6 +276,7 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     else if (judgeResult.verdict === "partial") trustDelta = 0.01;
     else if (judgeResult.verdict === "rejected") trustDelta = -0.05;
     else if (judgeResult.verdict === "flagged") trustDelta = -0.10;
+    else if (judgeResult.verdict === "manual_review") trustDelta = -0.02;
   }
 
   if (trustDelta !== 0) {
@@ -469,90 +470,7 @@ router.post("/:submissionId/followup", async (req, res) => {
 
   const currentFollowupCount = proofs[0].followupCount ?? 0;
   const newFollowupCount = currentFollowupCount + 1;
-
-  if (newFollowupCount >= 2) {
-    await db.update(proofSubmissionsTable).set({
-      status: "partial",
-      rewardMultiplier: 0.4,
-      aiVerdict: "partial",
-      aiExplanation: "Auto-resolved to partial after maximum follow-up attempts reached.",
-      aiConfidenceScore: 0.5,
-      aiRubricRelevance: 0.4,
-      aiRubricQuality: 0.3,
-      aiRubricPlausibility: 0.5,
-      aiRubricSpecificity: 0.3,
-      followupAnswers: parsed.data.answers,
-      followupCount: newFollowupCount,
-      updatedAt: new Date(),
-    }).where(eq(proofSubmissionsTable.id, req.params.submissionId));
-
-    const sessions = await db.select().from(focusSessionsTable)
-      .where(eq(focusSessionsTable.id, proofs[0].sessionId)).limit(1);
-    const missions = await db.select().from(missionsTable)
-      .where(eq(missionsTable.id, proofs[0].missionId)).limit(1);
-    const users = await db.select().from(usersTable)
-      .where(eq(usersTable.id, userId)).limit(1);
-
-    if (sessions[0] && missions[0] && users[0]) {
-      const startedAt = new Date(sessions[0].startedAt);
-      const endedAt = sessions[0].endedAt ? new Date(sessions[0].endedAt) : new Date();
-      const actualMinutes = Math.floor((endedAt.getTime() - startedAt.getTime()) / 60000);
-
-      const { coins, xp } = computeRewardCoins({
-        missionPriority: missions[0].priority,
-        missionImpact: missions[0].impactLevel,
-        targetDurationMinutes: missions[0].targetDurationMinutes,
-        actualDurationMinutes: actualMinutes,
-        proofQuality: 0.3,
-        proofConfidence: 0.5,
-        blockedAttemptCount: sessions[0].blockedAttemptCount ?? 0,
-        strictnessMode: sessions[0].strictnessMode,
-        userTrustScore: users[0].trustScore,
-        currentStreak: users[0].currentStreak,
-        missionValueScore: missions[0].missionValueScore ?? undefined,
-        rewardMultiplier: 0.4,
-      });
-
-      if (coins > 0) {
-        await grantReward(userId, coins, xp, `Partial completion: ${missions[0].title}`, {
-          missionId: missions[0].id,
-          sessionId: sessions[0].id,
-          proofId: req.params.submissionId,
-        });
-        await updateStreak(userId);
-
-        try {
-          const { grantSessionSkillXp } = await import("../lib/skill-engine.js");
-          await grantSessionSkillXp(userId, missions[0].category, actualMinutes, "partial");
-        } catch (err) {
-          console.error("[AutoPartial] Skill XP grant error:", err);
-        }
-      }
-
-      await db.update(missionsTable).set({ status: "completed", updatedAt: new Date() })
-        .where(eq(missionsTable.id, missions[0].id));
-
-      const trustDelta = 0.01;
-      const newTrust = Math.max(0.1, Math.min(1.0, users[0].trustScore + trustDelta));
-      await db.update(usersTable).set({ trustScore: newTrust, updatedAt: new Date() }).where(eq(usersTable.id, userId));
-
-      await db.update(proofSubmissionsTable).set({ coinsAwarded: coins }).where(eq(proofSubmissionsTable.id, req.params.submissionId));
-
-      await db.insert(auditLogTable).values({
-        id: generateId(),
-        actorId: null,
-        actorRole: "system",
-        action: "proof_judged",
-        targetId: req.params.submissionId,
-        targetType: "proof",
-        details: JSON.stringify({ verdict: "partial", coins, reason: "auto_resolve_max_followups" }),
-      });
-    }
-
-    const proof = await db.select().from(proofSubmissionsTable).where(eq(proofSubmissionsTable.id, req.params.submissionId)).limit(1);
-    res.json(parseProof(proof[0]));
-    return;
-  }
+  const isLastFollowup = newFollowupCount >= 2;
 
   await db.update(proofSubmissionsTable).set({
     followupAnswers: parsed.data.answers,
@@ -561,7 +479,85 @@ router.post("/:submissionId/followup", async (req, res) => {
     updatedAt: new Date(),
   }).where(eq(proofSubmissionsTable.id, req.params.submissionId));
 
-  runJudgment(req.params.submissionId, userId).catch(err => console.error("Judge error:", err));
+  runJudgment(req.params.submissionId, userId).then(async () => {
+    if (isLastFollowup) {
+      const updated = await db.select().from(proofSubmissionsTable)
+        .where(eq(proofSubmissionsTable.id, req.params.submissionId)).limit(1);
+      if (updated[0] && updated[0].status === "followup_needed") {
+        await db.update(proofSubmissionsTable).set({
+          status: "partial",
+          rewardMultiplier: 0.4,
+          aiVerdict: "partial",
+          aiExplanation: "Auto-resolved to partial after maximum follow-up attempts reached. " + (updated[0].aiExplanation ?? ""),
+          aiConfidenceScore: Math.max(0.3, updated[0].aiConfidenceScore ?? 0.5),
+          followupCount: newFollowupCount,
+          updatedAt: new Date(),
+        }).where(eq(proofSubmissionsTable.id, req.params.submissionId));
+
+        const sessions = await db.select().from(focusSessionsTable)
+          .where(eq(focusSessionsTable.id, proofs[0].sessionId)).limit(1);
+        const missions = await db.select().from(missionsTable)
+          .where(eq(missionsTable.id, proofs[0].missionId)).limit(1);
+        const users = await db.select().from(usersTable)
+          .where(eq(usersTable.id, userId)).limit(1);
+
+        if (sessions[0] && missions[0] && users[0]) {
+          const startedAt = new Date(sessions[0].startedAt);
+          const endedAt = sessions[0].endedAt ? new Date(sessions[0].endedAt) : new Date();
+          const actualMinutes = Math.floor((endedAt.getTime() - startedAt.getTime()) / 60000);
+
+          const { coins, xp } = computeRewardCoins({
+            missionPriority: missions[0].priority,
+            missionImpact: missions[0].impactLevel,
+            targetDurationMinutes: missions[0].targetDurationMinutes,
+            actualDurationMinutes: actualMinutes,
+            proofQuality: (updated[0].aiRubricRelevance ?? 0.3 + (updated[0].aiRubricQuality ?? 0.3) + (updated[0].aiRubricSpecificity ?? 0.3)) / 3,
+            proofConfidence: updated[0].aiConfidenceScore ?? 0.5,
+            blockedAttemptCount: sessions[0].blockedAttemptCount ?? 0,
+            strictnessMode: sessions[0].strictnessMode,
+            userTrustScore: users[0].trustScore,
+            currentStreak: users[0].currentStreak,
+            missionValueScore: missions[0].missionValueScore ?? undefined,
+            rewardMultiplier: 0.4,
+          });
+
+          const finalXp = Math.max(1, xp);
+          await grantReward(userId, coins, finalXp, `Partial completion: ${missions[0].title}`, {
+            missionId: missions[0].id,
+            sessionId: sessions[0].id,
+            proofId: req.params.submissionId,
+          });
+          await updateStreak(userId);
+
+          try {
+            const { grantSessionSkillXp } = await import("../lib/skill-engine.js");
+            await grantSessionSkillXp(userId, missions[0].category, actualMinutes, "partial");
+          } catch (err) {
+            console.error("[AutoPartial] Skill XP grant error:", err);
+          }
+
+          await db.update(missionsTable).set({ status: "completed", updatedAt: new Date() })
+            .where(eq(missionsTable.id, missions[0].id));
+
+          const trustDelta = 0.01;
+          const newTrust = Math.max(0.1, Math.min(1.0, users[0].trustScore + trustDelta));
+          await db.update(usersTable).set({ trustScore: newTrust, updatedAt: new Date() }).where(eq(usersTable.id, userId));
+
+          await db.update(proofSubmissionsTable).set({ coinsAwarded: coins }).where(eq(proofSubmissionsTable.id, req.params.submissionId));
+
+          await db.insert(auditLogTable).values({
+            id: generateId(),
+            actorId: null,
+            actorRole: "system",
+            action: "proof_judged",
+            targetId: req.params.submissionId,
+            targetType: "proof",
+            details: JSON.stringify({ verdict: "partial", coins, reason: "auto_resolve_max_followups" }),
+          });
+        }
+      }
+    }
+  }).catch(err => console.error("Judge error:", err));
 
   const proof = await db.select().from(proofSubmissionsTable).where(eq(proofSubmissionsTable.id, req.params.submissionId)).limit(1);
   res.json(parseProof(proof[0]));
