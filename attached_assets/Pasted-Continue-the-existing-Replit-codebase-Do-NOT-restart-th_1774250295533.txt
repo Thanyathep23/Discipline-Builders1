@@ -1,0 +1,426 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Make the Room screen so visually compelling that users 
+immediately want to decorate it. The current version has 
+good bones but lacks premium depth, real item visuals, 
+and the emotional pull of "this is MY space."
+
+==================================================
+PART 1 — ROOM CANVAS DEEP UPGRADE
+==================================================
+
+1A. Background & Atmosphere
+
+Current: dark oval glow in center
+Target: real room feel with depth layers
+
+Background layers (bottom to top):
+
+LAYER 1 — Floor
+- Subtle perspective floor
+- Dark charcoal with very faint grid lines
+  going toward vanishing point
+- Like a real room floor, not a diagram
+- Color: #12131F with #1A1B2E grid lines at 8% opacity
+
+LAYER 2 — Back Wall  
+- Slightly lighter than floor
+- Subtle vertical panel lines (like wall panels)
+- Color: #0E0F1C
+- Height: top 45% of canvas
+
+LAYER 3 — Ambient Glow
+- Soft elliptical glow on floor under items
+- Not the current large oval — smaller, more realistic
+- Like light pooling on the floor
+- Color: accent purple at 12% opacity
+- Position: center-bottom area
+
+LAYER 4 — Ceiling Suggestion
+- Very subtle darker area at very top
+- Makes the space feel enclosed
+
+1B. Zone Placement Layout
+
+Redesign the zone positions to feel like a REAL room
+not a schematic diagram:
+
+NEW LAYOUT (perspective-aware):
+
+BACK WALL (top area):
+  [LIGHTING]     [THEME]
+  Position: top-left and top-center
+
+MID AREA:
+  [SHELF]  [MONITOR]  [TROPHY]
+  Position: middle row, spread across
+
+FLOOR LEVEL:
+  [CHARACTER]  [DESK]  in center
+  [PLANTS] left    [COFFEE] right
+  [AUDIO] far right
+
+Items further back = slightly smaller (perspective)
+Items in front = slightly larger
+This creates real depth illusion
+
+1C. Empty Zone Redesign
+
+Current: faint icon + text label
+Replace with: premium empty slot indicators
+
+Each empty zone shows:
+- Subtle dashed rounded rectangle
+- Zone-specific icon centered (20px, 30% opacity)
+- On press: gentle pulse animation + glow
+- Color: #FFFFFF at 15% for border
+- Background: item-category tint at 5% opacity
+
+Example:
+Coffee zone empty = coffee cup icon with 
+warm amber tint at 5% background
+
+1D. Placed Item Improvements
+
+When item is placed in zone:
+- Item SVG renders at proper perspective scale
+- Subtle drop shadow: 0 4px 12px rgba(0,0,0,0.5)
+- If item is Elite+: thin gold border glow
+- If item is Legendary: subtle particle/shimmer
+
+1E. Character Redesign in Room
+
+Current: character floating with no grounding
+Fix:
+- Character stands ON the floor (proper foot position)
+- Subtle shadow/reflection under feet
+- Character is properly sized relative to desk
+  (desk should be waist-height on character)
+- Character faces slightly forward (not straight on)
+- Small "YOU" label above character head
+  (typography.micro, accent color, only visible briefly)
+
+==================================================
+PART 2 — ZONE TAP EXPERIENCE
+==================================================
+
+When user taps ANY zone (empty or filled):
+
+2A. Empty Zone Tap
+- Zone pulses once with glow
+- Bottom sheet slides up smoothly
+- Title: "Add to [Zone Name]"
+- Shows available items for that zone:
+  - Owned & not placed: show first with "Place" button
+  - Purchasable: show with price + "Buy & Place" button  
+  - Locked (level): show greyed with "Lvl X Required"
+- Items shown as large cards with full SVG visual
+- Card height: 180px to show item properly
+
+2B. Filled Zone Tap
+- Small action menu appears near the zone:
+  ┌─────────────────┐
+  │ 🔄 Replace item  │
+  │ ✕  Remove        │
+  └─────────────────┘
+- Backdrop darkens slightly
+- Dismiss by tapping outside
+
+2C. Zone Highlight on Tap
+- Tapped zone gets bright accent outline
+- Other zones dim to 40% opacity
+- Creates focus effect
+
+==================================================
+PART 3 — ITEM PURCHASE SHEET REDESIGN
+==================================================
+
+When viewing item to purchase from zone tap:
+
+┌─────────────────────────────────┐
+│         ────  (handle)          │
+│                                 │
+│  ┌─────────────────────────┐   │
+│  │                         │   │
+│  │      [ITEM SVG]         │   │  ← 200x200 large
+│  │                         │   │
+│  └─────────────────────────┘   │
+│                                 │
+│  Espresso Machine               │
+│  Coffee Station · Refined       │  ← rarity chip
+│                                 │
+│  "Fuel for focus.               │
+│   Non-negotiable."              │
+│                                 │
+│  ┌─────────────────────────┐   │
+│  │ +8 pts to Base Score    │   │  ← pts contribution
+│  └─────────────────────────┘   │
+│                                 │
+│  ── MINI ROOM PREVIEW ──        │
+│  [tiny room showing where       │
+│   this item would appear]       │
+│                                 │
+│  ┌─────────────────────────┐   │
+│  │  Purchase · 1,200 coins  │   │  ← primary button
+│  └─────────────────────────┘   │
+│  You have: 100 coins            │  ← balance reminder
+│  Need 1,100 more → Earn coins  │  ← if insufficient
+└─────────────────────────────────┘
+
+==================================================
+PART 4 — ROOM TIER CARD UPGRADE
+==================================================
+
+4A. Visual Upgrade
+
+┌──────────────────────────────────────────┐
+│  ○ ROOM TIER                             │
+│                                          │
+│  Standard Base                    8 pts  │
+│  ████████░░░░░░░░░░░░░░░░░░░░  8/30     │
+│  ← gradient fill: purple to blue         │
+│                                          │
+│  Next tier: Emerging Workspace at 30 pts │
+│                                          │
+│  TO UPGRADE THIS BASE:                   │
+│  ╔═══════════════════════════╗           │
+│  ║ 📺 Add Monitor   +8 pts   ║  [→]     │
+│  ╚═══════════════════════════╝           │
+│  ╔═══════════════════════════╗           │
+│  ║ 🎨 Add Theme    +20 pts   ║  [→]     │
+│  ╚═══════════════════════════╝           │
+└──────────────────────────────────────────┘
+
+Key changes:
+- Progress bar: gradient + shows X/30 text
+- Upgrade hints are now TAPPABLE CARDS
+  each card navigates directly to that zone
+- Each hint shows exact points it will add
+- Tap hint → room canvas scrolls up AND
+  that zone gets highlighted/pulsed
+- Points in amber/gold color
+
+4B. Tier Milestones Peek
+
+Add below the tier card:
+"Next reward at Tier 1: Unlock 'Emerging Workspace' badge"
+Small preview of the reward
+Makes users want to reach the next tier
+
+==================================================
+PART 5 — YOUR SETUP SECTION UPGRADE
+==================================================
+
+5A. Section Header
+
+YOUR SETUP                    1 / 9 zones filled
+[=========---------]  Progress toward full setup
+
+Add a progress bar showing how many zones are filled.
+"Full setup = 9/9 zones filled" as a goal.
+
+5B. Item Cards
+
+Horizontal scroll of placed items:
+
+┌─────────────┐
+│             │
+│  [ITEM SVG] │  ← full item illustration
+│             │
+│ Minimal Desk│
+│  ● Active   │
+│  Common     │
+│  [Replace]  │  ← small button
+└─────────────┘
+
+Card size: 110 x 150px
+Active items: subtle accent glow border
+Replace button: ghost/outline style
+
+5C. Empty Zone Cards
+
+Show unfilled zones as empty cards too:
+
+┌─────────────┐
+│             │
+│    [icon]   │  ← zone type icon, 40% opacity
+│             │
+│   Monitor   │
+│  ○ Empty    │
+│  [Add +8pts]│  ← CTA showing pts value
+└─────────────┘
+
+This shows users exactly what they're missing
+and makes them want to fill the gaps
+
+==================================================
+PART 6 — DECORATE YOUR SPACE SECTION
+==================================================
+
+6A. Section Header with Motivation
+
+DECORATE YOUR SPACE
+"Every item you place builds your empire."
+
+6B. Featured Item Cards (3 cards)
+
+Show 3 most impactful items for current level:
+- Most pts for current coin balance
+- Or: items that fill empty high-value zones
+
+Card design:
+┌──────────────────┐
+│                  │
+│   [ITEM SVG]     │  ← 120px illustration
+│                  │
+│ Espresso Machine │
+│ +8 pts • Refined │
+│                  │
+│  1,200 ₿  [Add]  │
+└──────────────────┘
+
+6C. Category Quick Access
+
+Below featured items, add category shortcut row:
+
+[☕ Coffee] [📺 Monitor] [🪴 Plants] [💡 Lighting] [🎨 Themes]
+
+Each is a small pill button
+Tapping jumps to room shop filtered by category
+
+==================================================
+PART 7 — "YOU ARE IN THE ROOM" BUTTON REDESIGN
+==================================================
+
+Current: basic card with text
+Replace with character-aware premium button
+
+When IN room:
+┌──────────────────────────────────────────┐
+│  [character mini avatar]                 │
+│  You're in your command center           │
+│  Standard Base · T0                      │
+│                              [Exit →]   │
+└──────────────────────────────────────────┘
+
+When NOT in room:
+┌──────────────────────────────────────────┐
+│  [character silhouette, subtle]          │
+│  Enter your command center               │
+│  Place yourself in the room              │
+│                           [Enter →]     │
+└──────────────────────────────────────────┘
+
+Card style:
+- Gradient border (purple → blue, 1px)
+- Dark surface background
+- Character avatar shown small (40x40)
+- When in room: green dot indicator
+
+==================================================
+PART 8 — ROOM PHOTO MODE
+==================================================
+
+Add a camera icon button in the room canvas:
+Position: top-right corner of canvas
+Icon: camera outline
+
+On tap:
+- Room canvas captures (react-native-view-shot)
+- Photo preview modal opens
+- Overlay options:
+  ○ Show username + tier (toggle)
+  ○ Show room name (toggle)
+- "Save to Camera Roll" button
+- "Share" button
+- The capture includes character if present
+
+==================================================
+PART 9 — MICRO-INTERACTIONS & ANIMATIONS
+==================================================
+
+9A. On screen load:
+- Room canvas fades in over 400ms
+- Items placed one by one with 100ms stagger
+- Progress bar fills animated from 0 to current
+
+9B. On item placed:
+- Item "drops in" from above with spring animation
+- Small sparkle burst (3-4 particles)
+- Zone border fades out
+- Base score counter increments with animation
+
+9C. On character enter/exit:
+- Character walks in from side (translate animation)
+- Gentle bounce on landing
+- Floor shadow appears beneath character
+
+9D. On tier progress update:
+- Progress bar fills smoothly
+- If new tier reached: celebration modal
+  "🎉 Room Tier Upgraded! Standard Base → Emerging Workspace"
+  Shows new badge earned
+
+9E. Idle room animation:
+- Very subtle: ambient glow slowly pulses
+- Period: 3 seconds, opacity oscillates ±3%
+- Makes the room feel alive when nothing is happening
+
+==================================================
+TECHNICAL SPECS
+==================================================
+
+Canvas implementation:
+- React Native View with absolute positioning
+- NOT SVG viewBox for the overall canvas
+  (SVGs only for individual items)
+- Use Reanimated 2 for animations
+- useSharedValue for smooth interpolations
+
+Performance rules:
+- Canvas re-render only when placed items change
+- Memoize all item SVG components
+- Avoid state updates during animations
+- Target: 60fps on mid-range Android
+
+Design tokens required:
+- colors.bg.room = '#0A0B14'
+- colors.bg.roomWall = '#0E0F1C'  
+- colors.room.floorGrid = 'rgba(255,255,255,0.04)'
+- colors.room.ambientGlow = 'rgba(139,92,246,0.12)'
+- colors.room.zoneEmpty = 'rgba(255,255,255,0.12)'
+- colors.room.zoneActive = accent.primary
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. Room canvas has visible floor/wall depth layers
+2. Empty zones are elegant NOT plain circles with +
+3. Character stands on floor with shadow/grounding
+4. Zone tap opens filtered item sheet
+5. Item purchase sheet shows mini room preview
+6. Tier card hints are tappable and navigate to zones
+7. YOUR SETUP shows both placed AND empty zone cards
+8. Setup progress bar shows zones filled progress
+9. Camera button captures room photo
+10. Item placement has drop-in animation
+11. Character enter/exit has smooth animation
+12. Idle glow pulse animation on canvas
+13. All colors from design tokens
+14. 60fps performance maintained
+15. No existing functionality broken
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. Visual changes summary (before → after per section)
+2. New animation implementations
+3. Zone interaction changes  
+4. Files modified only
+5. Performance notes
+6. Remaining visual gaps

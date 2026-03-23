@@ -748,16 +748,20 @@ New rarity tiers: `refined`, `prestige`, `elite` (added to `RARITY_COLORS` in `c
 
 ### Visual Room Canvas (Premium Overhaul)
 - File: `artifacts/mobile/components/room/RoomCanvas.tsx`
-- Perspective room view with wall gradient, floor with vanishing-point lines
-- Three atmosphere layers: wall gradient, ambient center glow, edge vignette
-- Theme-reactive backgrounds (dark command, executive gold, trading green)
+- CANVAS_HEIGHT=310, perspective room with ceiling gradient, wall panels, floor with vanishing-point grid
+- 4 atmosphere layers: ceiling → wall with vertical panel lines → floor with VP grid → vignette
+- Smaller focused floor glow (not full-canvas oval) for realistic light pooling
+- Theme-reactive backgrounds with `panelLine` color per theme
 - Lighting-reactive ambient glow (LED = purple, Arc Lamp = warm amber)
-- Slow ambient pulse animation on center glow
-- Responsive width via `useWindowDimensions()` (adapts to rotation/resize)
-- Non-overlapping zone hitboxes (lighting top strip, theme narrow center row)
-- Empty zones: dashed rounded outlines with zone-type icons + micro labels
-- Occupied zones: full SVG render with elite/prestige golden accent border
-- Character overlay with subtle accent glow underneath
+- Slow ambient pulse on floor area (bottom 30%, not center)
+- Responsive width via `useWindowDimensions()`
+- Zone-specific tint colors for empty zone backgrounds (coffee=amber, plants=green, etc.)
+- Zone highlight + dim: tapped zone gets accent pulse, others dim to 35% opacity
+- `ZonePulse` animated component: scale 1→1.03 + glow on highlighted zone
+- Perspective-aware zone `scale` prop (back wall items smaller, floor items full size)
+- Item drop shadows under placed items
+- Character shadow (dark ellipse under feet) for ground contact
+- Empty zones: dashed borders at 10% white, zone tint at 8% background
 
 ### Room Item SVG Visuals (Premium Redesign)
 - File: `artifacts/mobile/components/room/RoomItemVisuals.tsx`
@@ -769,9 +773,10 @@ New rarity tiers: `refined`, `prestige`, `elite` (added to `RARITY_COLORS` in `c
 - `ROOM_ITEM_VISUALS` lookup map by item ID → React component
 
 ### Character In Room
-- Premium card-style toggle (not basic pill button)
-- Card shows avatar wrap, "Enter Command Center" / "You are in the room" text
-- Character rendered using `EvolvedCharacter` SVG with subtle glow underneath
+- Premium card with avatar wrap, online dot (green), tier info subtitle
+- "You're in your command center" / "Enter your command center" messaging
+- Exit/Enter action button (not just icon) with labeled text
+- Character rendered using `EvolvedCharacter` SVG with ground shadow
 - State persisted via `audit_log` entries with action `room_character_toggle`
 - Adds +5 points to room score when present
 
@@ -790,15 +795,23 @@ New rarity tiers: `refined`, `prestige`, `elite` (added to `RARITY_COLORS` in `c
 - "Full Setup" — all 6 zone types filled
 Duplicate prevention: checks ownership before award, try/catch for concurrent requests.
 
-### Room Screen UI
-- Header: back button, "COMMAND CENTER", tier badge, coin balance
-- Room canvas: ~45% of screen, visual room with all placed items
-- Character toggle + view character buttons
-- Tier progress card: score, progress bar, evolution hints
-- Placed items horizontal scroll with item visuals
-- Inventory section for owned-but-not-placed items
-- Shop section with zone suggestions + "Browse All Room Items" button
-- Zone tap → picker modal (owned items) or shop modal (browse/buy)
+### Room Screen UI (Premium Overhaul v2)
+- Header: back button, "COMMAND CENTER" eyebrow, tier name, tier badge, coin balance
+- Room canvas: perspective room with all placed items + character
+- Character toggle card: avatar, online dot, tier info, Enter/Exit button
+- Tier progress card: score pill, animated progress bar with X/Y fraction, next tier hint
+  - Tappable upgrade hint cards: "Add Monitor +8 pts" → highlights zone then opens shop
+  - Tier milestone peek: "Reach T1: Unlock Emerging Workspace badge"
+- YOUR SETUP section: zone fill progress bar (X/9 zones), placed item cards + empty zone cards
+  - Empty zone cards show icon, zone name, "Add +Xpts" CTA button
+- IN INVENTORY section: owned-but-not-placed items with "Place" button
+- DECORATE YOUR SPACE section: motivational quote, featured empty zone cards with points
+  - Category quick-access pill row (all zone types as shortcuts to filtered shop)
+  - "Browse All Room Items" button
+- Zone tap → zone highlight/dim + picker modal (filled: replace/remove actions) or shop
+- Shop modal: icons in tabs, all 9 zone categories, points shown on each card
+- Shop uses API fields `cost` and `minLevel` (not coinCost/levelRequired)
+- MILESTONES section: earned badge chips in horizontal scroll
 - Buy-and-place flow: purchase item from shop → auto-place in zone
 
 ### API Endpoints

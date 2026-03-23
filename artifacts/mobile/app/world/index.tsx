@@ -23,7 +23,6 @@ import { RoomCanvas } from "@/components/room/RoomCanvas";
 import { RoomItemVisual } from "@/components/room/RoomItemVisuals";
 import { EvolvedCharacter } from "@/app/character";
 
-
 const ZONE_LABELS: Record<string, string> = {
   room_theme: "Room Theme", desk: "Desk Setup", coffee_station: "Coffee Station",
   monitor: "Monitor Setup", bookshelf: "Bookshelf", audio: "Audio System",
@@ -35,6 +34,10 @@ const ZONE_ICONS: Record<string, string> = {
   coffee_station: "cafe-outline", monitor: "tv-outline",
   bookshelf: "book-outline", audio: "musical-notes-outline",
   plants: "leaf-outline", trophy_case: "trophy-outline", lighting: "bulb-outline",
+};
+
+const RARITY_WEIGHTS: Record<string, number> = {
+  common: 3, refined: 8, prestige: 15, elite: 25, legendary: 40,
 };
 
 const TIER_LABELS: Record<number, string> = {
@@ -60,13 +63,22 @@ const ROOM_ZONES = [
 ];
 
 const SHOP_TABS = [
-  { key: null, label: "All" },
-  { key: "desk", label: "Desk" },
-  { key: "monitor", label: "Monitor" },
-  { key: "coffee_station", label: "Coffee" },
-  { key: "lighting", label: "Lighting" },
-  { key: "room_theme", label: "Themes" },
+  { key: null, label: "All", icon: "grid-outline" },
+  { key: "desk", label: "Desk", icon: "desktop-outline" },
+  { key: "monitor", label: "Monitor", icon: "tv-outline" },
+  { key: "coffee_station", label: "Coffee", icon: "cafe-outline" },
+  { key: "lighting", label: "Lighting", icon: "bulb-outline" },
+  { key: "room_theme", label: "Themes", icon: "color-palette-outline" },
+  { key: "bookshelf", label: "Shelf", icon: "book-outline" },
+  { key: "audio", label: "Audio", icon: "musical-notes-outline" },
+  { key: "plants", label: "Plants", icon: "leaf-outline" },
+  { key: "trophy_case", label: "Trophy", icon: "trophy-outline" },
 ];
+
+const ZONE_PTS: Record<string, number> = {
+  room_theme: 20, lighting: 8, desk: 3, monitor: 3,
+  coffee_station: 3, bookshelf: 3, audio: 3, plants: 3, trophy_case: 3,
+};
 
 function AnimatedProgressBar({ progress, color }: { progress: number; color: string }) {
   const width = useSharedValue(0);
@@ -91,7 +103,7 @@ function AnimatedProgressBar({ progress, color }: { progress: number; color: str
     borderRadius: 4,
   }));
   return (
-    <View style={s.tierBarBg}>
+    <View style={st.tierBarBg}>
       <Animated.View style={barStyle}>
         <Animated.View style={shimmerStyle} />
       </Animated.View>
@@ -135,6 +147,7 @@ export default function CommandCenterScreen() {
   const [shopVisible, setShopVisible] = useState(false);
   const [shopTab, setShopTab] = useState<string | null>(null);
   const [buyingId, setBuyingId] = useState<string | null>(null);
+  const [highlightedZone, setHighlightedZone] = useState<string | null>(null);
 
   const { data: shopData } = useRoomShopItems(shopVisible ? shopTab : null);
 
@@ -158,12 +171,19 @@ export default function CommandCenterScreen() {
       name: slots[z].name, rarity: slots[z].rarity,
     }));
 
+  const emptyZones = ROOM_ZONES.filter(z => !slots[z]);
+
   const tierProgress = roomTier < 5
     ? ((roomScore - (TIER_THRESHOLDS[roomTier] ?? 0)) / ((TIER_THRESHOLDS[roomTier + 1] ?? 500) - (TIER_THRESHOLDS[roomTier] ?? 0)) * 100)
     : 100;
 
+  const nextThreshold = roomTier < 5 ? TIER_THRESHOLDS[roomTier + 1] : null;
+
   const handleZoneTap = useCallback((zone: string) => {
     Haptics.selectionAsync().catch(() => {});
+    setHighlightedZone(zone);
+    setTimeout(() => setHighlightedZone(null), 1500);
+
     const item = slots[zone];
     if (item) {
       setPickerZone(zone);
@@ -235,18 +255,24 @@ export default function CommandCenterScreen() {
     try { await refetch(); } finally { setRefreshing(false); }
   }, [refetch]);
 
+  const jumpToZone = useCallback((zone: string) => {
+    setHighlightedZone(zone);
+    setTimeout(() => setHighlightedZone(null), 2000);
+    Haptics.selectionAsync().catch(() => {});
+  }, []);
+
   const eligibleForZone: any[] = pickerZone
     ? (eligibilityData?.slots?.[pickerZone] ?? [])
     : [];
 
   if (isLoading) {
     return (
-      <View style={[s.container, { paddingTop: topPad, alignItems: "center", justifyContent: "center" }]}>
-        <View style={s.loadingIconWrap}>
+      <View style={[st.container, { paddingTop: topPad, alignItems: "center", justifyContent: "center" }]}>
+        <View style={st.loadingIconWrap}>
           <Ionicons name="home-outline" size={28} color={Colors.accent} />
         </View>
-        <Text style={s.loadingTitle}>Loading Command Center</Text>
-        <Text style={s.loadingText}>Initializing your base...</Text>
+        <Text style={st.loadingTitle}>Loading Command Center</Text>
+        <Text style={st.loadingText}>Initializing your base...</Text>
         <ActivityIndicator color={Colors.accent} style={{ marginTop: 16 }} />
       </View>
     );
@@ -264,39 +290,39 @@ export default function CommandCenterScreen() {
   ) : null;
 
   return (
-    <View style={[s.container, { paddingTop: topPad }]}>
+    <View style={[st.container, { paddingTop: topPad }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[s.scroll, { paddingBottom: insets.bottom + 48 }]}
+        contentContainerStyle={[st.scroll, { paddingBottom: insets.bottom + 48 }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />}
       >
         {/* Header */}
-        <Animated.View entering={FadeIn.duration(300)} style={s.header}>
-          <Pressable onPress={() => router.back()} style={s.backBtn}>
+        <Animated.View entering={FadeIn.duration(300)} style={st.header}>
+          <Pressable onPress={() => router.back()} style={st.backBtn}>
             <Ionicons name="chevron-back" size={20} color={Colors.textSecondary} />
           </Pressable>
-          <View style={s.headerCenter}>
-            <Text style={s.headerEyebrow}>COMMAND CENTER</Text>
-            <Text style={[s.headerTitle, { color: roomTierColor }]}>
+          <View style={st.headerCenter}>
+            <Text style={st.headerEyebrow}>COMMAND CENTER</Text>
+            <Text style={[st.headerTitle, { color: roomTierColor }]}>
               {roomTierLabel}
             </Text>
           </View>
-          <View style={s.headerRight}>
-            <View style={[s.tierBadge, { backgroundColor: roomTierColor + "15", borderColor: roomTierColor + "40" }]}>
+          <View style={st.headerRight}>
+            <View style={[st.tierBadge, { backgroundColor: roomTierColor + "15", borderColor: roomTierColor + "40" }]}>
               <Ionicons name={(TIER_ICONS[roomTier] ?? "ellipse-outline") as any} size={12} color={roomTierColor} />
-              <Text style={[s.tierBadgeText, { color: roomTierColor }]}>T{roomTier}</Text>
+              <Text style={[st.tierBadgeText, { color: roomTierColor }]}>T{roomTier}</Text>
             </View>
-            <View style={s.coinChip}>
+            <View style={st.coinChip}>
               <Ionicons name="wallet-outline" size={11} color={Colors.gold} />
-              <Text style={s.coinChipText}>{user?.coinBalance ?? 0}</Text>
+              <Text style={st.coinChipText}>{user?.coinBalance ?? 0}</Text>
             </View>
           </View>
         </Animated.View>
 
         {errorMsg && (
-          <Pressable style={s.errorBanner} onPress={() => setErrorMsg(null)}>
+          <Pressable style={st.errorBanner} onPress={() => setErrorMsg(null)}>
             <Ionicons name="warning-outline" size={14} color={Colors.crimson} />
-            <Text style={s.errorBannerText} numberOfLines={2}>{errorMsg}</Text>
+            <Text style={st.errorBannerText} numberOfLines={2}>{errorMsg}</Text>
             <Ionicons name="close" size={14} color={Colors.crimson} />
           </Pressable>
         )}
@@ -310,6 +336,7 @@ export default function CommandCenterScreen() {
             characterComponent={characterNode}
             onZoneTap={handleZoneTap}
             hasLighting={!!slots["lighting"]}
+            highlightedZone={highlightedZone}
           />
         </Animated.View>
 
@@ -318,114 +345,186 @@ export default function CommandCenterScreen() {
           <PressableScale
             onPress={handleToggleCharacter}
             disabled={toggleChar.isPending}
-            style={[s.charCard, isCharacterInRoom && s.charCardActive]}
+            style={[st.charCard, isCharacterInRoom && st.charCardActive]}
           >
-            <View style={s.charCardLeft}>
-              <View style={[s.charAvatarWrap, isCharacterInRoom && s.charAvatarActive]}>
+            <View style={st.charCardLeft}>
+              <View style={[st.charAvatarWrap, isCharacterInRoom && st.charAvatarActive]}>
                 <Ionicons
                   name={isCharacterInRoom ? "person" : "person-outline"}
-                  size={22}
+                  size={20}
                   color={isCharacterInRoom ? Colors.accent : Colors.textMuted}
                 />
+                {isCharacterInRoom && <View style={st.charOnlineDot} />}
               </View>
-              <View style={s.charCardText}>
-                <Text style={[s.charCardTitle, isCharacterInRoom && { color: Colors.textPrimary }]}>
-                  {isCharacterInRoom ? "You are in the room" : "Enter Command Center"}
+              <View style={st.charCardText}>
+                <Text style={[st.charCardTitle, isCharacterInRoom && { color: Colors.textPrimary }]}>
+                  {isCharacterInRoom ? "You're in your command center" : "Enter your command center"}
                 </Text>
-                <Text style={s.charCardSub}>
-                  {isCharacterInRoom ? "Tap to exit" : "Tap to place yourself"}
+                <Text style={st.charCardSub}>
+                  {isCharacterInRoom
+                    ? `${roomTierLabel} · T${roomTier}`
+                    : "Place yourself in the room"}
                 </Text>
               </View>
             </View>
-            <Ionicons
-              name={isCharacterInRoom ? "log-out-outline" : "chevron-forward"}
-              size={16}
-              color={isCharacterInRoom ? Colors.accent : Colors.textMuted + "80"}
-            />
+            <View style={[st.charActionBtn, isCharacterInRoom && st.charActionBtnActive]}>
+              <Text style={[st.charActionBtnText, isCharacterInRoom && { color: Colors.accent }]}>
+                {isCharacterInRoom ? "Exit" : "Enter"}
+              </Text>
+              <Ionicons
+                name={isCharacterInRoom ? "log-out-outline" : "arrow-forward"}
+                size={12}
+                color={isCharacterInRoom ? Colors.accent : Colors.textMuted}
+              />
+            </View>
           </PressableScale>
         </Animated.View>
 
         {/* Room Tier Progress Card */}
-        <Animated.View entering={FadeInDown.delay(70).springify()} style={s.tierCard}>
-          <View style={s.tierCardHeader}>
-            <View style={s.tierCardLeft}>
-              <View style={s.tierCardTitleRow}>
-                <View style={[s.tierIconWrap, { backgroundColor: roomTierColor + "15" }]}>
+        <Animated.View entering={FadeInDown.delay(70).springify()} style={st.tierCard}>
+          <View style={st.tierCardHeader}>
+            <View style={st.tierCardLeft}>
+              <View style={st.tierCardTitleRow}>
+                <View style={[st.tierIconWrap, { backgroundColor: roomTierColor + "15" }]}>
                   <Ionicons name={(TIER_ICONS[roomTier] ?? "ellipse-outline") as any} size={14} color={roomTierColor} />
                 </View>
-                <Text style={s.tierLabel}>ROOM TIER</Text>
+                <Text style={st.tierLabel}>ROOM TIER</Text>
               </View>
-              <Text style={[s.tierName, { color: roomTierColor }]}>{roomTierLabel}</Text>
+              <Text style={[st.tierName, { color: roomTierColor }]}>{roomTierLabel}</Text>
             </View>
-            <View style={[s.tierScorePill, { backgroundColor: roomTierColor + "12" }]}>
-              <Text style={[s.tierScoreNum, { color: roomTierColor }]}>{roomScore}</Text>
-              <Text style={[s.tierScoreUnit, { color: roomTierColor + "80" }]}>pts</Text>
+            <View style={[st.tierScorePill, { backgroundColor: roomTierColor + "12" }]}>
+              <Text style={[st.tierScoreNum, { color: roomTierColor }]}>{roomScore}</Text>
+              <Text style={[st.tierScoreUnit, { color: roomTierColor + "80" }]}>pts</Text>
             </View>
           </View>
 
-          <AnimatedProgressBar progress={tierProgress} color={roomTierColor} />
+          <View style={st.tierBarRow}>
+            <View style={{ flex: 1 }}>
+              <AnimatedProgressBar progress={tierProgress} color={roomTierColor} />
+            </View>
+            {nextThreshold != null && (
+              <Text style={st.tierBarFraction}>{roomScore}/{nextThreshold}</Text>
+            )}
+          </View>
 
           {roomTier < 5 && (
-            <Text style={s.tierNextText}>
-              Next: <Text style={{ color: TIER_COLORS[(roomTier + 1) as number] ?? Colors.textSecondary }}>
-                {TIER_LABELS[roomTier + 1]}
-              </Text> at {TIER_THRESHOLDS[roomTier + 1]} pts
-            </Text>
-          )}
-          {evolutionHints.length > 0 && (
-            <View style={s.hintsWrap}>
-              <Text style={s.hintsHeader}>To upgrade:</Text>
-              {evolutionHints.map((hint: string, i: number) => (
-                <View key={i} style={s.hintRow}>
-                  <View style={[s.hintDot, { backgroundColor: i === 0 ? roomTierColor : Colors.textMuted }]} />
-                  <Text style={s.hintText}>{hint}</Text>
-                </View>
-              ))}
+            <View style={st.tierNextRow}>
+              <Ionicons name="arrow-up-circle-outline" size={14} color={TIER_COLORS[(roomTier + 1)] ?? Colors.textSecondary} />
+              <Text style={st.tierNextText}>
+                Next: <Text style={{ color: TIER_COLORS[(roomTier + 1)] ?? Colors.textSecondary, fontFamily: "Inter_600SemiBold" }}>
+                  {TIER_LABELS[roomTier + 1]}
+                </Text> at {TIER_THRESHOLDS[roomTier + 1]} pts
+              </Text>
             </View>
           )}
-        </Animated.View>
 
-        {/* Your Setup (Placed Items) */}
-        {placedItems.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(90).springify()} style={s.section}>
-            <View style={s.sectionHeaderRow}>
-              <Text style={s.sectionTitle}>YOUR SETUP</Text>
-              <Text style={s.sectionCount}>{filledZones} / {ROOM_ZONES.length} zones filled</Text>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.placedScroll}>
-              {placedItems.map((item) => {
-                const rc = RARITY_COLORS[item.rarity] ?? Colors.textMuted;
+          {emptyZones.length > 0 && (
+            <View style={st.upgradeHintsWrap}>
+              <Text style={st.upgradeHintsTitle}>TO UPGRADE THIS BASE</Text>
+              {emptyZones.slice(0, 3).map((zone) => {
+                const pts = ZONE_PTS[zone] ?? 3;
                 return (
                   <PressableScale
-                    key={item.zone}
-                    onPress={() => handleZoneTap(item.zone)}
-                    style={[s.placedCard, { borderColor: rc + "30" }]}
+                    key={zone}
+                    onPress={() => {
+                      jumpToZone(zone);
+                      setTimeout(() => handleZoneTap(zone), 600);
+                    }}
+                    style={st.upgradeHintCard}
                   >
-                    <View style={s.placedVisual}>
-                      <RoomItemVisual itemId={item.itemId} width={60} height={50} />
+                    <View style={st.upgradeHintLeft}>
+                      <Ionicons name={(ZONE_ICONS[zone] ?? "add") as any} size={16} color={Colors.accent} />
+                      <Text style={st.upgradeHintText}>Add {ZONE_LABELS[zone]}</Text>
                     </View>
-                    <Text style={s.placedName} numberOfLines={1}>{item.name}</Text>
-                    <View style={[s.rarityChip, { backgroundColor: rc + "15" }]}>
-                      <Text style={[s.rarityChipText, { color: rc }]}>
-                        {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
-                      </Text>
-                    </View>
-                    <View style={s.activeRow}>
-                      <View style={s.activeDot} />
-                      <Text style={s.activeText}>Active</Text>
+                    <View style={st.upgradeHintRight}>
+                      <Text style={st.upgradeHintPts}>+{pts} pts</Text>
+                      <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
                     </View>
                   </PressableScale>
                 );
               })}
-            </ScrollView>
-          </Animated.View>
-        )}
+            </View>
+          )}
+
+          {roomTier < 5 && (
+            <View style={st.tierMilestonePeek}>
+              <Ionicons name="ribbon-outline" size={13} color={Colors.gold} />
+              <Text style={st.tierMilestoneText}>
+                Reach T{roomTier + 1}: Unlock "{TIER_LABELS[roomTier + 1]}" badge
+              </Text>
+            </View>
+          )}
+        </Animated.View>
+
+        {/* Your Setup Section */}
+        <Animated.View entering={FadeInDown.delay(90).springify()} style={st.section}>
+          <View style={st.sectionHeaderRow}>
+            <Text style={st.sectionTitle}>YOUR SETUP</Text>
+            <Text style={st.sectionCount}>{filledZones} / {ROOM_ZONES.length} zones</Text>
+          </View>
+          <View style={st.setupProgressRow}>
+            <View style={st.setupProgressBar}>
+              <View style={[st.setupProgressFill, { width: `${(filledZones / ROOM_ZONES.length) * 100}%` as any }]} />
+            </View>
+            <Text style={st.setupProgressLabel}>
+              {filledZones === ROOM_ZONES.length ? "Full setup!" : `${ROOM_ZONES.length - filledZones} zone${ROOM_ZONES.length - filledZones !== 1 ? "s" : ""} remaining`}
+            </Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.placedScroll}>
+            {placedItems.map((item) => {
+              const rc = RARITY_COLORS[item.rarity] ?? Colors.textMuted;
+              return (
+                <PressableScale
+                  key={item.zone}
+                  onPress={() => handleZoneTap(item.zone)}
+                  style={[st.placedCard, { borderColor: rc + "30" }]}
+                >
+                  <View style={st.placedVisual}>
+                    <RoomItemVisual itemId={item.itemId} width={60} height={50} />
+                  </View>
+                  <Text style={st.placedName} numberOfLines={1}>{item.name}</Text>
+                  <View style={[st.rarityChip, { backgroundColor: rc + "15" }]}>
+                    <Text style={[st.rarityChipText, { color: rc }]}>
+                      {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
+                    </Text>
+                  </View>
+                  <View style={st.activeRow}>
+                    <View style={st.activeDot} />
+                    <Text style={st.activeText}>Active</Text>
+                  </View>
+                </PressableScale>
+              );
+            })}
+
+            {emptyZones.map((zone) => {
+              const pts = ZONE_PTS[zone] ?? 3;
+              return (
+                <PressableScale
+                  key={zone}
+                  onPress={() => handleZoneTap(zone)}
+                  style={[st.placedCard, { borderColor: Colors.border }]}
+                >
+                  <View style={[st.placedVisual, { opacity: 0.4 }]}>
+                    <Ionicons name={(ZONE_ICONS[zone] ?? "add") as any} size={26} color={Colors.textMuted} />
+                  </View>
+                  <Text style={st.placedName} numberOfLines={1}>{ZONE_LABELS[zone]}</Text>
+                  <View style={[st.rarityChip, { backgroundColor: Colors.bgElevated }]}>
+                    <Text style={[st.rarityChipText, { color: Colors.textMuted }]}>Empty</Text>
+                  </View>
+                  <View style={st.addZoneBtn}>
+                    <Text style={st.addZoneBtnText}>Add +{pts}pts</Text>
+                  </View>
+                </PressableScale>
+              );
+            })}
+          </ScrollView>
+        </Animated.View>
 
         {/* In Inventory */}
         {ownedNotDisplayed.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(110).springify()} style={s.section}>
-            <Text style={s.sectionTitle}>IN INVENTORY</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.placedScroll}>
+          <Animated.View entering={FadeInDown.delay(110).springify()} style={st.section}>
+            <Text style={st.sectionTitle}>IN INVENTORY</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.placedScroll}>
               {ownedNotDisplayed.map((item: any) => {
                 const rc = RARITY_COLORS[item.rarity] ?? Colors.textMuted;
                 return (
@@ -437,19 +536,19 @@ export default function CommandCenterScreen() {
                         setPickerVisible(true);
                       }
                     }}
-                    style={[s.placedCard, { borderColor: Colors.border }]}
+                    style={[st.placedCard, { borderColor: Colors.border }]}
                   >
-                    <View style={s.placedVisual}>
+                    <View style={st.placedVisual}>
                       <RoomItemVisual itemId={item.itemId} width={60} height={50} />
                     </View>
-                    <Text style={s.placedName} numberOfLines={1}>{item.name}</Text>
-                    <View style={[s.rarityChip, { backgroundColor: rc + "15" }]}>
-                      <Text style={[s.rarityChipText, { color: rc }]}>
+                    <Text style={st.placedName} numberOfLines={1}>{item.name}</Text>
+                    <View style={[st.rarityChip, { backgroundColor: rc + "15" }]}>
+                      <Text style={[st.rarityChipText, { color: rc }]}>
                         {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
                       </Text>
                     </View>
-                    <View style={[s.placeBtn, { borderColor: Colors.accent + "40" }]}>
-                      <Text style={s.placeBtnText}>Place</Text>
+                    <View style={[st.placeBtn, { borderColor: Colors.accent + "40" }]}>
+                      <Text style={st.placeBtnText}>Place</Text>
                     </View>
                   </PressableScale>
                 );
@@ -459,32 +558,52 @@ export default function CommandCenterScreen() {
         )}
 
         {/* Decorate Your Space */}
-        <Animated.View entering={FadeInDown.delay(130).springify()} style={s.section}>
-          <View style={s.sectionHeaderRow}>
-            <Text style={s.sectionTitle}>DECORATE YOUR SPACE</Text>
+        <Animated.View entering={FadeInDown.delay(130).springify()} style={st.section}>
+          <View style={st.sectionHeaderRow}>
+            <Text style={st.sectionTitle}>DECORATE YOUR SPACE</Text>
           </View>
-          <Text style={s.sectionSub}>Items placed in your room earn base score points</Text>
+          <Text style={st.sectionMotivation}>Every item you place builds your empire.</Text>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.featuredScroll}>
-            {ROOM_ZONES.filter(z => !slots[z]).slice(0, 3).map((zone) => (
-              <PressableScale
-                key={zone}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.featuredScroll}>
+            {emptyZones.slice(0, 3).map((zone) => {
+              const pts = ZONE_PTS[zone] ?? 3;
+              return (
+                <PressableScale
+                  key={zone}
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    setShopTab(zone);
+                    setShopVisible(true);
+                  }}
+                  style={st.featuredCard}
+                >
+                  <View style={st.featuredIconWrap}>
+                    <Ionicons name={(ZONE_ICONS[zone] ?? "add") as any} size={24} color={Colors.accent} />
+                  </View>
+                  <Text style={st.featuredName}>{ZONE_LABELS[zone]}</Text>
+                  <Text style={st.featuredPts}>+{pts} pts</Text>
+                  <View style={st.featuredArrow}>
+                    <Ionicons name="add-circle" size={18} color={Colors.accent + "60"} />
+                  </View>
+                </PressableScale>
+              );
+            })}
+          </ScrollView>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.categoryRow}>
+            {SHOP_TABS.filter(t => t.key !== null).map(tab => (
+              <Pressable
+                key={tab.key}
+                style={st.categoryPill}
                 onPress={() => {
                   Haptics.selectionAsync().catch(() => {});
-                  setShopTab(zone);
+                  setShopTab(tab.key);
                   setShopVisible(true);
                 }}
-                style={s.featuredCard}
               >
-                <View style={s.featuredIconWrap}>
-                  <Ionicons name={(ZONE_ICONS[zone] ?? "add") as any} size={24} color={Colors.accent} />
-                </View>
-                <Text style={s.featuredName}>{ZONE_LABELS[zone]}</Text>
-                <Text style={s.featuredHint}>Browse items</Text>
-                <View style={s.featuredArrow}>
-                  <Ionicons name="add-circle" size={18} color={Colors.accent + "60"} />
-                </View>
-              </PressableScale>
+                <Ionicons name={tab.icon as any} size={13} color={Colors.textSecondary} />
+                <Text style={st.categoryPillText}>{tab.label}</Text>
+              </Pressable>
             ))}
           </ScrollView>
 
@@ -494,27 +613,27 @@ export default function CommandCenterScreen() {
               setShopTab(null);
               setShopVisible(true);
             }}
-            style={s.browseAllBtn}
+            style={st.browseAllBtn}
           >
             <Ionicons name="storefront-outline" size={16} color={Colors.accent} />
-            <Text style={s.browseAllText}>Browse All Room Items</Text>
+            <Text style={st.browseAllText}>Browse All Room Items</Text>
             <Ionicons name="arrow-forward" size={14} color={Colors.accent} />
           </PressableScale>
         </Animated.View>
 
         {/* Milestones */}
         {earnedBadges.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(150).springify()} style={s.section}>
-            <Text style={s.sectionTitle}>MILESTONES</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.badgeScroll}>
+          <Animated.View entering={FadeInDown.delay(150).springify()} style={st.section}>
+            <Text style={st.sectionTitle}>MILESTONES</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.badgeScroll}>
               {earnedBadges.map((b: any) => {
                 const rc = RARITY_COLORS[b.rarity] ?? Colors.textMuted;
                 return (
-                  <View key={b.badgeId} style={s.badgeChip}>
-                    <View style={[s.badgeIcon, { backgroundColor: rc + "15" }]}>
+                  <View key={b.badgeId} style={st.badgeChip}>
+                    <View style={[st.badgeIcon, { backgroundColor: rc + "15" }]}>
                       <Ionicons name={(b.icon ?? "ribbon") as any} size={20} color={rc} />
                     </View>
-                    <Text style={s.badgeName} numberOfLines={1}>{b.name}</Text>
+                    <Text style={st.badgeName} numberOfLines={1}>{b.name}</Text>
                   </View>
                 );
               })}
@@ -525,30 +644,44 @@ export default function CommandCenterScreen() {
 
       {/* Zone Picker Modal */}
       <Modal visible={pickerVisible} transparent animationType="slide" onRequestClose={() => setPickerVisible(false)}>
-        <Pressable style={s.modalOverlay} onPress={() => setPickerVisible(false)} />
-        <View style={[s.sheet, { paddingBottom: insets.bottom + 24 }]}>
-          <View style={s.sheetHandle} />
-          <View style={s.sheetTitleRow}>
-            <View style={s.sheetIconWrap}>
+        <Pressable style={st.modalOverlay} onPress={() => setPickerVisible(false)} />
+        <View style={[st.sheet, { paddingBottom: insets.bottom + 24 }]}>
+          <View style={st.sheetHandle} />
+          <View style={st.sheetTitleRow}>
+            <View style={st.sheetIconWrap}>
               <Ionicons name={(ZONE_ICONS[pickerZone ?? ""] ?? "grid-outline") as any} size={16} color={Colors.accent} />
             </View>
-            <Text style={s.sheetTitle}>{pickerZone ? ZONE_LABELS[pickerZone] : "Select"}</Text>
+            <Text style={st.sheetTitle}>{pickerZone ? ZONE_LABELS[pickerZone] : "Select"}</Text>
           </View>
 
           {slots[pickerZone ?? ""] && (
-            <Pressable style={s.removeBtn} onPress={() => pickerZone && handleClear(pickerZone)}>
-              <Ionicons name="close-circle-outline" size={16} color={Colors.crimson} />
-              <Text style={s.removeText}>Remove from this zone</Text>
-            </Pressable>
+            <View style={st.filledZoneActions}>
+              <Pressable style={st.zoneActionBtn} onPress={() => {
+                if (pickerZone) {
+                  setPickerVisible(false);
+                  setTimeout(() => {
+                    setShopTab(pickerZone);
+                    setShopVisible(true);
+                  }, 300);
+                }
+              }}>
+                <Ionicons name="swap-horizontal-outline" size={16} color={Colors.accent} />
+                <Text style={st.zoneActionText}>Replace item</Text>
+              </Pressable>
+              <Pressable style={st.zoneActionBtn} onPress={() => pickerZone && handleClear(pickerZone)}>
+                <Ionicons name="close-circle-outline" size={16} color={Colors.crimson} />
+                <Text style={[st.zoneActionText, { color: Colors.crimson }]}>Remove</Text>
+              </Pressable>
+            </View>
           )}
 
-          {eligibleForZone.length === 0 ? (
-            <View style={s.pickerEmpty}>
+          {!slots[pickerZone ?? ""] && eligibleForZone.length === 0 ? (
+            <View style={st.pickerEmpty}>
               <Ionicons name="archive-outline" size={32} color={Colors.textMuted} />
-              <Text style={s.pickerEmptyTitle}>No items for this zone</Text>
-              <Text style={s.pickerEmptySub}>Visit the shop to find items</Text>
+              <Text style={st.pickerEmptyTitle}>No items for this zone</Text>
+              <Text style={st.pickerEmptySub}>Visit the shop to find items</Text>
               <Pressable
-                style={s.pickerShopBtn}
+                style={st.pickerShopBtn}
                 onPress={() => {
                   setPickerVisible(false);
                   setShopTab(pickerZone);
@@ -556,33 +689,39 @@ export default function CommandCenterScreen() {
                 }}
               >
                 <Ionicons name="storefront-outline" size={14} color={Colors.accent} />
-                <Text style={s.pickerShopBtnText}>Browse Shop</Text>
+                <Text style={st.pickerShopBtnText}>Browse Shop</Text>
               </Pressable>
             </View>
-          ) : (
+          ) : !slots[pickerZone ?? ""] && (
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 360 }}>
               {eligibleForZone.map((item: any) => {
                 const rc = RARITY_COLORS[item.rarity] ?? Colors.textMuted;
                 const isCurrent = item.isCurrentlyInSlot;
+                const pts = RARITY_WEIGHTS[item.rarity] ?? 3;
                 return (
                   <Pressable
                     key={item.itemId}
-                    style={[s.pickerItem, isCurrent && s.pickerItemActive]}
+                    style={[st.pickerItem, isCurrent && st.pickerItemActive]}
                     onPress={() => pickerZone && handleAssign(pickerZone, item.itemId)}
                   >
-                    <View style={[s.pickerItemIcon, { backgroundColor: rc + "12" }]}>
-                      <RoomItemVisual itemId={item.itemId} width={36} height={30} />
+                    <View style={[st.pickerItemIcon, { backgroundColor: rc + "12" }]}>
+                      <RoomItemVisual itemId={item.itemId} width={40} height={34} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={s.pickerItemName}>{item.name}</Text>
-                      <Text style={[s.pickerItemRarity, { color: rc }]}>
-                        {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
-                      </Text>
+                      <Text style={st.pickerItemName}>{item.name}</Text>
+                      <View style={st.pickerItemMeta}>
+                        <Text style={[st.pickerItemRarity, { color: rc }]}>
+                          {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
+                        </Text>
+                        <Text style={st.pickerItemPts}>+{pts} pts</Text>
+                      </View>
                     </View>
                     {isCurrent ? (
                       <Ionicons name="checkmark-circle" size={18} color={Colors.green} />
                     ) : (
-                      <Ionicons name="add-circle-outline" size={18} color={Colors.accent + "80"} />
+                      <View style={st.pickerPlaceBtn}>
+                        <Text style={st.pickerPlaceBtnText}>Place</Text>
+                      </View>
                     )}
                   </Pressable>
                 );
@@ -594,92 +733,89 @@ export default function CommandCenterScreen() {
 
       {/* Shop Modal */}
       <Modal visible={shopVisible} transparent animationType="slide" onRequestClose={() => setShopVisible(false)}>
-        <Pressable style={s.modalOverlay} onPress={() => setShopVisible(false)} />
-        <View style={[s.sheet, s.shopSheet, { paddingBottom: insets.bottom + 24 }]}>
-          <View style={s.sheetHandle} />
-          <View style={s.sheetTitleRow}>
-            <View style={s.sheetIconWrap}>
+        <Pressable style={st.modalOverlay} onPress={() => setShopVisible(false)} />
+        <View style={[st.sheet, st.shopSheet, { paddingBottom: insets.bottom + 24 }]}>
+          <View style={st.sheetHandle} />
+          <View style={st.sheetTitleRow}>
+            <View style={st.sheetIconWrap}>
               <Ionicons name="storefront-outline" size={16} color={Colors.accent} />
             </View>
-            <Text style={s.sheetTitle}>Room Items</Text>
+            <Text style={st.sheetTitle}>Room Items</Text>
             {shopData?.coinBalance != null && (
-              <View style={s.shopBalancePill}>
+              <View style={st.shopBalancePill}>
                 <Ionicons name="wallet-outline" size={11} color={Colors.gold} />
-                <Text style={s.shopBalanceText}>{shopData.coinBalance}</Text>
+                <Text style={st.shopBalanceText}>{shopData.coinBalance}</Text>
               </View>
             )}
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.shopTabsRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.shopTabsRow}>
             {SHOP_TABS.map(tab => {
               const isActive = shopTab === tab.key;
               return (
                 <Pressable
                   key={tab.label}
-                  style={[s.shopTab, isActive && s.shopTabActive]}
+                  style={[st.shopTab, isActive && st.shopTabActive]}
                   onPress={() => setShopTab(tab.key)}
                 >
-                  <Text style={[s.shopTabText, isActive && s.shopTabTextActive]}>{tab.label}</Text>
+                  <Ionicons name={tab.icon as any} size={12} color={isActive ? Colors.accent : Colors.textMuted} />
+                  <Text style={[st.shopTabText, isActive && st.shopTabTextActive]}>{tab.label}</Text>
                 </Pressable>
               );
             })}
           </ScrollView>
 
           <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
-            <View style={s.shopGrid}>
+            <View style={st.shopGrid}>
               {(shopData?.items ?? []).map((item: any) => {
                 const rc = RARITY_COLORS[item.rarity] ?? Colors.textMuted;
                 const canBuy = !item.isOwned && item.canAfford && item.meetsLevel;
                 const cardW = (screenW - 40 - 10) / 2;
+                const pts = RARITY_WEIGHTS[item.rarity] ?? 3;
                 return (
-                  <View key={item.id} style={[s.shopCard, { width: cardW }, item.isOwned && s.shopCardOwned]}>
-                    <View style={[s.shopCardVisual, { borderColor: rc + "20" }]}>
+                  <View key={item.id} style={[st.shopCard, { width: cardW }, item.isOwned && st.shopCardOwned]}>
+                    <View style={[st.shopCardVisual, { borderColor: rc + "20" }]}>
                       <RoomItemVisual itemId={item.id} width={52} height={44} />
                     </View>
-                    <Text style={s.shopCardName} numberOfLines={2}>{item.name}</Text>
-                    <View style={[s.shopRarityChip, { backgroundColor: rc + "15" }]}>
-                      <Text style={[s.shopRarityText, { color: rc }]}>
-                        {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
-                      </Text>
+                    <Text style={st.shopCardName} numberOfLines={2}>{item.name}</Text>
+                    <View style={st.shopCardMeta}>
+                      <View style={[st.shopRarityChip, { backgroundColor: rc + "15" }]}>
+                        <Text style={[st.shopRarityText, { color: rc }]}>
+                          {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
+                        </Text>
+                      </View>
+                      <Text style={st.shopCardPts}>+{pts}</Text>
                     </View>
                     {item.isOwned ? (
-                      <View style={s.shopOwnedChip}>
+                      <View style={st.shopOwnedChip}>
                         <Ionicons name="checkmark-circle" size={12} color={Colors.green} />
-                        <Text style={s.shopOwnedText}>Owned</Text>
+                        <Text style={st.shopOwnedText}>Owned</Text>
                       </View>
                     ) : (
                       <Pressable
-                        style={[s.shopBuyBtn, !canBuy && s.shopBuyBtnDisabled]}
+                        style={[st.shopBuyBtn, !canBuy && st.shopBuyBtnDisabled]}
                         disabled={!canBuy || buyingId === item.id}
-                        onPress={() => handleBuyAndPlace(item.id, item.roomZone)}
+                        onPress={() => item.roomZone && handleBuyAndPlace(item.id, item.roomZone)}
                       >
                         {buyingId === item.id ? (
-                          <ActivityIndicator size="small" color={Colors.bg} />
+                          <ActivityIndicator size="small" color="#fff" />
                         ) : (
-                          <>
-                            {!item.meetsLevel ? (
-                              <View style={s.shopLockRow}>
-                                <Ionicons name="lock-closed" size={10} color={Colors.amber} />
-                                <Text style={s.shopLockText}>Lv.{item.minLevel}</Text>
-                              </View>
-                            ) : (
-                              <Text style={[s.shopBuyText, !canBuy && { color: Colors.textMuted }]}>
-                                {item.cost === 0 ? "Free" : `${item.cost} ₿`}
-                              </Text>
-                            )}
-                          </>
+                          <Text style={st.shopBuyText}>
+                            {!item.meetsLevel ? `Lvl ${item.minLevel}` : `${item.cost} coins`}
+                          </Text>
                         )}
                       </Pressable>
+                    )}
+                    {!item.meetsLevel && !item.isOwned && (
+                      <View style={st.shopLockRow}>
+                        <Ionicons name="lock-closed" size={10} color={Colors.amber} />
+                        <Text style={st.shopLockText}>Lvl {item.minLevel}</Text>
+                      </View>
                     )}
                   </View>
                 );
               })}
             </View>
-            {(shopData?.items ?? []).length === 0 && (
-              <View style={s.pickerEmpty}>
-                <Text style={s.pickerEmptyTitle}>No items available</Text>
-              </View>
-            )}
           </ScrollView>
         </View>
       </Modal>
@@ -687,7 +823,7 @@ export default function CommandCenterScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const st = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0A0B14" },
   scroll: { paddingHorizontal: 16, paddingTop: 8, gap: 20 },
 
@@ -711,12 +847,16 @@ const s = StyleSheet.create({
 
   charCard: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.border },
   charCardActive: { borderColor: Colors.accent + "40", backgroundColor: Colors.accentGlow },
-  charCardLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  charAvatarWrap: { width: 44, height: 44, borderRadius: 14, backgroundColor: Colors.bgElevated, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
+  charCardLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  charAvatarWrap: { width: 42, height: 42, borderRadius: 13, backgroundColor: Colors.bgElevated, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
   charAvatarActive: { borderColor: Colors.accent + "50", backgroundColor: Colors.accent + "12" },
-  charCardText: { gap: 2 },
-  charCardTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textSecondary },
+  charOnlineDot: { position: "absolute", top: 2, right: 2, width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.green, borderWidth: 1.5, borderColor: Colors.bgCard },
+  charCardText: { gap: 2, flex: 1 },
+  charCardTitle: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.textSecondary },
   charCardSub: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
+  charActionBtn: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: Colors.bgElevated, borderWidth: 1, borderColor: Colors.border },
+  charActionBtnActive: { borderColor: Colors.accent + "40", backgroundColor: Colors.accent + "10" },
+  charActionBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textMuted },
 
   tierCard: { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Colors.border, gap: 12 },
   tierCardHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
@@ -728,22 +868,36 @@ const s = StyleSheet.create({
   tierScorePill: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 6, flexDirection: "row", alignItems: "baseline", gap: 3 },
   tierScoreNum: { fontFamily: "Inter_700Bold", fontSize: 20 },
   tierScoreUnit: { fontFamily: "Inter_500Medium", fontSize: 10 },
-  tierBarBg: { height: 8, backgroundColor: Colors.bgElevated, borderRadius: 4, overflow: "hidden" },
-  tierNextText: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
-  hintsWrap: { gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: Colors.border },
-  hintsHeader: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textSecondary },
-  hintRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  hintDot: { width: 5, height: 5, borderRadius: 3, marginTop: 5 },
-  hintText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, lineHeight: 17 },
+  tierBarRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  tierBarBg: { height: 8, backgroundColor: Colors.bgElevated, borderRadius: 4, overflow: "hidden", flex: 1 },
+  tierBarFraction: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.textMuted, minWidth: 40, textAlign: "right" },
+  tierNextRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  tierNextText: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, flex: 1 },
+
+  upgradeHintsWrap: { gap: 6, paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.border },
+  upgradeHintsTitle: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.5, marginBottom: 2 },
+  upgradeHintCard: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: Colors.bgElevated, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: Colors.border },
+  upgradeHintLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  upgradeHintText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textPrimary },
+  upgradeHintRight: { flexDirection: "row", alignItems: "center", gap: 4 },
+  upgradeHintPts: { fontFamily: "Inter_700Bold", fontSize: 12, color: Colors.gold },
+
+  tierMilestonePeek: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: Colors.gold + "08", borderRadius: 8, padding: 8 },
+  tierMilestoneText: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.gold + "CC", flex: 1 },
 
   section: { gap: 12 },
   sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 2 },
   sectionCount: { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textMuted },
-  sectionSub: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, marginTop: -6 },
+  sectionMotivation: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, fontStyle: "italic", marginTop: -6 },
+
+  setupProgressRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: -4 },
+  setupProgressBar: { flex: 1, height: 4, backgroundColor: Colors.bgElevated, borderRadius: 2, overflow: "hidden" },
+  setupProgressFill: { height: "100%", backgroundColor: Colors.accent, borderRadius: 2 },
+  setupProgressLabel: { fontFamily: "Inter_500Medium", fontSize: 9, color: Colors.textMuted, minWidth: 80 },
 
   placedScroll: { flexDirection: "row", gap: 10, paddingVertical: 2 },
-  placedCard: { width: 105, backgroundColor: Colors.bgCard, borderRadius: 14, padding: 10, borderWidth: 1, alignItems: "center", gap: 6 },
+  placedCard: { width: 110, backgroundColor: Colors.bgCard, borderRadius: 14, padding: 10, borderWidth: 1, alignItems: "center", gap: 6 },
   placedVisual: { height: 55, alignItems: "center", justifyContent: "center" },
   placedName: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.textPrimary, textAlign: "center" },
   rarityChip: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
@@ -751,6 +905,8 @@ const s = StyleSheet.create({
   activeRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   activeDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: Colors.green },
   activeText: { fontFamily: "Inter_600SemiBold", fontSize: 8, color: Colors.green },
+  addZoneBtn: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: Colors.accent + "40" },
+  addZoneBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 9, color: Colors.accent },
   placeBtn: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },
   placeBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 9, color: Colors.accent },
 
@@ -758,8 +914,12 @@ const s = StyleSheet.create({
   featuredCard: { width: 120, backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.border, alignItems: "center", gap: 8 },
   featuredIconWrap: { width: 48, height: 48, borderRadius: 14, backgroundColor: Colors.accentGlow, alignItems: "center", justifyContent: "center" },
   featuredName: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textPrimary, textAlign: "center" },
-  featuredHint: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted },
+  featuredPts: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.gold },
   featuredArrow: { marginTop: 2 },
+
+  categoryRow: { flexDirection: "row", gap: 6, paddingVertical: 4 },
+  categoryPill: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: Colors.bgCard, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: Colors.border },
+  categoryPillText: { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textSecondary },
 
   browseAllBtn: { flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "center", paddingVertical: 10, paddingHorizontal: 18, backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: Colors.accent + "25" },
   browseAllText: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.accent },
@@ -777,8 +937,9 @@ const s = StyleSheet.create({
   sheetIconWrap: { width: 32, height: 32, borderRadius: 10, backgroundColor: Colors.accentGlow, alignItems: "center", justifyContent: "center" },
   sheetTitle: { fontFamily: "Inter_700Bold", fontSize: 17, color: Colors.textPrimary, flex: 1 },
 
-  removeBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  removeText: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.crimson },
+  filledZoneActions: { gap: 0, borderRadius: 12, backgroundColor: Colors.bgElevated, overflow: "hidden" },
+  zoneActionBtn: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 14, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: Colors.border + "40" },
+  zoneActionText: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.textPrimary },
 
   pickerEmpty: { alignItems: "center", paddingVertical: 36, gap: 8 },
   pickerEmptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.textSecondary },
@@ -788,15 +949,19 @@ const s = StyleSheet.create({
 
   pickerItem: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border + "40" },
   pickerItemActive: { backgroundColor: Colors.green + "06" },
-  pickerItemIcon: { width: 48, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  pickerItemIcon: { width: 52, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   pickerItemName: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
-  pickerItemRarity: { fontFamily: "Inter_500Medium", fontSize: 11, textTransform: "capitalize" as const, marginTop: 1 },
+  pickerItemMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
+  pickerItemRarity: { fontFamily: "Inter_500Medium", fontSize: 11, textTransform: "capitalize" as const },
+  pickerItemPts: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.gold },
+  pickerPlaceBtn: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5, backgroundColor: Colors.accent + "18", borderWidth: 1, borderColor: Colors.accent + "30" },
+  pickerPlaceBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.accent },
 
   shopBalancePill: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.bgCard, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: Colors.border },
   shopBalanceText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.gold },
 
   shopTabsRow: { flexDirection: "row", gap: 6, paddingVertical: 2 },
-  shopTab: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, backgroundColor: Colors.bgElevated },
+  shopTab: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: Colors.bgElevated },
   shopTabActive: { backgroundColor: Colors.accent + "20" },
   shopTabText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textMuted },
   shopTabTextActive: { color: Colors.accent },
@@ -806,6 +971,8 @@ const s = StyleSheet.create({
   shopCardOwned: { opacity: 0.55 },
   shopCardVisual: { width: "100%", height: 56, borderRadius: 10, borderWidth: 1, alignItems: "center", justifyContent: "center", backgroundColor: Colors.bgElevated + "40" },
   shopCardName: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textPrimary, textAlign: "center", lineHeight: 14 },
+  shopCardMeta: { flexDirection: "row", alignItems: "center", gap: 6 },
+  shopCardPts: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.gold },
   shopRarityChip: { borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 },
   shopRarityText: { fontFamily: "Inter_600SemiBold", fontSize: 8, letterSpacing: 0.3 },
   shopOwnedChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 2 },
