@@ -139,7 +139,7 @@ export async function preScreen(proof: ProofSubmission, categoryMinTextLength?: 
     }
   }
 
-  if (categoryMinTextLength && categoryMinTextLength > 0 && trimmed.length < categoryMinTextLength) {
+  if (!isFollowupRejudge && categoryMinTextLength && categoryMinTextLength > 0 && trimmed.length < categoryMinTextLength) {
     return {
       verdict: "followup_required",
       reason: "below_category_minimum",
