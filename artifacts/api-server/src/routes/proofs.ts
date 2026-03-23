@@ -91,14 +91,16 @@ async function settleCompletionRewards(ctx: SettlementContext): Promise<number> 
   await updateStreak(ctx.userId);
   await grantSessionSkillXp(ctx.userId, ctx.mission.category, actualMinutes, ctx.verdict);
 
-  await grantDimensionXp(ctx.userId, ctx.mission.category, ctx.proofQuality, coins, ctx.mission.id).catch((e) =>
-    console.error("[proofs] dimension XP grant error:", e.message)
-  );
-  const [updatedUser] = await db.select({ currentStreak: usersTable.currentStreak })
-    .from(usersTable).where(eq(usersTable.id, ctx.userId)).limit(1);
-  await grantStreakDimensionXp(ctx.userId, updatedUser?.currentStreak ?? 0).catch((e) =>
-    console.error("[proofs] streak dimension XP error:", e.message)
-  );
+  if (ctx.verdict === "approved") {
+    await grantDimensionXp(ctx.userId, ctx.mission.category, ctx.proofQuality, coins, ctx.mission.id).catch((e) =>
+      console.error("[proofs] dimension XP grant error:", e.message)
+    );
+    const [updatedUser] = await db.select({ currentStreak: usersTable.currentStreak })
+      .from(usersTable).where(eq(usersTable.id, ctx.userId)).limit(1);
+    await grantStreakDimensionXp(ctx.userId, updatedUser?.currentStreak ?? 0).catch((e) =>
+      console.error("[proofs] streak dimension XP error:", e.message)
+    );
+  }
 
   const categorySkills = CATEGORY_SKILL_MAP[ctx.mission.category] ?? ["focus"];
   const cycleSkillsToCheck = [

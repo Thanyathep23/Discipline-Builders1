@@ -17,20 +17,28 @@ export const DIMENSION_META: Record<DimensionId, { label: string; icon: string; 
   prestige:   { label: "Prestige",   icon: "diamond-outline",      color: "#00D4FF", emoji: "⭐" },
 };
 
-const CATEGORY_DIMENSION_MAP: Record<string, { primary: DimensionId; secondary: DimensionId[] }> = {
-  Fitness:   { primary: "fitness",    secondary: ["discipline"] },
-  Health:    { primary: "fitness",    secondary: ["discipline"] },
-  Recovery:  { primary: "fitness",    secondary: ["discipline"] },
-  Trading:   { primary: "finance",    secondary: ["discipline"] },
-  Finance:   { primary: "finance",    secondary: ["discipline"] },
-  Learning:  { primary: "prestige",   secondary: ["discipline"] },
-  Study:     { primary: "prestige",   secondary: ["discipline"] },
-  Work:      { primary: "prestige",   secondary: ["finance", "discipline"] },
-  Creative:  { primary: "prestige",   secondary: ["discipline"] },
-  Personal:  { primary: "discipline", secondary: [] },
-  Project:   { primary: "prestige",   secondary: ["discipline"] },
-  Sleep:     { primary: "fitness",    secondary: ["discipline"] },
+const CATEGORY_DIMENSION_MAP_RAW: Record<string, { primary: DimensionId; secondary: DimensionId[] }> = {
+  fitness:   { primary: "fitness",    secondary: ["discipline"] },
+  health:    { primary: "fitness",    secondary: ["discipline"] },
+  recovery:  { primary: "fitness",    secondary: ["discipline"] },
+  trading:   { primary: "finance",    secondary: ["discipline"] },
+  finance:   { primary: "finance",    secondary: ["discipline"] },
+  learning:  { primary: "prestige",   secondary: ["discipline"] },
+  study:     { primary: "prestige",   secondary: ["discipline"] },
+  work:      { primary: "prestige",   secondary: ["finance", "discipline"] },
+  creative:  { primary: "prestige",   secondary: ["discipline"] },
+  personal:  { primary: "discipline", secondary: [] },
+  project:   { primary: "prestige",   secondary: ["discipline"] },
+  sleep:     { primary: "fitness",    secondary: ["discipline"] },
+  deep_work: { primary: "prestige",   secondary: ["finance", "discipline"] },
+  habit:     { primary: "discipline", secondary: [] },
+  coding:    { primary: "prestige",   secondary: ["discipline"] },
 };
+
+function lookupCategoryMapping(category: string): { primary: DimensionId; secondary: DimensionId[] } | undefined {
+  const normalized = category.toLowerCase().trim();
+  return CATEGORY_DIMENSION_MAP_RAW[normalized];
+}
 
 const DIMENSION_SKILL_PREFIX = "dim_";
 
@@ -58,7 +66,7 @@ export async function grantDimensionXp(
   rewardCoins: number,
   missionId: string,
 ): Promise<void> {
-  const mapping = CATEGORY_DIMENSION_MAP[missionCategory];
+  const mapping = lookupCategoryMapping(missionCategory);
   if (!mapping) return;
 
   const primaryXp = Math.max(1, Math.round((qualityScore * rewardCoins) / 3));
