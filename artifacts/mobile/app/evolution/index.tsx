@@ -418,7 +418,7 @@ export default function CharacterEvolutionScreen() {
             <View style={styles.scoreMeta}>
               <Text style={styles.scoreTitle}>Evolution Score</Text>
               <Text style={styles.scoreDesc}>
-                Weighted across fitness, discipline, lifestyle, specialist depth, and prestige.
+                Weighted across Fitness, Discipline, Finance, and Prestige dimensions.
               </Text>
             </View>
             {/* Tier progress indicator */}
