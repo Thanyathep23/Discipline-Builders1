@@ -33,11 +33,18 @@ const CATEGORY_DIMENSION_MAP_RAW: Record<string, { primary: DimensionId; seconda
   deep_work: { primary: "prestige",   secondary: ["finance", "discipline"] },
   habit:     { primary: "discipline", secondary: [] },
   coding:    { primary: "prestige",   secondary: ["discipline"] },
+  focus:     { primary: "discipline", secondary: ["prestige"] },
+  other:     { primary: "discipline", secondary: [] },
 };
 
-function lookupCategoryMapping(category: string): { primary: DimensionId; secondary: DimensionId[] } | undefined {
+const DEFAULT_DIMENSION_MAPPING: { primary: DimensionId; secondary: DimensionId[] } = {
+  primary: "discipline",
+  secondary: [],
+};
+
+function lookupCategoryMapping(category: string): { primary: DimensionId; secondary: DimensionId[] } {
   const normalized = category.toLowerCase().trim();
-  return CATEGORY_DIMENSION_MAP_RAW[normalized];
+  return CATEGORY_DIMENSION_MAP_RAW[normalized] ?? DEFAULT_DIMENSION_MAPPING;
 }
 
 const DIMENSION_SKILL_PREFIX = "dim_";
@@ -67,7 +74,6 @@ export async function grantDimensionXp(
   missionId: string,
 ): Promise<void> {
   const mapping = lookupCategoryMapping(missionCategory);
-  if (!mapping) return;
 
   const primaryXp = Math.max(1, Math.round((qualityScore * rewardCoins) / 3));
   const secondaryXp = Math.max(1, Math.round(primaryXp * 0.2));
