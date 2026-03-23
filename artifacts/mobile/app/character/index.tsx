@@ -503,6 +503,7 @@ function CharacterCustomizeSheet({
   currentHairColor,
   visualState,
   equippedWearables,
+  characterVisualState,
   onSave,
   isSaving,
 }: {
@@ -513,6 +514,7 @@ function CharacterCustomizeSheet({
   currentHairColor: string;
   visualState: VisualState | null;
   equippedWearables: EquippedWearableState;
+  characterVisualState: CharacterVisualState | null;
   onSave: (skinTone: string, hairStyle: string, hairColor: string) => void;
   isSaving: boolean;
 }) {
@@ -555,14 +557,22 @@ function CharacterCustomizeSheet({
 
         {/* Live preview */}
         <View style={sheetStyles.previewWrap}>
-          <EvolvedCharacter
-            visualState={visualState}
-            equippedWearables={equippedWearables}
-            skinTone={skinTone}
-            hairStyle={hairStyle}
-            hairColor={hairColor}
-            size={160}
-          />
+          {characterVisualState ? (
+            <CharacterRenderer
+              visualState={{ ...characterVisualState, skinTone, hairStyle, hairColor }}
+              size="medium"
+              showShadow={false}
+            />
+          ) : (
+            <EvolvedCharacter
+              visualState={visualState}
+              equippedWearables={equippedWearables}
+              skinTone={skinTone}
+              hairStyle={hairStyle}
+              hairColor={hairColor}
+              size={160}
+            />
+          )}
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }}>
@@ -974,7 +984,7 @@ export default function CharacterStatusScreen() {
   }, [tierName]);
 
   const vsKeyForFade = characterVS
-    ? `${characterVS.postureStage}-${characterVS.outfitTier}-${characterVS.prestigeStage}-${characterVS.refinementStage}`
+    ? `${characterVS.postureStage}-${characterVS.outfitTier}-${characterVS.prestigeStage}-${characterVS.refinementStage}-${characterVS.skinTone}-${characterVS.hairStyle}-${characterVS.hairColor}-${characterVS.equippedTopStyle}-${characterVS.equippedWatchStyle}`
     : JSON.stringify(data?.visualState);
   const [fadingOutVS, setFadingOutVS] = useState<CharacterVisualState | null>(null);
   useEffect(() => {
@@ -1366,6 +1376,7 @@ export default function CharacterStatusScreen() {
         currentHairColor={currentHairColor}
         visualState={data?.visualState as VisualState | null ?? null}
         equippedWearables={(data as any)?.equippedWearables ?? null}
+        characterVisualState={characterVS}
         onSave={handleSaveAppearance}
         isSaving={updateAppearance.isPending}
       />
