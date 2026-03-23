@@ -1,0 +1,452 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Transform the Room/Command Center screen from a functional 
+placeholder into a world-class premium experience that feels 
+like it was designed by a AAA game studio combined with a 
+luxury lifestyle brand.
+
+Reference aesthetic:
+- Dark premium command center
+- Subtle depth and atmosphere
+- Items feel real and aspirational
+- Not a floor plan diagram — feels like a real space
+
+==================================================
+PART 1 — ROOM CANVAS VISUAL OVERHAUL
+==================================================
+
+The current canvas looks like a wireframe diagram.
+Replace it with a proper isometric or perspective room view.
+
+1A. Room Perspective
+
+Change from: flat floor plan with + icons
+Change to: subtle perspective/isometric room view
+
+The room canvas should show:
+- Dark floor with subtle texture or gradient
+- Back wall with slight depth
+- Items rendered as proper SVG illustrations
+  positioned in perspective space
+- Ambient lighting effect from equipped lighting items
+- Empty zones shown as subtle glowing outlines
+  NOT as "+ text" labels
+
+Background:
+- base: very dark navy/charcoal gradient
+- subtle radial glow in center (deep purple/blue)
+- floor: slightly lighter dark with perspective lines
+  drawn very subtly
+
+1B. Zone Visual Redesign
+
+Current: gray circles with "+" and small text
+Replace with: elegant empty zone indicators
+
+Empty zone style:
+- dashed rounded rectangle border
+- very subtle glow on the border
+- small icon representing the zone type
+  (monitor icon for monitor zone, coffee cup for coffee, etc.)
+- zone name in micro typography below icon
+- tapping shows a soft pulse animation
+
+Occupied zone style:
+- item SVG rendered directly in zone
+- no border (item fills the zone)
+- subtle drop shadow under item
+- thin golden/accent border when item is Elite+
+
+1C. Room Atmosphere Layers
+
+Add these atmosphere elements:
+
+Layer 1 — Floor
+Subtle perspective floor lines going to vanishing point
+Color: slightly lighter than background, very subtle
+Opacity: 15-20%
+
+Layer 2 — Ambient Light
+Soft radial gradient from center of room
+Color: based on equipped lighting item
+Default: deep purple/blue glow
+With LED Lighting: warm amber
+With Arc Lamp: warm white
+
+Layer 3 — Depth
+Slight vignette on edges of room canvas
+Makes the room feel enclosed and premium
+
+1D. Room Canvas Dimensions
+Height: 280-300px
+Full width of screen
+Border radius: 16px
+Background: premium dark gradient container
+
+==================================================
+PART 2 — ITEM SVG REDESIGN
+==================================================
+
+All room item SVGs must be redrawn as premium 
+flat-design illustrations with depth and detail.
+
+Design language:
+- Clean geometric shapes
+- Multiple tones of the same color (light/mid/dark)
+  to create 3D depth on flat surfaces
+- Subtle highlights on top edges
+- Darker shadows on bottom/sides
+- Premium lifestyle product aesthetic
+
+DESK items:
+
+MinimalDeskSVG:
+- Clean rectangular desk surface (light grey top)
+- Darker desk legs
+- Subtle highlight line on front edge
+- Small laptop or notebook on surface
+- Size: fills desk zone naturally
+
+PremiumOakDeskSVG:
+- Warm wood grain texture using SVG pattern
+- Heavier proportions
+- Small decorative item on surface
+- Premium hardware/legs detail
+
+ExecutiveCarbonDeskSVG:
+- Dark carbon/matte black surface
+- Metallic edge detail (thin light line)
+- Built-in cable management visual
+- Monitor arm attachment suggestion
+
+COFFEE items:
+
+EspressoMachineSVG:
+- Classic espresso machine silhouette
+- Chrome body with darker base
+- Steam wand on side
+- Drip tray at bottom
+- Small espresso cup in front
+- Subtle steam lines above
+
+PourOverSetSVG:
+- Glass carafe with pour-over cone
+- Wooden collar detail
+- Small cup beside it
+- Clean minimal lifestyle aesthetic
+
+MONITOR items:
+
+DualMonitorSVG:
+- Two monitors side by side
+- Thin bezel (modern)
+- Subtle screen glow (very faint blue/white)
+- Shared stand/arm
+- Show abstract chart/data on screens
+
+UltrawideMonitorSVG:
+- Single wide curved monitor
+- Thin bezel
+- Subtle screen glow
+- Abstract data visualization on screen
+
+TradingTerminalSVG:
+- 2-3 monitors stacked/arranged
+- Chart patterns visible on screens
+- Bloomberg terminal aesthetic
+- Green/amber glow from screens
+
+AMBIENT items:
+
+MinimalBookshelfSVG:
+- Clean floating shelf
+- Assorted book spines (3-5 books)
+- Small decorative object
+- Clean minimal aesthetic
+
+PremiumSpeakerSVG:
+- Premium bookshelf speakers (pair)
+- Fabric grille texture
+- Small tweeter detail
+- Solid premium proportions
+
+IndoorPlantSVG:
+- Monstera or similar premium plant
+- White/cream ceramic pot
+- Multiple leaf details
+- Feels premium not generic
+
+TrophyDisplayCaseSVG:
+- Glass display cabinet
+- 3 trophy/badge slots inside
+- Metal frame
+- Subtle interior glow
+
+LEDAmbientSVG:
+- LED strip along wall/ceiling edge
+- Gradient color glow effect
+- Multiple color dot sources
+
+ArcFloorLampSVG:
+- Elegant arc lamp silhouette
+- Thin curved arm
+- Round shade at top
+- Heavy base at bottom
+- Warm light cone below shade
+
+==================================================
+PART 3 — ENTER ROOM BUTTON REDESIGN
+==================================================
+
+Current: basic pill button with person icon
+
+Replace with premium character preview button:
+
+When character NOT in room:
+┌─────────────────────────────────┐
+│  [Character silhouette small]   │
+│  "Enter Command Center"         │
+│  Tap to place yourself →        │
+└─────────────────────────────────┘
+- Dark surface card style
+- Character silhouette as preview
+- Subtle arrow or chevron
+- Accent border glow on hover/press
+
+When character IS in room:
+- Button changes to "Exit Room"
+- Shows small "You are here" indicator in canvas
+- Character appears in room with fade-in animation
+
+==================================================
+PART 4 — ROOM TIER CARD REDESIGN
+==================================================
+
+Current: plain card with text
+
+Replace with premium progress display:
+
+┌─────────────────────────────────────┐
+│ ROOM TIER                           │
+│                                     │
+│  Standard Base          ████░░ 3pts │
+│  ──────────────────────────────     │
+│  Tier 0          Next: Recruit 30pts│
+│                                     │
+│  To upgrade:                        │
+│  ○ Add monitor setup (+8 pts)       │
+│  ○ Apply room theme (+20 pts)       │
+└─────────────────────────────────────┘
+
+Visual improvements:
+- Progress bar: gradient fill (purple → blue)
+  with animated shimmer effect
+- Tier name: larger, bolder, more prominent
+- Points display: accent color, right-aligned
+- Upgrade hints: bullet points with icons
+  each hint shows the pts value it adds
+- Add a small tier badge icon on left
+
+Tier badge icons:
+T0: ○ (empty circle, grey)
+T1: ◐ (half circle, blue)
+T2: ● (full circle, purple)
+T3: ★ (star, gold)
+T4: ✦ (diamond star, deep gold)
+T5: 👑 (crown, legendary)
+
+==================================================
+PART 5 — PLACED ITEMS SECTION REDESIGN
+==================================================
+
+Current: small card with icon and text
+
+Replace with horizontal premium item strip:
+
+PLACED ITEMS header:
+- "YOUR SETUP" label (cleaner wording)
+- Item count: "1 / 8 zones filled"
+
+Item cards (horizontal scroll):
+┌──────────┐
+│          │
+│  [SVG]   │  ← item illustration
+│          │
+│ Item Name│  ← truncated if long
+│  Refined │  ← rarity chip (colored)
+│  ● Active│  ← green dot + "Active"
+└──────────┘
+
+Card specs:
+- Size: 100x130px
+- Background: elevated surface
+- Border: subtle, 1px
+- Active items: accent border glow
+- Tap: opens placement options sheet
+
+==================================================
+PART 6 — DECORATE YOUR SPACE SECTION
+==================================================
+
+Current: not visible in screenshot, needs redesign
+
+Replace with:
+
+SECTION HEADER:
+"DECORATE YOUR SPACE"
+Subtext: "Items placed in your room earn base score pts"
+
+Featured items (3 cards, horizontal):
+┌────────────┐
+│            │
+│   [SVG]    │  ← item illustration
+│            │
+│ Espresso   │
+│  Machine   │
+│  ⬡ Refined │
+│  1,200 ₿  │
+│  [Add →]  │
+└────────────┘
+
+Card specs:
+- Wider than placed items (120x160px)
+- Shows price prominently
+- Lock icon + "Lvl X" if locked
+- Tap: opens full item detail sheet
+
+Below featured items:
+┌────────────────────────────────────┐
+│  🏠  Browse All Room Items (17)  → │
+└────────────────────────────────────┘
+- Full-width button
+- Shows total item count
+- Navigates to full room shop
+
+==================================================
+PART 7 — ROOM SHOP (FULL SCREEN)
+==================================================
+
+When "Browse All Room Items" is tapped:
+
+Full screen with same tab structure as Wardrobe:
+
+Tabs: All | Desk | Monitor | Coffee | Ambiance | Themes
+
+Grid: 2-column with premium collection cards
+Same structure as Wardrobe item cards
+
+Item detail bottom sheet:
+- Large item SVG illustration
+- "Room Preview" section showing where item
+  would appear in a mini room diagram
+- "Adds +X pts to Base Score" stat
+- Purchase / Lock / Owned state
+
+==================================================
+PART 8 — OVERALL SCREEN POLISH
+==================================================
+
+8A. Header redesign
+
+Current:
+← COMMAND CENTER / STANDARD BASE / T0 / 100
+
+Better:
+┌─────────────────────────────────────┐
+│ ←   COMMAND CENTER                  │
+│     Standard Base               T0  │
+│                              💰 100 │
+└─────────────────────────────────────┘
+
+- "COMMAND CENTER" as small label above
+- Room name as main H2 title
+- Tier badge and coins on same row right-aligned
+
+8B. Screen background
+
+- Not pure black
+- Deep dark navy: #0A0B14
+- Subtle texture or gradient from top to bottom
+
+8C. Section spacing
+
+- More breathing room between sections
+- 24px gap minimum between sections
+- Section headers use uppercase tracking typography
+
+8D. Color accent consistency
+
+All interactive elements use:
+- Primary actions: accent.primary (purple)
+- Success/Active states: green #22c55e
+- Locked states: amber/gold
+- Tier progress: purple → blue gradient
+
+8E. Micro-animations
+
+Add subtle animations:
+- Room canvas: very slow ambient pulse on glow
+- Enter Room button: subtle pulse when idle
+- Progress bar: animated fill on screen load
+- Item cards: scale 0.97 on press
+
+Keep all animations:
+- Under 300ms
+- Subtle, not distracting
+- Premium feel, not gaming app
+
+==================================================
+TECHNICAL REQUIREMENTS
+==================================================
+
+- All SVGs must be React Native SVG compatible
+- Canvas uses absolute positioning for zones
+- Animations use React Native Animated or Reanimated
+- All colors from design system tokens
+- No hardcoded hex values in components
+- Performance: room canvas must render under 100ms
+- Must work on both iPhone and Android
+- Screen must be scrollable if content exceeds viewport
+
+==================================================
+DO NOT BUILD
+==================================================
+
+- New gameplay systems
+- Real-money items
+- 3D rendering
+- Multiplayer features
+- New backend systems beyond what room needs
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. Room canvas shows perspective/isometric view
+   NOT a flat floor plan
+2. Empty zones show elegant glowing outlines
+   NOT gray circles with "+" text
+3. All item SVGs are premium quality illustrations
+4. Room tier card has gradient progress bar
+5. Placed items section is visually premium
+6. Enter Room button looks intentional and premium
+7. Section headers and typography are polished
+8. Screen background is dark navy not pure black
+9. Animations are subtle and premium
+10. Everything uses design system tokens
+11. No existing functionality was broken
+12. App still performs smoothly
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. List of all visual changes made
+2. New/modified component files only
+3. SVG components created
+4. Animation details
+5. Screenshot description of before/after
+6. Any remaining visual gaps

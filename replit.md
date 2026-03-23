@@ -746,24 +746,33 @@ New rarity tiers: `refined`, `prestige`, `elite` (added to `RARITY_COLORS` in `c
 - Legacy slots preserved: `centerpiece`, `trophy_shelf_1/2/3`, `prestige_marker`
 - Display state stored server-side in `user_inventory.display_slot`
 
-### Visual Room Canvas
+### Visual Room Canvas (Premium Overhaul)
 - File: `artifacts/mobile/components/room/RoomCanvas.tsx`
-- Zone-positioned absolute layout with SVG item rendering
-- Background changes based on equipped room theme
-- Lighting glow effect when lighting item equipped
-- Character overlay when character is "in room"
-- Empty zones show dashed outlines with tap targets
+- Perspective room view with wall gradient, floor with vanishing-point lines
+- Three atmosphere layers: wall gradient, ambient center glow, edge vignette
+- Theme-reactive backgrounds (dark command, executive gold, trading green)
+- Lighting-reactive ambient glow (LED = purple, Arc Lamp = warm amber)
+- Slow ambient pulse animation on center glow
+- Responsive width via `useWindowDimensions()` (adapts to rotation/resize)
+- Non-overlapping zone hitboxes (lighting top strip, theme narrow center row)
+- Empty zones: dashed rounded outlines with zone-type icons + micro labels
+- Occupied zones: full SVG render with elite/prestige golden accent border
+- Character overlay with subtle accent glow underneath
 
-### Room Item SVG Visuals
+### Room Item SVG Visuals (Premium Redesign)
 - File: `artifacts/mobile/components/room/RoomItemVisuals.tsx`
-- 17 flat/minimal SVG components for all room items
-- Dark-background friendly, premium illustration style
+- 17 premium flat-design SVG illustrations with multi-tone depth
+- Gradient fills, edge highlights, shadow tones on all items
+- Premium lifestyle aesthetic: chrome espresso machines, warm oak wood, carbon fiber
+- Glass-effect trophy case, monstera plant with ceramic pot, LED color strip
+- Arc floor lamp with warm light cone, multi-monitor trading terminal with chart lines
 - `ROOM_ITEM_VISUALS` lookup map by item ID → React component
 
 ### Character In Room
-- Toggle button on room screen ("Enter Room" / "Exit Room")
-- Character rendered using existing `EvolvedCharacter` SVG component at smaller size
-- Character state persisted via `audit_log` entries with action `room_character_toggle`
+- Premium card-style toggle (not basic pill button)
+- Card shows avatar wrap, "Enter Command Center" / "You are in the room" text
+- Character rendered using `EvolvedCharacter` SVG with subtle glow underneath
+- State persisted via `audit_log` entries with action `room_character_toggle`
 - Adds +5 points to room score when present
 
 ### Room Progression System

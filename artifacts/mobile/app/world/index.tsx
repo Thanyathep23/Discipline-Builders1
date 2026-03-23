@@ -1,13 +1,16 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet, Modal,
-  ActivityIndicator, Platform, RefreshControl,
+  ActivityIndicator, Platform, RefreshControl, useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
+import Animated, {
+  FadeInDown, FadeIn, useSharedValue, useAnimatedStyle,
+  withTiming, withRepeat, Easing, withSpring,
+} from "react-native-reanimated";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -20,33 +23,28 @@ import { RoomCanvas } from "@/components/room/RoomCanvas";
 import { RoomItemVisual } from "@/components/room/RoomItemVisuals";
 import { EvolvedCharacter } from "@/app/character";
 
+
 const ZONE_LABELS: Record<string, string> = {
-  room_theme:     "Room Theme",
-  desk:           "Desk Setup",
-  coffee_station: "Coffee Station",
-  monitor:        "Monitor Setup",
-  bookshelf:      "Bookshelf",
-  audio:          "Audio System",
-  plants:         "Plants",
-  trophy_case:    "Trophy Case",
-  lighting:       "Lighting",
+  room_theme: "Room Theme", desk: "Desk Setup", coffee_station: "Coffee Station",
+  monitor: "Monitor Setup", bookshelf: "Bookshelf", audio: "Audio System",
+  plants: "Plants", trophy_case: "Trophy Case", lighting: "Lighting",
 };
 
 const ZONE_ICONS: Record<string, string> = {
-  room_theme:     "home-outline",
-  desk:           "desktop-outline",
-  coffee_station: "cafe-outline",
-  monitor:        "tv-outline",
-  bookshelf:      "book-outline",
-  audio:          "musical-notes-outline",
-  plants:         "leaf-outline",
-  trophy_case:    "trophy-outline",
-  lighting:       "bulb-outline",
+  room_theme: "color-palette-outline", desk: "desktop-outline",
+  coffee_station: "cafe-outline", monitor: "tv-outline",
+  bookshelf: "book-outline", audio: "musical-notes-outline",
+  plants: "leaf-outline", trophy_case: "trophy-outline", lighting: "bulb-outline",
 };
 
 const TIER_LABELS: Record<number, string> = {
-  0: "Unranked", 1: "Recruit", 2: "Rising",
-  3: "Established", 4: "Elite", 5: "Legendary",
+  0: "Standard Base", 1: "Emerging Workspace", 2: "Professional Setup",
+  3: "Premium Command Center", 4: "Executive Suite", 5: "Iconic Command Center",
+};
+
+const TIER_ICONS: Record<number, string> = {
+  0: "ellipse-outline", 1: "contrast-outline", 2: "ellipse",
+  3: "star", 4: "diamond", 5: "trophy",
 };
 
 const TIER_COLORS: Record<number, string> = {
@@ -54,13 +52,70 @@ const TIER_COLORS: Record<number, string> = {
   3: Colors.green, 4: Colors.gold, 5: Colors.crimson,
 };
 
+const TIER_THRESHOLDS: Record<number, number> = { 0: 0, 1: 30, 2: 75, 3: 150, 4: 250, 5: 400 };
+
 const ROOM_ZONES = [
   "room_theme", "desk", "coffee_station", "monitor",
   "bookshelf", "audio", "plants", "trophy_case", "lighting",
 ];
 
+const SHOP_TABS = [
+  { key: null, label: "All" },
+  { key: "desk", label: "Desk" },
+  { key: "monitor", label: "Monitor" },
+  { key: "coffee_station", label: "Coffee" },
+  { key: "lighting", label: "Lighting" },
+  { key: "room_theme", label: "Themes" },
+];
+
+function AnimatedProgressBar({ progress, color }: { progress: number; color: string }) {
+  const width = useSharedValue(0);
+  const shimmer = useSharedValue(0);
+  useEffect(() => {
+    width.value = withTiming(Math.min(100, progress), { duration: 800, easing: Easing.out(Easing.cubic) });
+    shimmer.value = withRepeat(withTiming(1, { duration: 2000, easing: Easing.linear }), -1, false);
+  }, [progress]);
+  const barStyle = useAnimatedStyle(() => ({
+    width: `${width.value}%` as any,
+    height: "100%",
+    borderRadius: 4,
+    backgroundColor: color,
+  }));
+  const shimmerStyle = useAnimatedStyle(() => ({
+    position: "absolute" as const,
+    top: 0,
+    left: `${shimmer.value * 100}%` as any,
+    width: 30,
+    height: "100%",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 4,
+  }));
+  return (
+    <View style={s.tierBarBg}>
+      <Animated.View style={barStyle}>
+        <Animated.View style={shimmerStyle} />
+      </Animated.View>
+    </View>
+  );
+}
+
+function PressableScale({ children, style, ...props }: any) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return (
+    <Pressable
+      {...props}
+      onPressIn={() => { scale.value = withSpring(0.97, { damping: 15 }); }}
+      onPressOut={() => { scale.value = withSpring(1, { damping: 15 }); }}
+    >
+      <Animated.View style={[style, animStyle]}>{children}</Animated.View>
+    </Pressable>
+  );
+}
+
 export default function CommandCenterScreen() {
   const insets = useSafeAreaInsets();
+  const { width: screenW } = useWindowDimensions();
   const { user } = useAuth();
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
 
@@ -77,11 +132,11 @@ export default function CommandCenterScreen() {
 
   const [pickerZone, setPickerZone] = useState<string | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
-  const [shopZone, setShopZone] = useState<string | null>(null);
   const [shopVisible, setShopVisible] = useState(false);
+  const [shopTab, setShopTab] = useState<string | null>(null);
   const [buyingId, setBuyingId] = useState<string | null>(null);
 
-  const { data: shopData } = useRoomShopItems(shopVisible ? shopZone : null);
+  const { data: shopData } = useRoomShopItems(shopVisible ? shopTab : null);
 
   const slots = roomData?.slots ?? {};
   const roomState = roomData?.roomState;
@@ -91,18 +146,21 @@ export default function CommandCenterScreen() {
 
   const roomTier = roomState?.roomTier ?? 0;
   const roomScore = roomState?.roomScore ?? 0;
-  const roomTierLabel = roomState?.roomTierLabel ?? "Standard Base";
+  const roomTierLabel = TIER_LABELS[roomTier] ?? "Standard Base";
   const roomTierColor = TIER_COLORS[roomTier] ?? Colors.accent;
   const evolutionHints: string[] = roomState?.nextEvolutionHints ?? [];
+  const filledZones = ROOM_ZONES.filter(z => slots[z]).length;
 
   const placedItems = ROOM_ZONES
     .filter(z => slots[z])
     .map(z => ({
-      zone: z,
-      itemId: slots[z].itemId,
-      name: slots[z].name,
-      rarity: slots[z].rarity,
+      zone: z, itemId: slots[z].itemId,
+      name: slots[z].name, rarity: slots[z].rarity,
     }));
+
+  const tierProgress = roomTier < 5
+    ? ((roomScore - (TIER_THRESHOLDS[roomTier] ?? 0)) / ((TIER_THRESHOLDS[roomTier + 1] ?? 500) - (TIER_THRESHOLDS[roomTier] ?? 0)) * 100)
+    : 100;
 
   const handleZoneTap = useCallback((zone: string) => {
     Haptics.selectionAsync().catch(() => {});
@@ -116,7 +174,7 @@ export default function CommandCenterScreen() {
         setPickerZone(zone);
         setPickerVisible(true);
       } else {
-        setShopZone(zone);
+        setShopTab(zone);
         setShopVisible(true);
       }
     }
@@ -217,14 +275,15 @@ export default function CommandCenterScreen() {
           <Pressable onPress={() => router.back()} style={s.backBtn}>
             <Ionicons name="chevron-back" size={20} color={Colors.textSecondary} />
           </Pressable>
-          <View style={{ flex: 1 }}>
+          <View style={s.headerCenter}>
             <Text style={s.headerEyebrow}>COMMAND CENTER</Text>
-            <Text style={[s.headerTierLine, { color: roomTierColor }]}>
-              {roomTierLabel.toUpperCase()}
+            <Text style={[s.headerTitle, { color: roomTierColor }]}>
+              {roomTierLabel}
             </Text>
           </View>
           <View style={s.headerRight}>
-            <View style={[s.tierBadge, { backgroundColor: roomTierColor + "20", borderColor: roomTierColor + "50" }]}>
+            <View style={[s.tierBadge, { backgroundColor: roomTierColor + "15", borderColor: roomTierColor + "40" }]}>
+              <Ionicons name={(TIER_ICONS[roomTier] ?? "ellipse-outline") as any} size={12} color={roomTierColor} />
               <Text style={[s.tierBadgeText, { color: roomTierColor }]}>T{roomTier}</Text>
             </View>
             <View style={s.coinChip}>
@@ -254,67 +313,71 @@ export default function CommandCenterScreen() {
           />
         </Animated.View>
 
-        {/* Character Toggle */}
-        <Animated.View entering={FadeInDown.delay(50).springify()} style={s.charToggleRow}>
-          <Pressable
-            style={[s.charToggleBtn, isCharacterInRoom && s.charToggleBtnActive]}
+        {/* Character Toggle Card */}
+        <Animated.View entering={FadeInDown.delay(50).springify()}>
+          <PressableScale
             onPress={handleToggleCharacter}
             disabled={toggleChar.isPending}
+            style={[s.charCard, isCharacterInRoom && s.charCardActive]}
           >
+            <View style={s.charCardLeft}>
+              <View style={[s.charAvatarWrap, isCharacterInRoom && s.charAvatarActive]}>
+                <Ionicons
+                  name={isCharacterInRoom ? "person" : "person-outline"}
+                  size={22}
+                  color={isCharacterInRoom ? Colors.accent : Colors.textMuted}
+                />
+              </View>
+              <View style={s.charCardText}>
+                <Text style={[s.charCardTitle, isCharacterInRoom && { color: Colors.textPrimary }]}>
+                  {isCharacterInRoom ? "You are in the room" : "Enter Command Center"}
+                </Text>
+                <Text style={s.charCardSub}>
+                  {isCharacterInRoom ? "Tap to exit" : "Tap to place yourself"}
+                </Text>
+              </View>
+            </View>
             <Ionicons
-              name={isCharacterInRoom ? "person" : "person-outline"}
+              name={isCharacterInRoom ? "log-out-outline" : "chevron-forward"}
               size={16}
-              color={isCharacterInRoom ? Colors.accent : Colors.textMuted}
+              color={isCharacterInRoom ? Colors.accent : Colors.textMuted + "80"}
             />
-            <Text style={[s.charToggleText, isCharacterInRoom && { color: Colors.accent }]}>
-              {isCharacterInRoom ? "Exit Room" : "Enter Room"}
-            </Text>
-          </Pressable>
-          {isCharacterInRoom && (
-            <Pressable
-              style={s.viewCharBtn}
-              onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/character"); }}
-            >
-              <Ionicons name="eye-outline" size={14} color={Colors.textSecondary} />
-              <Text style={s.viewCharText}>View Character</Text>
-            </Pressable>
-          )}
+          </PressableScale>
         </Animated.View>
 
-        {/* Room Tier Progress */}
-        <Animated.View
-          entering={FadeInDown.delay(70).springify()}
-          style={[s.tierCard, { borderColor: roomTierColor + "40" }]}
-        >
+        {/* Room Tier Progress Card */}
+        <Animated.View entering={FadeInDown.delay(70).springify()} style={s.tierCard}>
           <View style={s.tierCardHeader}>
             <View style={s.tierCardLeft}>
-              <Text style={s.tierLabel}>ROOM TIER</Text>
+              <View style={s.tierCardTitleRow}>
+                <View style={[s.tierIconWrap, { backgroundColor: roomTierColor + "15" }]}>
+                  <Ionicons name={(TIER_ICONS[roomTier] ?? "ellipse-outline") as any} size={14} color={roomTierColor} />
+                </View>
+                <Text style={s.tierLabel}>ROOM TIER</Text>
+              </View>
               <Text style={[s.tierName, { color: roomTierColor }]}>{roomTierLabel}</Text>
             </View>
-            <View style={[s.tierScorePill, { backgroundColor: roomTierColor + "15" }]}>
+            <View style={[s.tierScorePill, { backgroundColor: roomTierColor + "12" }]}>
               <Text style={[s.tierScoreNum, { color: roomTierColor }]}>{roomScore}</Text>
-              <Text style={s.tierScoreUnit}>pts</Text>
+              <Text style={[s.tierScoreUnit, { color: roomTierColor + "80" }]}>pts</Text>
             </View>
           </View>
-          <View style={s.tierBarBg}>
-            <View style={[
-              s.tierBarFill,
-              {
-                width: `${Math.min(100, roomTier < 5 ? ((roomScore - (TIER_THRESHOLDS[roomTier] ?? 0)) / ((TIER_THRESHOLDS[roomTier + 1] ?? 500) - (TIER_THRESHOLDS[roomTier] ?? 0)) * 100) : 100)}%` as any,
-                backgroundColor: roomTierColor,
-              },
-            ]} />
-          </View>
+
+          <AnimatedProgressBar progress={tierProgress} color={roomTierColor} />
+
           {roomTier < 5 && (
             <Text style={s.tierNextText}>
-              Next: {TIER_LABELS[roomTier + 1]} at {TIER_THRESHOLDS[roomTier + 1]} pts
+              Next: <Text style={{ color: TIER_COLORS[(roomTier + 1) as number] ?? Colors.textSecondary }}>
+                {TIER_LABELS[roomTier + 1]}
+              </Text> at {TIER_THRESHOLDS[roomTier + 1]} pts
             </Text>
           )}
           {evolutionHints.length > 0 && (
             <View style={s.hintsWrap}>
+              <Text style={s.hintsHeader}>To upgrade:</Text>
               {evolutionHints.map((hint: string, i: number) => (
                 <View key={i} style={s.hintRow}>
-                  <View style={[s.hintDot, { backgroundColor: i === 0 ? Colors.accent : Colors.textMuted }]} />
+                  <View style={[s.hintDot, { backgroundColor: i === 0 ? roomTierColor : Colors.textMuted }]} />
                   <Text style={s.hintText}>{hint}</Text>
                 </View>
               ))}
@@ -322,35 +385,43 @@ export default function CommandCenterScreen() {
           )}
         </Animated.View>
 
-        {/* Placed Items */}
+        {/* Your Setup (Placed Items) */}
         {placedItems.length > 0 && (
           <Animated.View entering={FadeInDown.delay(90).springify()} style={s.section}>
-            <Text style={s.sectionTitle}>PLACED ITEMS</Text>
+            <View style={s.sectionHeaderRow}>
+              <Text style={s.sectionTitle}>YOUR SETUP</Text>
+              <Text style={s.sectionCount}>{filledZones} / {ROOM_ZONES.length} zones filled</Text>
+            </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.placedScroll}>
               {placedItems.map((item) => {
                 const rc = RARITY_COLORS[item.rarity] ?? Colors.textMuted;
                 return (
-                  <Pressable
+                  <PressableScale
                     key={item.zone}
-                    style={[s.placedCard, { borderColor: rc + "40" }]}
                     onPress={() => handleZoneTap(item.zone)}
+                    style={[s.placedCard, { borderColor: rc + "30" }]}
                   >
                     <View style={s.placedVisual}>
-                      <RoomItemVisual itemId={item.itemId} width={50} height={40} />
+                      <RoomItemVisual itemId={item.itemId} width={60} height={50} />
                     </View>
                     <Text style={s.placedName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={[s.placedZone, { color: rc }]}>{ZONE_LABELS[item.zone] ?? item.zone}</Text>
-                    <View style={[s.activePill, { backgroundColor: Colors.green + "18" }]}>
+                    <View style={[s.rarityChip, { backgroundColor: rc + "15" }]}>
+                      <Text style={[s.rarityChipText, { color: rc }]}>
+                        {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
+                      </Text>
+                    </View>
+                    <View style={s.activeRow}>
+                      <View style={s.activeDot} />
                       <Text style={s.activeText}>Active</Text>
                     </View>
-                  </Pressable>
+                  </PressableScale>
                 );
               })}
             </ScrollView>
           </Animated.View>
         )}
 
-        {/* Owned Not Placed */}
+        {/* In Inventory */}
         {ownedNotDisplayed.length > 0 && (
           <Animated.View entering={FadeInDown.delay(110).springify()} style={s.section}>
             <Text style={s.sectionTitle}>IN INVENTORY</Text>
@@ -358,68 +429,80 @@ export default function CommandCenterScreen() {
               {ownedNotDisplayed.map((item: any) => {
                 const rc = RARITY_COLORS[item.rarity] ?? Colors.textMuted;
                 return (
-                  <Pressable
+                  <PressableScale
                     key={item.itemId}
-                    style={[s.placedCard, { borderColor: Colors.border }]}
                     onPress={() => {
                       if (item.roomZone) {
                         setPickerZone(item.roomZone);
                         setPickerVisible(true);
                       }
                     }}
+                    style={[s.placedCard, { borderColor: Colors.border }]}
                   >
                     <View style={s.placedVisual}>
-                      <RoomItemVisual itemId={item.itemId} width={50} height={40} />
+                      <RoomItemVisual itemId={item.itemId} width={60} height={50} />
                     </View>
                     <Text style={s.placedName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={[s.placedZone, { color: rc }]}>{ZONE_LABELS[item.roomZone] ?? "—"}</Text>
-                    <View style={[s.placePill, { borderColor: Colors.accent + "40" }]}>
-                      <Text style={s.placeText}>Place</Text>
+                    <View style={[s.rarityChip, { backgroundColor: rc + "15" }]}>
+                      <Text style={[s.rarityChipText, { color: rc }]}>
+                        {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
+                      </Text>
                     </View>
-                  </Pressable>
+                    <View style={[s.placeBtn, { borderColor: Colors.accent + "40" }]}>
+                      <Text style={s.placeBtnText}>Place</Text>
+                    </View>
+                  </PressableScale>
                 );
               })}
             </ScrollView>
           </Animated.View>
         )}
 
-        {/* Shop Section */}
+        {/* Decorate Your Space */}
         <Animated.View entering={FadeInDown.delay(130).springify()} style={s.section}>
-          <Text style={s.sectionTitle}>DECORATE YOUR SPACE</Text>
-          <View style={s.shopGrid}>
+          <View style={s.sectionHeaderRow}>
+            <Text style={s.sectionTitle}>DECORATE YOUR SPACE</Text>
+          </View>
+          <Text style={s.sectionSub}>Items placed in your room earn base score points</Text>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.featuredScroll}>
             {ROOM_ZONES.filter(z => !slots[z]).slice(0, 3).map((zone) => (
-              <Pressable
+              <PressableScale
                 key={zone}
-                style={s.shopZoneCard}
                 onPress={() => {
                   Haptics.selectionAsync().catch(() => {});
-                  setShopZone(zone);
+                  setShopTab(zone);
                   setShopVisible(true);
                 }}
+                style={s.featuredCard}
               >
-                <View style={s.shopZoneIcon}>
-                  <Ionicons name={(ZONE_ICONS[zone] ?? "add") as any} size={20} color={Colors.accent} />
+                <View style={s.featuredIconWrap}>
+                  <Ionicons name={(ZONE_ICONS[zone] ?? "add") as any} size={24} color={Colors.accent} />
                 </View>
-                <Text style={s.shopZoneName}>{ZONE_LABELS[zone]}</Text>
-                <Text style={s.shopZoneHint}>Browse items</Text>
-              </Pressable>
+                <Text style={s.featuredName}>{ZONE_LABELS[zone]}</Text>
+                <Text style={s.featuredHint}>Browse items</Text>
+                <View style={s.featuredArrow}>
+                  <Ionicons name="add-circle" size={18} color={Colors.accent + "60"} />
+                </View>
+              </PressableScale>
             ))}
-          </View>
-          <Pressable
-            style={s.browseAllBtn}
+          </ScrollView>
+
+          <PressableScale
             onPress={() => {
               Haptics.selectionAsync().catch(() => {});
-              setShopZone(null);
+              setShopTab(null);
               setShopVisible(true);
             }}
+            style={s.browseAllBtn}
           >
-            <Ionicons name="storefront-outline" size={14} color={Colors.accent} />
+            <Ionicons name="storefront-outline" size={16} color={Colors.accent} />
             <Text style={s.browseAllText}>Browse All Room Items</Text>
-            <Ionicons name="arrow-forward" size={13} color={Colors.accent} />
-          </Pressable>
+            <Ionicons name="arrow-forward" size={14} color={Colors.accent} />
+          </PressableScale>
         </Animated.View>
 
-        {/* Earned Badges */}
+        {/* Milestones */}
         {earnedBadges.length > 0 && (
           <Animated.View entering={FadeInDown.delay(150).springify()} style={s.section}>
             <Text style={s.sectionTitle}>MILESTONES</Text>
@@ -428,8 +511,8 @@ export default function CommandCenterScreen() {
                 const rc = RARITY_COLORS[b.rarity] ?? Colors.textMuted;
                 return (
                   <View key={b.badgeId} style={s.badgeChip}>
-                    <View style={[s.badgeIcon, { backgroundColor: rc + "20" }]}>
-                      <Ionicons name={(b.icon ?? "ribbon") as any} size={18} color={rc} />
+                    <View style={[s.badgeIcon, { backgroundColor: rc + "15" }]}>
+                      <Ionicons name={(b.icon ?? "ribbon") as any} size={20} color={rc} />
                     </View>
                     <Text style={s.badgeName} numberOfLines={1}>{b.name}</Text>
                   </View>
@@ -446,7 +529,9 @@ export default function CommandCenterScreen() {
         <View style={[s.sheet, { paddingBottom: insets.bottom + 24 }]}>
           <View style={s.sheetHandle} />
           <View style={s.sheetTitleRow}>
-            <Ionicons name={(ZONE_ICONS[pickerZone ?? ""] ?? "grid-outline") as any} size={16} color={Colors.accent} />
+            <View style={s.sheetIconWrap}>
+              <Ionicons name={(ZONE_ICONS[pickerZone ?? ""] ?? "grid-outline") as any} size={16} color={Colors.accent} />
+            </View>
             <Text style={s.sheetTitle}>{pickerZone ? ZONE_LABELS[pickerZone] : "Select"}</Text>
           </View>
 
@@ -459,16 +544,18 @@ export default function CommandCenterScreen() {
 
           {eligibleForZone.length === 0 ? (
             <View style={s.pickerEmpty}>
-              <Ionicons name="archive-outline" size={28} color={Colors.textMuted} />
+              <Ionicons name="archive-outline" size={32} color={Colors.textMuted} />
               <Text style={s.pickerEmptyTitle}>No items for this zone</Text>
+              <Text style={s.pickerEmptySub}>Visit the shop to find items</Text>
               <Pressable
                 style={s.pickerShopBtn}
                 onPress={() => {
                   setPickerVisible(false);
-                  setShopZone(pickerZone);
+                  setShopTab(pickerZone);
                   setShopVisible(true);
                 }}
               >
+                <Ionicons name="storefront-outline" size={14} color={Colors.accent} />
                 <Text style={s.pickerShopBtnText}>Browse Shop</Text>
               </Pressable>
             </View>
@@ -483,8 +570,8 @@ export default function CommandCenterScreen() {
                     style={[s.pickerItem, isCurrent && s.pickerItemActive]}
                     onPress={() => pickerZone && handleAssign(pickerZone, item.itemId)}
                   >
-                    <View style={[s.pickerItemIcon, { backgroundColor: rc + "20" }]}>
-                      <RoomItemVisual itemId={item.itemId} width={32} height={28} />
+                    <View style={[s.pickerItemIcon, { backgroundColor: rc + "12" }]}>
+                      <RoomItemVisual itemId={item.itemId} width={36} height={30} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={s.pickerItemName}>{item.name}</Text>
@@ -492,10 +579,10 @@ export default function CommandCenterScreen() {
                         {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
                       </Text>
                     </View>
-                    {isCurrent && (
-                      <View style={s.currentChip}>
-                        <Ionicons name="checkmark-circle" size={14} color={Colors.green} />
-                      </View>
+                    {isCurrent ? (
+                      <Ionicons name="checkmark-circle" size={18} color={Colors.green} />
+                    ) : (
+                      <Ionicons name="add-circle-outline" size={18} color={Colors.accent + "80"} />
                     )}
                   </Pressable>
                 );
@@ -511,63 +598,83 @@ export default function CommandCenterScreen() {
         <View style={[s.sheet, s.shopSheet, { paddingBottom: insets.bottom + 24 }]}>
           <View style={s.sheetHandle} />
           <View style={s.sheetTitleRow}>
-            <Ionicons name="storefront-outline" size={16} color={Colors.accent} />
-            <Text style={s.sheetTitle}>
-              {shopZone ? `${ZONE_LABELS[shopZone]} Items` : "All Room Items"}
-            </Text>
-          </View>
-          {shopData?.coinBalance != null && (
-            <View style={s.shopBalanceRow}>
-              <Ionicons name="wallet-outline" size={12} color={Colors.gold} />
-              <Text style={s.shopBalanceText}>{shopData.coinBalance} coins</Text>
+            <View style={s.sheetIconWrap}>
+              <Ionicons name="storefront-outline" size={16} color={Colors.accent} />
             </View>
-          )}
-          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
-            {(shopData?.items ?? []).map((item: any) => {
-              const rc = RARITY_COLORS[item.rarity] ?? Colors.textMuted;
-              const canBuy = !item.isOwned && item.canAfford && item.meetsLevel;
+            <Text style={s.sheetTitle}>Room Items</Text>
+            {shopData?.coinBalance != null && (
+              <View style={s.shopBalancePill}>
+                <Ionicons name="wallet-outline" size={11} color={Colors.gold} />
+                <Text style={s.shopBalanceText}>{shopData.coinBalance}</Text>
+              </View>
+            )}
+          </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.shopTabsRow}>
+            {SHOP_TABS.map(tab => {
+              const isActive = shopTab === tab.key;
               return (
-                <View key={item.id} style={[s.shopItem, item.isOwned && s.shopItemOwned]}>
-                  <View style={[s.shopItemIcon, { backgroundColor: rc + "15" }]}>
-                    <RoomItemVisual itemId={item.id} width={36} height={30} />
-                  </View>
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={s.shopItemName}>{item.name}</Text>
-                    <Text style={s.shopItemDesc} numberOfLines={1}>{item.description}</Text>
-                    <View style={s.shopItemMeta}>
-                      <Text style={[s.shopItemRarity, { color: rc }]}>
-                        {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
-                      </Text>
-                      {!item.meetsLevel && (
-                        <Text style={s.shopItemLock}>Lv.{item.minLevel}</Text>
-                      )}
-                    </View>
-                  </View>
-                  {item.isOwned ? (
-                    <View style={s.ownedChip}>
-                      <Text style={s.ownedText}>Owned</Text>
-                    </View>
-                  ) : (
-                    <Pressable
-                      style={[s.buyBtn, !canBuy && s.buyBtnDisabled]}
-                      disabled={!canBuy || buyingId === item.id}
-                      onPress={() => handleBuyAndPlace(item.id, item.roomZone)}
-                    >
-                      {buyingId === item.id ? (
-                        <ActivityIndicator size="small" color={Colors.bg} />
-                      ) : (
-                        <>
-                          <Ionicons name="wallet-outline" size={11} color={canBuy ? Colors.bg : Colors.textMuted} />
-                          <Text style={[s.buyBtnText, !canBuy && { color: Colors.textMuted }]}>
-                            {item.cost === 0 ? "Free" : item.cost}
-                          </Text>
-                        </>
-                      )}
-                    </Pressable>
-                  )}
-                </View>
+                <Pressable
+                  key={tab.label}
+                  style={[s.shopTab, isActive && s.shopTabActive]}
+                  onPress={() => setShopTab(tab.key)}
+                >
+                  <Text style={[s.shopTabText, isActive && s.shopTabTextActive]}>{tab.label}</Text>
+                </Pressable>
               );
             })}
+          </ScrollView>
+
+          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
+            <View style={s.shopGrid}>
+              {(shopData?.items ?? []).map((item: any) => {
+                const rc = RARITY_COLORS[item.rarity] ?? Colors.textMuted;
+                const canBuy = !item.isOwned && item.canAfford && item.meetsLevel;
+                const cardW = (screenW - 40 - 10) / 2;
+                return (
+                  <View key={item.id} style={[s.shopCard, { width: cardW }, item.isOwned && s.shopCardOwned]}>
+                    <View style={[s.shopCardVisual, { borderColor: rc + "20" }]}>
+                      <RoomItemVisual itemId={item.id} width={52} height={44} />
+                    </View>
+                    <Text style={s.shopCardName} numberOfLines={2}>{item.name}</Text>
+                    <View style={[s.shopRarityChip, { backgroundColor: rc + "15" }]}>
+                      <Text style={[s.shopRarityText, { color: rc }]}>
+                        {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)}
+                      </Text>
+                    </View>
+                    {item.isOwned ? (
+                      <View style={s.shopOwnedChip}>
+                        <Ionicons name="checkmark-circle" size={12} color={Colors.green} />
+                        <Text style={s.shopOwnedText}>Owned</Text>
+                      </View>
+                    ) : (
+                      <Pressable
+                        style={[s.shopBuyBtn, !canBuy && s.shopBuyBtnDisabled]}
+                        disabled={!canBuy || buyingId === item.id}
+                        onPress={() => handleBuyAndPlace(item.id, item.roomZone)}
+                      >
+                        {buyingId === item.id ? (
+                          <ActivityIndicator size="small" color={Colors.bg} />
+                        ) : (
+                          <>
+                            {!item.meetsLevel ? (
+                              <View style={s.shopLockRow}>
+                                <Ionicons name="lock-closed" size={10} color={Colors.amber} />
+                                <Text style={s.shopLockText}>Lv.{item.minLevel}</Text>
+                              </View>
+                            ) : (
+                              <Text style={[s.shopBuyText, !canBuy && { color: Colors.textMuted }]}>
+                                {item.cost === 0 ? "Free" : `${item.cost} ₿`}
+                              </Text>
+                            )}
+                          </>
+                        )}
+                      </Pressable>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
             {(shopData?.items ?? []).length === 0 && (
               <View style={s.pickerEmpty}>
                 <Text style={s.pickerEmptyTitle}>No items available</Text>
@@ -580,114 +687,132 @@ export default function CommandCenterScreen() {
   );
 }
 
-const TIER_THRESHOLDS: Record<number, number> = { 0: 0, 1: 30, 2: 75, 3: 150, 4: 250, 5: 400 };
-
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  scroll: { paddingHorizontal: 16, paddingTop: 8, gap: 14 },
+  container: { flex: 1, backgroundColor: "#0A0B14" },
+  scroll: { paddingHorizontal: 16, paddingTop: 8, gap: 20 },
 
   loadingIconWrap: { width: 72, height: 72, borderRadius: 20, backgroundColor: Colors.bgCard, alignItems: "center", justifyContent: "center", marginBottom: 12, borderWidth: 1, borderColor: Colors.border },
   loadingTitle: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.textPrimary },
   loadingText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textMuted, marginTop: 4 },
 
   header: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4 },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.bgCard, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
+  backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: Colors.bgCard, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
+  headerCenter: { flex: 1 },
   headerEyebrow: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 2 },
-  headerTierLine: { fontFamily: "Inter_700Bold", fontSize: 14, letterSpacing: 1.5 },
-  headerRight: { flexDirection: "row", alignItems: "center", gap: 7 },
-  tierBadge: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 4 },
+  headerTitle: { fontFamily: "Inter_700Bold", fontSize: 15, letterSpacing: 0.5, marginTop: 1 },
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 6 },
+  tierBadge: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 8, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4 },
   tierBadgeText: { fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 0.5 },
-  coinChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.bgCard, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 4, borderWidth: 1, borderColor: Colors.border },
-  coinChipText: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.gold },
+  coinChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.bgCard, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 5, borderWidth: 1, borderColor: Colors.border },
+  coinChipText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.gold },
 
-  errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.crimson + "18", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: Colors.crimson + "40" },
+  errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.crimson + "12", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: Colors.crimson + "30" },
   errorBannerText: { flex: 1, fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.crimson, lineHeight: 17 },
 
-  charToggleRow: { flexDirection: "row", alignItems: "center", gap: 10, justifyContent: "center" },
-  charToggleBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: Colors.bgCard, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: Colors.border },
-  charToggleBtnActive: { borderColor: Colors.accent + "60", backgroundColor: Colors.accentGlow },
-  charToggleText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textMuted },
-  viewCharBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border },
-  viewCharText: { fontFamily: "Inter_500Medium", fontSize: 11, color: Colors.textSecondary },
+  charCard: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.border },
+  charCardActive: { borderColor: Colors.accent + "40", backgroundColor: Colors.accentGlow },
+  charCardLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  charAvatarWrap: { width: 44, height: 44, borderRadius: 14, backgroundColor: Colors.bgElevated, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
+  charAvatarActive: { borderColor: Colors.accent + "50", backgroundColor: Colors.accent + "12" },
+  charCardText: { gap: 2 },
+  charCardTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textSecondary },
+  charCardSub: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
 
-  tierCard: { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14, borderWidth: 1, gap: 10 },
-  tierCardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  tierCardLeft: { gap: 2 },
+  tierCard: { backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Colors.border, gap: 12 },
+  tierCardHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
+  tierCardLeft: { gap: 4, flex: 1 },
+  tierCardTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  tierIconWrap: { width: 24, height: 24, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   tierLabel: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.5 },
-  tierName: { fontFamily: "Inter_700Bold", fontSize: 16 },
-  tierScorePill: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 5, flexDirection: "row", alignItems: "baseline", gap: 3 },
-  tierScoreNum: { fontFamily: "Inter_700Bold", fontSize: 18 },
-  tierScoreUnit: { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textMuted },
-  tierBarBg: { height: 6, backgroundColor: Colors.bgElevated, borderRadius: 3, overflow: "hidden" },
-  tierBarFill: { height: "100%", borderRadius: 3 },
+  tierName: { fontFamily: "Inter_700Bold", fontSize: 17, marginTop: 2 },
+  tierScorePill: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 6, flexDirection: "row", alignItems: "baseline", gap: 3 },
+  tierScoreNum: { fontFamily: "Inter_700Bold", fontSize: 20 },
+  tierScoreUnit: { fontFamily: "Inter_500Medium", fontSize: 10 },
+  tierBarBg: { height: 8, backgroundColor: Colors.bgElevated, borderRadius: 4, overflow: "hidden" },
   tierNextText: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
-  hintsWrap: { gap: 6, paddingTop: 4, borderTopWidth: 1, borderTopColor: Colors.border },
+  hintsWrap: { gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: Colors.border },
+  hintsHeader: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textSecondary },
   hintRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   hintDot: { width: 5, height: 5, borderRadius: 3, marginTop: 5 },
   hintText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, lineHeight: 17 },
 
-  section: { gap: 10 },
-  sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 1.5 },
+  section: { gap: 12 },
+  sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 2 },
+  sectionCount: { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textMuted },
+  sectionSub: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, marginTop: -6 },
 
   placedScroll: { flexDirection: "row", gap: 10, paddingVertical: 2 },
-  placedCard: { width: 100, backgroundColor: Colors.bgCard, borderRadius: 12, padding: 10, borderWidth: 1, alignItems: "center", gap: 5 },
-  placedVisual: { height: 40, alignItems: "center", justifyContent: "center" },
+  placedCard: { width: 105, backgroundColor: Colors.bgCard, borderRadius: 14, padding: 10, borderWidth: 1, alignItems: "center", gap: 6 },
+  placedVisual: { height: 55, alignItems: "center", justifyContent: "center" },
   placedName: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.textPrimary, textAlign: "center" },
-  placedZone: { fontFamily: "Inter_500Medium", fontSize: 9, textAlign: "center" },
-  activePill: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  rarityChip: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  rarityChipText: { fontFamily: "Inter_600SemiBold", fontSize: 8, letterSpacing: 0.3 },
+  activeRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  activeDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: Colors.green },
   activeText: { fontFamily: "Inter_600SemiBold", fontSize: 8, color: Colors.green },
-  placePill: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1 },
-  placeText: { fontFamily: "Inter_600SemiBold", fontSize: 8, color: Colors.accent },
+  placeBtn: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },
+  placeBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 9, color: Colors.accent },
 
-  shopGrid: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-  shopZoneCard: { flex: 1, minWidth: 90, backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.border, alignItems: "center", gap: 6 },
-  shopZoneIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.accentGlow, alignItems: "center", justifyContent: "center" },
-  shopZoneName: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textPrimary, textAlign: "center" },
-  shopZoneHint: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted },
-  browseAllBtn: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "center", paddingVertical: 8, paddingHorizontal: 14, backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: Colors.accent + "30" },
-  browseAllText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.accent },
+  featuredScroll: { flexDirection: "row", gap: 10, paddingVertical: 2 },
+  featuredCard: { width: 120, backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.border, alignItems: "center", gap: 8 },
+  featuredIconWrap: { width: 48, height: 48, borderRadius: 14, backgroundColor: Colors.accentGlow, alignItems: "center", justifyContent: "center" },
+  featuredName: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textPrimary, textAlign: "center" },
+  featuredHint: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted },
+  featuredArrow: { marginTop: 2 },
 
-  badgeScroll: { flexDirection: "row", gap: 12, paddingVertical: 2 },
-  badgeChip: { alignItems: "center", width: 64, gap: 4 },
-  badgeIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  browseAllBtn: { flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "center", paddingVertical: 10, paddingHorizontal: 18, backgroundColor: Colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: Colors.accent + "25" },
+  browseAllText: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.accent },
+
+  badgeScroll: { flexDirection: "row", gap: 14, paddingVertical: 2 },
+  badgeChip: { alignItems: "center", width: 68, gap: 5 },
+  badgeIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   badgeName: { fontFamily: "Inter_500Medium", fontSize: 9, color: Colors.textSecondary, textAlign: "center" },
 
   modalOverlay: { flex: 1, backgroundColor: Colors.overlayHeavy },
-  sheet: { backgroundColor: Colors.bgCard, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 14 },
-  shopSheet: { maxHeight: "75%" },
+  sheet: { backgroundColor: "#0E0F1A", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 14 },
+  shopSheet: { maxHeight: "80%" },
   sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: "center", marginBottom: 4 },
-  sheetTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  sheetTitle: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.textPrimary },
+  sheetTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  sheetIconWrap: { width: 32, height: 32, borderRadius: 10, backgroundColor: Colors.accentGlow, alignItems: "center", justifyContent: "center" },
+  sheetTitle: { fontFamily: "Inter_700Bold", fontSize: 17, color: Colors.textPrimary, flex: 1 },
 
-  removeBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  removeBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },
   removeText: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.crimson },
 
-  pickerEmpty: { alignItems: "center", paddingVertical: 32, gap: 8 },
-  pickerEmptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textSecondary },
-  pickerShopBtn: { backgroundColor: Colors.accentGlow, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderColor: Colors.accent + "40" },
-  pickerShopBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.accent },
+  pickerEmpty: { alignItems: "center", paddingVertical: 36, gap: 8 },
+  pickerEmptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.textSecondary },
+  pickerEmptySub: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
+  pickerShopBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: Colors.accentGlow, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 10, borderWidth: 1, borderColor: Colors.accent + "30", marginTop: 4 },
+  pickerShopBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.accent },
 
-  pickerItem: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.border + "50" },
-  pickerItemActive: { backgroundColor: Colors.green + "08" },
-  pickerItemIcon: { width: 44, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  pickerItem: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border + "40" },
+  pickerItemActive: { backgroundColor: Colors.green + "06" },
+  pickerItemIcon: { width: 48, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   pickerItemName: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
-  pickerItemRarity: { fontFamily: "Inter_500Medium", fontSize: 11, textTransform: "capitalize" },
-  currentChip: { padding: 4 },
+  pickerItemRarity: { fontFamily: "Inter_500Medium", fontSize: 11, textTransform: "capitalize" as const, marginTop: 1 },
 
-  shopBalanceRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-  shopBalanceText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.gold },
+  shopBalancePill: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.bgCard, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: Colors.border },
+  shopBalanceText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.gold },
 
-  shopItem: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.border + "50" },
-  shopItemOwned: { opacity: 0.5 },
-  shopItemIcon: { width: 48, height: 40, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  shopItemName: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.textPrimary },
-  shopItemDesc: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted },
-  shopItemMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
-  shopItemRarity: { fontFamily: "Inter_500Medium", fontSize: 10, textTransform: "capitalize" },
-  shopItemLock: { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.amber },
-  ownedChip: { backgroundColor: Colors.green + "15", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  ownedText: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.green },
-  buyBtn: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.accent, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
-  buyBtnDisabled: { backgroundColor: Colors.bgElevated },
-  buyBtnText: { fontFamily: "Inter_700Bold", fontSize: 11, color: Colors.bg },
+  shopTabsRow: { flexDirection: "row", gap: 6, paddingVertical: 2 },
+  shopTab: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, backgroundColor: Colors.bgElevated },
+  shopTabActive: { backgroundColor: Colors.accent + "20" },
+  shopTabText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textMuted },
+  shopTabTextActive: { color: Colors.accent },
+
+  shopGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, paddingVertical: 4 },
+  shopCard: { backgroundColor: Colors.bgCard, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: Colors.border, alignItems: "center", gap: 6 },
+  shopCardOwned: { opacity: 0.55 },
+  shopCardVisual: { width: "100%", height: 56, borderRadius: 10, borderWidth: 1, alignItems: "center", justifyContent: "center", backgroundColor: Colors.bgElevated + "40" },
+  shopCardName: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textPrimary, textAlign: "center", lineHeight: 14 },
+  shopRarityChip: { borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 },
+  shopRarityText: { fontFamily: "Inter_600SemiBold", fontSize: 8, letterSpacing: 0.3 },
+  shopOwnedChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 2 },
+  shopOwnedText: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.green },
+  shopBuyBtn: { backgroundColor: Colors.accent, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6, alignItems: "center", justifyContent: "center", minWidth: 64 },
+  shopBuyBtnDisabled: { backgroundColor: Colors.bgElevated },
+  shopBuyText: { fontFamily: "Inter_700Bold", fontSize: 11, color: Colors.bg },
+  shopLockRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+  shopLockText: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.amber },
 });
