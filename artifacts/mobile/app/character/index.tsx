@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet, Platform, RefreshControl,
   Modal, TouchableOpacity,
@@ -7,13 +7,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeIn, FadeInDown, SlideInDown } from "react-native-reanimated";
+import Animated, {
+  FadeIn, FadeInDown, SlideInDown, FadeInUp,
+  useSharedValue, useAnimatedStyle, withTiming, Easing,
+} from "react-native-reanimated";
 import Svg, { Circle, Ellipse, Rect, Path, G, Line } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/colors";
 import { LoadingScreen, Button } from "@/design-system";
 import { useAuth } from "@/context/AuthContext";
 import { useCharacterStatus, useUpdateCharacterAppearance } from "@/hooks/useApi";
+import type { DimensionLevel, DimensionDetail } from "@/lib/characterEngine";
 
 // ─── Phase 29 — Wearable State Types ──────────────────────────────────────────
 
@@ -658,36 +662,168 @@ function CharacterCustomizeSheet({
   );
 }
 
-// ─── Dimension Card ────────────────────────────────────────────────────────────
+// ─── Dimension Card (XP-based) ─────────────────────────────────────────────────
 
-function DimensionCard({ dimension, badge, delay = 0 }: { dimension: any; badge?: "LOWEST" | "TOP"; delay?: number }) {
+function DimensionCard({ dim, badge, delay = 0, onPress }: {
+  dim: DimensionLevel;
+  badge?: "LOWEST" | "TOP";
+  delay?: number;
+  onPress?: () => void;
+}) {
   return (
-    <Animated.View entering={FadeInDown.delay(delay).springify()} style={dimStyles.card}>
-      <View style={dimStyles.topRow}>
-        <View style={[dimStyles.iconWrap, { backgroundColor: dimension.color + "18" }]}>
-          <Ionicons name={dimension.icon as any} size={15} color={dimension.color} />
-        </View>
-        {badge && (
-          <View style={[dimStyles.badge, {
-            backgroundColor: badge === "LOWEST" ? Colors.crimsonDim : dimension.color + "20",
-          }]}>
-            <Text style={[dimStyles.badgeText, {
-              color: badge === "LOWEST" ? Colors.crimson : dimension.color,
-            }]}>
-              {badge === "LOWEST" ? "FOCUS" : "TOP"}
-            </Text>
+    <Pressable onPress={onPress}>
+      <Animated.View entering={FadeInDown.delay(delay).springify()} style={dimStyles.card}>
+        <View style={dimStyles.topRow}>
+          <View style={[dimStyles.iconWrap, { backgroundColor: dim.color + "18" }]}>
+            <Ionicons name={dim.icon as any} size={15} color={dim.color} />
           </View>
-        )}
-      </View>
-      <Text style={dimStyles.name}>{dimension.name}</Text>
-      <View style={dimStyles.barBg}>
-        <View style={[dimStyles.barFill, { width: `${dimension.score}%` as any, backgroundColor: dimension.color }]} />
-      </View>
-      <View style={dimStyles.footer}>
-        <Text style={[dimStyles.label, { color: dimension.color }]}>{dimension.label}</Text>
-        <Text style={[dimStyles.scoreNum, { color: dimension.color }]}>{dimension.score}</Text>
-      </View>
-      <Text style={dimStyles.description} numberOfLines={3}>{dimension.description}</Text>
+          {badge && (
+            <View style={[dimStyles.badge, {
+              backgroundColor: badge === "LOWEST" ? Colors.crimsonDim : dim.color + "20",
+            }]}>
+              <Text style={[dimStyles.badgeText, {
+                color: badge === "LOWEST" ? Colors.crimson : dim.color,
+              }]}>
+                {badge === "LOWEST" ? "FOCUS" : "TOP"}
+              </Text>
+            </View>
+          )}
+        </View>
+        <Text style={dimStyles.name}>{dim.label}</Text>
+        <View style={dimStyles.barBg}>
+          <View style={[dimStyles.barFill, { width: `${dim.progressPct}%` as any, backgroundColor: dim.color }]} />
+        </View>
+        <View style={dimStyles.footer}>
+          <Text style={[dimStyles.label, { color: dim.color }]}>Lv {dim.level}</Text>
+          <Text style={[dimStyles.scoreNum, { color: dim.color }]}>{dim.level}</Text>
+        </View>
+        <Text style={dimStyles.xpText}>{dim.totalXp} XP</Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+// ─── Dimension Detail Bottom Sheet ──────────────────────────────────────────────
+
+function DimensionDetailSheet({ visible, onClose, dim, detail }: {
+  visible: boolean;
+  onClose: () => void;
+  dim: DimensionLevel | null;
+  detail: DimensionDetail | null;
+}) {
+  const insets = useSafeAreaInsets();
+  if (!dim) return null;
+
+  const xpIntoLevel = dim.totalXp - dim.xpForCurrentLevel;
+  const xpNeeded = dim.xpForNextLevel - dim.xpForCurrentLevel;
+  const xpRemaining = dim.level >= 10 ? 0 : dim.xpForNextLevel - dim.totalXp;
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={detailSheetStyles.backdrop} activeOpacity={1} onPress={onClose} />
+      <Animated.View entering={SlideInDown.springify().damping(18)} style={[detailSheetStyles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={detailSheetStyles.handle} />
+
+        <View style={detailSheetStyles.header}>
+          <View style={[detailSheetStyles.dimIconWrap, { backgroundColor: dim.color + "18" }]}>
+            <Ionicons name={dim.icon as any} size={22} color={dim.color} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={detailSheetStyles.dimName}>{dim.label}</Text>
+            <Text style={[detailSheetStyles.dimLevel, { color: dim.color }]}>Level {dim.level} / 10</Text>
+          </View>
+          <Pressable style={detailSheetStyles.closeBtn} onPress={onClose}>
+            <Ionicons name="close" size={18} color={Colors.textMuted} />
+          </Pressable>
+        </View>
+
+        <View style={detailSheetStyles.xpSection}>
+          <View style={detailSheetStyles.xpBarBg}>
+            <View style={[detailSheetStyles.xpBarFill, { width: `${dim.progressPct}%` as any, backgroundColor: dim.color }]} />
+          </View>
+          <View style={detailSheetStyles.xpRow}>
+            <Text style={detailSheetStyles.xpText}>{dim.totalXp} XP total</Text>
+            {dim.level < 10 && (
+              <Text style={detailSheetStyles.xpRemaining}>{xpRemaining} XP to Lv {dim.level + 1}</Text>
+            )}
+            {dim.level >= 10 && (
+              <Text style={[detailSheetStyles.xpRemaining, { color: Colors.gold }]}>MAX LEVEL</Text>
+            )}
+          </View>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }}>
+          {detail?.improvementSources && detail.improvementSources.length > 0 && (
+            <View style={detailSheetStyles.section}>
+              <Text style={detailSheetStyles.sectionTitle}>WHAT IMPROVES THIS</Text>
+              {detail.improvementSources.map((src, i) => (
+                <View key={i} style={detailSheetStyles.sourceRow}>
+                  <Ionicons name="add-circle-outline" size={14} color={dim.color} />
+                  <Text style={detailSheetStyles.sourceText}>{src}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {detail?.holdingBack && detail.holdingBack.length > 0 && (
+            <View style={detailSheetStyles.section}>
+              <Text style={[detailSheetStyles.sectionTitle, { color: Colors.crimson }]}>HOLDING YOU BACK</Text>
+              {detail.holdingBack.map((msg, i) => (
+                <View key={i} style={detailSheetStyles.sourceRow}>
+                  <Ionicons name="warning-outline" size={14} color={Colors.crimson} />
+                  <Text style={[detailSheetStyles.sourceText, { color: Colors.crimson }]}>{msg}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {detail?.recentEvents && detail.recentEvents.length > 0 && (
+            <View style={detailSheetStyles.section}>
+              <Text style={detailSheetStyles.sectionTitle}>RECENT XP</Text>
+              {detail.recentEvents.map((ev, i) => (
+                <View key={i} style={detailSheetStyles.eventRow}>
+                  <Text style={[detailSheetStyles.eventXp, { color: dim.color }]}>+{ev.xpAmount}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={detailSheetStyles.eventDesc} numberOfLines={2}>{ev.description}</Text>
+                    <Text style={detailSheetStyles.eventTime}>
+                      {new Date(ev.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {(!detail?.recentEvents || detail.recentEvents.length === 0) && (
+            <View style={detailSheetStyles.section}>
+              <Text style={detailSheetStyles.sectionTitle}>RECENT XP</Text>
+              <Text style={detailSheetStyles.emptyText}>No recent activity in this dimension.</Text>
+            </View>
+          )}
+        </ScrollView>
+      </Animated.View>
+    </Modal>
+  );
+}
+
+// ─── Tier Celebration Overlay ────────────────────────────────────────────────────
+
+function TierCelebration({ tier, color, visible }: { tier: string; color: string; visible: boolean }) {
+  if (!visible) return null;
+  return (
+    <Animated.View
+      entering={FadeIn.duration(300)}
+      style={celebrationStyles.overlay}
+    >
+      <Animated.View entering={FadeInUp.delay(100).duration(400).springify()} style={celebrationStyles.content}>
+        <LinearGradient
+          colors={[color + "40", color + "18", "transparent"]}
+          style={celebrationStyles.glow}
+        />
+        <Text style={[celebrationStyles.label, { color }]}>TIER UP</Text>
+        <Text style={[celebrationStyles.tierName, { color }]}>{tier}</Text>
+        <Text style={celebrationStyles.sub}>Your discipline is evolving</Text>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -782,33 +918,66 @@ export default function CharacterStatusScreen() {
   const updateAppearance = useUpdateCharacterAppearance();
 
   const [showCustomize, setShowCustomize] = useState(false);
+  const [selectedDim, setSelectedDim] = useState<DimensionLevel | null>(null);
+  const [showDimDetail, setShowDimDetail] = useState(false);
+  const [showTierCelebration, setShowTierCelebration] = useState(false);
+  const prevTierRef = useRef<string | null>(null);
+
+  const characterOpacity = useSharedValue(1);
+  const prevVisualStateRef = useRef<string | null>(null);
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const botPad = insets.bottom + (Platform.OS === "web" ? 34 : 100);
 
-  const tierColor = data?.statusTierColor ?? Colors.textMuted;
-  const currentTierIdx = TIER_ORDER.indexOf(data?.statusTier ?? "Starter");
-
-  const dims = data
-    ? [
-        { name: "Fitness",    ...data.dimensions.fitness    },
-        { name: "Discipline", ...data.dimensions.discipline },
-        { name: "Finance",    ...data.dimensions.finance    },
-        { name: "Prestige",   ...data.dimensions.prestige   },
-      ]
-    : [];
+  const de = data?.dimensionEngine;
+  const dims: DimensionLevel[] = de?.dimensions ?? [];
+  const deTier = de?.tier;
+  const tierName = deTier?.tier ?? data?.statusTier ?? "Starter";
+  const tierColor = deTier?.color ?? data?.statusTierColor ?? Colors.textMuted;
+  const tierMessage = deTier?.message ?? "";
+  const currentTierIdx = TIER_ORDER.indexOf(tierName);
+  const deScore = de?.statusScore ?? data?.overallScore ?? 0;
+  const nextEvolution = de?.nextEvolution ?? null;
+  const dimensionDetails = de?.details ?? {};
 
   let weakestIdx = -1;
   let strongestIdx = -1;
   if (dims.length > 0) {
-    let minScore = Infinity, maxScore = -Infinity;
+    let minLevel = Infinity, maxLevel = -Infinity;
     dims.forEach((d, i) => {
-      if (d.score < minScore) { minScore = d.score; weakestIdx = i; }
-      if (d.score > maxScore) { maxScore = d.score; strongestIdx = i; }
+      if (d.level < minLevel || (d.level === minLevel && d.totalXp < (dims[weakestIdx]?.totalXp ?? Infinity))) { minLevel = d.level; weakestIdx = i; }
+      if (d.level > maxLevel || (d.level === maxLevel && d.totalXp > (dims[strongestIdx]?.totalXp ?? -1))) { maxLevel = d.level; strongestIdx = i; }
     });
   }
 
-  // Current appearance from API (with fallbacks)
+  useEffect(() => {
+    if (!tierName || !prevTierRef.current) {
+      prevTierRef.current = tierName;
+      return;
+    }
+    const prevIdx = TIER_ORDER.indexOf(prevTierRef.current);
+    const newIdx = TIER_ORDER.indexOf(tierName);
+    if (newIdx > prevIdx && prevIdx >= 0) {
+      setShowTierCelebration(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      setTimeout(() => setShowTierCelebration(false), 2500);
+    }
+    prevTierRef.current = tierName;
+  }, [tierName]);
+
+  useEffect(() => {
+    const vsKey = JSON.stringify(data?.visualState);
+    if (prevVisualStateRef.current && prevVisualStateRef.current !== vsKey) {
+      characterOpacity.value = 0.3;
+      characterOpacity.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) });
+    }
+    prevVisualStateRef.current = vsKey;
+  }, [data?.visualState]);
+
+  const characterAnimStyle = useAnimatedStyle(() => ({
+    opacity: characterOpacity.value,
+  }));
+
   const appearance = (data as any)?.appearance;
   const currentSkinTone  = appearance?.skinTone  ?? "tone-3";
   const currentHairStyle = appearance?.hairStyle ?? "taper";
@@ -822,6 +991,12 @@ export default function CharacterStatusScreen() {
       },
     });
   }
+
+  const handleDimPress = useCallback((dim: DimensionLevel) => {
+    setSelectedDim(dim);
+    setShowDimDetail(true);
+    Haptics.selectionAsync().catch(() => {});
+  }, []);
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
@@ -838,7 +1013,7 @@ export default function CharacterStatusScreen() {
         <View style={[styles.tierPillHeader, { borderColor: tierColor + "60", backgroundColor: tierColor + "15" }]}>
           <View style={[styles.tierDotHeader, { backgroundColor: tierColor }]} />
           <Text style={[styles.tierPillHeaderText, { color: tierColor }]}>
-            {data?.statusTier ?? "—"}
+            {tierName}
           </Text>
         </View>
       </View>
@@ -880,8 +1055,8 @@ export default function CharacterStatusScreen() {
                 <Ionicons name="color-palette-outline" size={16} color={Colors.textSecondary} />
               </Pressable>
 
-              {/* The character — full hero presence */}
-              <View style={styles.characterWrap}>
+              {/* The character — full hero presence with cross-fade */}
+              <Animated.View style={[styles.characterWrap, characterAnimStyle]}>
                 <EvolvedCharacter
                   visualState={data?.visualState as VisualState | null}
                   equippedWearables={(data as any)?.equippedWearables as EquippedWearableState ?? null}
@@ -905,7 +1080,7 @@ export default function CharacterStatusScreen() {
                 >
                   <Ionicons name="shirt-outline" size={16} color={Colors.accent} />
                 </Pressable>
-              </View>
+              </Animated.View>
 
               {/* Identity beneath the figure */}
               <Text style={styles.characterName}>{user?.username ?? "Character"}</Text>
@@ -917,7 +1092,7 @@ export default function CharacterStatusScreen() {
                 { borderColor: tierColor + "60", backgroundColor: tierColor + "18" },
                 { shadowColor: tierColor, shadowRadius: 14, shadowOpacity: 0.45, shadowOffset: { width: 0, height: 0 }, elevation: 8 },
               ]}>
-                <Text style={[styles.scoreChipNum, { color: tierColor }]}>{data?.overallScore ?? 0}</Text>
+                <Text style={[styles.scoreChipNum, { color: tierColor }]}>{deScore}</Text>
                 <Text style={styles.scoreChipLabel}> STATUS SCORE</Text>
               </View>
             </LinearGradient>
@@ -928,9 +1103,9 @@ export default function CharacterStatusScreen() {
             <View style={styles.tierCardTop}>
               <View style={{ flex: 1, gap: 5 }}>
                 <Text style={styles.tierCardEyebrow}>CURRENT STATUS</Text>
-                <Text style={[styles.tierCardName, { color: tierColor }]}>{data?.statusTier ?? "Starter"}</Text>
+                <Text style={[styles.tierCardName, { color: tierColor }]}>{tierName}</Text>
                 <Text style={styles.tierCardDesc}>
-                  {data?.statusTierDescription ?? "Keep pushing. Your status is earned through consistent action."}
+                  {tierMessage || data?.statusTierDescription || "Keep pushing. Your status is earned through consistent action."}
                 </Text>
               </View>
               <View style={styles.statsCol}>
@@ -985,7 +1160,7 @@ export default function CharacterStatusScreen() {
           </Animated.View>
 
           {/* ── 3. NEXT EVOLUTION ── */}
-          {data?.nextEvolutionHint && (
+          {nextEvolution && (
             <Animated.View entering={FadeInDown.delay(120).springify()}>
               <LinearGradient
                 colors={[Colors.accent + "18", Colors.bgCard]}
@@ -999,21 +1174,16 @@ export default function CharacterStatusScreen() {
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={styles.evolutionEyebrow}>NEXT EVOLUTION</Text>
-                    <Text style={styles.evolutionDimension}>{data.nextEvolutionHint.dimension}</Text>
+                    <Text style={styles.evolutionDimension}>{nextEvolution.dimension}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color={Colors.accent + "80"} />
+                  <View style={{ alignItems: "center" }}>
+                    <Text style={{ fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.accent }}>Lv {nextEvolution.currentLevel}</Text>
+                    <Text style={{ fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted }}>→ Lv {nextEvolution.targetLevel}</Text>
+                  </View>
                 </View>
-                <Text style={styles.evolutionHint}>{data.nextEvolutionHint.hint}</Text>
-                {data.nextEvolutionHint.missionsRequired != null && (
-                  <View style={styles.evolutionMissionsRow}>
-                    <Ionicons name="flame-outline" size={13} color={Colors.amber} />
-                    <Text style={styles.evolutionMissionsText}>
-                      {data.nextEvolutionHint.missionsRequired} {data.nextEvolutionHint.missionsRequired === 1 ? "mission" : "missions"} away from your next evolution
-                    </Text>
-                  </View>
-                )}
+                <Text style={styles.evolutionHint}>{nextEvolution.hint}</Text>
                 <Button
-                  label={data.nextEvolutionHint.action}
+                  label={nextEvolution.action}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
                     router.push("/(tabs)/missions");
@@ -1060,7 +1230,13 @@ export default function CharacterStatusScreen() {
                   i === strongestIdx ? "TOP" as const :
                   undefined;
                 return (
-                  <DimensionCard key={dim.name} dimension={dim} badge={badge} delay={220 + i * 30} />
+                  <DimensionCard
+                    key={dim.id}
+                    dim={dim}
+                    badge={badge}
+                    delay={220 + i * 30}
+                    onPress={() => handleDimPress(dim)}
+                  />
                 );
               })}
             </View>
@@ -1160,6 +1336,17 @@ export default function CharacterStatusScreen() {
         onSave={handleSaveAppearance}
         isSaving={updateAppearance.isPending}
       />
+
+      {/* ── Dimension Detail Sheet ── */}
+      <DimensionDetailSheet
+        visible={showDimDetail}
+        onClose={() => setShowDimDetail(false)}
+        dim={selectedDim}
+        detail={selectedDim ? dimensionDetails[selectedDim.id] ?? null : null}
+      />
+
+      {/* ── Tier Celebration ── */}
+      <TierCelebration tier={tierName} color={tierColor} visible={showTierCelebration} />
     </View>
   );
 }
@@ -1346,7 +1533,7 @@ const dimStyles = StyleSheet.create({
   footer:      { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   label:       { fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 0.4 },
   scoreNum:    { fontFamily: "Inter_700Bold", fontSize: 18 },
-  description: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, lineHeight: 16 },
+  xpText:      { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted },
 });
 
 // ─── Evolution Explanation Styles ─────────────────────────────────────────────
@@ -1460,4 +1647,116 @@ const sheetStyles = StyleSheet.create({
   },
   // Save
   saveRow: { paddingTop: 16, paddingBottom: 4 },
+});
+
+// ─── Dimension Detail Sheet Styles ──────────────────────────────────────────────
+
+const detailSheetStyles = StyleSheet.create({
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.overlayHeavy,
+  },
+  sheet: {
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    backgroundColor: Colors.bgCard,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    borderWidth: 1, borderColor: Colors.border,
+    borderBottomWidth: 0,
+    paddingTop: 12, paddingHorizontal: 20,
+    maxHeight: "80%",
+  },
+  handle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: Colors.border,
+    alignSelf: "center", marginBottom: 16,
+  },
+  header: {
+    flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 20,
+  },
+  dimIconWrap: {
+    width: 48, height: 48, borderRadius: 14,
+    alignItems: "center", justifyContent: "center",
+  },
+  dimName: {
+    fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.textPrimary,
+  },
+  dimLevel: {
+    fontFamily: "Inter_700Bold", fontSize: 13, marginTop: 2,
+  },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 10,
+    backgroundColor: Colors.bgElevated,
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  xpSection: { marginBottom: 20 },
+  xpBarBg: {
+    height: 8, backgroundColor: Colors.bgElevated, borderRadius: 4,
+  },
+  xpBarFill: { height: 8, borderRadius: 4 },
+  xpRow: {
+    flexDirection: "row", justifyContent: "space-between", marginTop: 6,
+  },
+  xpText: {
+    fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textSecondary,
+  },
+  xpRemaining: {
+    fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textMuted,
+  },
+  section: { marginBottom: 20 },
+  sectionTitle: {
+    fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted,
+    letterSpacing: 1.8, marginBottom: 10,
+  },
+  sourceRow: {
+    flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 8,
+  },
+  sourceText: {
+    fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary,
+    flex: 1, lineHeight: 19,
+  },
+  eventRow: {
+    flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 10,
+    backgroundColor: Colors.bg, borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  eventXp: {
+    fontFamily: "Inter_700Bold", fontSize: 14, minWidth: 40,
+  },
+  eventDesc: {
+    fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, lineHeight: 17,
+  },
+  eventTime: {
+    fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted, marginTop: 3,
+  },
+  emptyText: {
+    fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textMuted, fontStyle: "italic",
+  },
+});
+
+// ─── Tier Celebration Styles ──────────────────────────────────────────────────────
+
+const celebrationStyles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    alignItems: "center", justifyContent: "center",
+    zIndex: 100,
+  },
+  content: {
+    alignItems: "center", gap: 12, paddingHorizontal: 40,
+  },
+  glow: {
+    position: "absolute", width: 300, height: 300, borderRadius: 150,
+    top: -100, alignSelf: "center",
+  },
+  label: {
+    fontFamily: "Inter_700Bold", fontSize: 14, letterSpacing: 4,
+  },
+  tierName: {
+    fontFamily: "Inter_700Bold", fontSize: 48, letterSpacing: -2,
+  },
+  sub: {
+    fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary,
+  },
 });

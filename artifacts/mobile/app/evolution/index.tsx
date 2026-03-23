@@ -8,7 +8,7 @@ import { router } from "expo-router";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
-import { useSkills, useEndgame, useIdentity, useInventoryTitles, useAppliedState } from "@/hooks/useApi";
+import { useCharacterStatus, useInventoryTitles, useAppliedState } from "@/hooks/useApi";
 import { computeCharacterState, type CharacterState, type DimensionScore, type EquippedGearItem } from "@/lib/characterEngine";
 
 // ─── Character Figure ────────────────────────────────────────────────────────
@@ -196,7 +196,8 @@ const figStyles = StyleSheet.create({
 
 // ─── Dimension Bar ───────────────────────────────────────────────────────────
 
-function DimensionBar({ dim, delay }: { dim: DimensionScore; delay: number }) {
+function DimensionBar({ dim, isStrength, isWeakest, delay }: { dim: any; isStrength?: boolean; isWeakest?: boolean; delay: number }) {
+  const pct = dim.progressPct ?? dim.pct ?? 0;
   return (
     <Animated.View entering={FadeInDown.delay(delay).springify()} style={dimStyles.row}>
       <View style={dimStyles.labelRow}>
@@ -204,20 +205,20 @@ function DimensionBar({ dim, delay }: { dim: DimensionScore; delay: number }) {
           <Ionicons name={dim.icon as any} size={14} color={dim.color} />
         </View>
         <Text style={dimStyles.label}>{dim.label}</Text>
-        {dim.isStrength && (
+        {isStrength && (
           <View style={[dimStyles.tag, { backgroundColor: dim.color + "20", borderColor: dim.color + "50" }]}>
             <Text style={[dimStyles.tagText, { color: dim.color }]}>Strength</Text>
           </View>
         )}
-        {dim.isWeakZone && (
+        {isWeakest && (
           <View style={[dimStyles.tag, { backgroundColor: Colors.amberDim, borderColor: Colors.amber + "40" }]}>
             <Text style={[dimStyles.tagText, { color: Colors.amber }]}>Focus</Text>
           </View>
         )}
-        <Text style={dimStyles.descriptor}>{dim.descriptor}</Text>
+        <Text style={dimStyles.descriptor}>Lv {dim.level ?? 0}</Text>
       </View>
       <View style={dimStyles.track}>
-        <View style={[dimStyles.fill, { width: `${dim.pct}%` as any, backgroundColor: dim.color }]} />
+        <View style={[dimStyles.fill, { width: `${Math.round(pct)}%` as any, backgroundColor: dim.color }]} />
       </View>
     </Animated.View>
   );
@@ -277,27 +278,25 @@ export default function CharacterEvolutionScreen() {
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
 
   const [refreshing, setRefreshing] = useState(false);
-  const { data: skillsData, isLoading: skillsLoading, refetch: refetchSkills } = useSkills();
-  const { data: endgameData, isLoading: endgameLoading, refetch: refetchEndgame } = useEndgame();
+  const { data: statusData, isLoading: statusLoading, refetch: refetchStatus } = useCharacterStatus();
 
   async function handleRefresh() {
     setRefreshing(true);
-    try { await Promise.all([refetchSkills(), refetchEndgame()]); } finally { setRefreshing(false); }
+    try { await refetchStatus(); } finally { setRefreshing(false); }
   }
-  const { data: identityData } = useIdentity();
   const { data: titlesData } = useInventoryTitles();
   const { data: appliedState } = useAppliedState();
 
-  const isLoading = skillsLoading || endgameLoading;
+  const isLoading = statusLoading;
 
   const equippedCharacterItems = useMemo(() => {
     return appliedState?.character?.equippedItems ?? [];
   }, [appliedState]);
 
   const characterState = useMemo<CharacterState | null>(() => {
-    if (!skillsData?.skills || !endgameData) return null;
-    return computeCharacterState(skillsData.skills, endgameData, identityData, equippedCharacterItems);
-  }, [skillsData, endgameData, identityData, equippedCharacterItems]);
+    if (!statusData) return null;
+    return computeCharacterState(statusData, equippedCharacterItems);
+  }, [statusData, equippedCharacterItems]);
 
   const activeTitle = (titlesData?.titles ?? []).find((t: any) => t.isActive);
 
@@ -446,7 +445,12 @@ export default function CharacterEvolutionScreen() {
             <View style={styles.dimensionsCard}>
               {characterState.dimensions.map((dim, i) => (
                 <View key={dim.id}>
-                  <DimensionBar dim={dim} delay={160 + i * 40} />
+                  <DimensionBar
+                    dim={dim}
+                    isStrength={characterState.strongestDimension?.id === dim.id}
+                    isWeakest={characterState.weakestDimension?.id === dim.id}
+                    delay={160 + i * 40}
+                  />
                   {i < characterState.dimensions.length - 1 && <View style={styles.dimDivider} />}
                 </View>
               ))}
