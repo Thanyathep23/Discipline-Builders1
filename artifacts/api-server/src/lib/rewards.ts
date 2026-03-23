@@ -76,16 +76,9 @@ export function computeRewardCoins(input: ComputeRewardInput): { coins: number; 
     distractionPenalty = 0.70;
   }
 
-  const strictnessBonus: Record<string, number> = { normal: 1.0, strict: 1.1, extreme: 1.2 };
-  const strictBonus = strictnessBonus[strictnessMode] ?? 1.0;
-
-  const trustFactor = Math.max(0.5, Math.min(1.5, userTrustScore));
-
-  const streakBonus = Math.min(1.2, 1 + (currentStreak * 0.02));
-
   const aiMult = aiRewardMult ?? 1.0;
 
-  const multiplier = qualityFactor * distractionPenalty * strictBonus * trustFactor * streakBonus * aiMult;
+  const multiplier = qualityFactor * distractionPenalty * aiMult;
   const coins = Math.max(0, Math.round(base * multiplier));
 
   const xp = Math.max(1, Math.ceil(coins / 5));

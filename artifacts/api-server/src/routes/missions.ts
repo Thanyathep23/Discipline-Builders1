@@ -79,6 +79,7 @@ router.post("/", async (req, res) => {
     dueDate: data.dueDate ?? null,
     purpose: data.purpose ?? null,
     requiredProofTypes: JSON.stringify(data.requiredProofTypes),
+    proofRequired: data.proofRequired ?? true,
     proofRequirements: JSON.stringify(proofReqs),
     missionValueScore,
     status: "active",

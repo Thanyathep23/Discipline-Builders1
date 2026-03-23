@@ -1,4 +1,4 @@
-import { pgTable, text, integer, real, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, real, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -29,6 +29,7 @@ export const missionsTable = pgTable("missions", {
   chainStep:             integer("chain_step"),
   rarityBonusCoins:      integer("rarity_bonus_coins").notNull().default(0),
   chainBonusCoins:       integer("chain_bonus_coins").notNull().default(0),
+  proofRequired:         boolean("proof_required").notNull().default(true),
   proofRequirements:     text("proof_requirements"),
   missionValueScore:     real("mission_value_score").notNull().default(0),
   createdAt:             timestamp("created_at").notNull().defaultNow(),

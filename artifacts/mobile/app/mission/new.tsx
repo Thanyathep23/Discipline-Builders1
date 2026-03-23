@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import {
   View, Text, TextInput, Pressable, StyleSheet, ScrollView,
-  Platform, ActivityIndicator, Alert,
+  Platform, ActivityIndicator, Alert, Switch,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -45,6 +45,8 @@ export default function NewMissionScreen() {
     impactLevel: 3,
     purpose: "",
     requiredProofTypes: ["text"] as typeof PROOF_TYPES[number][],
+    proofRequired: true,
+    dueDate: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -75,6 +77,8 @@ export default function NewMissionScreen() {
         impactLevel: form.impactLevel,
         purpose: form.purpose.trim() || null,
         requiredProofTypes: form.requiredProofTypes,
+        proofRequired: form.proofRequired,
+        dueDate: form.dueDate.trim() || null,
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
@@ -247,6 +251,33 @@ export default function NewMissionScreen() {
           {errors.proof && <Text style={styles.errorText}>{errors.proof}</Text>}
         </Animated.View>
 
+        <Animated.View entering={FadeInDown.delay(320).springify()} style={styles.field}>
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>Proof Required</Text>
+              <Text style={styles.sublabel}>Require proof submission to complete</Text>
+            </View>
+            <Switch
+              value={form.proofRequired}
+              onValueChange={(v) => setForm(f => ({ ...f, proofRequired: v }))}
+              trackColor={{ false: Colors.border, true: Colors.accent + "60" }}
+              thumbColor={form.proofRequired ? Colors.accent : Colors.textMuted}
+            />
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(360).springify()} style={styles.field}>
+          <Text style={styles.label}>Due Date <Text style={styles.sublabel}>(optional)</Text></Text>
+          <TextInput
+            style={styles.input}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={Colors.textMuted}
+            value={form.dueDate}
+            onChangeText={t => setForm(f => ({ ...f, dueDate: t }))}
+            keyboardType="numbers-and-punctuation"
+          />
+        </Animated.View>
+
         <Pressable
           style={({ pressed }) => [styles.submitBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }, createMission.isPending && styles.btnDisabled]}
           onPress={handleCreate}
@@ -326,6 +357,7 @@ const styles = StyleSheet.create({
   },
   proofChipActive: { backgroundColor: Colors.accentGlow, borderColor: Colors.accent },
   proofChipText: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.textMuted },
+  toggleRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   submitBtn: {
     backgroundColor: Colors.accent, borderRadius: 14, height: 56, flexDirection: "row",
     alignItems: "center", justifyContent: "center", gap: 8,

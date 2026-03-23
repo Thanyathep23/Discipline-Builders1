@@ -53,21 +53,32 @@ Key design mandates:
 - Strict system prompt with 4-axis rubric (relevance, quality, plausibility, specificity)
 - Strict JSON response validation with normalization
 - Enhanced rule-based fallback with category-specific term matching
+- Trust-based strictness: >=0.7 standard, 0.4-0.7 +10% specificity, <0.4 +25% stricter
 - Cost tracking per provider with daily summary
 
 ### Follow-up Flow (D.4)
 - Max 2 follow-ups per proof (tracked via `proofs.followup_count`)
-- After 2 unanswered → auto-resolve to "partial" with 0.4× reward multiplier
+- After 2nd follow-up answer → auto-resolve to "partial" with 0.4× reward multiplier
+- Auto-resolve runs full side-effect pipeline (mission completion, trust, streak, skill XP, audit)
 
 ### Reward Formula (D.5) — Overhauled
 - Base = missionValueScore × 10
-- Multiplied by: qualityFactor × distractionPenalty × strictnessBonus × trustFactor × streakBonus × aiRewardMultiplier
-- XP = coins/5 (min 10 if coins > 0, min 1 otherwise)
+- Multiplied by: qualityFactor × distractionPenalty × aiRewardMultiplier
+- Partial verdict: fixed 0.5× multiplier
+- XP = ceil(coins/5), min 1 for any attempt, min 10 for approved
+- All judged attempts (including rejected/flagged/followup) get min 1 XP
 
 ### Trust Score (D.6) — Overhauled
 - New deltas: approved_strong +0.05, approved +0.02, partial +0.01, rejected -0.05, flagged -0.10, duplicate -0.15
 - Clamped to [0.1, 1.0]
 - AI judge can set custom trust_score_delta per verdict
+
+### Mission Creation (D.7)
+- 7 categories validated via enum: trading, fitness, learning, deep_work, habit, sleep, other
+- Impact level: 1-5 (validated in both create and update)
+- proofRequired toggle (boolean, default true, stored in missions table)
+- Due date (optional, YYYY-MM-DD format)
+- Mobile form includes proof-required switch and due date input
 
 ### Inventory / Assets (E)
 - 10 default badges: Focus Initiate, 7-Day Discipline, Trading Apprentice, Recovery Rebuilder, Command Room, Proof Master, Sleep Guardian, Fitness Warrior, Learning Engine, AI Mission Champion

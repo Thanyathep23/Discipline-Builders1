@@ -235,7 +235,6 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
     }
   }
 
-  // Apply system penalty for rejected proof
   if (judgeResult.verdict === "rejected") {
     await applySystemPenalty(
       userId, 20, 10,
@@ -243,6 +242,15 @@ async function runJudgment(submissionId: string, userId: string): Promise<void> 
       `Proof rejected by AI for mission: ${mission.title}`,
       { sessionId: session.id, missionId: mission.id, proofId: submissionId }
     );
+    await grantReward(userId, 0, 1, `Attempt XP: ${mission.title}`, {
+      missionId: mission.id, sessionId: session.id, proofId: submissionId,
+    });
+  }
+
+  if (judgeResult.verdict === "followup_needed" || judgeResult.verdict === "flagged") {
+    await grantReward(userId, 0, 1, `Attempt XP: ${mission.title}`, {
+      missionId: mission.id, sessionId: session.id, proofId: submissionId,
+    });
   }
 
   // Milestone triggers for approved proofs
@@ -468,8 +476,9 @@ router.post("/:submissionId/followup", async (req, res) => {
   }
 
   const currentFollowupCount = proofs[0].followupCount ?? 0;
+  const newFollowupCount = currentFollowupCount + 1;
 
-  if (currentFollowupCount >= 2) {
+  if (newFollowupCount >= 2) {
     await db.update(proofSubmissionsTable).set({
       status: "partial",
       rewardMultiplier: 0.4,
@@ -480,7 +489,7 @@ router.post("/:submissionId/followup", async (req, res) => {
       aiRubricQuality: 0.3,
       aiRubricPlausibility: 0.5,
       aiRubricSpecificity: 0.3,
-      followupCount: currentFollowupCount,
+      followupCount: newFollowupCount,
       updatedAt: new Date(),
     }).where(eq(proofSubmissionsTable.id, req.params.submissionId));
 
@@ -554,7 +563,7 @@ router.post("/:submissionId/followup", async (req, res) => {
 
   await db.update(proofSubmissionsTable).set({
     followupAnswers: parsed.data.answers,
-    followupCount: currentFollowupCount + 1,
+    followupCount: newFollowupCount,
     status: "reviewing",
     updatedAt: new Date(),
   }).where(eq(proofSubmissionsTable.id, req.params.submissionId));
