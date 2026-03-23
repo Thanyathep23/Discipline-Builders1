@@ -47,6 +47,119 @@ function parseProof(p: any) {
   };
 }
 
+interface SettlementContext {
+  userId: string;
+  submissionId: string;
+  verdict: "approved" | "partial";
+  mission: typeof missionsTable.$inferSelect;
+  session: typeof focusSessionsTable.$inferSelect;
+  user: typeof usersTable.$inferSelect;
+  proofQuality: number;
+  proofConfidence: number;
+  rewardMultiplier: number;
+}
+
+async function settleCompletionRewards(ctx: SettlementContext): Promise<number> {
+  const startedAt = new Date(ctx.session.startedAt);
+  const endedAt = ctx.session.endedAt ? new Date(ctx.session.endedAt) : new Date();
+  const actualMinutes = Math.floor((endedAt.getTime() - startedAt.getTime()) / 60000) - Math.floor((ctx.session.totalPausedSeconds ?? 0) / 60);
+
+  const { coins, xp } = computeRewardCoins({
+    missionPriority: ctx.mission.priority,
+    missionImpact: ctx.mission.impactLevel,
+    targetDurationMinutes: ctx.mission.targetDurationMinutes,
+    actualDurationMinutes: actualMinutes,
+    proofQuality: ctx.proofQuality,
+    proofConfidence: ctx.proofConfidence,
+    blockedAttemptCount: ctx.session.blockedAttemptCount ?? 0,
+    strictnessMode: ctx.session.strictnessMode,
+    userTrustScore: ctx.user.trustScore,
+    currentStreak: ctx.user.currentStreak,
+    missionValueScore: ctx.mission.missionValueScore ?? undefined,
+    rewardMultiplier: ctx.rewardMultiplier,
+    distractionCount: ctx.session.blockedAttemptCount ?? 0,
+  });
+
+  const finalXp = ctx.verdict === "approved" ? Math.max(10, xp) : Math.max(1, xp);
+
+  await grantReward(ctx.userId, coins, finalXp, `Mission completed: ${ctx.mission.title}`, {
+    missionId: ctx.mission.id,
+    sessionId: ctx.session.id,
+    proofId: ctx.submissionId,
+  });
+  await updateStreak(ctx.userId);
+  await grantSessionSkillXp(ctx.userId, ctx.mission.category, actualMinutes, ctx.verdict);
+
+  const categorySkills = CATEGORY_SKILL_MAP[ctx.mission.category] ?? ["focus"];
+  const cycleSkillsToCheck = [
+    ...new Set([
+      ...categorySkills,
+      "focus",
+      ...(ctx.verdict === "approved" ? ["discipline"] : []),
+    ]),
+  ];
+  let cycleRewardProcessed = false;
+  for (const skillId of cycleSkillsToCheck) {
+    const cycleResult = await incrementCycleProgress(ctx.userId, skillId).catch(() => null);
+    if (cycleResult?.completed && cycleResult.cycleId && cycleResult.cycleType && !cycleRewardProcessed) {
+      cycleRewardProcessed = true;
+      const def = CYCLE_DEFINITIONS[cycleResult.cycleType as CycleType];
+      if (def) {
+        const titleId = "title-" + def.rewardTitle.toLowerCase().replace(/\s+/g, "-");
+        await awardTitle(ctx.userId, titleId).catch(() => {});
+        await grantReward(ctx.userId, 200, 100, `Cycle completed: ${def.label}`);
+        await markCycleRewardClaimed(cycleResult.cycleId);
+      }
+    }
+  }
+
+  await db.update(missionsTable).set({ status: "completed", updatedAt: new Date() })
+    .where(eq(missionsTable.id, ctx.mission.id));
+
+  if (ctx.mission.source === "ai_generated" && ctx.mission.aiMissionId) {
+    const [aiMission] = await db.select().from(aiMissionsTable)
+      .where(eq(aiMissionsTable.id, ctx.mission.aiMissionId)).limit(1);
+    if (aiMission && aiMission.suggestedRewardBonus > 0) {
+      await grantReward(ctx.userId, aiMission.suggestedRewardBonus,
+        Math.round(aiMission.suggestedRewardBonus * 0.5),
+        `AI Mission bonus: ${ctx.mission.title}`, { missionId: ctx.mission.id });
+    }
+
+    const [{ value: aiCompletedCount }] = await db
+      .select({ value: count() }).from(missionsTable)
+      .where(and(eq(missionsTable.userId, ctx.userId), eq(missionsTable.source, "ai_generated"), eq(missionsTable.status, "completed")));
+    if (Number(aiCompletedCount) >= 5) await awardBadge(ctx.userId, "badge-ai-champion");
+    if (Number(aiCompletedCount) >= 1) await awardTitle(ctx.userId, "title-grind-architect");
+  }
+
+  const rarityBonus = computeRarityBonus(ctx.mission.rarity);
+  const difficultyBonus = computeAdaptiveDifficultyBonus(ctx.mission.difficultyColor);
+  const rarityTotalBonus = rarityBonus + difficultyBonus;
+  if (rarityTotalBonus > 0) {
+    await grantReward(ctx.userId, rarityTotalBonus, Math.round(rarityTotalBonus * 0.5),
+      `${ctx.mission.rarity ?? "normal"} mission bonus: ${ctx.mission.title}`,
+      { missionId: ctx.mission.id });
+  }
+
+  if (ctx.mission.chainId) {
+    const chainResult = await advanceChainStep(ctx.mission.chainId, ctx.userId);
+    if (chainResult?.completed && chainResult.bonusCoins > 0) {
+      await grantReward(ctx.userId, chainResult.bonusCoins,
+        Math.round(chainResult.bonusCoins * 0.75),
+        `Quest chain completed: ${chainResult.chainName}`,
+        { missionId: ctx.mission.id });
+    }
+  }
+
+  const trustDelta = ctx.verdict === "approved"
+    ? (ctx.proofConfidence >= 0.8 ? 0.05 : 0.02)
+    : 0.01;
+  const newTrust = Math.max(0.1, Math.min(1.0, ctx.user.trustScore + trustDelta));
+  await db.update(usersTable).set({ trustScore: newTrust, updatedAt: new Date() }).where(eq(usersTable.id, ctx.userId));
+
+  return coins;
+}
+
 async function runJudgment(submissionId: string, userId: string, isFollowupRejudge = false, skipPenaltiesForAutoPartial = false): Promise<void> {
   const proofs = await db.select().from(proofSubmissionsTable).where(eq(proofSubmissionsTable.id, submissionId)).limit(1);
   if (!proofs[0]) return;
@@ -118,114 +231,17 @@ async function runJudgment(submissionId: string, userId: string, isFollowupRejud
     const verdictCap = judgeResult.verdict === "approved" ? 1.0 : 0.5;
     const effectiveMultiplier = Math.min(judgeResult.rewardMultiplier ?? verdictCap, verdictCap);
 
-    const { coins, xp } = computeRewardCoins({
-      missionPriority: mission.priority,
-      missionImpact: mission.impactLevel,
-      targetDurationMinutes: mission.targetDurationMinutes,
-      actualDurationMinutes: actualMinutes,
+    coinsAwarded = await settleCompletionRewards({
+      userId,
+      submissionId,
+      verdict: judgeResult.verdict,
+      mission,
+      session,
+      user,
       proofQuality,
       proofConfidence: judgeResult.confidenceScore,
-      blockedAttemptCount: session.blockedAttemptCount ?? 0,
-      strictnessMode: session.strictnessMode,
-      userTrustScore: user.trustScore,
-      currentStreak: user.currentStreak,
-      missionValueScore: mission.missionValueScore ?? undefined,
       rewardMultiplier: effectiveMultiplier,
-      distractionCount: session.blockedAttemptCount ?? 0,
     });
-
-    coinsAwarded = coins;
-    const finalXp = judgeResult.verdict === "approved" ? Math.max(10, xp) : Math.max(1, xp);
-
-    await grantReward(userId, coinsAwarded, finalXp, `Mission completed: ${mission.title}`, {
-      missionId: mission.id,
-      sessionId: session.id,
-      proofId: submissionId,
-    });
-    await updateStreak(userId);
-    await grantSessionSkillXp(userId, mission.category, actualMinutes, judgeResult.verdict);
-
-    const categorySkills = CATEGORY_SKILL_MAP[mission.category] ?? ["focus"];
-    const cycleSkillsToCheck = [
-      ...new Set([
-        ...categorySkills,
-        "focus",
-        ...(judgeResult.verdict === "approved" ? ["discipline"] : []),
-      ]),
-    ];
-    let cycleRewardProcessed = false;
-    for (const skillId of cycleSkillsToCheck) {
-      const cycleResult = await incrementCycleProgress(userId, skillId).catch(() => null);
-      if (cycleResult?.completed && cycleResult.cycleId && cycleResult.cycleType && !cycleRewardProcessed) {
-        cycleRewardProcessed = true;
-        const def = CYCLE_DEFINITIONS[cycleResult.cycleType as CycleType];
-        if (def) {
-          const titleId = "title-" + def.rewardTitle.toLowerCase().replace(/\s+/g, "-");
-          await awardTitle(userId, titleId).catch(() => {});
-          await grantReward(userId, 200, 100, `Cycle completed: ${def.label}`);
-          await markCycleRewardClaimed(cycleResult.cycleId);
-        }
-      }
-    }
-
-    await db.update(missionsTable).set({ status: "completed", updatedAt: new Date() })
-      .where(eq(missionsTable.id, mission.id));
-
-    if (mission.source === "ai_generated" && mission.aiMissionId) {
-      const [aiMission] = await db
-        .select()
-        .from(aiMissionsTable)
-        .where(eq(aiMissionsTable.id, mission.aiMissionId))
-        .limit(1);
-
-      if (aiMission && aiMission.suggestedRewardBonus > 0) {
-        await grantReward(
-          userId,
-          aiMission.suggestedRewardBonus,
-          Math.round(aiMission.suggestedRewardBonus * 0.5),
-          `AI Mission bonus: ${mission.title}`,
-          { missionId: mission.id },
-        );
-      }
-
-      const [{ value: aiCompletedCount }] = await db
-        .select({ value: count() })
-        .from(missionsTable)
-        .where(and(eq(missionsTable.userId, userId), eq(missionsTable.source, "ai_generated"), eq(missionsTable.status, "completed")));
-
-      if (Number(aiCompletedCount) >= 5) {
-        await awardBadge(userId, "badge-ai-champion");
-      }
-      if (Number(aiCompletedCount) >= 1) {
-        await awardTitle(userId, "title-grind-architect");
-      }
-    }
-
-    const rarityBonus = computeRarityBonus(mission.rarity);
-    const difficultyBonus = computeAdaptiveDifficultyBonus(mission.difficultyColor);
-    const rarityTotalBonus = rarityBonus + difficultyBonus;
-    if (rarityTotalBonus > 0) {
-      await grantReward(
-        userId,
-        rarityTotalBonus,
-        Math.round(rarityTotalBonus * 0.5),
-        `${mission.rarity ?? "normal"} mission bonus: ${mission.title}`,
-        { missionId: mission.id },
-      );
-    }
-
-    if (mission.chainId) {
-      const chainResult = await advanceChainStep(mission.chainId, userId);
-      if (chainResult?.completed && chainResult.bonusCoins > 0) {
-        await grantReward(
-          userId,
-          chainResult.bonusCoins,
-          Math.round(chainResult.bonusCoins * 0.75),
-          `Quest chain completed: ${chainResult.chainName}`,
-          { missionId: mission.id },
-        );
-      }
-    }
   }
 
   const isDuplicate = judgeResult.preScreenReason === "duplicate_submission";
@@ -269,23 +285,22 @@ async function runJudgment(submissionId: string, userId: string, isFollowupRejud
     } catch {}
   }
 
-  let trustDelta = judgeResult.trustScoreDelta ?? 0;
-  if (trustDelta === 0) {
-    if (judgeResult.verdict === "approved" && judgeResult.confidenceScore >= 0.8) trustDelta = 0.05;
-    else if (judgeResult.verdict === "approved") trustDelta = 0.02;
-    else if (judgeResult.verdict === "partial") trustDelta = 0.01;
-    else if (judgeResult.verdict === "rejected") trustDelta = -0.05;
-    else if (judgeResult.verdict === "flagged") trustDelta = -0.10;
-    else if (judgeResult.verdict === "manual_review") trustDelta = -0.02;
-  }
+  if (judgeResult.verdict !== "approved" && judgeResult.verdict !== "partial") {
+    let trustDelta = judgeResult.trustScoreDelta ?? 0;
+    if (trustDelta === 0) {
+      if (judgeResult.verdict === "rejected") trustDelta = -0.05;
+      else if (judgeResult.verdict === "flagged") trustDelta = -0.10;
+      else if (judgeResult.verdict === "manual_review") trustDelta = -0.02;
+    }
 
-  if (skipPenaltiesForAutoPartial && trustDelta < 0) {
-    trustDelta = 0;
-  }
+    if (skipPenaltiesForAutoPartial && trustDelta < 0) {
+      trustDelta = 0;
+    }
 
-  if (trustDelta !== 0) {
-    const newTrust = Math.max(0.1, Math.min(1.0, user.trustScore + trustDelta));
-    await db.update(usersTable).set({ trustScore: newTrust, updatedAt: new Date() }).where(eq(usersTable.id, userId));
+    if (trustDelta !== 0) {
+      const newTrust = Math.max(0.1, Math.min(1.0, user.trustScore + trustDelta));
+      await db.update(usersTable).set({ trustScore: newTrust, updatedAt: new Date() }).where(eq(usersTable.id, userId));
+    }
   }
 
   await db.update(proofSubmissionsTable).set({
@@ -510,108 +525,17 @@ router.post("/:submissionId/followup", async (req, res) => {
           .where(eq(usersTable.id, userId)).limit(1);
 
         if (sessions[0] && missions[0] && users[0]) {
-          const startedAt = new Date(sessions[0].startedAt);
-          const endedAt = sessions[0].endedAt ? new Date(sessions[0].endedAt) : new Date();
-          const actualMinutes = Math.floor((endedAt.getTime() - startedAt.getTime()) / 60000);
-
-          const { coins, xp } = computeRewardCoins({
-            missionPriority: missions[0].priority,
-            missionImpact: missions[0].impactLevel,
-            targetDurationMinutes: missions[0].targetDurationMinutes,
-            actualDurationMinutes: actualMinutes,
+          const coins = await settleCompletionRewards({
+            userId,
+            submissionId: req.params.submissionId,
+            verdict: "partial",
+            mission: missions[0],
+            session: sessions[0],
+            user: users[0],
             proofQuality: ((updated[0].aiRubricRelevance ?? 0.3) + (updated[0].aiRubricQuality ?? 0.3) + (updated[0].aiRubricSpecificity ?? 0.3)) / 3,
             proofConfidence: updated[0].aiConfidenceScore ?? 0.5,
-            blockedAttemptCount: sessions[0].blockedAttemptCount ?? 0,
-            strictnessMode: sessions[0].strictnessMode,
-            userTrustScore: users[0].trustScore,
-            currentStreak: users[0].currentStreak,
-            missionValueScore: missions[0].missionValueScore ?? undefined,
             rewardMultiplier: 0.4,
           });
-
-          const finalXp = Math.max(1, xp);
-          await grantReward(userId, coins, finalXp, `Partial completion: ${missions[0].title}`, {
-            missionId: missions[0].id,
-            sessionId: sessions[0].id,
-            proofId: req.params.submissionId,
-          });
-          await updateStreak(userId);
-
-          try {
-            const { grantSessionSkillXp } = await import("../lib/skill-engine.js");
-            await grantSessionSkillXp(userId, missions[0].category, actualMinutes, "partial");
-          } catch (err) {
-            console.error("[AutoPartial] Skill XP grant error:", err);
-          }
-
-          await db.update(missionsTable).set({ status: "completed", updatedAt: new Date() })
-            .where(eq(missionsTable.id, missions[0].id));
-
-          try {
-            const categorySkills = CATEGORY_SKILL_MAP[missions[0].category] ?? ["focus"];
-            const cycleSkillsToCheck = [...new Set([...categorySkills, "focus"])];
-            let cycleRewardProcessed = false;
-            for (const skillId of cycleSkillsToCheck) {
-              const cycleResult = await incrementCycleProgress(userId, skillId).catch(() => null);
-              if (cycleResult?.completed && cycleResult.cycleId && cycleResult.cycleType && !cycleRewardProcessed) {
-                cycleRewardProcessed = true;
-                const def = CYCLE_DEFINITIONS[cycleResult.cycleType as CycleType];
-                if (def) {
-                  const titleId = "title-" + def.rewardTitle.toLowerCase().replace(/\s+/g, "-");
-                  await awardTitle(userId, titleId).catch(() => {});
-                  await grantReward(userId, 200, 100, `Cycle completed: ${def.label}`);
-                  await markCycleRewardClaimed(cycleResult.cycleId);
-                }
-              }
-            }
-          } catch (err) {
-            console.error("[AutoPartial] Cycle progression error:", err);
-          }
-
-          try {
-            if (missions[0].source === "ai_generated" && missions[0].aiMissionId) {
-              const [aiMission] = await db.select().from(aiMissionsTable)
-                .where(eq(aiMissionsTable.id, missions[0].aiMissionId)).limit(1);
-              if (aiMission && aiMission.suggestedRewardBonus > 0) {
-                await grantReward(userId, aiMission.suggestedRewardBonus,
-                  Math.round(aiMission.suggestedRewardBonus * 0.5),
-                  `AI Mission bonus: ${missions[0].title}`, { missionId: missions[0].id });
-              }
-            }
-          } catch (err) {
-            console.error("[AutoPartial] AI mission bonus error:", err);
-          }
-
-          try {
-            const rarityBonus = computeRarityBonus(missions[0].rarity);
-            const difficultyBonus = computeAdaptiveDifficultyBonus(missions[0].difficultyColor);
-            const rarityTotalBonus = rarityBonus + difficultyBonus;
-            if (rarityTotalBonus > 0) {
-              await grantReward(userId, rarityTotalBonus, Math.round(rarityTotalBonus * 0.5),
-                `${missions[0].rarity ?? "normal"} mission bonus: ${missions[0].title}`,
-                { missionId: missions[0].id });
-            }
-          } catch (err) {
-            console.error("[AutoPartial] Rarity/difficulty bonus error:", err);
-          }
-
-          try {
-            if (missions[0].chainId) {
-              const chainResult = await advanceChainStep(missions[0].chainId, userId);
-              if (chainResult?.completed && chainResult.bonusCoins > 0) {
-                await grantReward(userId, chainResult.bonusCoins,
-                  Math.round(chainResult.bonusCoins * 0.75),
-                  `Quest chain completed: ${chainResult.chainName}`,
-                  { missionId: missions[0].id });
-              }
-            }
-          } catch (err) {
-            console.error("[AutoPartial] Chain advancement error:", err);
-          }
-
-          const trustDelta = 0.01;
-          const newTrust = Math.max(0.1, Math.min(1.0, users[0].trustScore + trustDelta));
-          await db.update(usersTable).set({ trustScore: newTrust, updatedAt: new Date() }).where(eq(usersTable.id, userId));
 
           await db.update(proofSubmissionsTable).set({ coinsAwarded: coins }).where(eq(proofSubmissionsTable.id, req.params.submissionId));
 
