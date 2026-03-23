@@ -451,7 +451,7 @@ export async function judgeProof(ctx: ProofContext & { excludeProofId?: string }
   }
 
   const selectedProvider = selectProvider(proofForScreening);
-  const hasImageFiles = adjustedCtx.attachedFiles?.some((f: any) =>
+  const hasImageFiles = adjustedCtx.attachedFiles?.some((f) =>
     f.type?.startsWith("image/") || f.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i)
   );
   const VISION_PROVIDERS = ["gemini_flash", "openai_mini", "openai_full"];
