@@ -986,7 +986,7 @@ export default function CharacterStatusScreen() {
   }, [tierName]);
 
   const vsKeyForFade = characterVS
-    ? `${characterVS.postureStage}-${characterVS.outfitTier}-${characterVS.prestigeStage}-${characterVS.refinementStage}-${characterVS.skinTone}-${characterVS.hairStyle}-${characterVS.hairColor}-${characterVS.equippedTopStyle}-${characterVS.equippedWatchStyle}`
+    ? `${characterVS.postureStage}-${characterVS.outfitTier}-${characterVS.prestigeStage}-${characterVS.refinementStage}-${characterVS.skinTone}-${characterVS.hairStyle}-${characterVS.hairColor}-${characterVS.equippedTopStyle}-${characterVS.equippedWatchStyle}-${characterVS.equippedAccessoryStyle}-${characterVS.equippedOuterwearStyle}-${characterVS.outerwearColor}-${characterVS.bottomColor}-${characterVS.equippedBottomStyle}`
     : JSON.stringify(data?.visualState);
   const [fadingOutVS, setFadingOutVS] = useState<CharacterVisualState | null>(null);
   useEffect(() => {
