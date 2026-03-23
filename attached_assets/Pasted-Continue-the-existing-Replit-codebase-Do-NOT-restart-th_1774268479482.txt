@@ -1,0 +1,478 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Make the Character evolution system genuinely 
+reflect real user progress. The character must
+visibly change as the user improves in real life.
+This is the emotional core of the app.
+
+==================================================
+STEP 1 — AUDIT CURRENT CHARACTER SYSTEM
+==================================================
+
+Before changing anything, inspect:
+1. Current CharacterRenderer component
+2. Current skill/dimension data model
+3. How character visual state is computed
+4. Current status tiers (Starter/Hustle/Rising etc.)
+5. What currently triggers visual changes
+6. Current Character Status Hub screen layout
+7. Connection between missions/proof and skills
+
+Report what works, what is broken, what is missing.
+
+==================================================
+PART 1 — SKILL → CHARACTER CONNECTION
+==================================================
+
+The character's appearance must be CAUSED by 
+real verified behavior, not manual selection.
+
+1A. The 4 Core Dimensions
+
+These 4 dimensions drive character appearance:
+
+DIMENSION 1 — FITNESS
+Sources (XP gain from):
+  - completed fitness missions (proof approved)
+  - session duration in fitness category
+  - proof quality score bonus
+  - streak bonus (7+ day consistency)
+  
+Visual effects at different levels:
+  Level 1-3: slight slouch, average posture
+  Level 4-6: upright posture, better presence
+  Level 7-8: confident stance, strong posture
+  Level 9-10: athlete posture, peak presence
+
+DIMENSION 2 — DISCIPLINE  
+Sources:
+  - mission completion rate (completed/created)
+  - focus sessions without interruption
+  - streak days
+  - low distraction count in sessions
+  
+Visual effects:
+  Level 1-3: casual, slightly disheveled
+  Level 4-6: neat, composed appearance
+  Level 7-8: sharp, refined presentation
+  Level 9-10: commanding presence
+
+DIMENSION 3 — FINANCE / LIFESTYLE
+Sources:
+  - finance/trading missions completed
+  - equipped wardrobe item tier
+  - room tier
+  - total coins earned (lifetime)
+  
+Visual effects:
+  Level 1-3: basic starter outfit
+  Level 4-6: upgrading clothing quality
+  Level 7-8: premium style, polished look
+  Level 9-10: elite appearance, luxury signals
+
+DIMENSION 4 — PRESTIGE
+Sources:
+  - overall level
+  - badges/titles earned
+  - missions completed total
+  - skills average (all 4)
+  
+Visual effects:
+  Level 1-3: no prestige markers
+  Level 4-6: subtle quality markers
+  Level 7-8: visible status indicators
+  Level 9-10: elite prestige overlays
+
+1B. Dimension XP Calculation
+
+After every approved proof:
+Calculate which dimensions get XP based on mission category:
+
+fitness missions:
+  FITNESS: +primary_xp (based on quality × duration)
+  DISCIPLINE: +secondary_xp (20% of primary)
+
+trading missions:
+  FINANCE: +primary_xp
+  DISCIPLINE: +secondary_xp
+
+learning missions:
+  PRESTIGE: +primary_xp
+  DISCIPLINE: +secondary_xp
+
+deep_work missions:
+  PRESTIGE: +primary_xp
+  FINANCE: +secondary_xp (if business related)
+  DISCIPLINE: +secondary_xp
+
+habit missions:
+  DISCIPLINE: +primary_xp
+  (relevant dimension): +secondary_xp
+
+primary_xp = (quality_score × reward_coins) / 3
+secondary_xp = primary_xp × 0.2
+
+Dimension level formula:
+  level = floor(sqrt(total_xp / 50)) + 1
+  Max level: 10
+
+1C. Dimension Level → Visual State
+
+Create this lookup system:
+
+dimensionToVisualState(dimension, level):
+  returns a visual modifier object
+
+FITNESS visual states:
+  {level: 1-3, posture: 'slouch', bodyTone: 'base', energy: 'low'}
+  {level: 4-6, posture: 'upright', bodyTone: 'fit', energy: 'medium'}
+  {level: 7-8, posture: 'athletic', bodyTone: 'strong', energy: 'high'}
+  {level: 9-10, posture: 'peak', bodyTone: 'elite', energy: 'peak'}
+
+DISCIPLINE visual states:
+  {level: 1-3, refinement: 'casual', composure: 'relaxed'}
+  {level: 4-6, refinement: 'neat', composure: 'composed'}
+  {level: 7-8, refinement: 'sharp', composure: 'controlled'}
+  {level: 9-10, refinement: 'elite', composure: 'commanding'}
+
+FINANCE visual states:
+  {level: 1-3, outfitTier: 'starter', luxurySignals: false}
+  {level: 4-6, outfitTier: 'rising', luxurySignals: false}
+  {level: 7-8, outfitTier: 'premium', luxurySignals: true}
+  {level: 9-10, outfitTier: 'elite', luxurySignals: true}
+
+PRESTIGE visual states:
+  {level: 1-3, prestige: 'none', eliteMarkers: false}
+  {level: 4-6, prestige: 'subtle', eliteMarkers: false}
+  {level: 7-8, prestige: 'visible', eliteMarkers: true}
+  {level: 9-10, prestige: 'legendary', eliteMarkers: true}
+
+==================================================
+PART 2 — CHARACTER RENDERER (LAYERED SVG)
+==================================================
+
+2A. Layer Architecture
+
+CharacterRenderer accepts CharacterVisualState:
+{
+  // From Fitness
+  posture: 'slouch'|'upright'|'athletic'|'peak'
+  bodyTone: 'base'|'fit'|'strong'|'elite'
+  
+  // From Discipline
+  refinement: 'casual'|'neat'|'sharp'|'elite'
+  
+  // From Finance/Lifestyle
+  outfitTier: 'starter'|'rising'|'premium'|'elite'
+  
+  // From Prestige
+  prestigeLevel: 0-3
+  
+  // Customization (from Part 3 setup)
+  skinTone: string (hex)
+  hairStyle: string
+  hairColor: string
+  
+  // Equipped wardrobe
+  equippedWatch: WatchStyle | null
+  equippedOutfit: OutfitStyle | null
+}
+
+2B. SVG Layer Stack
+
+Render these layers bottom to top:
+
+LAYER 1 — BODY BASE
+  Full body silhouette
+  Skin tone applied
+  Always present
+
+LAYER 2 — POSTURE OVERLAY
+  Subtle posture adjustment
+  slouch: slight forward lean
+  upright: straight neutral
+  athletic: chest slightly forward, confident
+  peak: commanding open stance
+  
+  Implemented as: different SVG path variants
+  Cross-fade when tier changes
+
+LAYER 3 — OUTFIT LAYER
+  starter: white shirt + dark jeans (default)
+  rising: slightly better cut, same colors
+  premium: premium fabric quality visual
+  elite: luxury outfit quality
+  
+  If equipped wardrobe item from Wardrobe system:
+    Override with equipped item style
+  Else: use tier-based default
+
+LAYER 4 — WATCH LAYER
+  Only renders if watch equipped
+  Position: left wrist
+  Small but visible
+  Shows equipped watch design
+
+LAYER 5 — PRESTIGE OVERLAY
+  Level 0: nothing
+  Level 1: subtle collar/detail upgrade
+  Level 2: visible quality markers
+  Level 3: elite full upgrade with subtle glow
+
+LAYER 6 — CUSTOMIZATION LAYER
+  Hair style applied
+  Hair color applied
+  (from user customization settings)
+
+LAYER 7 — FACE LAYER
+  Adult proportions (not cartoon)
+  Neutral confident expression
+  Reflects character energy level subtly
+
+2C. Character SVG Quality Requirements
+
+The character must look:
+  - Adult (20-35 years old appearance)
+  - Premium and aspirational
+  - Entrepreneurial (not childish)
+  - Clean and modern flat design
+  
+NOT:
+  - Cartoon proportions
+  - Big eyes
+  - Round childish face
+  - Overly simple stick figure
+
+Full body: head to feet visible
+Height ratio: approximately 1:6 (head:body)
+Style: clean flat design, subtle shading
+
+2D. Customization Options
+
+Skin Tone (5 options):
+  skinLight: #F5D5B8
+  skinMediumLight: #E8B48A
+  skinMedium: #C68A5E
+  skinMediumDark: #8D5524
+  skinDark: #4A2C0A
+
+Hair Style (6 options):
+  clean_cut: short professional
+  textured_crop: modern textured
+  side_part: classic business
+  buzz_cut: very short
+  medium_natural: slightly longer
+  bald: clean shaved
+
+Hair Color (8 options):
+  jet_black: #1A1A1A
+  dark_brown: #3B2314
+  medium_brown: #6B3A2A
+  light_brown: #A0714F
+  blonde: #C9A96E
+  ash_grey: #9E9E9E
+  white_silver: #E8E8E8
+  deep_black: #0D0D0D
+
+Save customization server-side per user.
+Apply everywhere character renders.
+
+==================================================
+PART 3 — STATUS TIER SYSTEM
+==================================================
+
+3A. Overall Status Tier
+
+Calculate from average of all 4 dimensions:
+averageDimensionLevel = (fitness + discipline + finance + prestige) / 4
+
+Starter: avg 1.0 - 2.9
+  Tag: "● Starter"
+  Color: grey
+  Message: "Every elite started here."
+
+Hustle: avg 3.0 - 4.4
+  Tag: "● Hustle"  
+  Color: blue
+  Message: "You're building momentum."
+
+Rising: avg 4.5 - 5.9
+  Tag: "● Rising"
+  Color: purple
+  Message: "The gap is closing."
+
+Refined: avg 6.0 - 7.4
+  Tag: "● Refined"
+  Color: gold
+  Message: "Discipline is becoming identity."
+
+Elite: avg 7.5 - 10.0
+  Tag: "● Elite"
+  Color: deep gold/amber
+  Message: "Few reach this level."
+
+3B. Status Tier Visual Change
+
+When tier changes:
+  Show celebration moment:
+  Brief overlay: "TIER UP"
+  Old tier → New tier
+  Dismiss after 2 seconds
+
+Character visual updates gradually:
+  Not instant jump
+  Smooth cross-fade over 800ms
+
+==================================================
+PART 4 — CHARACTER STATUS HUB (FINAL SCREEN)
+==================================================
+
+4A. Screen Layout
+
+HEADER (52px):
+  Back button
+  "CHARACTER STATUS"
+  Edit/customize icon (opens customization sheet)
+
+CHARACTER HERO AREA (50% of screen):
+  Full-body character SVG centered
+  Slightly off-center (2/3 of width)
+  
+  User name below character:
+    Display name, typography.h3
+  
+  Status tier chip:
+    ● Starter (colored per tier)
+  
+  Status Score (total XP / 100, rounded):
+    Pill chip with score number
+    "STATUS SCORE" label below
+
+DIMENSION STATS (below character):
+  4 dimension bars in 2×2 grid:
+  
+  ┌─────────────────┬─────────────────┐
+  │ 💪 FITNESS  L3  │ 🧠 DISCIPLINE L2│
+  │ ████░░░░░░  45xp│ ███░░░░░░░  32xp│
+  └─────────────────┴─────────────────┘
+  ┌─────────────────┬─────────────────┐
+  │ 💰 FINANCE  L1  │ ⭐ PRESTIGE  L1 │
+  │ ██░░░░░░░░  18xp│ █░░░░░░░░░   8xp│
+  └─────────────────┴─────────────────┘
+  
+  Each dimension:
+    Icon + name + level
+    XP progress bar (gradient fill)
+    Raw XP shown
+    Tap: shows what activities improve this
+
+TIER PROGRESS:
+  Current tier with colored dot
+  Progress to next tier
+  Tier dots: ○ Starter → ○ Hustle → ○ Rising → ●
+
+NEXT EVOLUTION CARD:
+  Which dimension is lowest
+  "Improve [Dimension] to evolve"
+  Specific action: "Complete 3 fitness missions"
+  Tap: navigate to missions filtered by category
+
+4B. Dimension Detail Sheet
+
+When user taps any dimension bar:
+Bottom sheet slides up:
+
+  DISCIPLINE · Level 2
+  ████░░░░░░ 32 / 100 XP
+  
+  WHAT IMPROVES THIS:
+  ✓ Completing missions on schedule
+  ✓ Low distraction count in focus sessions
+  ✓ Maintaining streaks
+  ✓ Any mission category
+  
+  RECENTLY EARNED:
+  +12 XP · Trading mission approved (2h ago)
+  +8 XP · Habit mission approved (yesterday)
+  
+  WHAT'S HOLDING IT BACK:
+  ● 3 missions abandoned this week
+  ● Average 4 distractions per session
+
+4C. Customization Entry
+
+Floating button bottom-right:
+  Icon: pencil/edit
+  Opens customization sheet:
+  
+  CUSTOMIZE YOUR CHARACTER
+  
+  SKIN TONE: [● ● ● ● ●] (5 circles)
+  Selected: ring border
+  
+  HAIR STYLE: [Clean][Textured][Side Part][Buzz][Medium][Bald]
+  Shown as mini icon previews
+  
+  HAIR COLOR: [● ● ● ● ● ● ● ●] (8 circles)
+  
+  [Save Changes] button
+  Preview updates live as user selects
+
+==================================================
+PART 5 — SKILL XP EVENTS TRACKING
+==================================================
+
+Every XP gain must be recorded:
+
+skill_xp_events table:
+  userId
+  dimension: fitness|discipline|finance|prestige
+  xpAmount
+  source: mission_approved|streak_bonus|etc
+  missionId (if from mission)
+  qualityScore (if from proof)
+  createdAt
+
+Query this for:
+  Dimension history charts
+  "Recently earned" in detail sheet
+  "What's holding it back" analysis
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. All 4 dimensions have clear XP sources
+2. Dimension level correctly calculated from XP
+3. Character visual changes at each tier
+4. Posture/stance reflects Fitness dimension
+5. Outfit tier reflects Finance dimension
+6. Prestige overlays appear at high prestige
+7. Customization saves: skin/hair/color
+8. Status Hub shows all 4 dimension bars
+9. Tier progress indicator works
+10. Next evolution card shows correct suggestion
+11. Dimension detail sheet shows XP history
+12. Character updates after mission approval
+13. Tier change shows celebration moment
+14. No static non-changing character
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. Current character system audit
+2. Dimension XP sources implemented
+3. Layer architecture used
+4. Visual states per dimension
+5. Customization options added
+6. Files changed only
+7. Test results:
+   - Approve fitness mission → Fitness XP increases
+   - Reach tier threshold → character tier updates
+   - Customize → persists after app restart
+   - Dimension detail sheet shows history
+8. Remaining gaps
