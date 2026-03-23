@@ -1313,3 +1313,21 @@ Added: `useAdminDashboard`, `useAdminPlayers(params)`, `useAdminPlayerSnapshot(i
 - **`PATCH /api/character/appearance`** — Validates skinTone / hairStyle / hairColor against allowed value lists (400 on invalid); upserts record; requires auth
 - **`GET /api/character/status`** — Now includes `appearance` object alongside `visualState` and `equippedWearables`; appearance and wearables are fetched concurrently via `Promise.all`
 - Zod validation on the PATCH body using `z.enum()` against the exported constant arrays
+
+## Spec Gap Fill — Wheel Customization + Room Environments
+
+### Wheel Customization (Garage)
+- **Schema**: `wheel_style` TEXT column added to `user_inventory` (default `"classic"`)
+- **Seed**: 3 wheel styles — Classic (free), Sport (500c/Lv10), Turbine (800c/Lv20); seeded as `category:"wheel_style"` shop items
+- **Backend**: `PATCH /api/cars/:id/wheel` — validates ownership, level gate, coin balance; deducts coins and updates `wheel_style` on the car's inventory row
+- **Frontend**: `WheelSVG` component renders spoke patterns per style; `WheelStyleSelector` UI in `CarDetailSheet` shows available styles with lock/own/afford state; `useSelectWheelStyle` hook
+- **CarVisual**: Accepts optional `wheelStyle` prop (default "classic"), renders via WheelSVG helper
+
+### Room Environment System
+- **Backend**: 3 environments defined in `world.ts` — Starter Studio (free/Lv1, small window), Dark Office (1000c/Lv8, city-skyline windows), Executive Suite (5000c/Lv25, panoramic windows)
+- **Endpoints**: `GET /api/world/room/environments` (list with ownership/active/lock/afford state), `POST /api/world/room/environments/:id/purchase` (coin deduction + inventory insert), `POST /api/world/room/environments/:id/switch` (audit_log-based active env tracking)
+- **GET /world/room** response now includes `activeEnvironment` object (id, name, wallStyle, windowType, floorType)
+- **Frontend**: `app/room/select.tsx` — animated EnvironmentPreview SVG cards with city/panoramic window visuals, purchase/switch/confirm flow
+- **RoomCanvas**: Accepts optional `environment` prop; applies environment-specific background colors (`ENV_BACKGROUNDS`) and window SVG rendering (small/city-skyline/panoramic)
+- **Hooks**: `useRoomEnvironments`, `usePurchaseEnvironment`, `useSwitchEnvironment` in `useApi.ts`
+- **Layout**: `room/select` registered in `_layout.tsx` with slide_from_right animation

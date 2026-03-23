@@ -19,6 +19,13 @@ type PlacedItem = {
   rarity: string;
 };
 
+type EnvironmentData = {
+  id: string;
+  wallStyle: string;
+  windowType: string;
+  floorType: string;
+};
+
 type Props = {
   placedItems: PlacedItem[];
   roomTheme: string | null;
@@ -27,6 +34,7 @@ type Props = {
   onZoneTap: (zone: string) => void;
   hasLighting: boolean;
   highlightedZone?: string | null;
+  environment?: EnvironmentData | null;
 };
 
 const ZONE_LAYOUT: Record<string, { x: number; y: number; w: number; h: number; label: string; icon: string; scale: number }> = {
@@ -74,8 +82,24 @@ const LIGHTING_COLORS: Record<string, string> = {
   "room-decor-lighting-arc": "#FFE082",
 };
 
-function RoomBackground({ theme, hasLighting, lightingItemId, cw }: {
+const ENV_BACKGROUNDS: Record<string, typeof DEFAULT_BG> = {
+  "env-starter-studio": {
+    wall1: "#15162A", wall2: "#0E0F1C", floor1: "#1A1B30", floor2: "#101120",
+    glow: "#6D28D9", panel: "#1C1D38",
+  },
+  "env-dark-office": {
+    wall1: "#0D0E1A", wall2: "#08081A", floor1: "#111220", floor2: "#0C0D18",
+    glow: "#4F46E5", panel: "#14142A",
+  },
+  "env-executive-suite": {
+    wall1: "#12100A", wall2: "#0C0A06", floor1: "#15130C", floor2: "#0A0806",
+    glow: "#D4A017", panel: "#1A1608",
+  },
+};
+
+function RoomBackground({ theme, hasLighting, lightingItemId, cw, environment }: {
   theme: typeof DEFAULT_BG; hasLighting: boolean; lightingItemId?: string; cw: number;
+  environment?: EnvironmentData | null;
 }) {
   const lc = (lightingItemId && LIGHTING_COLORS[lightingItemId]) || "#FFD54F";
   const floorY = CANVAS_HEIGHT * 0.55;
@@ -140,6 +164,38 @@ function RoomBackground({ theme, hasLighting, lightingItemId, cw }: {
           stroke={theme.panel} strokeWidth="0.5" opacity="0.15" />
       ))}
 
+      {environment?.windowType === "city-skyline" && (
+        <>
+          <Rect x={cw * 0.18} y={4} width={cw * 0.64} height={floorY * 0.55}
+            rx={2} fill="#1A2A4840" stroke="#1A2A4880" strokeWidth={0.8} />
+          {[0.22, 0.38, 0.54].map((f, i) => (
+            <Rect key={`cw${i}`} x={cw * f} y={8} width={cw * 0.12} height={floorY * 0.42}
+              fill={`#1A2A48${30 - i * 5}`} />
+          ))}
+          <Ellipse cx={cw * 0.35} cy={floorY * 0.22} rx={2} ry={2} fill="#FFE08240" />
+          <Ellipse cx={cw * 0.50} cy={floorY * 0.18} rx={1.5} ry={1.5} fill="#FFE08230" />
+          <Ellipse cx={cw * 0.60} cy={floorY * 0.25} rx={1} ry={1} fill="#FF990020" />
+        </>
+      )}
+
+      {environment?.windowType === "panoramic" && (
+        <>
+          <Rect x={cw * 0.15} y={3} width={cw * 0.70} height={floorY * 0.58}
+            rx={3} fill="#2A304035" stroke="#D4A01730" strokeWidth={0.8} />
+          {[0.32, 0.50, 0.68].map((f, i) => (
+            <Line key={`pm${i}`} x1={cw * f} y1={3} x2={cw * f} y2={3 + floorY * 0.58}
+              stroke="#D4A01725" strokeWidth={0.6} />
+          ))}
+          <Ellipse cx={cw * 0.5} cy={floorY * 0.20} rx={cw * 0.12} ry={floorY * 0.06}
+            fill="#D4A01710" />
+        </>
+      )}
+
+      {environment?.windowType === "small" && (
+        <Rect x={cw * 0.38} y={6} width={cw * 0.24} height={floorY * 0.42}
+          rx={2} fill="#2A3A5A30" stroke="#2A3A5A60" strokeWidth={0.6} />
+      )}
+
       <Rect x="0" y={floorY} width={cw} height={floorH} fill="url(#floorG)" />
       <Line x1="0" y1={floorY} x2={cw} y2={floorY}
         stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" />
@@ -200,17 +256,18 @@ function ZonePulse({ active }: { active: boolean }) {
   return <Animated.View style={a} />;
 }
 
-export function RoomCanvas({ placedItems, roomTheme, showCharacter, characterComponent, onZoneTap, hasLighting, highlightedZone }: Props) {
+export function RoomCanvas({ placedItems, roomTheme, showCharacter, characterComponent, onZoneTap, hasLighting, highlightedZone, environment }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const cw = screenWidth - 32;
   const placedMap = new Map(placedItems.map(p => [p.zone, p]));
-  const theme = (roomTheme && THEME_BG[roomTheme]) || DEFAULT_BG;
+  const envBg = environment ? ENV_BACKGROUNDS[environment.id] : null;
+  const theme = envBg || (roomTheme && THEME_BG[roomTheme]) || DEFAULT_BG;
   const lightingItem = placedMap.get("lighting");
 
   return (
     <View style={[sty.canvas, { width: cw }]}>
       <RoomBackground theme={theme} hasLighting={hasLighting}
-        lightingItemId={lightingItem?.itemId} cw={cw} />
+        lightingItemId={lightingItem?.itemId} cw={cw} environment={environment} />
       <AmbientPulse color={theme.glow} />
 
       <View style={sty.gridOverlay}>

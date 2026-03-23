@@ -98,6 +98,16 @@ const CAR_CATALOG = [
   },
 ];
 
+// ─── Wheel Style Definitions ────────────────────────────────────────────────
+
+export type WheelStyle = { key: string; label: string; cost: number; minLevel: number };
+
+export const WHEEL_STYLES: WheelStyle[] = [
+  { key: "classic",  label: "Classic",  cost: 0,   minLevel: 0 },
+  { key: "sport",    label: "Sport",    cost: 500, minLevel: 10 },
+  { key: "turbine",  label: "Turbine",  cost: 800, minLevel: 20 },
+];
+
 // ─── Prestige contribution by subcategory ────────────────────────────────────
 
 const CAR_PRESTIGE_VALUES: Record<string, number> = {
@@ -220,6 +230,7 @@ router.get("/", requireAuth, async (req: any, res) => {
 
       const variants = CAR_COLOR_VARIANTS[car.id] ?? [];
       const selectedVariant = invRow?.colorVariant ?? variants[0]?.key ?? null;
+      const selectedWheelStyle = invRow?.wheelStyle ?? "classic";
 
       return {
         id: car.id, slug: car.slug, name: car.name,
@@ -244,6 +255,8 @@ router.get("/", requireAuth, async (req: any, res) => {
           : null,
         colorVariants: variants,
         selectedVariant,
+        wheelStyles: WHEEL_STYLES,
+        selectedWheelStyle,
       };
     });
 
@@ -419,6 +432,78 @@ router.patch("/:id/variant", requireAuth, async (req: any, res) => {
   }
 });
 
+// ─── PATCH /cars/:id/wheel — select wheel style ─────────────────────────────
+
+router.patch("/:id/wheel", requireAuth, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const { wheelStyle } = req.body ?? {};
+
+    if (!wheelStyle) return res.status(400).json({ error: "wheelStyle is required" });
+
+    const style = WHEEL_STYLES.find(w => w.key === wheelStyle);
+    if (!style) return res.status(400).json({ error: "Invalid wheel style" });
+
+    const [inv] = await db.select().from(userInventoryTable)
+      .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.itemId, id))).limit(1);
+    if (!inv) return res.status(403).json({ error: "You do not own this vehicle." });
+
+    const carItem = await db.select().from(shopItemsTable)
+      .where(eq(shopItemsTable.id, id)).limit(1);
+    if (!carItem.length || carItem[0].category !== "vehicle")
+      return res.status(400).json({ error: "Item is not a vehicle." });
+
+    if (style.cost > 0) {
+      const [user] = await db.select({ level: usersTable.level, coinBalance: usersTable.coinBalance })
+        .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      if (user.level < style.minLevel)
+        return res.status(403).json({ error: `Reach level ${style.minLevel} to unlock ${style.label} wheels.` });
+
+      const alreadyOwned = await db.select({ id: userInventoryTable.id }).from(userInventoryTable)
+        .where(and(
+          eq(userInventoryTable.userId, userId),
+          eq(userInventoryTable.itemId, `wheel-${wheelStyle}`),
+        )).limit(1);
+
+      if (!alreadyOwned.length) {
+        if (user.coinBalance < style.cost)
+          return res.status(400).json({ error: `Insufficient coins. Need ${style.cost}c.` });
+
+        const newBalance = user.coinBalance - style.cost;
+
+        await db.transaction(async (tx) => {
+          await tx.update(usersTable)
+            .set({ coinBalance: newBalance, updatedAt: new Date() })
+            .where(eq(usersTable.id, userId));
+
+          await tx.insert(userInventoryTable).values({
+            id: generateId(), userId, itemId: `wheel-${wheelStyle}`,
+            isEquipped: false, source: "purchase",
+          });
+
+          await tx.insert(rewardTransactionsTable).values({
+            id: generateId(), userId, type: "spend", amount: style.cost,
+            reason: `Purchased ${style.label} wheels`,
+            balanceAfter: newBalance,
+            metadata: JSON.stringify({ carId: id, wheelStyle }),
+          } as any);
+        });
+      }
+    }
+
+    await db.update(userInventoryTable)
+      .set({ wheelStyle })
+      .where(eq(userInventoryTable.id, inv.id));
+
+    return res.json({ success: true, wheelStyle });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── GET /cars/photo-mode — owned cars + featured car for photo mode ──────────
 
 router.get("/photo-mode", requireAuth, async (req: any, res) => {
@@ -450,6 +535,7 @@ router.get("/photo-mode", requireAuth, async (req: any, res) => {
           isPhotoEligible: true,
           colorVariants: variants,
           selectedVariant: inv?.colorVariant ?? variants[0]?.key ?? null,
+          selectedWheelStyle: inv?.wheelStyle ?? "classic",
         };
       });
 

@@ -308,16 +308,27 @@ export default function CommandCenterScreen() {
               onZoneTap={() => router.push("/room/editor")}
               hasLighting={!!slots["lighting"]}
               highlightedZone={highlightedZone}
+              environment={(roomData as any)?.activeEnvironment ?? null}
             />
           </View>
-          <PressableScale onPress={() => {
-            Haptics.selectionAsync().catch(() => {});
-            router.push("/room/editor");
-          }} style={st.customizeBtn}>
-            <Ionicons name="home-outline" size={15} color="#fff" />
-            <Text style={st.customizeBtnText}>Customize Room</Text>
-            <Ionicons name="arrow-forward" size={14} color="rgba(255,255,255,0.5)" />
-          </PressableScale>
+          <View style={st.roomActionRow}>
+            <PressableScale onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              router.push("/room/editor");
+            }} style={[st.customizeBtn, { flex: 1 }]}>
+              <Ionicons name="home-outline" size={15} color="#fff" />
+              <Text style={st.customizeBtnText}>Customize</Text>
+              <Ionicons name="arrow-forward" size={14} color="rgba(255,255,255,0.5)" />
+            </PressableScale>
+            <PressableScale onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              router.push("/room/select");
+            }} style={[st.customizeBtn, { flex: 1, marginLeft: 8 }]}>
+              <Ionicons name="layers-outline" size={15} color="#fff" />
+              <Text style={st.customizeBtnText}>Environment</Text>
+              <Ionicons name="arrow-forward" size={14} color="rgba(255,255,255,0.5)" />
+            </PressableScale>
+          </View>
         </Animated.View>
 
         {/* ─── TIER CARD ─── */}
@@ -746,7 +757,8 @@ const st = StyleSheet.create({
   previewTitle: { fontFamily: "Inter_700Bold", fontSize: 10, color: "rgba(255,255,255,0.35)", letterSpacing: 2 },
   previewSub: { fontFamily: "Inter_500Medium", fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 2 },
   previewCanvasWrap: { paddingHorizontal: 8 },
-  customizeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#8B5CF6", margin: 12, borderRadius: 12, paddingVertical: 14 },
+  roomActionRow: { flexDirection: "row", paddingHorizontal: 12, paddingBottom: 12, gap: 0 },
+  customizeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#8B5CF6", borderRadius: 12, paddingVertical: 14 },
   customizeBtnText: { fontFamily: "Inter_700Bold", fontSize: 14, color: "#fff" },
 
   tierCard: { backgroundColor: "rgba(255,255,255,0.04)", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.07)", gap: 12 },

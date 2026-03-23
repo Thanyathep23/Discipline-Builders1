@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   db, usersTable, shopItemsTable, userInventoryTable,
   userSkillsTable, lifeProfilesTable, userTitlesTable, titlesTable,
-  userBadgesTable, badgesTable, auditLogTable,
+  userBadgesTable, badgesTable, auditLogTable, rewardTransactionsTable,
 } from "@workspace/db";
 import { eq, and, isNotNull, desc, sql } from "drizzle-orm";
 import { requireAuth, requireAdmin, generateId } from "../lib/auth.js";
@@ -13,6 +13,35 @@ const ROOM_ZONES = [
   "room_theme", "desk", "coffee_station", "monitor",
   "bookshelf", "audio", "plants", "trophy_case", "lighting",
 ] as const;
+
+const ROOM_ENVIRONMENTS = [
+  {
+    id: "env-starter-studio",
+    name: "Starter Studio",
+    description: "Where every operator begins. Clean walls, basic lighting, one window to the city.",
+    cost: 0, minLevel: 1,
+    wallStyle: "standard", windowType: "small", floorType: "concrete",
+    isDefault: true,
+  },
+  {
+    id: "env-dark-office",
+    name: "Dark Office",
+    description: "Blacked-out workspace. City skyline through floor-to-ceiling glass. Built for focus.",
+    cost: 1000, minLevel: 8,
+    wallStyle: "dark-panel", windowType: "city-skyline", floorType: "dark-wood",
+    isDefault: false,
+  },
+  {
+    id: "env-executive-suite",
+    name: "Executive Suite",
+    description: "Corner office energy. Panoramic views, oak paneling, and the scent of ambition.",
+    cost: 5000, minLevel: 25,
+    wallStyle: "oak-panel", windowType: "panoramic", floorType: "marble",
+    isDefault: false,
+  },
+] as const;
+
+type RoomEnvironment = typeof ROOM_ENVIRONMENTS[number];
 
 type RoomZone = typeof ROOM_ZONES[number];
 
@@ -283,6 +312,22 @@ async function checkAndAwardMilestones(userId: string, placedZones: string[], pl
   return awarded;
 }
 
+async function getActiveEnvironment(userId: string): Promise<string> {
+  const rows = await db.select({ details: auditLogTable.details })
+    .from(auditLogTable)
+    .where(and(
+      eq(auditLogTable.actorId, userId),
+      eq(auditLogTable.action, "room_environment_switch"),
+    ))
+    .orderBy(desc(auditLogTable.createdAt))
+    .limit(1);
+  if (rows.length === 0) return "env-starter-studio";
+  try {
+    const d = JSON.parse(rows[0].details ?? "{}");
+    return d.environmentId ?? "env-starter-studio";
+  } catch { return "env-starter-studio"; }
+}
+
 async function getCharacterInRoom(userId: string): Promise<boolean> {
   const rows = await db.select({ details: auditLogTable.details })
     .from(auditLogTable)
@@ -368,6 +413,8 @@ router.get("/room", requireAuth, async (req: any, res) => {
     }
 
     const isCharacterInRoom = await getCharacterInRoom(userId);
+    const activeEnvId = await getActiveEnvironment(userId);
+    const activeEnv = ROOM_ENVIRONMENTS.find(e => e.id === activeEnvId) ?? ROOM_ENVIRONMENTS[0];
 
     const roomState = computeRoomScore({
       placedItems,
@@ -410,6 +457,13 @@ router.get("/room", requireAuth, async (req: any, res) => {
       activeTitle: activeTitle ? { name: activeTitle.name, rarity: activeTitle.rarity, category: activeTitle.category } : null,
       earnedBadges: badgesRows.map(b => ({ badgeId: b.badgeId, name: b.name, icon: b.icon, rarity: b.rarity, category: b.category })),
       ownedNotDisplayed,
+      environment: {
+        id: activeEnv.id,
+        name: activeEnv.name,
+        wallStyle: activeEnv.wallStyle,
+        windowType: activeEnv.windowType,
+        floorType: activeEnv.floorType,
+      },
       stats: {
         totalOwned: inventory.filter(i => i.category === "room_decor").length,
         totalDisplayed: displayedItemIds.size,
@@ -625,6 +679,138 @@ router.get("/room/shop-items", requireAuth, async (req: any, res) => {
       items: result,
       coinBalance: user?.coinBalance ?? 0,
       userLevel: user?.level ?? 1,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/room/environments", requireAuth, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const [user] = await db.select({ level: usersTable.level, coinBalance: usersTable.coinBalance })
+      .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+
+    const inventory = await db.select({ itemId: userInventoryTable.itemId })
+      .from(userInventoryTable)
+      .where(eq(userInventoryTable.userId, userId));
+    const ownedSet = new Set(inventory.map(i => i.itemId));
+
+    const activeEnvId = await getActiveEnvironment(userId);
+
+    const environments = ROOM_ENVIRONMENTS.map(env => ({
+      id: env.id,
+      name: env.name,
+      description: env.description,
+      cost: env.cost,
+      minLevel: env.minLevel,
+      wallStyle: env.wallStyle,
+      windowType: env.windowType,
+      floorType: env.floorType,
+      isOwned: env.isDefault || ownedSet.has(env.id),
+      isActive: env.id === activeEnvId,
+      isLocked: (user?.level ?? 1) < env.minLevel,
+      canAfford: (user?.coinBalance ?? 0) >= env.cost,
+    }));
+
+    return res.json({
+      environments,
+      activeEnvironmentId: activeEnvId,
+      coinBalance: user?.coinBalance ?? 0,
+      userLevel: user?.level ?? 1,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/room/environments/:id/purchase", requireAuth, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const envId = req.params.id;
+
+    const env = ROOM_ENVIRONMENTS.find(e => e.id === envId);
+    if (!env) return res.status(404).json({ error: "Environment not found" });
+    if (env.isDefault) return res.status(400).json({ error: "Starter environment is free" });
+
+    const [user] = await db.select({ level: usersTable.level, coinBalance: usersTable.coinBalance })
+      .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (user.level < env.minLevel)
+      return res.status(403).json({ error: `Reach level ${env.minLevel} to unlock ${env.name}.` });
+
+    const existing = await db.select({ id: userInventoryTable.id })
+      .from(userInventoryTable)
+      .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.itemId, envId)))
+      .limit(1);
+    if (existing.length > 0)
+      return res.status(400).json({ error: "You already own this environment." });
+
+    if (user.coinBalance < env.cost)
+      return res.status(400).json({ error: `Insufficient coins. Need ${env.cost}c — you have ${user.coinBalance}c.` });
+
+    const newBalance = user.coinBalance - env.cost;
+
+    await db.transaction(async (tx) => {
+      await tx.update(usersTable)
+        .set({ coinBalance: newBalance, updatedAt: new Date() })
+        .where(eq(usersTable.id, userId));
+
+      await tx.insert(userInventoryTable).values({
+        id: generateId(), userId, itemId: envId,
+        isEquipped: false, source: "purchase",
+      });
+
+      await tx.insert(rewardTransactionsTable).values({
+        id: generateId(), userId, type: "spend", amount: env.cost,
+        reason: `Purchased room environment: ${env.name}`,
+        balanceAfter: newBalance,
+        metadata: JSON.stringify({ environmentId: envId }),
+      } as any);
+    });
+
+    await db.insert(auditLogTable).values({
+      id: generateId(), actorId: userId, actorRole: "user",
+      action: "room_environment_switch", targetId: envId, targetType: "room_environment",
+      details: JSON.stringify({ environmentId: envId }),
+    });
+
+    return res.json({ success: true, newBalance, environmentId: envId });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/room/environments/:id/switch", requireAuth, async (req: any, res) => {
+  try {
+    const userId = req.user.id;
+    const envId = req.params.id;
+
+    const env = ROOM_ENVIRONMENTS.find(e => e.id === envId);
+    if (!env) return res.status(404).json({ error: "Environment not found" });
+
+    if (!env.isDefault) {
+      const [ownership] = await db.select({ id: userInventoryTable.id })
+        .from(userInventoryTable)
+        .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.itemId, envId)))
+        .limit(1);
+      if (!ownership) return res.status(403).json({ error: "You do not own this environment." });
+    }
+
+    await db.insert(auditLogTable).values({
+      id: generateId(), actorId: userId, actorRole: "user",
+      action: "room_environment_switch", targetId: envId, targetType: "room_environment",
+      details: JSON.stringify({ environmentId: envId }),
+    });
+
+    return res.json({
+      success: true,
+      environmentId: envId,
+      environment: {
+        id: env.id, name: env.name,
+        wallStyle: env.wallStyle, windowType: env.windowType, floorType: env.floorType,
+      },
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

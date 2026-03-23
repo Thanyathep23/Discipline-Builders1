@@ -819,6 +819,40 @@ export function useRoomShopItems(zone?: string | null) {
   });
 }
 
+export function useRoomEnvironments() {
+  const { request } = useApiClient();
+  return useQuery({
+    queryKey: ["world", "environments"],
+    queryFn: () => request<any>("/world/room/environments"),
+    staleTime: 30000,
+  });
+}
+
+export function usePurchaseEnvironment() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (envId: string) =>
+      request<any>(`/world/room/environments/${envId}/purchase`, { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["world"] });
+      qc.invalidateQueries({ queryKey: ["character"] });
+    },
+  });
+}
+
+export function useSwitchEnvironment() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (envId: string) =>
+      request<any>(`/world/room/environments/${envId}/switch`, { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["world"] });
+    },
+  });
+}
+
 // ─── Phase 22 — Catalog Admin ─────────────────────────────────────────────────
 
 export function useAdminCatalogItems() {
@@ -1039,6 +1073,19 @@ export function useSelectCarVariant() {
       qc.invalidateQueries({ queryKey: ["cars"] });
       qc.invalidateQueries({ queryKey: ["cars-photo"] });
       qc.invalidateQueries({ queryKey: ["characterStatus"] });
+    },
+  });
+}
+
+export function useSelectWheelStyle() {
+  const { request } = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ carId, wheelStyle }: { carId: string; wheelStyle: string }) =>
+      request<any>(`/cars/${carId}/wheel`, { method: "PATCH", body: JSON.stringify({ wheelStyle }) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cars"] });
+      qc.invalidateQueries({ queryKey: ["cars-photo"] });
     },
   });
 }

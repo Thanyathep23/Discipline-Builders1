@@ -79,6 +79,7 @@ export const userInventoryTable = pgTable("user_inventory", {
   redeemedAt:   timestamp("redeemed_at").notNull().defaultNow(),
   displaySlot:  text("display_slot"),
   colorVariant: text("color_variant"),
+  wheelStyle:   text("wheel_style"),
 });
 
 export const insertShopItemSchema = createInsertSchema(shopItemsTable).omit({ createdAt: true, updatedAt: true });

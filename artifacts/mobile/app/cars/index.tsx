@@ -11,7 +11,7 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import Svg, { Path, Circle, Rect, Ellipse, G, Line } from "react-native-svg";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
-import { useCars, usePurchaseCar, useFeatureCar, useSelectCarVariant } from "@/hooks/useApi";
+import { useCars, usePurchaseCar, useFeatureCar, useSelectCarVariant, useSelectWheelStyle } from "@/hooks/useApi";
 import { LoadingScreen, EmptyState } from "@/design-system";
 
 const SCREEN_W = Dimensions.get("window").width;
@@ -19,6 +19,7 @@ const CARD_GAP = 10;
 const CARD_W = (SCREEN_W - 32 - CARD_GAP) / 2;
 
 type ColorVariant = { key: string; label: string; hex: string };
+type WheelStyleDef = { key: string; label: string; cost: number; minLevel: number };
 
 type Car = {
   id: string;
@@ -42,6 +43,8 @@ type Car = {
   lockReason: string | null;
   colorVariants: ColorVariant[];
   selectedVariant: string | null;
+  wheelStyles: WheelStyleDef[];
+  selectedWheelStyle: string;
 };
 
 type CarState = "featured" | "owned" | "available" | "near_reach" | "locked_soon" | "locked";
@@ -79,10 +82,54 @@ function getVariantHex(car: Car, variantKey?: string | null): string {
   return v?.hex ?? RARITY_COLORS[car.rarity] ?? Colors.textMuted;
 }
 
+function WheelSVG({ cx: x, cy: y, r, color, style }: { cx: number; cy: number; r: number; color: string; style: string }) {
+  if (style === "sport") {
+    return (
+      <G>
+        <Circle cx={x} cy={y} r={r} fill={color + "12"} stroke={color + "90"} strokeWidth={1.5} />
+        <Circle cx={x} cy={y} r={r * 0.7} fill="none" stroke={color + "40"} strokeWidth={0.6} />
+        <Circle cx={x} cy={y} r={r * 0.3} fill={color + "70"} />
+        {[0, 60, 120, 180, 240, 300].map((deg) => {
+          const rad = (deg * Math.PI) / 180;
+          return (
+            <Line key={deg}
+              x1={x + Math.cos(rad) * r * 0.3} y1={y + Math.sin(rad) * r * 0.3}
+              x2={x + Math.cos(rad) * r * 0.85} y2={y + Math.sin(rad) * r * 0.85}
+              stroke={color + "60"} strokeWidth={0.8} />
+          );
+        })}
+      </G>
+    );
+  }
+  if (style === "turbine") {
+    return (
+      <G>
+        <Circle cx={x} cy={y} r={r} fill={color + "10"} stroke={color + "95"} strokeWidth={1.8} />
+        <Circle cx={x} cy={y} r={r * 0.25} fill={color + "80"} />
+        {[0, 72, 144, 216, 288].map((deg) => {
+          const rad1 = (deg * Math.PI) / 180;
+          const rad2 = ((deg + 40) * Math.PI) / 180;
+          return (
+            <Path key={deg}
+              d={`M${x + Math.cos(rad1) * r * 0.25},${y + Math.sin(rad1) * r * 0.25} Q${x + Math.cos((rad1 + rad2) / 2) * r * 0.7},${y + Math.sin((rad1 + rad2) / 2) * r * 0.7} ${x + Math.cos(rad2) * r * 0.85},${y + Math.sin(rad2) * r * 0.85}`}
+              fill="none" stroke={color + "55"} strokeWidth={0.9} />
+          );
+        })}
+      </G>
+    );
+  }
+  return (
+    <G>
+      <Circle cx={x} cy={y} r={r} fill={color + "18"} stroke={color + "80"} strokeWidth={1.3} />
+      <Circle cx={x} cy={y} r={r * 0.45} fill={color + "50"} />
+    </G>
+  );
+}
+
 export function CarVisual({
-  carClass, bodyColor, size = 80, dimmed = false,
+  carClass, bodyColor, size = 80, dimmed = false, wheelStyle = "classic",
 }: {
-  carClass: string | null; bodyColor: string; size?: number; dimmed?: boolean;
+  carClass: string | null; bodyColor: string; size?: number; dimmed?: boolean; wheelStyle?: string;
 }) {
   const opacity = dimmed ? 0.35 : 1;
   const c = dimmed ? Colors.textMuted : bodyColor;
@@ -102,10 +149,8 @@ export function CarVisual({
 
   const wheelEls = (
     <>
-      <Circle cx={wlx} cy={wheelY} r={wheelR} fill={c + "18"} stroke={c + "80"} strokeWidth={1.3} />
-      <Circle cx={wlx} cy={wheelY} r={wheelR * 0.45} fill={c + "50"} />
-      <Circle cx={wrx} cy={wheelY} r={wheelR} fill={c + "18"} stroke={c + "80"} strokeWidth={1.3} />
-      <Circle cx={wrx} cy={wheelY} r={wheelR * 0.45} fill={c + "50"} />
+      <WheelSVG cx={wlx} cy={wheelY} r={wheelR} color={c} style={wheelStyle} />
+      <WheelSVG cx={wrx} cy={wheelY} r={wheelR} color={c} style={wheelStyle} />
     </>
   );
 
@@ -464,6 +509,44 @@ function ColorSwatchSelector({
   );
 }
 
+function WheelStyleSelector({
+  styles, selectedKey, onSelect, userLevel, isOwned, disabled,
+}: {
+  styles: WheelStyleDef[]; selectedKey: string;
+  onSelect: (key: string) => void; userLevel: number; isOwned: boolean; disabled: boolean;
+}) {
+  if (!isOwned || !styles || styles.length <= 1) return null;
+  return (
+    <View style={sw.container}>
+      <Text style={sw.label}>WHEEL STYLE</Text>
+      <View style={sw.row}>
+        {styles.map((ws) => {
+          const active = ws.key === selectedKey;
+          const locked = userLevel < ws.minLevel;
+          return (
+            <Pressable
+              key={ws.key}
+              style={[sw.wheelBtn, active && sw.wheelBtnActive, locked && { opacity: 0.4 }]}
+              onPress={() => {
+                if (locked || disabled) return;
+                Haptics.selectionAsync().catch(() => {});
+                onSelect(ws.key);
+              }}
+              disabled={locked || disabled}
+            >
+              {locked && <Ionicons name="lock-closed" size={9} color={Colors.textMuted} />}
+              <Text style={[sw.wheelBtnText, active && { color: Colors.accent }]}>{ws.label}</Text>
+              {ws.cost > 0 && !active && (
+                <Text style={sw.wheelCost}>{ws.cost}c</Text>
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 const sw = StyleSheet.create({
   container: { gap: 6 },
   label: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.5 },
@@ -472,26 +555,35 @@ const sw = StyleSheet.create({
   dot: { width: 24, height: 24, borderRadius: 12 },
   checkmark: { position: "absolute", bottom: -2, right: -2, width: 14, height: 14, borderRadius: 7, backgroundColor: Colors.accent, alignItems: "center", justifyContent: "center" },
   variantName: { fontFamily: "Inter_500Medium", fontSize: 11, color: Colors.textSecondary },
+  wheelBtn: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.bgElevated, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: Colors.border },
+  wheelBtnActive: { borderColor: Colors.accent + "60", backgroundColor: Colors.accentDim },
+  wheelBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textSecondary },
+  wheelCost: { fontFamily: "Inter_500Medium", fontSize: 9, color: Colors.textMuted },
 });
 
 function CarDetailSheet({
   car, visible, onClose, onPurchase, onFeature, isPurchasing, isFeaturing,
-  onSelectVariant, isSelectingVariant, userLevel, coinBalance,
+  onSelectVariant, isSelectingVariant, onSelectWheel, isSelectingWheel,
+  userLevel, coinBalance,
 }: {
   car: Car | null; visible: boolean; onClose: () => void;
   onPurchase: (id: string) => void; onFeature: (id: string) => void;
   isPurchasing: boolean; isFeaturing: boolean;
   onSelectVariant: (carId: string, variantKey: string) => void;
   isSelectingVariant: boolean;
+  onSelectWheel: (carId: string, wheelStyle: string) => void;
+  isSelectingWheel: boolean;
   userLevel: number; coinBalance: number;
 }) {
   const insets = useSafeAreaInsets();
   const [confirmPurchase, setConfirmPurchase] = useState(false);
   const [previewVariant, setPreviewVariant] = useState<string | null>(null);
+  const [previewWheel, setPreviewWheel] = useState<string | null>(null);
 
   const resetState = useCallback(() => {
     setConfirmPurchase(false);
     setPreviewVariant(null);
+    setPreviewWheel(null);
   }, []);
 
   if (!car) return null;
@@ -499,6 +591,7 @@ function CarDetailSheet({
   const rarityColor = RARITY_COLORS[car.rarity] ?? Colors.textMuted;
   const classLabel = CLASS_LABELS[car.carClass ?? "entry"] ?? "VEHICLE";
   const currentVariant = previewVariant ?? car.selectedVariant;
+  const currentWheel = previewWheel ?? car.selectedWheelStyle ?? "classic";
   const bodyColor = getVariantHex(car, currentVariant);
   const dimmed = car.isLocked;
 
@@ -529,7 +622,7 @@ function CarDetailSheet({
             )}
           </View>
           <View style={ds.heroViz}>
-            <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={200} dimmed={dimmed} />
+            <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={200} dimmed={dimmed} wheelStyle={currentWheel} />
           </View>
           <Text style={[ds.heroName, { color: rarityColor }]}>{car.name}</Text>
         </View>
@@ -549,6 +642,21 @@ function CarDetailSheet({
             />
           </View>
         )}
+
+        <WheelStyleSelector
+          styles={car.wheelStyles ?? []}
+          selectedKey={currentWheel}
+          onSelect={(key) => {
+            if (isSelectingWheel) return;
+            setPreviewWheel(key);
+            if (car.isOwned) {
+              onSelectWheel(car.id, key);
+            }
+          }}
+          userLevel={userLevel}
+          isOwned={car.isOwned}
+          disabled={isSelectingWheel}
+        />
 
         <Text style={ds.desc}>{car.fullDescription ?? car.description}</Text>
 
@@ -853,6 +961,7 @@ export default function GarageScreen() {
   const purchaseCar = usePurchaseCar();
   const featureCar = useFeatureCar();
   const selectVariant = useSelectCarVariant();
+  const selectWheel = useSelectWheelStyle();
 
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -924,6 +1033,16 @@ export default function GarageScreen() {
   const handleSelectVariant = useCallback((carId: string, variantKey: string) => {
     selectVariant.mutate({ carId, colorVariant: variantKey });
   }, [selectVariant]);
+
+  const handleSelectWheel = useCallback(async (carId: string, wheelStyle: string) => {
+    try {
+      await selectWheel.mutateAsync({ carId, wheelStyle });
+      Haptics.selectionAsync().catch(() => {});
+      refetch();
+    } catch (e: any) {
+      setErrorMsg(e.message ?? "Could not change wheel style");
+    }
+  }, [selectWheel, refetch]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -1042,6 +1161,8 @@ export default function GarageScreen() {
         isFeaturing={featureCar.isPending}
         onSelectVariant={handleSelectVariant}
         isSelectingVariant={selectVariant.isPending}
+        onSelectWheel={handleSelectWheel}
+        isSelectingWheel={selectWheel.isPending}
         userLevel={userLevel}
         coinBalance={coinBalance}
       />

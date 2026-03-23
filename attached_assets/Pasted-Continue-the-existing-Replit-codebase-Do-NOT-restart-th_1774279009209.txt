@@ -1,0 +1,554 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Build exactly 3 purchasable rooms + The Garage (free).
+4 total rooms for v1.0.
+Premium visual quality. Real architectural feel.
+Users should want to customize and upgrade their space.
+
+The Garage is already built by Prompt 3.
+This prompt builds only the 3 purchasable rooms.
+
+==================================================
+STEP 1 — AUDIT CURRENT ROOM SYSTEM
+==================================================
+
+Before changing anything:
+1. Check current room screen and canvas
+2. Check current room_environments table
+3. Check current room item catalog
+4. Check room state API
+5. Check room screen navigation from Rewards
+6. Report what exists vs what needs building
+
+==================================================
+PART 1 — 3 ROOM ENVIRONMENTS
+==================================================
+
+Seed exactly these 3 rooms:
+
+ROOM 1 — Starter Studio (FREE, default)
+  slug: starter_studio
+  name: "Starter Studio"
+  requiredLevel: 1
+  price: 0
+  isDefault: true
+  description: "Every empire starts somewhere."
+  
+  Visual identity:
+    wallColor: #1E1F2E (muted warm grey)
+    wallTexture: subtle_panels
+    floorColor: #0F1018
+    floorMaterial: dark_wood_planks
+    windowType: none
+    ambientColor: rgba(255,200,150,0.05)
+    ceilingColor: #0D0E1A
+  
+  Atmosphere: humble, clean, warm
+  Starter items available: basic desk, lamp, plant
+
+ROOM 2 — Dark Office
+  slug: dark_office
+  name: "Dark Office"
+  requiredLevel: 8
+  price: 1000
+  isDefault: false
+  description: "No distractions. Only execution."
+  
+  Visual identity:
+    wallColor: #141520 (deep charcoal)
+    wallTexture: vertical_panel_lines
+    floorColor: #0C0D18
+    floorMaterial: herringbone_wood
+    windowType: city_night_simple
+    ambientColor: rgba(80,100,255,0.06)
+    ceilingColor: #0A0B14
+    
+  Special feature: 
+    City night window (right wall)
+    Subtle panel lines on back wall
+  
+  Atmosphere: serious, focused, professional
+
+ROOM 3 — Executive Suite
+  slug: executive_suite
+  name: "Executive Suite"
+  requiredLevel: 25
+  price: 5000
+  isDefault: false
+  description: "The view from the top floor."
+  
+  Visual identity:
+    wallColor: #1A130E (warm dark wood)
+    wallTexture: wood_paneling
+    floorColor: #100B08
+    floorMaterial: dark_marble
+    windowType: city_day_panorama
+    ambientColor: rgba(255,180,60,0.07)
+    ceilingColor: #0E0A07
+    
+  Special features:
+    Large panoramic city day window
+    Warm golden ambient lighting
+    Bookcase silhouette on left wall
+  
+  Atmosphere: luxury, CEO corner office
+
+==================================================
+PART 2 — ROOM CANVAS ARCHITECTURE
+==================================================
+
+Each room must show 3 visual surfaces:
+
+2A. Three-Surface Room View
+┌─────────────────────────────────────────┐
+│  ░░░░░░░░░░ LEFT WALL ░░░░░░░░░░░░░░   │
+│  ░░  (14% width, perspective angle)  ░░│
+│  ├──────────────────────────────────────│
+│  │          BACK WALL                  │  40% height
+│  │  [wall items zone] [window zone]    │
+│  │                                     │
+│  ├──────────────────────────────────────│
+│  │                                     │
+│  │  [floor items - desk, character]    │  35% height
+│  │                                     │
+│  ├──────────────────────────────────────│
+│  │          FLOOR SURFACE              │  25% height
+│  │  [perspective floor lines]          │
+│  │  [plants, coffee, audio zones]      │
+│  ░░░░░░░░░░ RIGHT WALL ░░░░░░░░░░░░░░  │
+└─────────────────────────────────────────┘
+
+2B. Back Wall Component
+
+Renders based on room environment:
+
+Starter Studio:
+  Plain warm grey wall
+  No window
+  
+Dark Office:
+  Charcoal wall with subtle vertical lines
+  City night window (right side of back wall)
+  Window size: 70x100px, position: 72% x 15%
+  Window content: simple SVG city silhouette
+    Dark blue sky, grey building shapes
+    Small yellow/white window lights
+  
+Executive Suite:
+  Warm wood panel texture (repeating SVG pattern)
+  Large panoramic window (center of back wall)
+  Window size: 200x120px, position: center
+  Window content: day city view
+    Blue/grey sky gradient, building skyline
+    Warm daylight feeling
+  Bookcase: left side of wall (60x120px SVG)
+
+2C. Floor Component
+
+Each floor renders:
+  Base color matching room theme
+  Subtle perspective lines:
+    10 horizontal lines, spacing increases
+    toward bottom of floor area
+    Color: rgba(255,255,255,0.025)
+  
+  5 lines from bottom converging to center-top
+  (creates proper 3D floor perspective illusion)
+
+Floor materials:
+  dark_wood_planks: subtle grain lines
+  herringbone_wood: diagonal pattern, subtle
+  dark_marble: smooth, very subtle vein
+
+2D. Ambient Glow Layer
+
+Soft elliptical glow in center-floor area:
+  Width: 60% of canvas
+  Height: 20% of canvas
+  Position: 62% from top, centered
+  Color: room's ambientColor
+  Blur equivalent: radial gradient with fade
+
+==================================================
+PART 3 — ZONE SYSTEM
+==================================================
+
+3A. Zone Definitions (same for all rooms)
+
+WALL ZONES (on back wall surface):
+  shelf: floating shelf with books
+    Position: 25% from left, 30% from top
+    Size: 80x40px
+    
+  wall_art: picture/decoration
+    Position: 50% from left, 20% from top
+    Size: 60x70px
+    
+  clock: wall clock
+    Position: 75% from left, 25% from top
+    Size: 40x40px
+
+FLOOR ZONES (on floor surface):
+  desk: work desk (center)
+    Position: 35% from left, floor level
+    Size: 130x70px
+    
+  plants: floor plants (left)
+    Position: 10% from left, floor level
+    Size: 55x80px
+    
+  coffee: coffee machine (right)
+    Position: 78% from left, floor level
+    Size: 55x70px
+    
+  audio: speakers (far right)
+    Position: 90% from left, floor level
+    Size: 45x65px
+
+DESK SURFACE ZONES (on top of desk):
+  monitor: screen setup
+    Position: center of desk, raised
+    Size: 80x55px
+    
+  desk_lamp: task light
+    Position: right of monitor
+    Size: 30x50px
+
+3B. Zone Visual Design
+
+Empty zone on WALL:
+  Dashed frame in wall
+  Zone-specific icon (shelf = shelf outline,
+    art = frame outline, clock = circle)
+  Opacity: 20%
+  Color: white at 20% opacity
+  Feels like ghost/placeholder on wall
+
+Empty zone on FLOOR:
+  Rounded rectangle dashed outline
+  Zone icon centered
+  Small label underneath
+  Opacity: 25%
+
+Filled zone: item renders directly
+  Drop shadow below item
+  No container box
+
+3C. Zone Tap Behavior
+
+Tap empty zone → item picker sheet:
+  Title: "Add to [Zone Name]"
+  Shows items compatible with this zone
+  Owned items first (with "Place" button)
+  Purchasable items below (with "Buy & Place")
+  Locked items at bottom (greyed, level shown)
+
+Tap filled zone → options:
+  Small action menu appears:
+  [↩ Replace] [✕ Remove]
+
+==================================================
+PART 4 — ROOM DECORATION ITEMS
+==================================================
+
+Seed these decoration items:
+
+DESK ITEMS (slot: desk):
+  Minimal Desk Setup
+    price: 0 (auto-owned default)
+    rarity: Common
+    level: 1
+    description: "A clean slate."
+    pts: 3
+    
+  Premium Oak Desk
+    price: 800
+    rarity: Refined
+    level: 5
+    description: "Solid. Serious."
+    pts: 8
+    
+  Executive Carbon Desk
+    price: 4500
+    rarity: Elite
+    level: 25
+    description: "Built to work."
+    pts: 20
+
+MONITOR ITEMS (slot: monitor):
+  Basic Monitor
+    price: 0 (auto-owned)
+    rarity: Common
+    level: 1
+    pts: 3
+    
+  Dual Monitor Setup
+    price: 1500
+    rarity: Refined
+    level: 10
+    description: "Double the screen."
+    pts: 8
+
+COFFEE ITEMS (slot: coffee):
+  Espresso Machine
+    price: 1200
+    rarity: Refined
+    level: 8
+    description: "Fuel for focus."
+    pts: 8
+    
+PLANT ITEMS (slot: plants):
+  Indoor Plant Collection
+    price: 300
+    rarity: Common
+    level: 3
+    description: "Life in the workspace."
+    pts: 3
+
+WALL SHELF (slot: shelf):
+  Minimal Bookshelf
+    price: 600
+    rarity: Refined
+    level: 6
+    description: "Knowledge on display."
+    pts: 8
+
+LIGHTING (slot: desk_lamp):
+  LED Ambient Lighting
+    price: 900
+    rarity: Refined
+    level: 8
+    description: "Set the mood."
+    pts: 8
+    
+  Premium Arc Floor Lamp
+    price: 2500
+    rarity: Prestige
+    level: 20
+    description: "Luxury light."
+    pts: 15
+
+Total: 10 decoration items for MVP
+
+Auto-give at signup:
+  Minimal Desk Setup
+  Basic Monitor
+
+==================================================
+PART 5 — ROOM TIER SYSTEM
+==================================================
+
+5A. Base Score Calculation
+
+Room score = sum of placed item pts values
+
+Tier 0 (Standard Base): 0-29 pts
+Tier 1 (Emerging Workspace): 30-74 pts
+Tier 2 (Professional Setup): 75-149 pts
+Tier 3 (Premium Command Center): 150+ pts
+
+5B. Tier Benefits
+
+Higher tier:
+  Increases Finance/Lifestyle dimension (small bonus)
+  Unlocks milestone badges
+  Shows on profile/character
+
+5C. Milestone Badges
+
+"First Decoration" — first item purchased
+"Workspace Ready" — desk + monitor both placed
+"Coffee Culture" — coffee item placed
+"Tier 1 Achieved" — reach tier 1
+
+==================================================
+PART 6 — ROOM SCREEN LAYOUT
+==================================================
+
+Main room screen (not the full-screen editor from before):
+
+HEADER:
+  Back button
+  "COMMAND CENTER"
+  Room name (sub-label)
+  Tier chip (T0) + Coins chip
+
+ROOM CANVAS (280px tall, full width):
+  Three-surface room view as defined above
+  Items rendered in zones
+  Empty zones show elegant ghost indicators
+  
+  CHARACTER TOGGLE BUTTON:
+    Bottom-right of canvas
+    Circle button, person icon
+    Tap: toggles character in/out of room
+    Character appears in center-floor zone
+
+ROOM TIER CARD:
+  Current tier name
+  Score: X / next_threshold pts
+  Progress bar (gradient)
+  "Next: [Tier Name] at X pts"
+  2-3 tappable upgrade hints (most impactful items)
+
+YOUR SETUP SECTION:
+  Horizontal scroll of all zones
+  Shows: filled (with item) + empty (with CTA)
+  Empty card shows "Add +Xpts" button
+  Filled card shows item + "Replace" option
+
+DECORATE YOUR SPACE SECTION:
+  3 featured recommended items
+  Based on: affordable + most pts for current level
+  "Browse All Room Items →" button
+
+ROOM SHOP (full screen when Browse tapped):
+  All decoration items in grid
+  Category filters: All | Desk | Monitor | Coffee | Light
+  Same CollectionCard style as Wardrobe
+
+==================================================
+PART 7 — ROOM SELECTION SCREEN
+==================================================
+
+When user taps "Room" from Rewards → Game Mode:
+Opens Room Selection Screen
+
+Shows all 4 rooms (3 purchasable + Garage):
+
+Card layout (2×2 grid or horizontal scroll):
+  ┌──────────────────┐
+  │  [Mini Preview]  │  ← simplified room SVG
+  │                  │
+  │  Room Name       │
+  │  T0 · 3 pts      │
+  │                  │
+  │  FREE  ● Current │
+  │  [Enter Room →]  │
+  └──────────────────┘
+  
+  OR for locked:
+  │  🔒 Lvl 8 · 1,000₿│
+  │  [Preview]        │
+  
+  THE GARAGE card:
+  │  🚗 THE GARAGE    │
+  │  FREE · Always    │
+  │  [Enter Garage →] │
+
+Each room has a mini preview SVG:
+  Starter: warm grey walls, simple desk
+  Dark Office: dark with city window glow
+  Executive: warm wood, large window
+  Garage: epoxy floor, car silhouette
+
+==================================================
+PART 8 — BACKEND
+==================================================
+
+Ensure these endpoints work:
+
+GET /api/room/environments
+  Returns all 4 environments (3 rooms + garage)
+  With user's unlock/ownership status
+  
+POST /api/room/purchase-environment
+  Body: { environmentId }
+  Validates level + coins
+  Deducts coins, grants access
+  
+POST /api/room/set-active
+  Body: { environmentId }
+  User must own it
+  
+GET /api/room/state
+  Returns:
+    activeEnvironment
+    placedItems (zone → itemId map)
+    roomScore
+    roomTier
+    isCharacterInRoom
+    
+POST /api/room/place-item
+  Body: { itemId, zone }
+  Validates ownership
+  Validates zone compatibility
+  Updates placement
+  Recalculates score
+  
+POST /api/room/remove-item
+  Body: { zone }
+  Removes item from zone
+  Recalculates score
+  
+POST /api/room/toggle-character
+  Body: { inRoom: boolean }
+  Saves preference
+
+POST /api/room/save
+  Body: { placedItems, isCharacterInRoom }
+  Full save of room state
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+ROOM ENVIRONMENTS:
+1. 3 rooms seeded with correct level/price gates
+2. Starter Studio auto-unlocked for all users
+3. Room selection screen shows all 4 rooms
+4. Lock/unlock system works correctly
+5. Purchase flow works for rooms
+
+ROOM CANVAS:
+6. Three-surface view: wall + floor visible
+7. Back wall matches room theme (color/texture)
+8. Floor perspective lines create depth
+9. City window renders for Dark Office
+10. Wood paneling renders for Executive Suite
+11. Empty zones show elegant ghost indicators
+12. Filled zones show items without box frames
+
+DECORATION SYSTEM:
+13. 10 decoration items seeded
+14. 2 default items auto-owned at signup
+15. Item placement works
+16. Zone compatibility enforced
+17. Room score calculates from placed items
+18. Tier updates when score crosses threshold
+
+ROOM SCREEN:
+19. Room screen loads without crash
+20. Character toggle works (enter/exit room)
+21. Upgrade hints are tappable
+22. Room shop opens with all items
+23. Category filter works in shop
+
+SAVE SYSTEM:
+24. Manual save works
+25. Item placements persist after navigation
+26. Character in-room preference persists
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. Room environments seeded (confirm all 3)
+2. Room canvas architecture implemented
+3. Zone system details
+4. Decoration items seeded
+5. Room selection screen built
+6. Backend endpoints confirmed
+7. Files changed only
+8. End-to-end test:
+   - Browse room selection (4 rooms visible)
+   - Purchase Dark Office
+   - Enter Dark Office (city window visible)
+   - Place desk item (score updates)
+   - Toggle character into room
+   - Save → navigate away → return (persists)
+9. Performance notes
+10. Remaining gaps
