@@ -981,10 +981,10 @@ export default function CharacterStatusScreen() {
     if (prevVisualStateRef.current && prevVisualStateRef.current !== vsKeyForFade && prevCharacterVS.current) {
       setFadingOutVS(prevCharacterVS.current);
       prevCharOpacity.value = 1;
-      prevCharOpacity.value = withTiming(0, { duration: 600, easing: Easing.out(Easing.cubic) });
+      prevCharOpacity.value = withTiming(0, { duration: 800, easing: Easing.out(Easing.cubic) });
       characterOpacity.value = 0;
-      characterOpacity.value = withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) });
-      setTimeout(() => setFadingOutVS(null), 650);
+      characterOpacity.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) });
+      setTimeout(() => setFadingOutVS(null), 850);
     }
     prevVisualStateRef.current = vsKeyForFade;
     if (characterVS) prevCharacterVS.current = characterVS;
