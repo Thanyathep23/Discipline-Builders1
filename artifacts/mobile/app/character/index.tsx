@@ -835,7 +835,7 @@ function TierCelebration({ tier, color, visible }: { tier: string; color: string
         />
         <Text style={[celebrationStyles.label, { color }]}>TIER UP</Text>
         <Text style={[celebrationStyles.tierName, { color }]}>{tier}</Text>
-        <Text style={celebrationStyles.sub}>Your discipline is evolving</Text>
+        <Text style={celebrationStyles.sub}>Your character is evolving</Text>
       </Animated.View>
     </Animated.View>
   );
