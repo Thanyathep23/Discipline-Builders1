@@ -34,7 +34,7 @@ export async function groqJudge(ctx: ProofContext): Promise<JudgeResult> {
   if (!validated) {
     console.log("[AI Judge] Groq returned invalid response, falling back to rules");
     const fallback = enhancedRuleBasedJudge(ctx);
-    return { ...fallback, verdict: "flagged", providerUsed: "groq_fallback" };
+    return { ...fallback, verdict: "manual_review", rewardMultiplier: 0, providerUsed: "groq_fallback" };
   }
 
   return validated;

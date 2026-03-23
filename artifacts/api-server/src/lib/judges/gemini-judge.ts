@@ -31,7 +31,7 @@ export async function geminiJudge(ctx: ProofContext): Promise<JudgeResult> {
   if (!validated) {
     console.log("[AI Judge] Gemini returned invalid response, falling back to rules");
     const fallback = enhancedRuleBasedJudge(ctx);
-    return { ...fallback, verdict: "flagged", providerUsed: "gemini_flash_fallback" };
+    return { ...fallback, verdict: "manual_review", rewardMultiplier: 0, providerUsed: "gemini_flash_fallback" };
   }
 
   return validated;

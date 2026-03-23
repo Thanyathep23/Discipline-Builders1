@@ -451,6 +451,10 @@ export async function judgeProof(ctx: ProofContext & { excludeProofId?: string }
   }
 
   const selectedProvider = selectProvider(proofForScreening);
+  const hasImageFiles = adjustedCtx.attachedFiles?.some((f: any) =>
+    f.type?.startsWith("image/") || f.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+  );
+  const VISION_PROVIDERS = ["gemini_flash", "openai_mini", "openai_full"];
 
   const tryProvider = async (provider: string): Promise<JudgeResult> => {
     switch (provider) {
@@ -468,9 +472,13 @@ export async function judgeProof(ctx: ProofContext & { excludeProofId?: string }
   };
 
   const startIdx = AI_PROVIDER_ORDER.indexOf(selectedProvider);
-  const orderedProviders = startIdx >= 0
+  let orderedProviders = startIdx >= 0
     ? [...AI_PROVIDER_ORDER.slice(startIdx), ...AI_PROVIDER_ORDER.slice(0, startIdx)]
     : AI_PROVIDER_ORDER;
+
+  if (hasImageFiles) {
+    orderedProviders = orderedProviders.filter(p => VISION_PROVIDERS.includes(p));
+  }
 
   for (const provider of orderedProviders) {
     try {
