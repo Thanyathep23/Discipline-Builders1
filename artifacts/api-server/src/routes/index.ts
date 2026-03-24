@@ -55,6 +55,8 @@ import adminWave3Router from "./admin-wave3.js";
 import metricsRouter from "./metrics.js";
 // Phase 35 — Identity History
 import identityHistoryRouter from "./identity-history.js";
+// Phase 36 — Prestige / Social Status
+import prestigeProfileRouter from "./prestige-profile.js";
 
 const router: IRouter = Router();
 
@@ -114,5 +116,7 @@ router.use("/admin", adminWave3Router);
 router.use("/admin/metrics", metricsRouter);
 // Phase 35 — Identity History
 router.use("/identity-history", identityHistoryRouter);
+// Phase 36 — Prestige / Social Status
+router.use("/prestige", prestigeProfileRouter);
 
 export default router;

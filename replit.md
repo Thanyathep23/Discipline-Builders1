@@ -1720,3 +1720,77 @@ Identity history is a server-side library in `artifacts/api-server/src/lib/ident
 - R6: 60-second dedup window trade-offs
 
 ### Identity History Readiness: IDENTITY HISTORY SYSTEM V1 READY
+
+## Phase 36 — Prestige / Social Status Layer v1
+
+### Purpose
+Makes earned status feel meaningful, visible, aspirational, and socially legible. Combines discipline, growth, identity, status assets, and recognition into a unified prestige profile with named bands, curated showcase, limited recognition slots, and social-safe visibility rules.
+
+### Architecture
+Prestige is a server-side library in `artifacts/api-server/src/lib/prestige/` with 11 files. The prestige evaluator gathers signals from existing user data + identity history, computes weighted signal scores across 5 families, determines a prestige band, selects showcase highlights and recognition slots, and returns a structured PrestigeProfile. Integrated via `GET /api/prestige/*` endpoints.
+
+### Prestige Library (`artifacts/api-server/src/lib/prestige/`)
+- `prestigeTypes.ts` — Core types: PrestigeProfile, PrestigeBand (5 bands), SignalFamily (5 families), SignalScore, ShowcaseHighlight, FeaturedMilestone, RecognitionSlot, PrestigeVisibilityConfig, PrestigeLogEntry, CirclePrestigeCard, VisibilityScope (4 scopes)
+- `prestigeConfig.ts` — Centralized config: signal weights (30/25/15/15/15), band thresholds (0/20/45/70/90), showcase/recognition limits, band definitions with colors and descriptions
+- `statusSignals.ts` — 5 signal family scorers: discipline (streak, completion rate, trust, proof quality, comeback), growth (level, xp, skills, mastery, prestige tier, milestones), identity (wearables, title, room, car, history), status_asset (items, rarity, room score, car prestige, spending), recognition (badges, titles, circles, challenges)
+- `prestigeBands.ts` — Band evaluation: computeOverallScore (weighted), determineBand, getBandProgress, distortion detection (pay-to-win, grind-only)
+- `recognitionRules.ts` — selectFeaturedRecognitions (max 6 slots): active title, top badges by rarity, consistency distinction, comeback distinction, elite distinction, status asset distinction
+- `showcaseRules.ts` — buildShowcaseHighlights (max 5), buildFeaturedMilestones (max 3)
+- `visibilityRules.ts` — isFieldVisible, filterPrestigeForViewer, sanitizeForExternalView, NEVER_EXPOSE list
+- `prestigeUtils.ts` — getTopSignalFamily, hasMinimumPrestigeData, getPrestigeFraming, getPrestigeProgressMessage
+- `prestigeEvaluator.ts` — Main orchestrator: evaluatePrestigeProfile assembles all signals, band, showcase, recognition
+- `prestigeProfileService.ts` — buildPrestigeProfile with 5-minute in-memory cache, invalidatePrestigeCache
+- `prestigeLogging.ts` — Structured logging: band, score, signal breakdown per evaluation
+- `index.ts` — Barrel exports
+
+### Prestige Bands (5)
+- **Emerging** (0+): Building the foundation — Gray border
+- **Rising** (20+): Consistency and growth becoming visible — Blue border
+- **Established** (45+): Real discipline across multiple dimensions — Purple border
+- **Elite** (70+): Sustained excellence, few reach this — Gold border
+- **Iconic** (90+): Highest expression, rare and undeniable — Red border
+
+### Signal Weights
+- Discipline: 30% (streak, completion rate, trust, proof quality, comebacks)
+- Growth: 25% (level, xp, skills, mastery, prestige tier, milestones)
+- Identity: 15% (wearables, title, room, car, history depth)
+- Status Asset: 15% (items, rarity, room score, car prestige) — capped to prevent pay-to-win
+- Recognition: 15% (badges, titles, circles, challenges)
+
+### API Endpoints
+- `GET /api/prestige/profile` — Full prestige profile with band, signals, framing, progress, recognition slots
+- `GET /api/prestige/showcase` — Curated showcase surface with highlights, milestones, recognition
+- `GET /api/prestige/band` — Band status with progress percentage
+- `PUT /api/prestige/showcase/settings` — Update showcase preferences (invalidates cache)
+
+### Visibility Scopes
+- `self_only` — Only the user (signal breakdowns)
+- `circle_only` — User + circle members (consistency streaks)
+- `approved_showcase` — User + circles + approved viewers (band, titles, milestones, room, car, look)
+- `private_hidden` — Reserved for future use
+
+### Docs (`docs/prestige/`)
+11 files: prestige-audit.md, prestige-doctrine.md, prestige-profile-model.md, status-signal-taxonomy.md, prestige-bands.md, prestige-showcase.md, recognition-system.md, visibility-and-privacy.md, circles-integration.md, prestige-metrics.md, known-prestige-risks.md
+
+### Key Design Decisions
+- **Named bands over scores**: Users see "Established" not "47"
+- **Balanced weighting**: Discipline+growth = 55%, preventing pay-to-win or grind-only dominance
+- **Limited recognition**: Max 6 slots, sorted by rarity, prevents badge spam
+- **Showcase caps**: Max 5 highlights, max 3 milestones — quality over quantity
+- **Distortion detection**: Explicit checks for pay-to-win and grind-only profiles
+- **NEVER_EXPOSE list**: Trust scores, raw proofs, penalties, economy internals prohibited from external view
+- **Reuses existing systems**: Identity history, prestige tiers, badges, titles, circles all feed signals
+
+### Known Risks (PR-001 to PR-010)
+- PR-001: Signal data incompleteness (some inputs use defaults in v1)
+- PR-002: In-memory cache without persistence
+- PR-003: Pay-to-win distortion detection (flags but doesn't cap in v1)
+- PR-004: Grind-only distortion
+- PR-005: New user cold start
+- PR-006: Band stagnation
+- PR-007: Recognition slot conflicts
+- PR-008: Circle prestige comparison
+- PR-009: Showcase engagement unknown
+- PR-010: Band threshold tuning needed after production data
+
+### Prestige Readiness: PRESTIGE / SOCIAL STATUS LAYER V1 READY
