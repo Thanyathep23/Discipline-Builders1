@@ -1477,3 +1477,45 @@ Added: `useAdminDashboard`, `useAdminPlayers(params)`, `useAdminPlayerSnapshot(i
 - Escalation rules with time-based SLAs
 - Known issues documented with workarounds
 - Existing admin tooling sufficient — no dangerous new mutation powers added
+
+## Phase 31 — Live Ops Cadence v1 (COMPLETE)
+
+### Documentation (`docs/live-ops/` — 10 files)
+- `live-ops-audit.md` — Full audit of existing live ops infrastructure, content surfaces, retention hooks, gaps, and risk points
+- `cadence-doctrine.md` — 6 core goals (return reasons, identity, economy health, sustainability, measurability, modularity); 4 cadence layers (weekly/monthly/seasonal/comeback); economy safety rules; content effort guidelines
+- `calendar-30-60-90.md` — 12-week practical calendar across 3 seasons (Genesis → Rise → Discipline); weekly themes, target emotions, events, rewards, spotlight categories; rotation/retirement rules; data-informed milestones by Day 90
+- `event-templates.md` — 5 reusable event templates: Template A (Weekly Challenge, 6 variants), Template B (Milestone Push, 5 variants), Template C (Status Spotlight, 4 variants), Template D (Comeback Event, 4 variants), Template E (Seasonal Banner); usage guide
+- `reward-drop-templates.md` — 6 reward templates (participation 10-20c, completion 25-50c, milestone 40-80c, comeback 15-30c, spotlight 15-25c, cosmetic-only 0c); reward safety checklist; economy impact summary (max ~385c/month from live ops)
+- `comeback-loops.md` — 4 inactivity windows (3-day, 7-day, 14-day, 30-day); re-entry experiences with objectives, rewards, tone/copy; anti-abuse safeguards (14-day cooldown, 30c cap, farming detection); technical implementation using existing infrastructure
+- `seasonal-framework.md` — 6 reusable themes (Genesis, Rise, Discipline, Momentum, Status, Rebuild); each with emotional tone, focus, challenge types, item emphasis, banner colors, copy direction; rotation plan; seasonal influence map
+- `launch-live-ops-runbook.md` — Weekly routine (45 min: setup/check/close), monthly routine (90 min: plan/review/archive); event launch checklist; event close checklist; seasonal transition checklist; emergency operations
+- `live-ops-metrics.md` — 13 metrics: 5 launch-critical (participation, completion, comeback conversion, economy impact, 7-day retention), 5 directional (proof lift, purchase lift, session lift, fatigue signal, seasonal engagement), 3 future (retention by cohort, LTV impact, optimal frequency)
+- `known-live-ops-risks.md` — 10 known risks (R1-R10): no automated per-event tracking, comeback farming, event fatigue, manual workload, economy assumptions, no push notifications, manual seasonal rotation, noisy small-base metrics, no A/B for event design, no individual event progress tracking
+
+### Code Config Layer (`artifacts/api-server/src/lib/live-ops/` — 7 files)
+- `liveOpsTypes.ts` — TypeScript types for event templates, reward templates, seasonal themes, comeback rules, calendar weeks, objectives
+- `eventTemplates.ts` — 20 typed event templates across 4 layers (weekly/monthly/spotlight/comeback/seasonal)
+- `rewardTemplates.ts` — 6 typed reward templates with validation function (`validateRewardAmount`)
+- `seasonalThemes.ts` — 6 typed seasonal themes with helper functions
+- `comebackRules.ts` — 4 typed comeback rules with day-based resolver and anti-abuse constants
+- `liveOpsCalendar.ts` — 12-week typed calendar with helpers for week/season lookup
+- `liveOpsConfig.ts` — Unified re-export barrel + economy limit constants
+
+### What Was Reused (No New Backend Routes)
+- Existing `live_events` + `content_packs` DB tables and CRUD routes
+- Existing event scheduling (startsAt/endsAt auto-promotion)
+- Existing eligibility rules (comeback, arc_match, skill_weak)
+- Existing admin mobile screens for event management
+- Existing `kill_live_ops` kill switch
+- Existing recommendation engine with comeback surfaces
+- Existing adaptive challenge system for difficulty adjustment
+
+### Launch Readiness: LIVE OPS READY
+- Clear cadence doctrine with economy safety rules
+- Practical 12-week calendar with operator time estimates
+- 20 reusable event templates for all cadence layers
+- 6 reward templates with economy-safe bounds
+- Comeback framework with anti-abuse safeguards
+- 6 seasonal themes for emotional/world refresh
+- Operator runbook with checklists for weekly/monthly routines
+- No new gameplay scope added — documentation + config only

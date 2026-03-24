@@ -1,0 +1,145 @@
+import type { CalendarWeek, SeasonId } from "./liveOpsTypes.js";
+
+export const LIVE_OPS_CALENDAR: CalendarWeek[] = [
+  {
+    weekNumber: 1,
+    theme: "First Steps",
+    targetEmotion: "Excitement, possibility",
+    eventTemplateId: "weekly_focus_sprint",
+    rewardCoins: 30,
+    comebackHook: false,
+    operatorMinutes: 15,
+    seasonId: "genesis",
+  },
+  {
+    weekNumber: 2,
+    theme: "Build Momentum",
+    targetEmotion: "Progress, routine forming",
+    eventTemplateId: "weekly_discipline_push",
+    rewardCoins: 25,
+    spotlightCategory: "wearable",
+    comebackHook: true,
+    operatorMinutes: 15,
+    seasonId: "genesis",
+  },
+  {
+    weekNumber: 3,
+    theme: "Shape Your Identity",
+    targetEmotion: "Self-expression, aspiration",
+    eventTemplateId: "weekly_style_challenge",
+    rewardCoins: 20,
+    spotlightCategory: "wearable",
+    comebackHook: true,
+    operatorMinutes: 15,
+    seasonId: "genesis",
+  },
+  {
+    weekNumber: 4,
+    theme: "First Month Milestone",
+    targetEmotion: "Achievement, belonging",
+    eventTemplateId: "milestone_level_gate",
+    rewardCoins: 50,
+    spotlightCategory: "wearable",
+    comebackHook: true,
+    operatorMinutes: 30,
+    seasonId: "genesis",
+  },
+  {
+    weekNumber: 5,
+    theme: "Rise Up",
+    targetEmotion: "Renewed energy",
+    eventTemplateId: "weekly_focus_sprint",
+    rewardCoins: 30,
+    comebackHook: true,
+    operatorMinutes: 30,
+    seasonId: "rise",
+  },
+  {
+    weekNumber: 6,
+    theme: "Level Up Your Weakest",
+    targetEmotion: "Growth, mastery",
+    eventTemplateId: "weekly_skill_growth",
+    rewardCoins: 25,
+    spotlightCategory: "wearable",
+    comebackHook: true,
+    operatorMinutes: 15,
+    seasonId: "rise",
+  },
+  {
+    weekNumber: 7,
+    theme: "Aspire Higher",
+    targetEmotion: "Desire, ambition",
+    eventTemplateId: "weekly_proof_quality",
+    rewardCoins: 35,
+    spotlightCategory: "car",
+    comebackHook: true,
+    operatorMinutes: 15,
+    seasonId: "rise",
+  },
+  {
+    weekNumber: 8,
+    theme: "Two Months Strong",
+    targetEmotion: "Pride, identity",
+    eventTemplateId: "milestone_mission_count",
+    rewardCoins: 60,
+    spotlightCategory: "room_environment",
+    comebackHook: true,
+    operatorMinutes: 30,
+    seasonId: "rise",
+  },
+  {
+    weekNumber: 9,
+    theme: "Iron Discipline",
+    targetEmotion: "Grit, determination",
+    eventTemplateId: "weekly_streak_builder",
+    rewardCoins: 40,
+    comebackHook: true,
+    operatorMinutes: 30,
+    seasonId: "discipline",
+  },
+  {
+    weekNumber: 10,
+    theme: "Smart Money Week",
+    targetEmotion: "Strategic thinking",
+    eventTemplateId: "weekly_skill_growth",
+    rewardCoins: 25,
+    spotlightCategory: "car",
+    comebackHook: true,
+    operatorMinutes: 15,
+    seasonId: "discipline",
+  },
+  {
+    weekNumber: 11,
+    theme: "Build Your World",
+    targetEmotion: "Ownership, pride",
+    eventTemplateId: "weekly_style_challenge",
+    rewardCoins: 30,
+    spotlightCategory: "room_decor",
+    comebackHook: true,
+    operatorMinutes: 15,
+    seasonId: "discipline",
+  },
+  {
+    weekNumber: 12,
+    theme: "Quarter One Complete",
+    targetEmotion: "Major achievement",
+    eventTemplateId: "milestone_quarter_wrap",
+    rewardCoins: 80,
+    spotlightCategory: "car",
+    comebackHook: true,
+    operatorMinutes: 45,
+    seasonId: "discipline",
+  },
+];
+
+export function getCalendarWeek(weekNumber: number): CalendarWeek | undefined {
+  return LIVE_OPS_CALENDAR.find((w) => w.weekNumber === weekNumber);
+}
+
+export function getWeeksBySeason(seasonId: SeasonId): CalendarWeek[] {
+  return LIVE_OPS_CALENDAR.filter((w) => w.seasonId === seasonId);
+}
+
+export function getTotalOperatorMinutes(): number {
+  return LIVE_OPS_CALENDAR.reduce((sum, w) => sum + w.operatorMinutes, 0);
+}

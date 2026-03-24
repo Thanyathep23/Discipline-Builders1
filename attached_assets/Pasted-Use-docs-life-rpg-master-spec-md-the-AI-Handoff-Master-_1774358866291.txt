@@ -1,0 +1,739 @@
+Use docs/life-rpg-master-spec.md, the AI Handoff Master Brief, the existing Replit codebase, and all completed Phase 27–30 artifacts as the permanent source of truth.
+
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+# Phase 31 — Live Ops Cadence v1
+Version: 1.0 | Platform: Replit | Scope: Content cadence, event templates, seasonal rhythms, comeback loops, launch-safe live ops foundation
+
+## 🎯 PROJECT OVERVIEW
+Build the first real Live Ops Cadence foundation for the existing Life RPG app.
+
+This phase is NOT about adding random new gameplay.
+This phase is NOT about building a giant live service backend.
+This phase is about creating a repeatable operating rhythm that gives users reasons to come back and gives the team a practical system to run the product after launch.
+
+The live ops layer must support:
+- weekly engagement rhythm
+- monthly status/content drops
+- limited-time events
+- comeback hooks for stalled users
+- progression momentum
+- aspiration/status moments
+- seasonal identity and world refreshes
+- a content calendar the team can actually execute
+
+The target outcome:
+1. the team has a clear 30/60/90 day live ops cadence
+2. the app has reusable event/content templates
+3. rewards and drops are scheduled intentionally, not randomly
+4. live ops supports retention, aspiration, and identity progression
+5. live ops remains lightweight enough for launch-stage execution
+6. the repo contains docs, config, and operational scaffolding for real ongoing cadence
+
+==================================================
+PHASE SCOPE ONLY
+==================================================
+
+Build only the minimum strong live ops cadence foundation needed for launch and early post-launch operation.
+
+Required outputs for this phase:
+1. live ops audit
+2. cadence design doctrine
+3. 30/60/90 day live ops calendar
+4. event template system
+5. reward/drop template system
+6. seasonal/status moment framework
+7. comeback loop framework
+8. lightweight live ops config/content structure
+9. founder/operator runbook
+10. launch-safe docs for planning and execution
+11. minimal admin/ops surfaces only if necessary
+
+Do NOT build:
+- a giant CMS
+- a full remote config platform unless already nearly available
+- real-money monetization systems
+- complex narrative campaign engine
+- multiplayer tournament systems
+- large social feed systems
+- full experimentation platform
+- new gameplay pillars unrelated to current product
+- massive UI redesigns
+
+If the app already has admin/ops patterns, reuse them.
+If content is currently code-driven, keep it lightweight and structured.
+Prefer templates + schedule + config over heavyweight tools.
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything, inspect and report the current state across:
+
+A. Existing live content surfaces
+- missions
+- rewards
+- item catalog
+- wardrobe
+- room environments
+- cars
+- wheel styles
+- prestige/status systems
+- milestones
+- progression moments
+- any banners/admin tools already present
+
+B. Existing operational surfaces
+- admin console
+- config systems
+- schedule/date logic
+- content seeds
+- event toggles / feature flags
+- telemetry that could measure live ops impact
+- metrics/dashboard support from prior phases
+
+C. Current retention hooks
+- streaks
+- proof/reward loops
+- progression updates
+- character evolution
+- purchases/status expression
+- any comeback behavior already present
+
+D. Current gaps
+- no weekly cadence
+- no monthly drop rhythm
+- no seasonal identity system
+- no comeback campaign logic
+- no reusable live ops template structure
+- no content planning calendar
+- no founder/operator live ops runbook
+
+E. Current risk points
+- shipping too much manual content work
+- creating cadence the team cannot sustain
+- making rewards too generous and breaking economy
+- live ops events that feel pointless
+- too many events causing fatigue/confusion
+- no measurement for event effectiveness
+
+Your audit must identify:
+1. what already exists and can be reused
+2. what current content surfaces are best suited for live ops
+3. what is missing
+4. what would be too expensive to run manually
+5. what cadence is realistic for launch-stage operations
+
+Do not guess blindly.
+Audit first, then design cadence.
+
+==================================================
+STEP 2 — DEFINE THE LIVE OPS DOCTRINE
+==================================================
+
+Create a clear v1 live ops doctrine.
+
+The live ops system must satisfy all of these simultaneously:
+
+### Goal A — Give Users Reasons to Return
+Users must feel that something is happening:
+- new challenge
+- new drop
+- new milestone opportunity
+- new seasonal/status moment
+without overwhelming them.
+
+### Goal B — Reinforce Identity and Aspiration
+Live ops must deepen the fantasy:
+"I am building my life, my status, my world, and my identity."
+It should not feel like random chores.
+
+### Goal C — Support Economy Health
+Live ops should create healthy demand for:
+- engagement
+- saving/spending decisions
+- selective aspiration
+without collapsing the economy.
+
+### Goal D — Be Operationally Sustainable
+The team must actually be able to run it.
+No cadence that requires huge daily manual work.
+
+### Goal E — Be Measurable
+Every event type should be tied to metrics:
+- participation
+- completion
+- purchase uplift
+- comeback rate
+- retention effect
+- economy impact
+
+### Goal F — Be Modular
+Weekly / monthly / seasonal structures should be reusable templates, not hand-built one-offs every time.
+
+==================================================
+STEP 3 — CREATE THE LIVE OPS ARTIFACTS IN THE REPO
+==================================================
+
+Create a clear docs structure.
+
+Recommended structure:
+
+/docs/live-ops/
+  live-ops-audit.md
+  cadence-doctrine.md
+  calendar-30-60-90.md
+  event-templates.md
+  reward-drop-templates.md
+  comeback-loops.md
+  seasonal-framework.md
+  launch-live-ops-runbook.md
+  live-ops-metrics.md
+  known-live-ops-risks.md
+
+Recommended code/config structure:
+
+/shared/liveOps/
+  liveOpsConfig.ts
+  liveOpsTypes.ts
+  eventTemplates.ts
+  rewardTemplates.ts
+  seasonalThemes.ts
+  comebackRules.ts
+  liveOpsCalendar.ts
+
+/server/liveOps/
+  liveOpsService.ts
+  liveOpsRoutes.ts
+  liveOpsScheduler.ts
+
+Adapt to the repo’s actual structure if needed.
+Keep the system lightweight and understandable.
+
+==================================================
+STEP 4 — DEFINE THE LIVE OPS CADENCE LAYERS
+==================================================
+
+Create a simple layered cadence model.
+
+At minimum define:
+
+### Layer A — Weekly Rhythm
+Purpose:
+- keep engagement alive
+- create short-term reasons to return
+- create measurable participation beats
+
+Examples:
+- weekly discipline challenge
+- weekly focus streak push
+- weekly proof-quality challenge
+- weekly room/style aspiration highlight
+- weekly “finish what you started” challenge
+
+### Layer B — Monthly Status Drop
+Purpose:
+- create bigger anticipation moments
+- refresh aspiration
+- anchor identity/status progression
+
+Examples:
+- monthly featured wardrobe collection
+- monthly featured car/wheel pairing
+- monthly room environment spotlight
+- monthly prestige status set
+- monthly mastery milestone push
+
+### Layer C — Seasonal Theme
+Purpose:
+- refresh the emotional/world layer
+- make the app feel alive
+- create narrative coherence for live ops
+
+Examples:
+- Rise Season
+- Discipline Season
+- Momentum Season
+- Status Season
+- Rebuild Season
+- Elite Focus Month
+
+### Layer D — Comeback Cadence
+Purpose:
+- recover users who stalled
+- reduce shame/friction
+- convert inactivity into re-entry
+
+Examples:
+- comeback challenge
+- one clean restart sequence
+- reduced-friction first mission
+- “rebuild your streak” event
+- “return to your room/world” prompt
+
+Each layer must define:
+- frequency
+- intended user psychology
+- economy implications
+- required content effort
+- metrics to watch
+
+==================================================
+STEP 5 — BUILD THE 30 / 60 / 90 DAY LIVE OPS CALENDAR
+==================================================
+
+Create a practical launch-stage calendar.
+
+### 30-Day Calendar
+Must answer:
+- what happens each week
+- what event is featured
+- what drop/status focus exists
+- what comeback hook exists
+- what economy sensitivity needs monitoring
+
+### 60-Day Calendar
+Must expand:
+- cadence repetition with variation
+- second month drop logic
+- event fatigue prevention
+- first seasonal refresh or seasonal continuation
+
+### 90-Day Calendar
+Must define:
+- sustainable operating rhythm
+- what gets repeated
+- what gets rotated
+- what gets retired
+- what should be data-informed by then
+
+For each week/month define:
+- live ops theme
+- target user emotion
+- primary event
+- reward/drop angle
+- target metrics
+- operator workload estimate
+
+Do NOT make the calendar unrealistic.
+Optimize for consistency over hype.
+
+==================================================
+STEP 6 — DEFINE REUSABLE EVENT TEMPLATES
+==================================================
+
+Create reusable event templates for launch-stage live ops.
+
+At minimum define templates for:
+
+### Template A — Weekly Challenge
+Fields:
+- event id
+- title
+- short description
+- objective type
+- progress criteria
+- reward type
+- duration
+- visibility rules
+- metrics to track
+- economy caution notes
+
+### Template B — Milestone Push Event
+Fields:
+- who it targets
+- milestone criteria
+- progression tie-in
+- reward/status tie-in
+- expiry
+- success/failure signals
+
+### Template C — Status Spotlight Event
+Fields:
+- featured item/category
+- aspiration message
+- related challenge or mission angle
+- reward angle
+- conversion metrics
+
+### Template D — Comeback Event
+Fields:
+- inactivity criteria
+- re-entry objective
+- reduced-friction path
+- first success reward
+- shame-free copy guidance
+- conversion metrics
+
+### Template E — Seasonal Banner/Event
+Fields:
+- seasonal theme
+- timeframe
+- affected content surfaces
+- messaging style
+- event bundle components
+- metrics
+
+Each template must be structured enough to be reused with different content themes later.
+
+==================================================
+STEP 7 — DEFINE REWARD / DROP TEMPLATES
+==================================================
+
+Create a lightweight reward/drop framework that works with Phase 28 economy tuning.
+
+At minimum define reward/drop templates for:
+- participation reward
+- completion reward
+- milestone reward
+- comeback reward
+- spotlight/status-linked reward
+- prestige-feeling but economy-safe reward
+
+Each reward/drop template must specify:
+- reward type
+- value range
+- economy sensitivity
+- how often it may repeat
+- whether it is cosmetic/status/progression/supportive
+- anti-inflation notes
+- abuse risk notes
+
+The live ops reward layer must:
+- feel special enough to matter
+- not destroy the economy
+- not trivialize premium/status items
+- work with the current store/progression fantasy
+
+Do NOT invent loot-box or gambling mechanics.
+
+==================================================
+STEP 8 — DEFINE THE COMEBACK LOOP FRAMEWORK
+==================================================
+
+Create a dedicated comeback framework for stalled users.
+
+At minimum define:
+- inactivity windows (example: 3 days / 7 days / 14+ days)
+- what kind of comeback experience each window gets
+- re-entry challenge structure
+- reduced-friction objectives
+- reward boundaries
+- tone/copy direction
+- metrics for comeback effectiveness
+
+The comeback system must:
+- reduce guilt
+- reduce friction
+- create one clear next step
+- reconnect the user to their world/identity
+- feel like recovery, not punishment
+
+Examples:
+- “Start clean today”
+- “Rebuild one streak”
+- “One focused session to re-enter”
+- “Return to your room / reset your momentum”
+
+Do NOT make comeback rewards so large that active users feel punished for consistency.
+
+==================================================
+STEP 9 — DEFINE THE SEASONAL / STATUS FRAMEWORK
+==================================================
+
+Build a seasonal/status framework that fits the brand fantasy.
+
+At minimum define:
+- 4–6 reusable seasonal themes
+- each theme’s emotional tone
+- associated live ops focus
+- associated visual/status angle
+- associated challenge types
+- associated item/drop emphasis
+- associated copywriting direction
+
+Examples of theme directions:
+- discipline
+- rebuild
+- rise
+- elite focus
+- momentum
+- refinement
+- status progression
+- comeback / reset
+
+This framework should influence:
+- banners
+- event names
+- operator planning
+- reward framing
+- item spotlights
+- mood of the app over time
+
+Keep it coherent with the brand.
+Do NOT create random disconnected themes.
+
+==================================================
+STEP 10 — DEFINE THE OPERATOR RUNBOOK
+==================================================
+
+Create a practical founder/operator runbook for live ops.
+
+At minimum include:
+
+### Weekly Operator Routine
+- check prior week metrics
+- prepare next week event
+- verify reward config
+- verify banner/content config
+- verify event dates
+- sanity-check economy impact
+- launch event
+- review event participation mid-cycle
+- close event and log learnings
+
+### Monthly Operator Routine
+- review status drop performance
+- review first purchase and premium aspiration metrics
+- rotate spotlight surfaces
+- review fatigue/confusion signals
+- plan next month’s theme
+- update 30/60/90 plan
+
+### Event Launch Checklist
+- copy reviewed
+- date/time verified
+- reward value verified
+- no economy risk
+- no conflicting event overlap
+- metrics ready
+- fallback/disable plan exists
+
+### Event Close Checklist
+- event ended correctly
+- rewards resolved correctly
+- no stuck states
+- participation metrics logged
+- learnings documented
+
+Make this runbook practical for real use under limited team capacity.
+
+==================================================
+STEP 11 — BUILD THE LIGHTWEIGHT LIVE OPS CONFIG LAYER
+==================================================
+
+Create a lightweight configuration structure for live ops.
+
+At minimum support:
+- active event definitions
+- event date windows
+- event type
+- reward template reference
+- audience targeting rules if simple and already feasible
+- seasonal theme reference
+- banner/display metadata
+- enabled/disabled state
+
+If remote config already exists, reuse it.
+If not, create a code/config-driven v1 that is easy to update safely.
+
+Rules:
+- avoid giant CMS complexity
+- keep event objects easy to read
+- keep schedule logic explicit
+- support future extension without locking the team into brittle one-off structures
+
+==================================================
+STEP 12 — MINIMAL ADMIN/OPS SURFACES (ONLY IF NECESSARY)
+==================================================
+
+Only if current admin/ops surfaces are insufficient, add minimal safe surfaces.
+
+Allowed examples:
+- view active/upcoming live ops entries
+- enable/disable an event
+- inspect event schedule
+- inspect event config summary
+- inspect event participation summary if easy
+- inspect seasonal theme assignment
+
+Do NOT build:
+- a huge scheduling UI
+- complex drag-and-drop CMS
+- unrestricted mutation interfaces
+- dangerous hidden event editors without validation
+
+If content can be managed through safe config/docs for now, prefer that.
+
+==================================================
+STEP 13 — DEFINE LIVE OPS METRICS
+==================================================
+
+Without overbuilding analytics, define the live ops metrics that matter.
+
+At minimum define:
+- event exposure count
+- participation rate
+- completion rate
+- reward claim rate
+- re-entry/comeback conversion
+- lift in proof submissions during event
+- lift in purchases during spotlight
+- room/car/wardrobe engagement during event
+- retention effect by event cohort if feasible
+- event fatigue signals
+- economy impact signals
+
+For each metric define:
+- formula
+- data source
+- cadence
+- how operators should interpret it
+- what action it should trigger
+
+Make it clear which metrics are:
+- launch-critical
+- directional only
+- future/nice-to-have
+
+==================================================
+STEP 14 — SECURITY, ECONOMY SAFETY, ERROR HANDLING, EDGE CASES
+==================================================
+
+## 🔐 SECURITY / CONTROL
+- live ops config changes must be controlled
+- event activation must not bypass economy safeguards
+- event rewards must not create duplicate minting paths
+- status/item spotlight events must not override ownership safety rules
+- admin/ops changes must be auditable where possible
+
+## 💰 ECONOMY SAFETY
+- event rewards must respect Phase 28 economy doctrine
+- no event should trivialize premium cars/rooms/status assets
+- comeback rewards must not outperform consistency unfairly
+- repeated weekly rewards must stay bounded
+- spotlight incentives must not create obvious exploit loops
+
+## 🛡️ ERROR HANDLING
+- expired event should stop cleanly
+- missing event config should fail safely
+- overlapping events should be detectable/documented
+- invalid date windows should not crash the app
+- reward template mismatch should fail safely
+- missing banner/content should degrade gracefully
+
+## ⚠️ EDGE CASES
+- user joins near event end
+- user completes objective after event expiry
+- user returns after long inactivity during a live event
+- event overlaps with seasonal theme rollover
+- spotlighted item already owned
+- user has insufficient coins for spotlighted item
+- active user and comeback user see different incentives
+- event config exists but metrics are not fully ready
+- small user base causes noisy results
+
+==================================================
+STEP 15 — DOCUMENT KNOWN LIVE OPS RISKS
+==================================================
+
+Create /docs/live-ops/known-live-ops-risks.md and log:
+- event types not yet implemented technically
+- metrics not yet reliable enough
+- any manual content workload concerns
+- economy assumptions that need post-launch validation
+- any parts still config-driven instead of tool-driven
+- any areas where live ops depends on future phases
+
+Be honest and specific.
+
+==================================================
+STEP 16 — DO NOT OVER-ENGINEER
+==================================================
+
+Important implementation rules:
+
+1. Do NOT build a huge live service platform.
+2. Do NOT add more event types than the team can run.
+3. Do NOT create unrealistic content cadence.
+4. Prefer reusable templates over one-off cleverness.
+5. Prefer weekly/monthly consistency over daily chaos.
+6. Keep economy safety ahead of hype.
+7. Keep the system launch-stage practical.
+8. Make it easy for future phases to extend.
+
+==================================================
+STEP 17 — ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a live ops audit exists
+2. a cadence doctrine exists
+3. a 30/60/90 day calendar exists
+4. reusable event templates exist
+5. reusable reward/drop templates exist
+6. comeback framework exists
+7. seasonal/status framework exists
+8. operator runbook exists
+9. lightweight live ops config structure exists
+10. live ops metrics are defined
+11. known risks are documented
+12. no new gameplay scope was added
+13. the app is easier to operate post-launch than before
+14. the cadence is sustainable for a launch-stage team
+
+==================================================
+STEP 18 — DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary
+- what live ops surfaces already existed
+- what was missing
+- what was reused
+- what was added in this phase
+
+2. Files created or changed in this run only
+
+3. Live ops documentation summary
+- cadence doctrine
+- 30/60/90 calendar
+- event templates
+- reward/drop templates
+- comeback loops
+- seasonal framework
+- operator runbook
+- metrics
+- known risks
+
+4. Config/system summary
+- what live ops config structures were added
+- how events are represented
+- how operators will manage cadence in v1
+
+5. Verification results
+- typecheck/build status
+- tests status if applicable
+- admin/ops surface load status if applicable
+- any remaining non-blocking live ops gaps
+
+6. Launch recommendation
+- LIVE OPS READY or NOT READY
+- if NOT READY, list the exact blockers
+
+==================================================
+IMPORTANT OPERATING RULES
+==================================================
+
+- Audit before designing
+- Keep scope narrow
+- Do not restart the project
+- Do not invent a new product direction
+- Do not build a giant CMS
+- Do not create unsustainable live ops workload
+- Prefer reusable operational structure over flashy complexity
+- Preserve economy integrity and trust-critical behavior at all costs
