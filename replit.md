@@ -1441,3 +1441,39 @@ Added: `useAdminDashboard`, `useAdminPlayers(params)`, `useAdminPlayerSnapshot(i
 - `qa_broke` — L3, 0c, trust 0.7 (insufficient funds testing)
 - `qa_suspicious` — L2, 50c, trust 0.3 (low-trust judge strictness)
 - Password for all: `QaTest123!`
+
+## Phase 30 — Support / Incident Playbook (COMPLETE)
+
+### Documentation (`docs/support/` — 16 files)
+- `support-audit.md` — Full audit of existing ops/support infrastructure, failure surfaces, gaps, and what was reused
+- `incident-taxonomy.md` — 7 incident families (Auth, Mission/Session, Proof/Judge, Reward/Wallet, Store/Ownership, Progression, System) with symptom, cause, severity, first action per incident type
+- `severity-model.md` — P0-P3 severity model with business impact, user impact, response urgency, escalation, release-blocking, hotfix criteria, and quick-reference decision tree
+- `triage-workflow.md` — 10-step triage flow (classify → severity → logs → scope → resolve/escalate → respond → document); time-based protocols (5-min, 15-min for P0/P1); freeze/block criteria
+- `playbook-auth.md` — 4 scenarios: cannot register, cannot login, token/session issues, access denied
+- `playbook-proof-judge.md` — 5 scenarios: submission failed, proof missing, follow-up confusion, unfair reject dispute, judge timeout/provider outage
+- `playbook-reward-wallet.md` — 5 scenarios: reward not granted, duplicate suspicion, wrong amount, balance mismatch, unexpected coin change
+- `playbook-store-ownership.md` — 5 scenarios: purchase failed, charged but item missing, cannot equip, switch failed, inconsistent state
+- `playbook-character-progression.md` — 5 scenarios: progression not updated, updated incorrectly, visual mismatch, milestone missing, prestige mismatch
+- `playbook-system-outages.md` — 6 scenarios: provider outage, DB instability, telemetry failure, release regression, partial outage, P0 protocol
+- `user-response-templates.md` — 12 templates: acknowledged, investigating, resolved, unable to reproduce, manual correction, provider delay, reward review, purchase check, progression delay, known incident, follow-up explanation, dispute acknowledged
+- `internal-investigation-checklists.md` — 6 checklists: user identity, proof/reward, purchase/ownership, progression, auth, release regression
+- `escalation-rules.md` — 4 levels (L1 Support → L2 Admin → L3 Engineering → L4 Founder) with triggers, maximum delays, required notes
+- `incident-log-template.md` — Structured template with incident ID, timeline, investigation, root cause, mitigation, resolution, follow-up; postmortem trigger conditions
+- `known-issues-registry.md` — 7 active known issues (KI-001 to KI-007): in-memory rate limiter reset, token revocation reset, no session timeout, non-transactional equip, client cache staleness, strict rule-based fallback, upload rate limiter UX
+- `rollback-hotfix-rules.md` — Decision matrix for rollback vs hotfix vs next-release; kill switch usage guide; post-rollback verification checklist
+- `ops-rhythm.md` — Daily review (8 checks) and weekly review (6 areas) with metrics to monitor and healthy ranges
+
+### Support Tooling (No New Code)
+- Existing admin-wave3 repair tools cover all operational needs: wallet/XP/skills/inventory repair
+- Existing incident management, support cases, anomaly detection, kill switches all in place
+- 11 kill switches available for emergency subsystem isolation
+- Full audit_log infrastructure for investigation queries
+
+### Launch Readiness: SUPPORT READY
+- 16 documentation files covering all incident families
+- Clear severity model and triage workflow
+- Step-by-step playbooks for all major failure types
+- Standardized user response templates
+- Escalation rules with time-based SLAs
+- Known issues documented with workarounds
+- Existing admin tooling sufficient — no dangerous new mutation powers added
