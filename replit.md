@@ -1794,3 +1794,77 @@ Prestige is a server-side library in `artifacts/api-server/src/lib/prestige/` wi
 - PR-010: Band threshold tuning needed after production data
 
 ### Prestige Readiness: PRESTIGE / SOCIAL STATUS LAYER V1 READY
+
+## Phase 37 — Data Flywheel / Live Tuning Engine v1
+
+### Purpose
+Makes the product capable of learning from real usage and improving through structured, human-guided tuning. Provides a complete loop from user behavior → signal → review → tuning action across all domains.
+
+### Architecture
+Tuning engine is a server-side library in `artifacts/api-server/src/lib/tuning/` with 10 files. It centralizes all tuning domains (economy, trust, personalization, live ops, prestige, onboarding), provides lever definitions with safe ranges, guardrails for change validation, structured tuning logs, domain watchlists, feedback ingestion, and operator-facing recommendations. Integrated via `GET/POST /api/admin/tuning/*` endpoints.
+
+### Tuning Library (`artifacts/api-server/src/lib/tuning/`)
+- `tuningTypes.ts` — Core types: TuningDomain (6), TuningChangeType (4), TuningLever, TuningChangeEntry, TuningRecommendation, DomainWatchlistItem, DomainStatus, FeedbackSignal, FeedbackClass (8), ConfigSnapshot
+- `tuningConfig.ts` — Centralized domain registry: lever definitions (16 levers), config version map, review cadence map, observation window map
+- `tuningVersioning.ts` — Config version tracking: per-domain version retrieval, full domain config snapshots
+- `changeGuardrails.ts` — Safe range enforcement: value bounds, observation window conflicts, large-change warnings, prestige weight sum validation
+- `tuningLogService.ts` — Change log: record/review tuning changes, recommendations, feedback signals (in-memory v1)
+- `tuningService.ts` — Propose tuning changes with guardrail validation, domain status aggregation
+- `domainWatchlists.ts` — 18 watchlist items across 5 domains with threshold-based triggering
+- `feedbackIngestion.ts` — 8 feedback class definitions, automatic classification from description keywords
+- `recommendationEngine.ts` — 7 recommendation templates triggered by watchlist items
+- `interpretationRules.ts` — 8 data interpretation rules (3 hard, 5 advisory), signal strength assessment
+- `index.ts` — Barrel exports
+
+### Tuning Domains (6)
+- **Economy**: Reward bands, price bands, multipliers, anti-inflation caps, sellback rates
+- **Trust**: Confidence thresholds, trust score deltas, anti-gaming sensitivity, escalation rules
+- **Personalization**: Discipline thresholds, momentum windows, progression tiers
+- **Live Ops**: Event coin caps, comeback rewards, spotlight limits
+- **Prestige**: Signal weights, band thresholds, showcase/recognition limits
+- **Onboarding**: Proof guidance, first-step friction
+
+### Tuning Levers (16 registered)
+Each lever has: id, domain, configPath, label, description, currentValueFn, safeRange, observationWindowDays, primaryMetric, relatedMetrics, unsafeChanges
+
+### API Endpoints (`/api/admin/tuning/`)
+- `GET /status` — Overall flywheel status: all domains, active observations, triggered watchlists, open recommendations
+- `GET /domains/:domain` — Detailed domain view: levers, config snapshot, watchlist, changes, recommendations
+- `GET /log` — Tuning change log with domain filter
+- `POST /propose` — Propose a tuning change (guardrail-validated)
+- `POST /review/:changeId` — Review a change (kept or reverted)
+- `GET /watchlist` — Domain watchlist items with trigger status
+- `GET /recommendations` — Active operator recommendations
+- `POST /recommendations/generate` — Generate recommendations from triggered watchlist
+- `POST /recommendations/:recId/dismiss` — Dismiss a recommendation
+- `POST /feedback` — Record a feedback signal
+- `GET /feedback` — View feedback signals
+- `GET /config-versions` — Current config versions and full snapshots
+- `GET /interpretation-rules` — Data interpretation rules
+- `GET /levers` — All tunable levers with current values and safe ranges
+
+### Docs (`docs/data-flywheel/`)
+12 files: flywheel-audit.md, flywheel-doctrine.md, signal-map.md, tuning-domain-map.md, tuning-decision-framework.md, safe-tuning-workflow.md, feedback-ingestion.md, tuning-log-system.md, review-cadence.md, domain-watchlists.md, data-interpretation-rules.md, known-flywheel-risks.md
+
+### Key Design Decisions
+- **Human-guided, not black-box**: Recommendations suggest but never auto-apply changes
+- **Safe range guardrails**: Every lever has enforced min/max bounds
+- **Observation windows enforced**: Domain-specific minimums (3-14 days) prevent premature re-tuning
+- **Cross-domain awareness**: Each lever lists related metrics to watch for side effects
+- **Signal strength assessment**: Classifies signals as action-worthy, directional, insufficient, or conflicting
+- **Existing configs reused**: All 6 domain configs already have version strings; tuning engine wraps them in a registry
+- **Interpretation rules prevent bad decisions**: Minimum sample sizes, launch-week caution, correlation vs causation warnings
+
+### Known Risks (FR-001 to FR-010)
+- FR-001: In-memory tuning log (no persistence across restarts)
+- FR-002: Config values are compile-time constants (changes require deploy)
+- FR-003: Small early user base limits signal quality
+- FR-004: Launch week volatility
+- FR-005: Multiple domain problems simultaneously
+- FR-006: Cross-domain side effects
+- FR-007: Operator fatigue from too many alerts
+- FR-008: Confounding live ops events
+- FR-009: Old vs new user cohort differences
+- FR-010: Incomplete instrumentation for some signal metrics
+
+### Data Flywheel Readiness: DATA FLYWHEEL / LIVE TUNING ENGINE V1 READY

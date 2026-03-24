@@ -1,0 +1,818 @@
+Use docs/life-rpg-master-spec.md, the AI Handoff Master Brief, the existing Replit codebase, and all completed Phase 27–36 artifacts as the permanent source of truth.
+
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+# Phase 37 — Data Flywheel / Live Tuning Engine
+Version: 1.0 | Platform: Replit | Scope: Feedback loops, tuning signals, operator decision engine, safe config iteration, live learning foundation
+
+## 🎯 PROJECT OVERVIEW
+Build Data Flywheel / Live Tuning Engine v1 for the existing Life RPG app.
+
+This phase is NOT about building a giant ML platform.
+This phase is NOT about building a full experimentation warehouse.
+This phase is about making the product capable of learning from real usage and improving itself through structured tuning.
+
+The live tuning engine must improve:
+- product iteration speed
+- economy tuning quality
+- trust tuning quality
+- personalization tuning quality
+- live ops effectiveness
+- decision quality for founder/operators
+- ability to detect what is working, what is weak, and what needs adjustment
+
+The target outcome:
+1. the product has a defined loop from user behavior → signal → review → tuning action
+2. the team can identify weak spots faster
+3. tuning becomes structured, not guess-based
+4. economy, trust, personalization, prestige, and live ops become adjustable through evidence
+5. configuration changes become safer and more auditable
+6. the app gains a real operating flywheel that gets stronger with real usage
+
+==================================================
+PHASE SCOPE ONLY
+==================================================
+
+Build only the minimum strong Data Flywheel / Live Tuning foundation needed for post-launch learning and moat compounding.
+
+Required outputs for this phase:
+1. flywheel audit
+2. data flywheel doctrine
+3. signal map
+4. tuning domain map
+5. review cadence / operating loop
+6. live tuning decision framework
+7. safe config/tuning workflow
+8. feedback ingestion and interpretation rules
+9. tuning log / experiment log system
+10. tuning dashboard additions or integration points
+11. centralized tuning config/versioning structure
+12. repo documentation for flywheel logic and known limitations
+
+Do NOT build:
+- a giant data warehouse
+- advanced machine learning pipelines
+- automatic self-modifying black-box systems
+- deep experimentation platform
+- fully autonomous decision-making
+- real-time optimization engine
+- giant notification/CRM platform
+- new gameplay pillars
+- major backend rewrite unrelated to tuning
+
+If the app already has:
+- metrics dashboard
+- trust metrics
+- economy metrics
+- personalization metrics
+- live ops metrics
+- audit logs
+- config files
+- admin/ops surfaces
+reuse and connect them.
+
+Do NOT replace working systems blindly.
+Upgrade them into a clearer Data Flywheel / Live Tuning Engine v1.
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything, inspect and report the current data-to-decision state across:
+
+A. Existing measurable systems
+- product metrics from Phase 29
+- support/incident signals from Phase 30
+- live ops metrics from Phase 31
+- economy metrics from Phase 28
+- trust metrics from Phase 33
+- personalization metrics from Phase 34
+- prestige/history engagement metrics from Phases 35–36
+
+B. Existing tuning surfaces
+- reward values
+- price bands
+- streak multipliers
+- trust thresholds
+- follow-up/reject thresholds
+- personalization rules
+- next-action priorities
+- live ops config
+- prestige visibility/showcase rules
+- content emphasis or spotlight settings
+
+C. Existing decision friction
+- where tuning is scattered
+- where magic numbers still exist
+- where configs are hard to change safely
+- where results are not attributable to a specific tuning change
+- where operators lack visibility
+- where issues are visible but not actionable
+
+D. Existing data quality risks
+- missing instrumentation
+- duplicate events
+- hard-to-interpret dashboards
+- no clear before/after comparison
+- weak cohort separation
+- weak config version tracking
+- no changelog linking tuning actions to metric shifts
+
+E. Existing operational risks
+- overreacting to noisy small-sample data
+- shipping tuning changes without recording rationale
+- changing too many knobs at once
+- config drift across client/server/docs
+- confusing temporary noise with true signal
+- making tuning decisions without enough observation window
+
+Your audit must identify:
+1. what already exists and is reusable
+2. what tuning levers already exist
+3. what data is good enough to drive tuning
+4. what is still too noisy or incomplete
+5. what must be centralized in this phase
+6. what must remain manual and human-reviewed
+
+Do not guess blindly.
+Audit first, then build the flywheel.
+
+==================================================
+STEP 2 — DEFINE THE DATA FLYWHEEL DOCTRINE
+==================================================
+
+Create a clear Data Flywheel / Live Tuning v1 doctrine.
+
+The live tuning engine must satisfy all of these simultaneously:
+
+### Goal A — Learn From Real Behavior
+The product should improve from:
+- what users actually do
+- where users stall
+- what users ignore
+- what users return for
+- what creates trust or friction
+- what creates purchase and identity momentum
+
+### Goal B — Tune Safely
+Changes must be:
+- bounded
+- recorded
+- reviewable
+- reversible
+- understandable
+
+### Goal C — Human-Guided, Not Black-Box
+The system should surface signals and recommended actions,
+but humans still decide what to change.
+
+### Goal D — Close the Loop
+Every major tuning domain should have:
+- signals
+- thresholds/watchpoints
+- actions
+- review cadence
+- logging of what changed and why
+
+### Goal E — Multi-Domain Learning
+The flywheel must work across:
+- economy
+- trust
+- personalization
+- live ops
+- prestige/identity surfaces
+- launch/retention friction
+
+### Goal F — Compounding Advantage
+The better the app gets at reading and tuning itself,
+the harder it becomes for others to copy the full operating system.
+
+==================================================
+STEP 3 — DEFINE THE SIGNAL MAP
+==================================================
+
+Create a signal map that connects product behavior to tuning decisions.
+
+At minimum define signal families such as:
+
+### A. Activation Signals
+- registration to first mission
+- first session start
+- first proof submit
+- first approved proof
+- first purchase
+- first meaningful identity milestone
+
+### B. Core Loop Signals
+- mission creation rate
+- session completion rate
+- proof submission rate
+- approval/follow-up/reject split
+- reward grant success rate
+- repeat loop completion rate
+
+### C. Economy Signals
+- coins minted
+- coins spent
+- first purchase timing
+- purchase conversion by category
+- item category adoption
+- save/spend tension indicators
+- net coin delta
+- inflation risk indicators
+
+### D. Trust Signals
+- follow-up rate
+- reject rate
+- low/medium/high confidence distribution
+- duplicate/suspicious signal rate
+- provider fallback rate
+- reward blocked by risk
+- trust-related support burden
+
+### E. Personalization Signals
+- next-action acceptance
+- mission recommendation acceptance
+- comeback conversion
+- recovery after follow-up
+- stagnation patterns
+- recommendation ignored rate
+
+### F. Prestige / Identity Signals
+- showcase engagement
+- milestone/history engagement
+- first prestige advancement
+- room/car/wardrobe showcase use
+- featured recognition adoption
+- status surface revisit rate
+
+### G. Live Ops Signals
+- event participation
+- completion
+- comeback event conversion
+- spotlight purchase uplift
+- event fatigue signals
+- seasonal theme engagement
+
+For each signal define:
+- metric name
+- source
+- update cadence
+- what decision it can inform
+- confidence level in the signal
+- whether it is leading, lagging, or diagnostic
+
+==================================================
+STEP 4 — DEFINE THE TUNING DOMAIN MAP
+==================================================
+
+Create a domain map of what can be tuned and how.
+
+At minimum define these tuning domains:
+
+### Domain A — Economy Tuning
+Examples:
+- reward bands
+- price bands
+- affordability pacing
+- save/spend tension
+- first-purchase friction
+
+### Domain B — Trust Tuning
+Examples:
+- follow-up thresholds
+- confidence thresholds
+- anti-gaming sensitivity
+- reason-code messaging
+- escalation rules
+
+### Domain C — Personalization Tuning
+Examples:
+- next-action priorities
+- mission difficulty emphasis
+- comeback path rules
+- progression pacing emphasis
+- status framing emphasis
+
+### Domain D — Live Ops Tuning
+Examples:
+- event cadence
+- event reward ranges
+- comeback event structures
+- drop timing
+- spotlight categories
+- seasonal theme emphasis
+
+### Domain E — Prestige / Identity Tuning
+Examples:
+- prestige band thresholds
+- recognition visibility
+- showcase priorities
+- history prominence rules
+- milestone surfacing strength
+
+### Domain F — Onboarding / Launch Friction Tuning
+Examples:
+- onboarding copy emphasis
+- first-step guidance
+- proof explanation clarity
+- first reward framing
+- first purchase/status explanation
+
+For each domain define:
+- what levers exist
+- who should tune it
+- safe tuning frequency
+- required data before tuning
+- unsafe changes to avoid
+- expected observation window after a change
+
+==================================================
+STEP 5 — BUILD THE LIVE TUNING DECISION FRAMEWORK
+==================================================
+
+Create a structured decision framework for tuning.
+
+At minimum define:
+
+### Step 1 — Detect
+What metric/signal indicates a potential problem or opportunity?
+
+### Step 2 — Diagnose
+What supporting metrics must be checked before acting?
+
+### Step 3 — Hypothesize
+What is the likely product reason behind the pattern?
+
+### Step 4 — Choose Lever
+Which tuning domain and config should be adjusted?
+
+### Step 5 — Scope Change
+What is the smallest safe change that can test the hypothesis?
+
+### Step 6 — Record Change
+What changed, why, by whom, and what success metric is expected?
+
+### Step 7 — Observe
+What observation window is required?
+Example:
+- 24h directional
+- 3–7 day behavior signal
+- cohort/week-based retention effects
+
+### Step 8 — Review
+Did the change help, hurt, or produce unclear results?
+
+For each domain, define example decision trees such as:
+- approval rate dropped sharply
+- first purchase timing is too slow
+- comeback event converts poorly
+- users ignore recommended next action
+- prestige surface is rarely used
+- suspicious proof signals spike
+- room spotlight generates no lift
+
+==================================================
+STEP 6 — BUILD THE SAFE CONFIG / TUNING WORKFLOW
+==================================================
+
+Create a safe tuning workflow.
+
+At minimum support:
+- config versioning
+- change logs
+- rationale logs
+- bounded config changes
+- rollback-friendly changes
+- review before deploy
+- visibility into active config
+
+Recommended structure:
+
+/shared/tuning/
+  tuningConfig.ts
+  tuningDomains.ts
+  tuningVersioning.ts
+  changeGuardrails.ts
+  tuningUtils.ts
+
+/server/tuning/
+  tuningService.ts
+  tuningLogService.ts
+  tuningReviewService.ts
+  tuningRoutes.ts if needed and safe
+
+Rules:
+1. avoid silent config edits
+2. link config changes to domain + rationale
+3. record old value and new value
+4. keep changes inspectable
+5. prevent extreme tuning values
+6. keep rollout/rollback simple
+
+Do NOT build a giant config platform.
+Use the minimum stable system.
+
+==================================================
+STEP 7 — BUILD THE FEEDBACK INGESTION MODEL
+==================================================
+
+Create a lightweight model for ingesting product feedback signals.
+
+At minimum ingest from:
+- metrics/dashboard shifts
+- support/incident patterns
+- trust/support disputes
+- live ops performance
+- purchase behavior
+- history/prestige engagement
+- onboarding friction
+- qualitative operator notes where useful
+
+Define feedback classes such as:
+- metric anomaly
+- sustained weakness
+- positive uplift
+- user confusion pattern
+- trust/fairness concern
+- economy imbalance signal
+- engagement decay signal
+- event fatigue signal
+
+For each feedback class define:
+- source
+- how it is detected
+- whether it triggers review automatically or manually
+- which tuning domains it may affect
+- false-positive risk
+
+==================================================
+STEP 8 — BUILD THE TUNING LOG / CHANGE LOG SYSTEM
+==================================================
+
+Create a tuning log system.
+
+At minimum record:
+- tuning_change_id
+- date/time
+- domain
+- change type
+- config/version reference
+- old value
+- new value
+- operator/owner
+- rationale
+- expected effect
+- primary metric to watch
+- observation window
+- review outcome
+- rollback status if any
+
+Also define:
+- major tuning change
+- minor tuning change
+- emergency tuning change
+- rollback entry
+
+The system must make it possible to answer:
+- what changed?
+- why did we change it?
+- what happened after?
+- should we keep it, revert it, or tune again?
+
+==================================================
+STEP 9 — BUILD THE LIVE TUNING REVIEW CADENCE
+==================================================
+
+Create an operator/founder review cadence.
+
+At minimum define:
+
+### Daily Review
+- anomalies
+- trust failures
+- reward failures
+- wallet anomalies
+- proof funnel shifts
+- core loop drops
+- launch/support pain spikes
+
+### Twice-Weekly or Weekly Review
+- economy pacing
+- first purchase timing
+- next-action performance
+- comeback conversion
+- event participation
+- prestige/history engagement
+- new user activation friction
+
+### Biweekly / Monthly Review
+- retention shape
+- domain-level config effectiveness
+- prestige band distribution
+- economy inflation/stagnation
+- personalization pattern quality
+- event fatigue
+- domain-level roadmap implications
+
+For each cadence define:
+- inputs
+- decisions allowed
+- decisions not allowed without more data
+- who should participate
+- what must be logged afterward
+
+==================================================
+STEP 10 — BUILD THE TUNING RECOMMENDATION LAYER
+==================================================
+
+Create a lightweight recommendation layer for operators.
+
+This is NOT an autonomous AI tuner.
+It is a structured suggestion system.
+
+At minimum the system should be able to produce operator-facing suggestions like:
+- “First purchase is too slow for new users — review starter price band”
+- “Follow-up rate is rising for image-only proofs — review trust thresholds or proof guidance”
+- “Comeback prompts are converting poorly after 7-day inactivity — review comeback path”
+- “Room spotlight produced no lift — review featured category and event framing”
+- “Prestige showcase engagement is low — review placement and featured highlights”
+- “Recommended next action acceptance is weak for stalled users — simplify re-entry guidance”
+
+For each recommendation define:
+- trigger signal set
+- tuning domain
+- severity/priority
+- recommended next review step
+- suggested lever
+- confidence in recommendation
+
+Rules:
+- recommendations must stay explainable
+- recommendations must not auto-change configs
+- recommendations must not overreact to tiny samples
+
+==================================================
+STEP 11 — ADD DASHBOARD / OPS INTEGRATION POINTS
+==================================================
+
+Integrate the flywheel into existing admin/metrics/ops surfaces where practical.
+
+At minimum expose:
+- current tuning domain status
+- active config version
+- recent tuning changes
+- watchlist signals by domain
+- open recommended review items
+- last reviewed date per domain
+
+If current dashboard/admin surfaces exist, extend them lightly.
+Do NOT redesign the whole admin console.
+Do NOT build giant workflow software.
+
+Priority:
+1. metrics integration
+2. recent tuning log visibility
+3. domain watchlist
+4. recommendation summary
+5. config version visibility
+
+==================================================
+STEP 12 — DEFINE DOMAIN-SPECIFIC WATCHLISTS
+==================================================
+
+Create watchlists by domain.
+
+### Economy Watchlist
+- first purchase too slow
+- coins minted rising too fast
+- premium item adoption too low
+- wallet delta abnormal
+- under-spending or over-spending signals
+
+### Trust Watchlist
+- follow-up spike
+- reject spike
+- provider fallback spike
+- suspicious signal spike
+- reward blocked by risk spike
+
+### Personalization Watchlist
+- next-action ignored rate too high
+- comeback conversion weak
+- stalled users not recovering
+- recommendation acceptance collapsing
+
+### Live Ops Watchlist
+- participation weak
+- completion weak
+- spotlight conversion weak
+- event fatigue indicators rising
+
+### Prestige / Identity Watchlist
+- prestige surface ignored
+- milestone/history engagement weak
+- recognition dilution
+- users not reaching meaningful status visibility
+
+For each watchlist define:
+- metric inputs
+- threshold logic
+- why it matters
+- recommended first response
+- whether it is daily / weekly / monthly priority
+
+==================================================
+STEP 13 — DEFINE DATA QUALITY / INTERPRETATION RULES
+==================================================
+
+Create strict interpretation rules so the flywheel does not produce bad decisions.
+
+At minimum define:
+- small-sample caution rules
+- minimum observation window rules
+- noisy launch-week caution rules
+- cohort-vs-global interpretation rules
+- config-change attribution limits
+- single-metric overreaction prevention
+- leading vs lagging signal interpretation
+- correlation vs causation warnings
+
+Document what counts as:
+- action-worthy signal
+- directional-only signal
+- insufficient data
+- conflicting data requiring human review
+
+Do NOT let the system encourage random tuning thrash.
+
+==================================================
+STEP 14 — SECURITY, ERROR HANDLING, EDGE CASES
+==================================================
+
+## 🔐 SECURITY / CONTROL
+Explicitly protect against:
+- unsafe config changes
+- unauthorized tuning access
+- hidden config drift
+- domain values going out of safe range
+- operator changes without audit trail
+- recommendation surfaces exposing sensitive internal states
+
+## ⚖️ PRODUCT SAFETY
+Explicitly review for:
+- economy changes hurting trust or prestige unintentionally
+- trust changes harming activation unfairly
+- personalization changes increasing confusion
+- live ops changes distorting economy
+- prestige changes encouraging toxic behavior
+- one domain being tuned in isolation while hurting the others
+
+## 🛡️ ERROR HANDLING
+Handle:
+- missing metrics
+- stale metrics
+- partially missing config versions
+- tuning log write failure
+- recommendation generation failure
+- dashboard integration failure
+- domain review surface with no data
+- rollback reference mismatch
+
+## ⚠️ EDGE CASES
+Document and handle:
+- very small early user base
+- launch week volatility
+- multiple domain problems at once
+- one change affecting several metrics differently
+- a tuning change appears positive short-term but harmful medium-term
+- support complaints rising before metrics show it
+- old users and new users reacting differently
+- incomplete instrumentation in one domain
+- live ops running during economy retune
+
+==================================================
+STEP 15 — CREATE THE DATA FLYWHEEL DOCS
+==================================================
+
+Create a clear docs structure.
+
+Recommended structure:
+
+/docs/data-flywheel/
+  flywheel-audit.md
+  flywheel-doctrine.md
+  signal-map.md
+  tuning-domain-map.md
+  tuning-decision-framework.md
+  safe-tuning-workflow.md
+  feedback-ingestion.md
+  tuning-log-system.md
+  review-cadence.md
+  domain-watchlists.md
+  data-interpretation-rules.md
+  known-flywheel-risks.md
+
+Document:
+- what domains are tuneable
+- what signals are used
+- what recommendations can be generated
+- what remains manual
+- what is intentionally not automated yet
+- what future phases or scaling layers should extend
+
+==================================================
+STEP 16 — DO NOT OVER-ENGINEER
+==================================================
+
+Important implementation rules:
+
+1. Do NOT build a giant ML platform.
+2. Do NOT automate product decisions blindly.
+3. Do NOT let the system auto-tune without human review.
+4. Prefer safe versioned config changes over clever dynamic behavior.
+5. Reuse existing metrics, logs, and ops surfaces where possible.
+6. Keep the flywheel explainable and auditable.
+7. Optimize for faster better decisions, not flashy infrastructure.
+8. Make future scaling easier, not harder.
+
+==================================================
+STEP 17 — ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a flywheel audit exists
+2. a flywheel doctrine exists
+3. a signal map exists
+4. a tuning domain map exists
+5. a tuning decision framework exists
+6. a safe config/tuning workflow exists
+7. a feedback ingestion model exists
+8. a tuning log/change log system exists
+9. a review cadence exists
+10. domain watchlists exist
+11. tuning config/versioning is centralized
+12. dashboard/ops integration points exist or are clearly upgraded
+13. no new gameplay scope was added
+14. the product is easier to learn from and tune than before
+15. the app has a real data-to-decision loop after this phase
+
+==================================================
+STEP 18 — DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary
+- what flywheel-relevant systems already existed
+- what was missing
+- what was reused
+- what was added/upgraded in this phase
+
+2. Files created or changed in this run only
+
+3. Data flywheel documentation summary
+- doctrine
+- signal map
+- tuning domain map
+- decision framework
+- safe tuning workflow
+- feedback ingestion
+- tuning log system
+- review cadence
+- domain watchlists
+- interpretation rules
+- known risks
+
+4. Flywheel system summary
+- what was centralized
+- how tuning now works
+- how config/versioning now works
+- how review/recommendation/watchlists now work
+- how the product can now learn faster from real usage
+
+5. Verification results
+- typecheck/build status
+- tests status
+- tuning/admin/dashboard flow validation status
+- any remaining non-blocking flywheel gaps
+
+6. Launch recommendation
+- DATA FLYWHEEL / LIVE TUNING ENGINE READY or NOT READY
+- if NOT READY, list the exact blockers
+
+==================================================
+IMPORTANT OPERATING RULES
+==================================================
+
+- Audit before upgrading
+- Keep scope narrow
+- Do not restart the project
+- Do not invent a new product direction
+- Do not build a giant ML or BI platform
+- Do not auto-tune blindly
+- Prefer safe explainable operator-guided learning loops over black-box cleverness
+- Preserve trust integrity, economy integrity, progression integrity, and operational clarity at all costs

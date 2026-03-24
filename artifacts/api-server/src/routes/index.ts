@@ -57,6 +57,8 @@ import metricsRouter from "./metrics.js";
 import identityHistoryRouter from "./identity-history.js";
 // Phase 36 — Prestige / Social Status
 import prestigeProfileRouter from "./prestige-profile.js";
+// Phase 37 — Data Flywheel / Live Tuning
+import tuningRouter from "./tuning.js";
 
 const router: IRouter = Router();
 
@@ -118,5 +120,7 @@ router.use("/admin/metrics", metricsRouter);
 router.use("/identity-history", identityHistoryRouter);
 // Phase 36 — Prestige / Social Status
 router.use("/prestige", prestigeProfileRouter);
+// Phase 37 — Data Flywheel / Live Tuning
+router.use("/admin/tuning", tuningRouter);
 
 export default router;
