@@ -59,6 +59,22 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
           <Ellipse cx="50" cy="212" rx="30" ry="5" fill="#00000055" />
         )}
 
+        {/* Layer 1: Body base (skin, head, neck, arms) */}
+        <BodyBaseLayer
+          skinTone={vs.skinTone}
+          headCY={headCY}
+          earCY={earCY}
+          neckY={neckY}
+          neckH={neckH}
+          armLX={armLX}
+          armRX={armRX}
+          armW={armW}
+        />
+
+        {/* Layer 2: Posture overlay (body tone, muscle definition) */}
+        <PostureLayer stage={vs.postureStage} skinTone={vs.skinTone} />
+
+        {/* Layer 3: Outfit (clothing over body) */}
         <OutfitLayer
           tier={vs.outfitTier}
           equippedTopStyle={vs.equippedTopStyle}
@@ -80,39 +96,13 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
           armW={armW}
         />
 
-        <BodyBaseLayer
-          skinTone={vs.skinTone}
-          headCY={headCY}
-          earCY={earCY}
-          neckY={neckY}
-          neckH={neckH}
-          armLX={armLX}
-          armRX={armRX}
-          armW={armW}
-        />
-
-        <PostureLayer stage={vs.postureStage} skinTone={vs.skinTone} />
-
-        <G>
-          <Path d={bl} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-          <Path d={br} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-          <Path d={mouth} stroke="#B07A5A" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-          <Ellipse cx="50" cy={headCY + 14} rx="4" ry="1.2" fill="#C98C6C" />
-        </G>
-
+        {/* Layer 4: Watch (on wrist, over clothing) */}
         <WatchLayer
           style={vs.equippedWatchStyle}
           armRX={armRX}
         />
 
-        <AccessoryLayer
-          style={vs.equippedAccessoryStyle}
-          armLX={armLX}
-          armW={armW}
-          torsoX={torsoX}
-          neckBottom={neckBottom}
-        />
-
+        {/* Layer 5: Prestige accents (pins, insignia) */}
         <PrestigeLayer
           stage={vs.prestigeStage}
           torsoX={torsoX}
@@ -122,12 +112,30 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
           headCY={headCY}
         />
 
+        {/* Layer 5b: Accessories (chain, etc) */}
+        <AccessoryLayer
+          style={vs.equippedAccessoryStyle}
+          armLX={armLX}
+          armW={armW}
+          torsoX={torsoX}
+          neckBottom={neckBottom}
+        />
+
+        {/* Layer 6: Hair (over head, under face) */}
         <HairLayer
           hairStyle={vs.hairStyle}
           hairColor={vs.hairColor}
           headCY={headCY}
           groomingLevel={groomingLevel}
         />
+
+        {/* Layer 7: Face (always on top — brows, mouth, nose) */}
+        <G>
+          <Path d={bl} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+          <Path d={br} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+          <Path d={mouth} stroke="#B07A5A" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+          <Ellipse cx="50" cy={headCY + 14} rx="4" ry="1.2" fill="#C98C6C" />
+        </G>
       </Svg>
     </View>
   );
