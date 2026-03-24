@@ -1549,3 +1549,55 @@ Added: `useAdminDashboard`, `useAdminPlayers(params)`, `useAdminPlayerSnapshot(i
 - Onboarding copy refinements are specified in docs for future implementation
 
 ### Launch Readiness: LAUNCH PACKAGE READY
+
+## Phase 33 — Trust Engine v2
+
+### Purpose
+Makes proof judgment more trustworthy, consistent, explainable, and resilient. Not new gameplay — a trust layer that upgrades the existing judge pipeline.
+
+### Architecture
+Trust engine is integrated as an enhancement layer in the proof judgment pipeline. The existing judge (`ai-judge.ts`) continues to produce verdicts; the trust engine (`lib/trust/`) evaluates, classifies, and logs those verdicts with structured confidence, routing, and safety enforcement.
+
+### Trust Config Layer (`artifacts/api-server/src/lib/trust/`)
+- `verdictTypes.ts` — Standardized verdict enum (7 states), TrustVerdictPayload shape, confidence/risk/routing types, reason codes, anti-gaming signal names
+- `confidenceRules.ts` — Composite confidence model (low/medium/high), computation from rubric + provider + signals + trust, reward safety constraints per level
+- `reasonCodes.ts` — 35 structured reason codes with user-facing and operator-facing explanations, organized by category (evidence, explanation, duplication, suspicion, confidence, provider, submission, followup, trust)
+- `trustRouting.ts` — 4 routing classes (Easy Clean, Ambiguous, Risky, System Failure) with provider tier selection, allowed verdicts, reward safety constraints, escalation behavior
+- `antiGamingSignals.ts` — 12 signal definitions (exact_duplicate, near_duplicate, boilerplate_text, suspicious_timing, low_information, mission_mismatch, repeated_followup_trigger, volume_spike, content_reuse, duration_implausible, high_distraction, generic_phrases) with severity, trigger logic, and actions
+- `trustConfig.ts` — Centralized thresholds for confidence, trust score, routing, anti-gaming, escalation, pre-screen, followup, reward
+- `trustEngine.ts` — Main evaluation orchestrator: takes JudgeResult + context → produces TrustVerdictPayload with safety enforcement
+- `trustLogging.ts` — Structured trust log entries with formatted output for ops debugging
+- `index.ts` — Barrel exports
+
+### Integration
+- `proofs.ts` imports trust engine; after `judgeProof()`, runs `evaluateTrust()` for structured logging and enhanced audit trail
+- Trust engine runs as non-blocking enhancement (existing pipeline continues if trust engine errors)
+- Audit log entries now include trust payload (confidence, risk, routing, reasons, signals, escalation flag, version)
+- Added `gte` import from drizzle-orm for recent submission/followup queries
+
+### Key Design Decisions
+- **Non-blocking layer**: Trust engine failure does not break the existing judge pipeline (TR-009)
+- **Backward compatible**: JudgeResult interface unchanged; TrustVerdictPayload is a downstream enhancement
+- **Confidence gates reward**: Low confidence caps multiplier at 0.5x; medium caps at 1.0x
+- **Routing enforces verdict safety**: Risky class can block reward or force followup_needed
+- **Signals detect, don't punish**: Only exact_duplicate blocks approval directly; other signals adjust confidence
+- **Evaluation versioned**: Every trust evaluation includes version "2.0.0" for future A/B testing
+
+### Trust Score Rules
+- Stored in users table as `trust_score` (real, default 1.0, range 0.1-1.0)
+- Deltas: approved+high_conf +0.05, approved+low_conf +0.02, partial +0.01, rejected -0.05, flagged -0.10, duplicate -0.15, manual_review -0.02
+- Low trust (<0.4) triggers strictness boost in AI prompts
+- Trust score is one input to confidence, never sole determinant
+
+### Docs (`docs/trust/`)
+10 files: trust-audit.md, trust-doctrine.md, verdict-schema.md, confidence-model.md, trust-routing.md, anti-gaming-signals.md, explainability-reason-codes.md, escalation-rules.md, trust-metrics.md, known-trust-risks.md
+
+### Known Risks (TR-001 to TR-011)
+- TR-001: Near-duplicate detection defined but not fully implemented (exact-match only)
+- TR-002: Provider variability (different AI providers can produce different verdicts)
+- TR-003: Trust score recovery difficulty (rises slowly, falls fast)
+- TR-009: Trust engine as non-blocking layer (can be silently skipped on error)
+- TR-010: No human review UI (flagged cases inspected via DB/audit logs)
+- TR-011: User average daily submissions hardcoded to 3
+
+### Trust Engine Readiness: TRUST ENGINE V2 READY

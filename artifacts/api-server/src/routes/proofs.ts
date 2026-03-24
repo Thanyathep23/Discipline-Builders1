@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, proofSubmissionsTable, focusSessionsTable, missionsTable, usersTable, aiMissionsTable, proofFilesTable, CATEGORY_SKILL_MAP, CYCLE_DEFINITIONS } from "@workspace/db";
 import type { CycleType } from "@workspace/db";
-import { eq, and, count, inArray } from "drizzle-orm";
+import { eq, and, count, inArray, gte } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, generateId } from "../lib/auth.js";
 import { judgeProof } from "../lib/ai-judge.js";
@@ -15,6 +15,7 @@ import { auditLogTable } from "@workspace/db";
 import { awardBadge, awardTitle } from "./inventory.js";
 import { trackEvent, Events } from "../lib/telemetry.js";
 import { dispatchWebhookEvent } from "../lib/webhook-dispatcher.js";
+import { evaluateTrust, buildTrustLogEntry, logTrustEvaluation, type TrustEvaluationInput } from "../lib/trust/index.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -330,7 +331,67 @@ async function runJudgment(submissionId: string, userId: string, isFollowupRejud
     updatedAt: new Date(),
   }).where(eq(proofSubmissionsTable.id, submissionId));
 
-  // Audit
+  let trustPayload;
+  try {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const [followupResult] = await db
+      .select({ value: count() })
+      .from(proofSubmissionsTable)
+      .where(and(
+        eq(proofSubmissionsTable.userId, userId),
+        eq(proofSubmissionsTable.status, "followup_needed"),
+        gte(proofSubmissionsTable.createdAt, sevenDaysAgo),
+      ));
+
+    const [recentSubmissionResult] = await db
+      .select({ value: count() })
+      .from(proofSubmissionsTable)
+      .where(and(
+        eq(proofSubmissionsTable.userId, userId),
+        gte(proofSubmissionsTable.createdAt, twentyFourHoursAgo),
+      ));
+
+    const trustInput: TrustEvaluationInput = {
+      judgeResult,
+      userTrustScore: user.trustScore,
+      hasImages: attachedFiles.length > 0,
+      hasLinks: (JSON.parse(proof.links || "[]") as string[]).length > 0,
+      textLength: (proof.textSummary ?? "").length,
+      isFollowup: isFollowupRejudge,
+      isFallback: judgeResult.providerUsed === "rules_enhanced",
+      isDuplicate: judgeResult.preScreenReason === "duplicate_submission",
+      preScreenPassed: !judgeResult.preScreenReason,
+      providerAvailable: judgeResult.providerUsed !== "rules_enhanced",
+      distractionCount: session.blockedAttemptCount ?? 0,
+      targetDurationMinutes: mission.targetDurationMinutes,
+      actualDurationMinutes: actualMinutes,
+      recentFollowupCount: Number(followupResult?.value ?? 0),
+      recentSubmissionCount24h: Number(recentSubmissionResult?.value ?? 0),
+      userAvgDailySubmissions: 3,
+      textSummary: proof.textSummary,
+    };
+
+    trustPayload = evaluateTrust(trustInput);
+
+    const trustLogEntry = buildTrustLogEntry(trustPayload, {
+      proofId: submissionId,
+      userId,
+      missionId: mission.id,
+      sessionId: session.id,
+      missionCategory: mission.category,
+      userTrustScoreBefore: user.trustScore,
+      isFollowup: isFollowupRejudge,
+      isFallback: judgeResult.providerUsed === "rules_enhanced",
+      followupCount: proof.followupCount ?? 0,
+    });
+
+    logTrustEvaluation(trustLogEntry);
+  } catch (trustErr) {
+    console.error("[proofs] trust engine evaluation error (non-blocking):", trustErr);
+  }
+
   await db.insert(auditLogTable).values({
     id: generateId(),
     actorId: null,
@@ -338,7 +399,20 @@ async function runJudgment(submissionId: string, userId: string, isFollowupRejud
     action: "proof_judged",
     targetId: submissionId,
     targetType: "proof",
-    details: JSON.stringify({ verdict: judgeResult.verdict, coins: coinsAwarded }),
+    details: JSON.stringify({
+      verdict: judgeResult.verdict,
+      coins: coinsAwarded,
+      trust: trustPayload ? {
+        confidenceLevel: trustPayload.confidenceLevel,
+        confidenceScore: trustPayload.confidenceScore,
+        riskLevel: trustPayload.trustRiskLevel,
+        routingClass: trustPayload.routingClass,
+        reasons: trustPayload.primaryReasons,
+        signals: trustPayload.suspiciousSignals,
+        escalation: trustPayload.escalationRecommended,
+        version: trustPayload.evaluationVersion,
+      } : undefined,
+    }),
   });
 
   // Telemetry
