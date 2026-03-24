@@ -1601,3 +1601,62 @@ Trust engine is integrated as an enhancement layer in the proof judgment pipelin
 - TR-011: User average daily submissions hardcoded to 3
 
 ### Trust Engine Readiness: TRUST ENGINE V2 READY
+
+## Phase 34 — Personalization Graph v1
+
+### Purpose
+Makes DisciplineOS feel like a personal operating system instead of a generic task app. Classifies each user's behavioral state across 6 dimensions and uses that classification to personalize missions, next actions, comeback paths, progression pacing, and reward/status framing.
+
+### Architecture
+Personalization is a server-side config layer in `artifacts/api-server/src/lib/personalization/`. The graph evaluator gathers user signals from existing DB tables, classifies state, and returns personalized recommendations. Integrated into the guidance route as `GET /api/guidance/personalization`.
+
+### Personalization Config Layer (`artifacts/api-server/src/lib/personalization/`)
+- `graphTypes.ts` — UserStateGraph shape, 6 dimension enums, NextActionRecommendation, ComebackState, ConfidenceFlags, GraphRawSignals, PersonalizationLogEntry
+- `graphStateRules.ts` — Classification functions for all 6 dimensions plus comeback state
+- `personalizationConfig.ts` — Centralized thresholds for all state classifications (rolling windows, streak minimums, completion rate thresholds, etc.)
+- `nextActionRules.ts` — 14 prioritized action rules with graph-state matching, user copy, and fallback
+- `missionPersonalizationRules.ts` — Mission difficulty/duration/category/framing/proof-guidance by state
+- `comebackPersonalizationRules.ts` — Comeback treatment by archetype (has status items, had first win, inactivity tier)
+- `pacingRules.ts` — Push intensity, emphasis area, challenge escalation by progression/discipline/momentum
+- `statusFramingRules.ts` — Purchase/saving/status emphasis and milestone framing by economy state
+- `personalizationLogging.ts` — Structured log entries for every personalization decision
+- `graphEvaluator.ts` — Main evaluation orchestrator: gathers all dimensions, produces PersonalizationResult
+- `index.ts` — Barrel exports
+
+### Graph Dimensions (6 + comeback)
+1. **Discipline**: unstable → building → consistent → highly_consistent (streak + 14d completion rate)
+2. **Trust/Proof**: clean_confident, needs_better_evidence, borderline_quality, trust_sensitive (trust score + proof rates)
+3. **Momentum**: inactive, reactivating, active, surging, stalled_after_setback (activity + setback detection)
+4. **Progression**: early_build, steady_growth, plateau_risk, advanced_push (level + velocity + skill levels)
+5. **Economy**: no_first_purchase, cautious_saver, active_spender, status_motivated, under_engaged (spending + inventory)
+6. **Identity Motivation**: proof_first, growth_first, status_first, comeback_first, consistency_first (derived composite)
+7. **Comeback State**: Optional, present when inactive ≥3 days. Tiers: quick_return/week_away/extended_absence/long_gone
+
+### Integration
+- `GET /api/guidance/personalization` — Returns full graph state + next actions + mission personalization + comeback + pacing + status framing
+- Personalization logging on every evaluation (graph state, recommended action, reason, fallback status)
+- Uses existing data only (no new DB tables or tracking)
+- Fallback to sensible defaults when graph confidence is low
+
+### Key Design Decisions
+- **Named states over scores**: "consistent" instead of "0.78"
+- **14-day rolling windows**: Recent behavior, not lifetime averages
+- **Non-punitive**: Struggling users get support, not reduced expectations
+- **Trust integrity preserved**: Personalization never bypasses proof standards
+- **Economy integrity preserved**: No manufactured urgency or manipulative spend pressure
+- **Explainable**: Every recommendation logged with reason
+- **Versioned**: Graph version "1.0.0" included in every snapshot
+
+### Docs (`docs/personalization/`)
+11 files: personalization-audit.md, personalization-doctrine.md, user-state-graph.md, state-categories.md, next-action-engine.md, mission-personalization.md, comeback-personalization.md, progression-pacing.md, status-framing.md, personalization-metrics.md, known-personalization-risks.md
+
+### Known Risks (PR-001 to PR-011)
+- PR-001: Cold start for new users (sparse signals)
+- PR-002: Downward spiral risk (easy mission trap)
+- PR-003: Over-segmentation noise (state flipping)
+- PR-004: Trust + personalization double punishment
+- PR-006: Comeback over-reward vs consistency
+- PR-008: Stale graph state (60-minute cache)
+- PR-010: Conflicting recommendations (live ops vs personalization)
+
+### Personalization Graph Readiness: PERSONALIZATION GRAPH V1 READY

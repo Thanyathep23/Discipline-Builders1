@@ -1,0 +1,786 @@
+Use docs/life-rpg-master-spec.md, the AI Handoff Master Brief, the existing Replit codebase, and all completed Phase 27–33 artifacts as the permanent source of truth.
+
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+# Phase 34 — Personalization Graph
+Version: 1.0 | Platform: Replit | Scope: User state graph, personalized next actions, adaptive mission/reward framing, comeback personalization, progression pacing
+
+## 🎯 PROJECT OVERVIEW
+Build Personalization Graph v1 for the existing Life RPG app.
+
+This phase is NOT about adding new gameplay pillars.
+This phase is NOT about building a giant recommendation platform.
+This phase is about making the product feel like it understands each user’s real state and can guide them differently.
+
+The personalization graph must improve:
+- next-step relevance
+- mission recommendation quality
+- comeback path quality
+- reward/status framing relevance
+- progression pacing fit
+- user-specific guidance
+- future retention and trust foundations
+
+The target outcome:
+1. the system can classify users by meaningful behavioral state
+2. different users no longer get the exact same next-step logic
+3. missions and guidance start adapting to strengths, weaknesses, and momentum
+4. stalled users get different recovery treatment than active users
+5. the product feels more like a personal operating system, less like a generic task app
+6. the graph creates a reusable foundation for future retention, prestige, and data flywheel phases
+
+==================================================
+PHASE SCOPE ONLY
+==================================================
+
+Build only the minimum strong Personalization Graph foundation needed for launch-stage post-launch learning and early moat formation.
+
+Required outputs for this phase:
+1. personalization audit
+2. personalization doctrine
+3. user-state graph model
+4. user segment/state classification rules
+5. personalized next-action engine
+6. personalized mission/recommendation rules
+7. comeback personalization rules
+8. progression pacing personalization rules
+9. reward/status emphasis personalization rules
+10. centralized personalization config
+11. personalization logging/metrics definitions
+12. repo documentation for graph logic and known limitations
+
+Do NOT build:
+- a full ML recommender system
+- black-box ranking models
+- a giant behavioral data warehouse
+- a full social graph
+- complex reinforcement learning
+- a giant notification automation platform
+- a full CRM system
+- new gameplay systems
+- deep content generation platform beyond current product capabilities
+
+If the app already has:
+- skills
+- life profile dimensions
+- trust score
+- progression state
+- streaks
+- proof history
+- reward history
+- room/wardrobe/car ownership
+reuse them as graph signals.
+
+Do NOT replace working systems blindly.
+Upgrade them into a clearer Personalization Graph v1.
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything, inspect and report the current personalization-relevant system across:
+
+A. Existing user state data
+- level
+- xp
+- skill levels/dimensions
+- streak state
+- trust score
+- proof approval/reject/follow-up history
+- mission history
+- session history
+- wallet/purchase history
+- room/car/wardrobe ownership
+- progression/character state
+- any comeback/inactivity indicators
+- life profile / identity profile if already present
+
+B. Existing decision points
+- mission generation/recommendation
+- home screen guidance
+- next-step cards
+- reward surfaces
+- comeback prompts
+- challenge/event targeting
+- progression update logic
+- any admin or live ops targeting rules
+- any first-use or onboarding branching
+
+C. Existing gaps
+- same missions shown to everyone
+- same next-step guidance for all users
+- no distinction between active vs stalled users
+- no distinction between high-discipline vs low-discipline users
+- no distinction between users who prefer status spending vs progress saving
+- no distinction between users struggling with proof quality vs users succeeding consistently
+
+D. Existing fairness/product risks
+- personalization being too random
+- personalization being too opaque
+- low-quality guidance despite rich user state
+- overfitting to small/noisy data
+- punishing users because of temporary bad periods
+- making users feel boxed into one identity
+- conflict between trust engine and personalization
+- conflict between live ops and personalized suggestions
+
+E. Existing architecture risks
+- signals scattered across many files
+- no central user-state model
+- mission logic too tightly coupled to static defaults
+- no reusable recommendation layer
+- personalization logic hidden in UI conditionals
+- no logging for why recommendations were made
+
+Your audit must identify:
+1. what user signals already exist
+2. what decisions are already partially personalized
+3. what is completely generic today
+4. what can be reused safely
+5. what must be centralized in this phase
+6. what must remain intentionally simple
+
+Do not guess blindly.
+Audit first, then build the graph.
+
+==================================================
+STEP 2 — DEFINE THE PERSONALIZATION DOCTRINE
+==================================================
+
+Create a clear Personalization Graph v1 doctrine.
+
+The graph must satisfy all of these simultaneously:
+
+### Goal A — Personal, Not Creepy
+The app should feel relevant, not invasive.
+Use behavioral/product signals, not weird overreach.
+
+### Goal B — Useful, Not Decorative
+Personalization must improve actual product value:
+- better next step
+- better mission fit
+- better comeback path
+- better progression pacing
+- better emotional resonance
+
+### Goal C — Explainable Enough
+The team should be able to understand why a user got a recommendation.
+Avoid black-box unpredictability.
+
+### Goal D — Non-Punitive
+A bad week should not trap a user permanently in “low potential” treatment.
+The graph must be adaptive, not judgmental.
+
+### Goal E — Compatible With Trust
+Personalization should not override trust integrity.
+It can shape recommendations and pacing, but must not blindly bypass proof standards.
+
+### Goal F — Future-Ready
+The graph should create foundations for:
+- better retention loops
+- better live ops targeting
+- better status/prestige surfacing
+- future identity history and data flywheel phases
+
+==================================================
+STEP 3 — DEFINE THE USER-STATE GRAPH MODEL
+==================================================
+
+Create a clear user-state graph model.
+
+At minimum define graph dimensions such as:
+
+### Behavior / Discipline
+- consistency
+- streak health
+- recent session completion
+- follow-through rate
+
+### Proof Quality / Trust
+- approval quality
+- follow-up frequency
+- reject frequency
+- suspicious signal pressure
+- trust stability
+
+### Momentum
+- recent activity trend
+- completion trend
+- comeback/recovery state
+- stalled/active trajectory
+
+### Progression
+- level band
+- skill progression shape
+- recent advancement
+- plateau risk
+
+### Economy / Status Expression
+- saver vs spender tendencies
+- first purchase state
+- category preference if visible
+- ownership depth
+
+### Identity / Preference Surface
+- wardrobe/status engagement
+- room engagement
+- car/wheel engagement
+- likely motivation angle:
+  discipline / achievement / status / recovery / momentum
+
+For each dimension define:
+- source signals
+- derived state
+- confidence in the state
+- update cadence
+- how stable vs volatile it should be
+
+Create a graph object shape such as:
+- user_id
+- graph_version
+- state_snapshot_at
+- discipline_state
+- trust_state
+- momentum_state
+- progression_state
+- economy_state
+- identity_motivation_state
+- recommendation_profile
+- comeback_state
+- confidence_flags
+- explanation_notes
+
+Rules:
+1. keep the model bounded and understandable
+2. avoid giant hidden score blobs
+3. use named states over opaque numbers where possible
+4. make the graph snapshot safe for logging and iteration
+
+==================================================
+STEP 4 — DEFINE USER STATE / SEGMENT RULES
+==================================================
+
+Create launch-safe user state categories.
+
+At minimum define useful states like:
+
+### Discipline states
+- unstable
+- building
+- consistent
+- highly_consistent
+
+### Trust/proof states
+- clean_confident
+- needs_better_evidence
+- borderline_quality
+- trust_sensitive
+
+### Momentum states
+- inactive
+- reactivating
+- active
+- surging
+- stalled_after_setback
+
+### Progression states
+- early_build
+- steady_growth
+- plateau_risk
+- advanced_push
+
+### Economy states
+- no_first_purchase
+- cautious_saver
+- active_spender
+- status_motivated
+- under-engaged_economy_user
+
+### Identity motivation states
+- proof_first
+- growth_first
+- status_first
+- comeback_first
+- consistency_first
+
+For each state define:
+- trigger logic
+- what it means
+- what the product should do differently
+- what not to assume
+- false-positive risk
+
+Do NOT over-segment.
+Keep the first version small enough to operate confidently.
+
+==================================================
+STEP 5 — BUILD THE PERSONALIZED NEXT-ACTION ENGINE
+==================================================
+
+Create a lightweight next-action engine powered by the user graph.
+
+This engine must choose or prioritize the next best action for a user based on current state.
+
+At minimum support recommendations such as:
+- create one manageable mission
+- do one focused session
+- resubmit stronger proof
+- recover streak gently
+- save for a first status item
+- use owned assets / equip / personalize identity
+- complete one comeback challenge
+- push progression in a weak dimension
+- reduce friction and restart small
+
+The engine must account for:
+- current momentum
+- trust/proof quality
+- progression stage
+- economy state
+- identity motivation state
+- recent failures/successes
+
+For each next-action recommendation define:
+- action id
+- user states it fits
+- priority logic
+- confidence
+- copy framing angle
+- what screen/flow it should point to
+- what makes it a bad recommendation
+
+Rules:
+- do not recommend overwhelming tasks to stalled users
+- do not recommend spend-heavy actions to broke/new users unless motivational and realistic
+- do not recommend aggressive proof-heavy actions to users struggling with trust/follow-up
+- recommendations should feel helpful and achievable
+
+==================================================
+STEP 6 — BUILD PERSONALIZED MISSION / RECOMMENDATION RULES
+==================================================
+
+Create a lightweight personalized mission/recommendation layer.
+
+At minimum personalize:
+- mission difficulty band
+- mission framing
+- mission category emphasis
+- fallback mission suggestions
+- recovery mission suggestions
+- discipline-building missions
+- progression-push missions
+- trust-safe missions for users struggling with proof quality
+
+Examples:
+- inconsistent users get smaller, clearer wins
+- consistent users get stronger push missions
+- stalled users get re-entry missions
+- users with repeated follow-up issues get “easier to prove” missions
+- status-motivated users may get missions framed around visible progress and unlock momentum
+- growth-first users may get progression-focused recommendations
+
+Do NOT build a giant content generator if unnecessary.
+Use current mission infrastructure and add personalization rules around it.
+
+==================================================
+STEP 7 — BUILD COMEBACK PERSONALIZATION RULES
+==================================================
+
+Create a comeback personalization layer.
+
+At minimum define different comeback treatments for:
+- 3-day drop-off
+- 7-day drop-off
+- 14+ day drop-off
+- stalled after rejection/follow-up
+- stalled after initial excitement
+- users who never reached first meaningful win
+- users who bought status items but stopped progressing
+
+For each comeback class define:
+- re-entry objective
+- tone
+- friction level
+- suggested mission/action
+- reward/status emphasis
+- what to avoid
+
+Rules:
+- reduce shame
+- reduce complexity
+- make first comeback step clear
+- reconnect the user to their world/identity where helpful
+- do not over-reward inactivity compared to consistency
+
+==================================================
+STEP 8 — BUILD PROGRESSION PACING PERSONALIZATION RULES
+==================================================
+
+Create a progression pacing layer.
+
+The app should not pace every user identically.
+At minimum personalize:
+- early-stage push intensity
+- plateau recovery guidance
+- challenge escalation timing
+- when to emphasize consistency vs ambition
+- when to emphasize proof quality improvement
+- when to emphasize visible identity/status reinforcement
+
+Examples:
+- users with strong activity but weak proof quality need “quality correction,” not more pressure
+- users with stable proof success may be ready for harder missions
+- users plateauing may need a different progression vector
+- users overwhelmed early may need a gentler first-week path
+
+This phase should shape recommendations and guidance, not break core progression integrity.
+
+==================================================
+STEP 9 — BUILD REWARD / STATUS EMPHASIS PERSONALIZATION RULES
+==================================================
+
+Create a lightweight personalization layer for how rewards and status are framed.
+
+At minimum personalize emphasis for:
+- first purchase encouragement
+- saving vs spending suggestions
+- status motivation surfacing
+- use of owned items
+- room/car/wardrobe reminders
+- milestone framing
+- progression vs status balance
+
+Examples:
+- no_first_purchase users may be nudged toward first meaningful ownership
+- status_motivated users may see stronger visible progression framing
+- cautious_savers may get “save toward something meaningful” framing
+- under-engaged_economy users may get better explanation of why status/world matters
+
+Rules:
+- do not manipulate aggressively
+- do not break economy discipline
+- do not recommend purchases disconnected from user state
+- keep it motivational and product-aligned
+
+==================================================
+STEP 10 — BUILD THE CENTRALIZED PERSONALIZATION CONFIG
+==================================================
+
+Create a centralized personalization config structure.
+
+Recommended structure:
+
+/shared/personalization/
+  personalizationConfig.ts
+  graphTypes.ts
+  graphStateRules.ts
+  nextActionRules.ts
+  missionPersonalizationRules.ts
+  comebackRules.ts
+  pacingRules.ts
+  statusFramingRules.ts
+  personalizationUtils.ts
+
+/server/personalization/
+  personalizationGraphService.ts
+  personalizationEvaluator.ts
+  nextActionService.ts
+  recommendationLogging.ts
+  personalizationRoutes.ts if needed
+
+Adapt to repo conventions if needed.
+
+At minimum centralize:
+- graph dimensions
+- state categories
+- state trigger rules
+- recommendation priorities
+- comeback classes
+- pacing rules
+- reward/status framing rules
+- graph versioning
+
+Requirements:
+1. avoid scattered personalization logic
+2. avoid duplicated state semantics
+3. one clear source of truth
+4. easy future tuning
+5. explainable and auditable structure
+
+==================================================
+STEP 11 — BUILD PERSONALIZATION LOGGING / AUDITABILITY
+==================================================
+
+Upgrade logging so personalization decisions are inspectable.
+
+At minimum log:
+- user id
+- graph snapshot version
+- key state categories
+- recommended next action
+- mission/recommendation type served
+- why it was chosen
+- fallback recommendation if used
+- timestamp
+- whether user acted on it if measurable
+
+Rules:
+- logs must be safe and compact
+- logs must support support/ops debugging
+- logs must support future metrics
+- avoid private/creepy logging
+- do not log raw unnecessary personal content
+
+If existing telemetry exists, extend it instead of creating a parallel mess.
+
+==================================================
+STEP 12 — DEFINE PERSONALIZATION METRICS
+==================================================
+
+Without building a huge analytics system, define metrics that Phase 29 can consume.
+
+At minimum define:
+- next-action click/accept rate
+- next-action completion rate
+- personalized mission acceptance rate
+- comeback recommendation conversion rate
+- first-win rate after personalized guidance
+- stalled-user recovery rate
+- first purchase conversion after personalized framing
+- room/car/wardrobe engagement after personalized prompts
+- follow-up reduction after trust-safe mission suggestions
+- plateau recovery rate if measurable
+
+For each metric define:
+- formula
+- event/log dependencies
+- why it matters
+- what threshold may be concerning
+- whether launch-critical or directional only
+
+Also define a watchlist for:
+- recommendations ignored at very high rate
+- comeback paths underperforming
+- over-personalization causing confusion
+- strong recommendations correlating with worse retention
+- users stuck in low-momentum states too long
+
+==================================================
+STEP 13 — APPLY THE GRAPH TO ACTIVE PRODUCT SURFACES
+==================================================
+
+Apply Personalization Graph v1 only to active current surfaces.
+
+At minimum integrate with:
+- home/next-step surface
+- mission recommendation surface
+- comeback prompts if present
+- first purchase / status explanation surfaces if present
+- progression guidance surfaces if present
+- live ops targeting hooks if simple and already feasible
+
+Do NOT rewrite the whole app.
+Do NOT add giant new UI systems.
+Apply the graph where it has the highest decision value.
+
+Priority order:
+1. home / next action
+2. mission recommendation
+3. comeback guidance
+4. reward/status framing
+5. live ops hooks if lightweight
+
+==================================================
+STEP 14 — USER-FACING PERSONALIZATION MESSAGING
+==================================================
+
+Create or refine user-facing copy where personalization appears.
+
+At minimum improve messaging for:
+- next recommended action
+- comeback guidance
+- recovery after failed/follow-up proof
+- first meaningful purchase/status moment
+- progression push
+- consistency reinforcement
+
+Tone rules:
+- helpful
+- motivating
+- non-judgmental
+- clear
+- specific enough to feel personal
+- never creepy
+- never fatalistic
+
+Avoid:
+- “we know everything about you” tone
+- locking the user into identity labels
+- making the user feel analyzed or weak
+- recommendations that sound generic despite personalization claims
+
+==================================================
+STEP 15 — SECURITY, FAIRNESS, ERROR HANDLING, EDGE CASES
+==================================================
+
+## 🔐 SECURITY / PRIVACY
+Explicitly protect against:
+- exposing sensitive internal state labels to the wrong surfaces
+- storing creepy/unnecessary personal inferences
+- recommendation routes leaking privileged data
+- unsafe admin access to detailed behavioral state without justification
+
+## ⚖️ FAIRNESS / PRODUCT SAFETY
+Explicitly review for:
+- users not being trapped in negative states too long
+- personalization not bypassing trust requirements
+- personalization not unfairly prioritizing spend-heavy actions
+- comeback users not being over-rewarded unfairly versus consistent users
+- user history not being treated as destiny
+
+## 🛡️ ERROR HANDLING
+Handle:
+- missing graph state
+- partial data availability
+- old users with incomplete telemetry
+- graph version mismatch
+- recommendation generation failure
+- conflicting states
+- stale state snapshot
+- home screen fallback if personalization fails
+
+## ⚠️ EDGE CASES
+Document and handle:
+- brand new user with little data
+- highly active user with weak proof quality
+- high trust user with temporary slump
+- low activity but high spender
+- no first purchase but strong progression
+- status-engaged user with low mission completion
+- user returning after long absence
+- user with mixed signals across dimensions
+- recommendation that points to unavailable flow
+- live ops event recommendation conflicting with comeback recommendation
+
+==================================================
+STEP 16 — CREATE THE PERSONALIZATION DOCS
+==================================================
+
+Create a clear docs structure.
+
+Recommended structure:
+
+/docs/personalization/
+  personalization-audit.md
+  personalization-doctrine.md
+  user-state-graph.md
+  state-categories.md
+  next-action-engine.md
+  mission-personalization.md
+  comeback-personalization.md
+  progression-pacing.md
+  status-framing.md
+  personalization-metrics.md
+  known-personalization-risks.md
+
+Document:
+- what signals are used
+- what recommendations are personalized
+- what is intentionally NOT personalized yet
+- what remains heuristic vs evidence-based
+- what future phases should extend
+
+==================================================
+STEP 17 — DO NOT OVER-ENGINEER
+==================================================
+
+Important implementation rules:
+
+1. Do NOT build a giant recommendation platform.
+2. Do NOT use black-box personalization that no one can explain.
+3. Do NOT segment users into dozens of fragile categories.
+4. Prefer named states and clear rules over hidden scoring complexity.
+5. Reuse existing product data and flows where possible.
+6. Keep the graph auditable and understandable.
+7. Optimize for useful relevance and motivational fit first.
+8. Make future identity history and data flywheel phases easier, not harder.
+
+==================================================
+STEP 18 — ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a personalization audit exists
+2. a personalization doctrine exists
+3. a user-state graph model exists
+4. user state/segment rules are defined
+5. a next-action engine exists
+6. mission/recommendation personalization rules exist
+7. comeback personalization rules exist
+8. progression pacing personalization rules exist
+9. reward/status framing personalization rules exist
+10. personalization config is centralized
+11. personalization logging is improved
+12. personalization metrics are defined
+13. user-facing personalization messaging is improved where needed
+14. no new gameplay scope was added
+15. the product feels more relevant per-user than before
+
+==================================================
+STEP 19 — DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary
+- what personalization-relevant logic already existed
+- what was missing
+- what was reused
+- what was added/upgraded in this phase
+
+2. Files created or changed in this run only
+
+3. Personalization documentation summary
+- doctrine
+- user-state graph
+- state categories
+- next-action engine
+- mission personalization
+- comeback personalization
+- progression pacing
+- status framing
+- personalization metrics
+- known risks
+
+4. Personalization system summary
+- what was centralized
+- how user states are classified
+- how recommendations now differ by state
+- how comeback handling now differs
+- how progression/status guidance is more relevant
+
+5. Verification results
+- typecheck/build status
+- tests status
+- personalization flow validation status
+- any remaining non-blocking personalization gaps
+
+6. Launch recommendation
+- PERSONALIZATION GRAPH READY or NOT READY
+- if NOT READY, list the exact blockers
+
+==================================================
+IMPORTANT OPERATING RULES
+==================================================
+
+- Audit before upgrading
+- Keep scope narrow
+- Do not restart the project
+- Do not invent a new product direction
+- Do not build a giant recommendation platform
+- Do not create creepy opaque user profiling
+- Prefer useful explainable structure over black-box cleverness
+- Preserve trust integrity, economy integrity, and progression integrity at all costs

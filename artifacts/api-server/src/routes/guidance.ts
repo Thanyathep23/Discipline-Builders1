@@ -2,15 +2,17 @@ import { Router } from "express";
 import {
   db, usersTable, lifeProfilesTable, missionsTable,
   focusSessionsTable, proofSubmissionsTable, aiMissionsTable,
-  userInventoryTable, shopItemsTable,
+  userInventoryTable, shopItemsTable, rewardTransactionsTable,
 } from "@workspace/db";
-import { eq, and, count, desc } from "drizzle-orm";
+import { eq, and, count, desc, gte, sum, sql } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 import { getUserSkills } from "../lib/skill-engine.js";
 import { resolveArc } from "../lib/arc-resolver.js";
 import { computePrestigeState } from "../lib/prestige-engine.js";
 import { computeAdaptiveChallenge, ChallengeProfile } from "../lib/adaptive-challenge.js";
 import { trackEvent, Events } from "../lib/telemetry.js";
+import { evaluatePersonalization } from "../lib/personalization/graphEvaluator.js";
+import type { GraphRawSignals, ConfidenceFlags } from "../lib/personalization/graphTypes.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -710,6 +712,146 @@ router.post("/recommendations/event", async (req, res) => {
 
   await trackEvent(eventName, userId, { type, ...(itemId ? { itemId } : {}) });
   res.json({ ok: true });
+});
+
+// ─── Personalization Graph (Phase 34) ─────────────────────────────────────────
+
+router.get("/personalization", async (req, res) => {
+  const userId = (req as any).userId;
+
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user) { res.status(404).json({ error: "Not found" }); return; }
+
+    const [profile] = await db.select().from(lifeProfilesTable).where(eq(lifeProfilesTable.userId, userId)).limit(1);
+
+    const skills = await getUserSkills(userId);
+    const skillLevels = skills.map(s => s.level);
+    const avgSkillLevel = skillLevels.length > 0 ? skillLevels.reduce((a, b) => a + b, 0) / skillLevels.length : 1;
+
+    const now = new Date();
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const [missionStats14d] = await db
+      .select({
+        total: count(),
+        completed: sql<number>`count(*) filter (where ${missionsTable.status} = 'completed')`,
+      })
+      .from(missionsTable)
+      .where(and(eq(missionsTable.userId, userId), gte(missionsTable.createdAt, fourteenDaysAgo)));
+
+    const [proofStats14d] = await db
+      .select({
+        total: count(),
+        approved: sql<number>`count(*) filter (where ${proofSubmissionsTable.status} = 'approved')`,
+        rejected: sql<number>`count(*) filter (where ${proofSubmissionsTable.status} = 'rejected')`,
+        followup: sql<number>`count(*) filter (where ${proofSubmissionsTable.status} = 'followup_needed')`,
+        avgQuality: sql<number>`coalesce(avg(${proofSubmissionsTable.aiConfidenceScore}), 0)`,
+      })
+      .from(proofSubmissionsTable)
+      .where(and(eq(proofSubmissionsTable.userId, userId), gte(proofSubmissionsTable.createdAt, fourteenDaysAgo)));
+
+    const [inventoryStats] = await db
+      .select({
+        owned: count(),
+        equipped: sql<number>`count(*) filter (where ${userInventoryTable.isEquipped} = true)`,
+      })
+      .from(userInventoryTable)
+      .where(eq(userInventoryTable.userId, userId));
+
+    const [spentResult] = await db
+      .select({ total: sql<number>`coalesce(sum(abs(${rewardTransactionsTable.amount})), 0)` })
+      .from(rewardTransactionsTable)
+      .where(and(
+        eq(rewardTransactionsTable.userId, userId),
+        eq(rewardTransactionsTable.type, "spent"),
+        gte(rewardTransactionsTable.createdAt, thirtyDaysAgo),
+      ));
+
+    const [earnedResult] = await db
+      .select({ total: sql<number>`coalesce(sum(${rewardTransactionsTable.amount}), 0)` })
+      .from(rewardTransactionsTable)
+      .where(and(
+        eq(rewardTransactionsTable.userId, userId),
+        eq(rewardTransactionsTable.type, "earned"),
+        gte(rewardTransactionsTable.createdAt, thirtyDaysAgo),
+      ));
+
+    const daysSinceLastActive = user.lastActiveAt
+      ? Math.floor((now.getTime() - new Date(user.lastActiveAt).getTime()) / (1000 * 60 * 60 * 24))
+      : 999;
+
+    const accountAgeDays = Math.max(1, Math.floor((now.getTime() - new Date(user.createdAt!).getTime()) / (1000 * 60 * 60 * 24)));
+
+    const [totalMissionsResult] = await db
+      .select({ c: count() })
+      .from(missionsTable)
+      .where(eq(missionsTable.userId, userId));
+
+    const [totalProofsResult] = await db
+      .select({ c: count() })
+      .from(proofSubmissionsTable)
+      .where(eq(proofSubmissionsTable.userId, userId));
+
+    const signals: GraphRawSignals = {
+      level: user.level ?? 1,
+      totalXp: user.xp ?? 0,
+      currentStreak: user.currentStreak ?? 0,
+      longestStreak: user.longestStreak ?? 0,
+      trustScore: (user as any).trustScore ?? 1.0,
+      coinBalance: user.coinBalance ?? 0,
+      daysSinceLastActive,
+      completedMissions14d: Number(missionStats14d?.completed ?? 0),
+      totalMissions14d: Number(missionStats14d?.total ?? 0),
+      approvedProofs14d: Number(proofStats14d?.approved ?? 0),
+      rejectedProofs14d: Number(proofStats14d?.rejected ?? 0),
+      followupProofs14d: Number(proofStats14d?.followup ?? 0),
+      totalProofs14d: Number(proofStats14d?.total ?? 0),
+      avgProofQuality14d: Number(proofStats14d?.avgQuality ?? 0),
+      ownedItemCount: Number(inventoryStats?.owned ?? 0),
+      equippedItemCount: Number(inventoryStats?.equipped ?? 0),
+      spentCoins30d: Number(spentResult?.total ?? 0),
+      earnedCoins30d: Number(earnedResult?.total ?? 0),
+      weakestSkillLevel: skillLevels.length > 0 ? Math.min(...skillLevels) : 1,
+      strongestSkillLevel: skillLevels.length > 0 ? Math.max(...skillLevels) : 1,
+      avgSkillLevel: Math.round(avgSkillLevel * 10) / 10,
+      accountAgeDays,
+    };
+
+    const confidence: ConfidenceFlags = {
+      hasSufficientHistory: accountAgeDays > 7 && Number(totalMissionsResult?.c ?? 0) >= 3,
+      profileComplete: !!profile && profile.onboardingStage === "complete",
+      skillDataAvailable: skills.some(s => s.totalXpEarned > 0),
+      economyDataAvailable: Number(earnedResult?.total ?? 0) > 0 || Number(spentResult?.total ?? 0) > 0,
+      proofHistoryAvailable: Number(totalProofsResult?.c ?? 0) > 0,
+    };
+
+    const result = evaluatePersonalization(userId, signals, confidence);
+
+    res.json({
+      graph: {
+        disciplineState: result.graph.disciplineState,
+        trustState: result.graph.trustState,
+        momentumState: result.graph.momentumState,
+        progressionState: result.graph.progressionState,
+        economyState: result.graph.economyState,
+        identityMotivation: result.graph.identityMotivation,
+        comebackState: result.graph.comebackState,
+        confidenceFlags: result.graph.confidenceFlags,
+        graphVersion: result.graph.graphVersion,
+        stateSnapshotAt: result.graph.stateSnapshotAt,
+      },
+      nextActions: result.nextActions,
+      missionPersonalization: result.missionPersonalization,
+      comebackPersonalization: result.comebackPersonalization,
+      pacingGuidance: result.pacingGuidance,
+      statusFraming: result.statusFraming,
+    });
+  } catch (err) {
+    console.error("[personalization] evaluation failed:", err);
+    res.status(500).json({ error: "Personalization evaluation failed" });
+  }
 });
 
 export default router;
