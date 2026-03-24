@@ -8,6 +8,8 @@
     "build": "tsx ./build.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "test:unit": "vitest run --exclude 'tests/integration/**'",
+    "test:integration": "vitest run tests/integration/",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -31,7 +33,9 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "catalog:",
+    "@types/supertest": "^7.2.0",
     "esbuild": "^0.27.3",
+    "supertest": "^7.2.2",
     "tsx": "catalog:",
     "vitest": "^4.1.0"
   }

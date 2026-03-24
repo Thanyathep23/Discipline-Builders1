@@ -337,17 +337,16 @@ router.post("/:id/purchase", requireAuth, async (req: any, res) => {
 
       await tx.insert(rewardTransactionsTable).values({
         id: generateId(), userId,
-        type: "spend", amount: car.cost,
+        type: "spent", amount: car.cost,
         reason: `Purchased vehicle: ${car.name}`,
         balanceAfter: newBalance,
-        metadata: JSON.stringify({ itemId: id, itemName: car.name, colorVariant: selectedVariant }),
-      } as any);
+      });
 
       await tx.insert(auditLogTable).values({
-        id: generateId(), userId,
+        id: generateId(), actorId: userId,
         action: "car_purchased",
-        metadata: JSON.stringify({ itemId: id, cost: car.cost, colorVariant: selectedVariant }),
-      } as any);
+        details: JSON.stringify({ itemId: id, cost: car.cost, colorVariant: selectedVariant }),
+      });
     });
 
     await checkCarCollectionBadges(userId).catch((e) =>
@@ -485,11 +484,10 @@ router.patch("/:id/wheel", requireAuth, async (req: any, res) => {
           });
 
           await tx.insert(rewardTransactionsTable).values({
-            id: generateId(), userId, type: "spend", amount: style.cost,
+            id: generateId(), userId, type: "spent", amount: style.cost,
             reason: `Purchased ${style.label} wheels`,
             balanceAfter: newBalance,
-            metadata: JSON.stringify({ carId: id, wheelStyle }),
-          } as any);
+          });
         });
       }
     }

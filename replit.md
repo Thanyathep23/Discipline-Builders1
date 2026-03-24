@@ -339,7 +339,7 @@ All tokens and components live in `artifacts/mobile/design-system/`. Import via 
 artifacts-monorepo/
 ├── artifacts/
 │   ├── api-server/         # Express API server
-│   │   └── tests/          # Vitest unit tests (6 files, 79 tests)
+│   │   └── tests/          # Vitest tests (11 files, 116 tests: 80 unit + 36 integration)
 │   └── mobile/             # Expo React Native app
 ├── lib/
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config

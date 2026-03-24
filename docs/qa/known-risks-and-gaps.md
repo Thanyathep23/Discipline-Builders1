@@ -32,11 +32,37 @@
 
 ---
 
+### KR-3: Concurrent Purchase Race Condition (P2 RISK)
+
+**Location:** `artifacts/api-server/src/routes/cars.ts` — `POST /cars/:id/purchase`
+
+**Issue:** The car purchase route checks for existing ownership before the transaction, allowing multiple concurrent requests to pass the check simultaneously. Under concurrent load, a user may purchase the same car multiple times (confirmed by integration tests).
+
+**Impact:** Duplicate inventory entries and over-deduction of coins under concurrent load. Low probability in normal usage (UI prevents rapid re-clicks).
+
+**Mitigation:** The DB transaction prevents partial writes, but doesn't prevent duplicate inventory. A unique constraint on `(userId, itemId)` in `user_inventory` would fix this at the DB level.
+
+**Fix Priority:** P2 — add unique constraint or move ownership check inside transaction with `SELECT ... FOR UPDATE`.
+
+---
+
+### KR-4: Concurrent Proof Submission (P2 RISK)
+
+**Location:** `artifacts/api-server/src/routes/proofs.ts` — `POST /api/proofs`
+
+**Issue:** Two simultaneous proof submissions for the same session can both succeed. The duplicate check uses a query before insert without locking, allowing a race window.
+
+**Impact:** User may receive double rewards for a single session. Low probability in normal usage.
+
+**Fix Priority:** P2 — add unique constraint on `(sessionId)` in `proof_submissions` table.
+
+---
+
 ## Coverage Gaps
 
 ### CG-1: Automated Tests — Covered and Remaining
 
-**Status:** 6 test files, 79 pure-logic unit tests, all passing. Framework: Vitest 4.1.
+**Status:** 11 test files, 116 tests (80 unit + 36 integration), all passing. Framework: Vitest 4.1.
 
 **Covered Areas:**
 
@@ -49,23 +75,31 @@
 | Proof requirements by category | Unit | `category-proof-requirements.test.ts` |
 | Rule-based AI judge (all verdict paths) | Unit | `judge-rules.test.ts` |
 | Distraction penalty tiers | Unit | `reward-integrity.test.ts` |
+| Auth register/login/logout HTTP lifecycle | Integration | `auth.integration.test.ts` |
+| Mission create/validate/list | Integration | `mission-session.integration.test.ts` |
+| Session start/stop/active/duplicate guard | Integration | `mission-session.integration.test.ts` |
+| Proof submit/reject/duplicate | Integration | `proof-reward.integration.test.ts` |
+| Wallet balance + history | Integration | `proof-reward.integration.test.ts` |
+| Shop item redemption (success/insufficient/duplicate) | Integration | `purchase-integrity.integration.test.ts` |
+| Car purchase (success/insufficient/duplicate) | Integration | `purchase-integrity.integration.test.ts` |
+| Concurrent purchase resilience | Integration | `concurrency-integrity.integration.test.ts` |
+| Concurrent proof resilience | Integration | `concurrency-integrity.integration.test.ts` |
+| Double session-stop resilience | Integration | `concurrency-integrity.integration.test.ts` |
 
-**Remaining Gaps (require DB/HTTP integration tests):**
+**Remaining Gaps (lower priority):**
 
 | Priority | Area | Type | Rationale |
 |----------|------|------|-----------|
-| 1 | Auth register/login/token HTTP lifecycle | Integration | Requires real HTTP + DB |
-| 2 | grantReward transaction atomicity | Integration | Requires real DB transaction |
-| 3 | Session one-active-session rule | Integration | Race condition risk, requires DB |
-| 4 | Proof follow-up auto-resolve state machine | Integration | DB state transitions |
-| 5 | Car purchase level gate + balance deduction | Integration | DB transaction verification |
-| 6 | Shop redemption (non-transactional write) | Integration | Validates KR-1 risk |
-| 7 | computeVisualState dimension mapping | Unit | Pure function, not yet extracted |
-| 8 | Mission Zod validation boundaries | Unit | Schema validation edge cases |
+| 1 | Proof follow-up auto-resolve state machine | Integration | DB state transitions |
+| 2 | computeVisualState dimension mapping | Unit | Pure function, not yet extracted |
+| 3 | Mission Zod validation boundaries | Unit | Schema validation edge cases |
+| 4 | Wheel/variant purchase flows | Integration | Similar pattern to car purchase |
 
 ### CG-2: No CI Pipeline
 
-No automated checks on push. Quality assurance via `pnpm qa:smoke` (typecheck + unit tests) run manually before release.
+No automated checks on push. Quality assurance via:
+- `pnpm qa:smoke` — typecheck + unit tests (fast, ~6s)
+- `pnpm qa:release` — typecheck + all tests including integration (~20s)
 
 ### CG-3: No Load Testing
 
@@ -122,7 +156,7 @@ Car catalog and room decor seed on server boot (`ensureCarsSeeded()`, `seedRoomD
 ## Recommended Next Steps
 
 1. **Immediate:** Wrap shop redemption in `db.transaction()` (KR-1)
-2. **Next:** Add integration test infrastructure (test DB, supertest HTTP tests) for auth lifecycle + session guardrails
+2. **Next:** Add unique constraint on `(userId, itemId)` in user_inventory (KR-3) and `(sessionId)` in proof_submissions (KR-4)
 3. **Sprint 1:** Add CI pipeline with test gate on push
 4. **Sprint 2:** Migrate token store to DB-backed sessions (KR-2)
 5. **Sprint 3:** Add proof judgment timeout/retry mechanism (FA-2)

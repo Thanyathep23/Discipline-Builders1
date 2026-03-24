@@ -8,7 +8,10 @@
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "qa:test": "pnpm --filter @workspace/api-server run test",
-    "qa:smoke": "tsc --build && pnpm --filter @workspace/api-server run typecheck && pnpm --filter @workspace/api-server run test",
+    "qa:unit": "pnpm --filter @workspace/api-server run test:unit",
+    "qa:integration": "pnpm --filter @workspace/api-server run test:integration",
+    "qa:smoke": "tsc --build && pnpm --filter @workspace/api-server run typecheck && pnpm --filter @workspace/api-server run test:unit",
+    "qa:release": "tsc --build && pnpm --filter @workspace/api-server run typecheck && pnpm --filter @workspace/api-server run test",
     "qa:seed": "tsx scripts/qa-seed.ts",
     "qa:reset": "tsx scripts/qa-reset.ts"
   },

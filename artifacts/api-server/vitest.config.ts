@@ -4,6 +4,10 @@ export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
     environment: "node",
-    testTimeout: 10000,
+    testTimeout: 30000,
+    fileParallelism: false,
+    sequence: {
+      concurrent: false,
+    },
   },
 });

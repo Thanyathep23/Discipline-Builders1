@@ -763,11 +763,10 @@ router.post("/room/environments/:id/purchase", requireAuth, async (req: any, res
       });
 
       await tx.insert(rewardTransactionsTable).values({
-        id: generateId(), userId, type: "spend", amount: env.cost,
+        id: generateId(), userId, type: "spent", amount: env.cost,
         reason: `Purchased room environment: ${env.name}`,
         balanceAfter: newBalance,
-        metadata: JSON.stringify({ environmentId: envId }),
-      } as any);
+      });
     });
 
     await db.insert(auditLogTable).values({
