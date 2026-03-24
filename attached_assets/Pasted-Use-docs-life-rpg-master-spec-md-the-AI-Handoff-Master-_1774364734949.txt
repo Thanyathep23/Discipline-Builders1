@@ -1,0 +1,765 @@
+Use docs/life-rpg-master-spec.md, the AI Handoff Master Brief, the existing Replit codebase, and all completed Phase 27–34 artifacts as the permanent source of truth.
+
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+# Phase 35 — Identity History System
+Version: 1.0 | Platform: Replit | Scope: Transformation timeline, milestone memory, firsts, comeback arcs, identity snapshots, history surfaces
+
+## 🎯 PROJECT OVERVIEW
+Build Identity History System v1 for the existing Life RPG app.
+
+This phase is NOT about adding new gameplay pillars.
+This phase is NOT about building a giant social memory platform.
+This phase is about turning user progress into a meaningful personal history.
+
+The identity history system must make the app feel like:
+- a record of real growth
+- a record of visible transformation
+- a record of firsts, milestones, setbacks, recoveries, and status evolution
+- a place where effort accumulates into identity, not just XP
+
+The target outcome:
+1. users can see how they have changed over time
+2. the app can preserve important “firsts” and growth moments
+3. comeback moments and milestone moments become emotionally meaningful
+4. the product gains stronger emotional attachment and switching cost
+5. history becomes a reusable foundation for prestige, sharing, personalization, and future data flywheel phases
+6. identity is no longer just current state — it becomes a narrative
+
+==================================================
+PHASE SCOPE ONLY
+==================================================
+
+Build only the minimum strong Identity History foundation needed to create emotional continuity and memory inside the product.
+
+Required outputs for this phase:
+1. identity history audit
+2. identity history doctrine
+3. identity history event model
+4. milestone taxonomy
+5. transformation timeline system
+6. “firsts” memory system
+7. comeback / setback / recovery history layer
+8. identity snapshot model
+9. lightweight history surfacing in current product
+10. centralized history config/types
+11. history logging and metrics definitions
+12. repo documentation for identity history and known limitations
+
+Do NOT build:
+- a full social feed
+- a giant journaling system
+- a photo album product
+- a full user-generated story composer
+- a public social network
+- long-form blogging
+- video recap generation
+- complex sharing infrastructure
+- new gameplay systems
+- a giant notification engine
+
+If the app already has:
+- progression updates
+- approved proofs
+- rewards
+- purchases
+- milestone systems
+- character visual states
+- wardrobe/car/room ownership
+- streaks
+- prestige/rank/skill changes
+reuse those as raw material for identity history.
+
+Do NOT replace working systems blindly.
+Upgrade them into a clearer Identity History System v1.
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything, inspect and report the current history-relevant system across:
+
+A. Existing progress records
+- mission completions
+- focus session history
+- proof approval history
+- reward history
+- streak history
+- level/xp changes
+- skill/rank changes
+- progression/character state changes
+- milestone or badge history if any
+- purchase and ownership history
+- room/car/wardrobe switches if meaningful
+- any audit trail that already captures user growth
+
+B. Existing user-visible memory surfaces
+- profile/history screens if any
+- recent activity surfaces
+- achievement/badge surfaces
+- character/progression views
+- world/status views
+- admin/audit views that might be repurposed
+- any event logs or timeline-like UI that already exists
+
+C. Existing “history” gaps
+- current state visible, but not change-over-time
+- milestones exist, but not remembered as story
+- purchases exist, but not framed as first ownership moments
+- comeback/recovery moments not captured
+- transformation before/after not surfaced
+- no coherent timeline of growth
+- no emotional record of the user’s journey
+
+D. Existing emotional/product risks
+- history becoming cluttered or noisy
+- too many trivial events polluting memory
+- major milestones being buried
+- users feeling judged by their low points
+- history reading like logs instead of identity progression
+- identity history conflicting with privacy or trust boundaries
+- history requiring too much manual curation
+
+E. Existing architecture risks
+- relevant events scattered across many services
+- no single identity-history entry model
+- no reusable timeline/event aggregation layer
+- UI surfaces too tied to current state only
+- no prioritization of memorable vs non-memorable events
+- no clear retention rules for what becomes part of the long-term story
+
+Your audit must identify:
+1. what historical signals already exist
+2. what memorable events already happen but are not captured as memory
+3. what current surfaces can be reused
+4. what should count as identity history
+5. what should NOT count as identity history
+6. what must be centralized in this phase
+
+Do not guess blindly.
+Audit first, then build the memory layer.
+
+==================================================
+STEP 2 — DEFINE THE IDENTITY HISTORY DOCTRINE
+==================================================
+
+Create a clear Identity History v1 doctrine.
+
+The identity history system must satisfy all of these simultaneously:
+
+### Goal A — Progress Must Feel Like a Story
+The product should not feel like isolated tasks.
+It should feel like a sequence of meaningful growth moments.
+
+### Goal B — Preserve the Right Moments
+Not everything should become history.
+Only moments that change identity, momentum, status, or emotional meaning should persist strongly.
+
+### Goal C — Encourage Reflection Without Shame
+History should help users feel growth and recovery.
+It should not trap them in humiliation or overemphasize failure.
+
+### Goal D — Connect Effort to Identity
+The user should be able to see:
+- what they did
+- what changed
+- what that meant for who they are becoming
+
+### Goal E — Support Emotional Attachment
+The more meaningful the history, the harder it is to leave the product.
+This is a core moat goal.
+
+### Goal F — Stay Practical and Extendable
+This phase should create a simple but extensible foundation for:
+- future prestige storytelling
+- future social-safe sharing
+- future recap systems
+- future personalized guidance
+
+==================================================
+STEP 3 — DEFINE THE IDENTITY HISTORY EVENT MODEL
+==================================================
+
+Create a clear history entry model.
+
+At minimum define identity-history-worthy event classes such as:
+- first mission created
+- first approved proof
+- first reward granted
+- first streak milestone
+- first purchase
+- first equip
+- first room unlock
+- first car unlock
+- major skill/rank/level milestone
+- character visual stage change
+- major comeback after inactivity
+- consistency milestone
+- major status upgrade
+- prestige milestone if already present
+- notable recovery after follow-up/reject streak if relevant
+
+Create a structured entry shape such as:
+- history_entry_id
+- user_id
+- history_type
+- history_subtype
+- title
+- short_description
+- emotional_frame
+- primary_entity_type
+- primary_entity_id
+- event_timestamp
+- recorded_timestamp
+- importance_level
+- memory_bucket
+- snapshot_reference if any
+- linked_reward/reference ids if relevant
+- source_system
+- graph/personalization context if useful and safe
+- visibility_scope
+- version
+
+Rules:
+1. identity history is not the same as raw logs
+2. entries must be meaningful and compressible into story
+3. keep the model structured, not freeform chaos
+4. make entries safe for future UI and metrics
+5. do not expose internal-only sensitive fields to client unnecessarily
+
+==================================================
+STEP 4 — DEFINE THE MILESTONE TAXONOMY
+==================================================
+
+Create a milestone taxonomy for what counts as a meaningful memory.
+
+At minimum define milestone families:
+
+### A. Firsts
+Examples:
+- first mission
+- first approved proof
+- first reward
+- first owned wearable
+- first room upgrade
+- first car
+- first visual status upgrade
+
+### B. Growth Milestones
+Examples:
+- level milestone
+- skill/rank milestone
+- streak milestone
+- trust quality improvement milestone
+- progression stage milestone
+- character visual evolution milestone
+
+### C. Status Milestones
+Examples:
+- first premium-feeling item
+- major wardrobe set
+- room transformation
+- car/status unlock
+- prestige/status presentation moment
+
+### D. Recovery / Comeback Milestones
+Examples:
+- first return after inactivity
+- regained streak
+- recovered after failed/follow-up period
+- rebuilt momentum
+- completed comeback sequence
+
+### E. Consistency / Discipline Milestones
+Examples:
+- 3-day, 7-day, 14-day, 30-day meaningful streaks
+- repeated approved proof band
+- stable session completion band
+- trust stabilization milestone
+
+For each family define:
+- trigger logic
+- why it matters emotionally
+- importance level
+- whether it should appear in long-term timeline
+- whether it deserves a special card/snapshot
+- whether it should support future sharing surfaces
+
+Do NOT let trivial repetitive events become top-level milestones.
+
+==================================================
+STEP 5 — BUILD THE TRANSFORMATION TIMELINE SYSTEM
+==================================================
+
+Create a lightweight transformation timeline.
+
+The timeline must help answer:
+- where the user started
+- what changed
+- what their first meaningful wins were
+- how their status/world evolved
+- how they recovered from setbacks
+- what version of themselves they are becoming
+
+At minimum the timeline should support:
+- chronological identity-history entries
+- grouped milestone entries
+- filters by category if lightweight
+- ordering by importance/time
+- empty state for new users
+- safe handling of old users with partial history
+
+For each timeline entry define:
+- title
+- subtext
+- timestamp
+- category
+- emotional tone
+- whether it links to a deeper snapshot or detail card
+
+Rules:
+- prioritize memorable progression over noisy activity spam
+- prefer “meaning moments” over every tiny action
+- make the timeline feel aspirational, not administrative
+- keep it emotionally readable
+
+==================================================
+STEP 6 — BUILD THE “FIRSTS” MEMORY SYSTEM
+==================================================
+
+Create a dedicated system for identity-defining “firsts.”
+
+At minimum preserve:
+- first mission created
+- first completed focus cycle if relevant
+- first approved proof
+- first reward
+- first streak milestone
+- first item purchased
+- first equip
+- first room/car/status unlock
+- first major character visual change
+- first comeback success
+
+For each “first” define:
+- trigger
+- permanent memory retention rule
+- whether it becomes a top-card memory
+- whether it gets a stronger emotional frame
+- whether it should be protected from being buried by later noise
+
+The app should help the user feel:
+“I remember when this became real.”
+
+==================================================
+STEP 7 — BUILD THE COMEBACK / SETBACK / RECOVERY HISTORY LAYER
+==================================================
+
+Create a recovery-aware history layer.
+
+At minimum define how to capture:
+- stalled periods without shaming language
+- first comeback after inactivity
+- successful recovery after setbacks
+- improvement in proof quality after a rough period
+- restart after inconsistency
+- regained momentum
+
+Rules:
+- do not glorify failure
+- do not immortalize every bad period
+- do preserve meaningful recoveries
+- frame setbacks as part of growth, not permanent identity
+- support future motivational surfaces
+
+Examples of history-friendly framing:
+- “You restarted your momentum”
+- “You came back and completed your first proof again”
+- “You recovered consistency after a slow stretch”
+- “You turned a rough period into progress”
+
+==================================================
+STEP 8 — BUILD THE IDENTITY SNAPSHOT MODEL
+==================================================
+
+Create a lightweight identity snapshot model.
+
+Snapshots are not raw screenshots.
+They are structured representations of the user’s state at meaningful moments.
+
+At minimum a snapshot may capture:
+- character visual state
+- level / skill band / rank band
+- streak state
+- room state
+- wardrobe/state presentation
+- car/wheel state if relevant
+- key owned status assets
+- major active identity labels
+- milestone summary
+- timestamp
+
+Possible snapshot-worthy moments:
+- first major visual evolution
+- first premium/status upgrade
+- first room transformation
+- comeback milestone
+- major streak milestone
+- level/rank jump
+- prestige-ready or prestige milestone if present
+
+Rules:
+- snapshots must be lightweight and structured
+- do not store giant unnecessary payloads
+- avoid massive image-generation scope in this phase
+- prepare for future recap/share surfaces without overbuilding
+
+==================================================
+STEP 9 — BUILD THE IDENTITY HISTORY SURFACES
+==================================================
+
+Apply Identity History v1 to current product surfaces only where it has high emotional value.
+
+At minimum integrate with:
+- profile or identity screen
+- progression/history view
+- milestone/history panel
+- a lightweight “your journey” or “identity timeline” section if appropriate
+- first/comeback/milestone cards where relevant
+
+Priority order:
+1. profile / identity view
+2. progression/history surface
+3. milestone cards
+4. optional recap-style surface if lightweight
+
+Do NOT redesign the entire app.
+Do NOT add giant multi-tab social archive systems.
+Use the minimum strong surface that makes history emotionally visible.
+
+==================================================
+STEP 10 — DEFINE HISTORY PRIORITIZATION RULES
+==================================================
+
+Create prioritization rules so the timeline stays meaningful.
+
+At minimum define:
+- what is permanent history
+- what is recent-only history
+- what is not stored as identity history
+- what should collapse into summaries
+- what deserves special prominence
+- what should decay from top-level prominence over time
+
+Examples:
+- first approved proof = permanent
+- every routine purchase = maybe not permanent unless first/major
+- major room transformation = important
+- repeated low-value actions = likely not top-level
+- comeback after 14+ days inactive = important
+- tiny repetitive activity = maybe only recent activity, not identity history
+
+Create clear importance levels such as:
+- iconic
+- major
+- meaningful
+- contextual
+- non-history activity
+
+Do NOT let the system become noisy and emotionally flat.
+
+==================================================
+STEP 11 — BUILD THE CENTRALIZED IDENTITY HISTORY CONFIG
+==================================================
+
+Create a centralized identity-history config structure.
+
+Recommended structure:
+
+/shared/identityHistory/
+  identityHistoryConfig.ts
+  historyTypes.ts
+  milestoneRules.ts
+  snapshotRules.ts
+  timelineRules.ts
+  historyPrioritization.ts
+  historyUtils.ts
+
+/server/identityHistory/
+  identityHistoryService.ts
+  historyEntryBuilder.ts
+  milestoneDetection.ts
+  snapshotBuilder.ts
+  historyLogging.ts
+  identityHistoryRoutes.ts if needed
+
+Adapt to repo conventions if needed.
+
+At minimum centralize:
+- history types
+- milestone families
+- entry importance rules
+- “firsts” rules
+- comeback/recovery rules
+- snapshot triggers
+- prioritization logic
+- history versioning
+
+Requirements:
+1. avoid scattered ad hoc timeline logic
+2. avoid duplicated milestone semantics
+3. one clear source of truth
+4. easy future extension
+5. explainable and auditable structure
+
+==================================================
+STEP 12 — BUILD HISTORY LOGGING / AUDITABILITY
+==================================================
+
+Upgrade logging so identity-history creation is inspectable.
+
+At minimum log:
+- user id
+- triggering event/system
+- history entry type
+- milestone family
+- importance level
+- snapshot created or not
+- source entity ids
+- timestamp
+- version
+
+Rules:
+- logs must be compact and structured
+- logs must support future metrics and debugging
+- avoid private/raw content over-logging
+- reuse existing audit infrastructure where possible
+- do not create duplicate noisy logs for the same milestone
+
+==================================================
+STEP 13 — DEFINE IDENTITY HISTORY METRICS
+==================================================
+
+Without building a huge analytics system, define metrics that Phase 29 can consume.
+
+At minimum define:
+- first-memory creation rate
+- timeline engagement rate
+- milestone card open/view rate
+- comeback-history generation rate
+- snapshot creation rate
+- profile/history revisit rate
+- users with meaningful history after Day 7
+- users with first purchase + first progress memory both captured
+- correlation between history engagement and retention if measurable
+- empty-history rate for active users
+
+For each metric define:
+- formula
+- event/log dependencies
+- why it matters
+- what threshold may be concerning
+- whether launch-critical or directional only
+
+Also define a watchlist for:
+- timeline surface ignored at very high rate
+- too many low-value history entries
+- active users lacking meaningful milestones
+- comeback events not becoming emotionally visible
+- history generation failing for important milestone categories
+
+==================================================
+STEP 14 — USER-FACING HISTORY MESSAGING
+==================================================
+
+Create or refine user-facing copy where identity history appears.
+
+At minimum improve messaging for:
+- your first win
+- your growth timeline
+- your comeback moment
+- your first status unlock
+- your transformation milestone
+- your recent identity shift
+- your next chapter framing if appropriate
+
+Tone rules:
+- reflective
+- motivating
+- premium
+- emotionally clear
+- never cheesy
+- never humiliating
+- never fatalistic
+
+Avoid:
+- dry administrative language
+- overhype on small moments
+- locking the user into a past failure
+- turning history into meaningless badge spam
+
+==================================================
+STEP 15 — SECURITY, PRIVACY, FAIRNESS, ERROR HANDLING, EDGE CASES
+==================================================
+
+## 🔐 SECURITY / PRIVACY
+Explicitly protect against:
+- exposing private internal history data unnecessarily
+- leaking sensitive proof content into history surfaces
+- creating public-sharing assumptions by default
+- unsafe admin access to deeply personal user history without clear reason
+
+## ⚖️ FAIRNESS / PRODUCT SAFETY
+Explicitly review for:
+- users not being defined forever by low points
+- recovery moments being framed positively without manipulation
+- history not overstating progress
+- history not fabricating significance for trivial actions
+- future status/history surfaces staying grounded in real events
+
+## 🛡️ ERROR HANDLING
+Handle:
+- missing historical data for old users
+- partially reconstructed history
+- duplicate milestone generation
+- snapshot creation failure
+- timeline ordering issues
+- stale current-state linkage
+- empty new-user history state
+- history service failure fallback
+
+## ⚠️ EDGE CASES
+Document and handle:
+- user with lots of activity but no major milestones yet
+- user with purchases but weak progress history
+- user with strong progress but no status purchases
+- long-inactive returning user with partial telemetry
+- duplicated first-event detection
+- user changes many status assets quickly
+- milestone generated before UI catches up
+- history entry references deleted/changed entities
+- older users whose earliest firsts cannot be perfectly reconstructed
+
+==================================================
+STEP 16 — CREATE THE IDENTITY HISTORY DOCS
+==================================================
+
+Create a clear docs structure.
+
+Recommended structure:
+
+/docs/identity-history/
+  identity-history-audit.md
+  identity-history-doctrine.md
+  history-event-model.md
+  milestone-taxonomy.md
+  transformation-timeline.md
+  firsts-memory-system.md
+  comeback-recovery-history.md
+  identity-snapshots.md
+  history-prioritization.md
+  identity-history-metrics.md
+  known-identity-history-risks.md
+
+Document:
+- what counts as identity history
+- what does not
+- what current signals are used
+- what is intentionally not captured yet
+- what remains heuristic
+- what future phases should extend
+
+==================================================
+STEP 17 — DO NOT OVER-ENGINEER
+==================================================
+
+Important implementation rules:
+
+1. Do NOT build a giant social memory platform.
+2. Do NOT capture every trivial action as identity history.
+3. Do NOT create bloated snapshot payloads.
+4. Prefer meaningful milestones over noisy activity streams.
+5. Reuse existing product data and progression events where possible.
+6. Keep the history model emotionally useful and technically simple.
+7. Optimize for attachment, reflection, and continuity first.
+8. Make future prestige/social/data flywheel phases easier, not harder.
+
+==================================================
+STEP 18 — ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. an identity history audit exists
+2. an identity history doctrine exists
+3. a history event model exists
+4. a milestone taxonomy exists
+5. a transformation timeline system exists
+6. a “firsts” memory system exists
+7. a comeback/recovery history layer exists
+8. an identity snapshot model exists
+9. identity history config is centralized
+10. history logging is improved
+11. identity history metrics are defined
+12. user-facing history messaging is improved where needed
+13. no new gameplay scope was added
+14. the product preserves meaningful growth history better than before
+15. the app feels more like a personal journey system than before
+
+==================================================
+STEP 19 — DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary
+- what history-relevant logic already existed
+- what was missing
+- what was reused
+- what was added/upgraded in this phase
+
+2. Files created or changed in this run only
+
+3. Identity history documentation summary
+- doctrine
+- event model
+- milestone taxonomy
+- transformation timeline
+- firsts memory
+- comeback/recovery history
+- snapshots
+- prioritization
+- metrics
+- known risks
+
+4. Identity history system summary
+- what was centralized
+- what counts as history now
+- how timeline entries are prioritized
+- how firsts/comebacks/snapshots now work
+- how emotional continuity improved
+
+5. Verification results
+- typecheck/build status
+- tests status
+- identity history flow validation status
+- any remaining non-blocking identity history gaps
+
+6. Launch recommendation
+- IDENTITY HISTORY SYSTEM READY or NOT READY
+- if NOT READY, list the exact blockers
+
+==================================================
+IMPORTANT OPERATING RULES
+==================================================
+
+- Audit before upgrading
+- Keep scope narrow
+- Do not restart the project
+- Do not invent a new product direction
+- Do not build a giant social memory platform
+- Do not turn history into noisy logs
+- Prefer meaningful identity continuity over feature bloat
+- Preserve trust integrity, progression integrity, and emotional credibility at all costs

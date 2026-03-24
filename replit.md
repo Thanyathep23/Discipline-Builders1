@@ -1660,3 +1660,63 @@ Personalization is a server-side config layer in `artifacts/api-server/src/lib/p
 - PR-010: Conflicting recommendations (live ops vs personalization)
 
 ### Personalization Graph Readiness: PERSONALIZATION GRAPH V1 READY
+
+## Phase 35 — Identity History System v1
+
+### Purpose
+Records and surfaces the user's transformation story through discipline. Tracks firsts, growth milestones, status achievements, recovery moments, and consistency streaks as a personal identity timeline. Not gamification — a genuine record of who the user has become.
+
+### Architecture
+Identity history is a server-side library in `artifacts/api-server/src/lib/identity-history/` with in-memory storage (v1). Detection functions identify milestone conditions, build structured entries with emotional framing, and store them with importance-based memory decay. Integrated into proofs route as non-blocking enhancement.
+
+### Identity History Library (`artifacts/api-server/src/lib/identity-history/`)
+- `historyTypes.ts` — Core types: IdentityHistoryEntry, TimelineEntry, HistoryLogEntry, 5 HistoryTypes, 27 HistorySubtypes, 4 ImportanceLevels, 3 MemoryBuckets, 6 EmotionalTones
+- `historyConfig.ts` — Centralized config: level milestones [5-100], streak milestones [3-100], snapshot triggers, importance→memory bucket mapping, decay windows
+- `milestoneRules.ts` — Milestone definitions for firsts (11), growth (5), recovery (4); title/description/frame generators for levels and streaks
+- `milestoneDetection.ts` — Detection functions: detectFirstMission, detectFirstProofApproved, detectFirstReward, detectFirstPurchase, detectFirstComeback, detectGenericFirst, detectLevelMilestone, detectStreakMilestone, detectSkillRankUp, detectComebackReturn, detectMomentumRebuilt
+- `snapshotBuilder.ts` — Builds IdentitySnapshot from current user state; shouldCreateSnapshot checks config triggers
+- `historyEntryBuilder.ts` — Builds full IdentityHistoryEntry with auto UUID, timestamps, importance, memory bucket
+- `timelineRules.ts` — Timeline construction with memory decay filtering, importance sorting, highlights extraction
+- `historyPrioritization.ts` — Prominence decay (contextual 7d, meaningful 30d), timeline collapsing, permanent/long-term filters
+- `historyLogging.ts` — Structured logging for every recorded entry
+- `identityHistoryService.ts` — In-memory store with duplicate detection, getUserTimeline, getUserHighlights, getUserHistoryStats, getUserFirsts, getUserProminentHistory, getHistoryEntryById
+- `index.ts` — Barrel exports
+
+### History Types (5) & Subtypes (27)
+1. **first** (11 subtypes): first_mission, first_proof_approved, first_reward, first_streak_3/7, first_purchase, first_equip, first_room_item, first_car, first_visual_change, first_comeback
+2. **growth** (6): level_milestone, skill_rank_up, streak_milestone, trust_improvement, arc_transition, prestige_milestone
+3. **status** (4): status_item_acquired, room_transformation, wardrobe_set, car_upgrade
+4. **recovery** (4): comeback_return, streak_recovered, quality_improvement, momentum_rebuilt
+5. **consistency** (6): consistency_3d/7d/14d/30d, proof_quality_streak, trust_stable
+
+### Importance & Memory Model
+- **iconic** → permanent (never decays): first_mission, first_proof_approved, first_purchase, first_car, consistency_30d, prestige_milestone
+- **major** → permanent: level_milestone, comeback_return, first_streak_7, room_transformation
+- **meaningful** → long_term (30-day decay): status_item_acquired, consistency_7d, wardrobe_set
+- **contextual** → recent (7-day decay): trust_improvement, consistency_3d, trust_stable
+
+### API Endpoints
+- `GET /api/identity-history/timeline?limit=50&type=growth` — Reverse-chrono timeline with memory decay filtering
+- `GET /api/identity-history/highlights?limit=5` — Iconic/major entries only
+- `GET /api/identity-history/stats` — Aggregate counts by type
+- `GET /api/identity-history/firsts` — All recorded firsts
+- `GET /api/identity-history/prominent` — Non-decayed entries
+- `GET /api/identity-history/entry/:entryId` — Full entry detail with snapshot
+
+### Integration
+- Proofs route (`POST /api/proofs/:id/judge`): Non-blocking detection of `first_proof_approved` and `first_reward` after successful judgment
+- Same try/catch pattern as trust engine — errors logged but never block primary operation
+- Snapshot captures user state at milestone moment (level, xp, streak, coins, trustScore)
+
+### Docs (`docs/identity-history/`)
+11 files: identity-history-audit.md, identity-history-doctrine.md, history-event-model.md, milestone-taxonomy.md, transformation-timeline.md, firsts-memory-system.md, comeback-recovery-history.md, identity-snapshots.md, history-prioritization.md, identity-history-metrics.md, known-identity-history-risks.md
+
+### Known Risks
+- R1: In-memory store — data lost on server restart (v2 will persist to PostgreSQL)
+- R2: Snapshot data incompleteness — some fields use defaults in v1
+- R3: Detection coverage gaps — only first_proof_approved and first_reward integrated in v1
+- R4: Timeline ordering edge cases with identical timestamps
+- R5: Memory decay not exercisable without persistence
+- R6: 60-second dedup window trade-offs
+
+### Identity History Readiness: IDENTITY HISTORY SYSTEM V1 READY

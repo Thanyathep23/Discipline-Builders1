@@ -16,6 +16,14 @@ import { awardBadge, awardTitle } from "./inventory.js";
 import { trackEvent, Events } from "../lib/telemetry.js";
 import { dispatchWebhookEvent } from "../lib/webhook-dispatcher.js";
 import { evaluateTrust, buildTrustLogEntry, logTrustEvaluation, type TrustEvaluationInput } from "../lib/trust/index.js";
+import {
+  detectFirstProofApproved,
+  detectFirstReward,
+  getUserExistingFirstSubtypes,
+  recordHistoryEntry,
+  type DetectionContext,
+  type SnapshotInput,
+} from "../lib/identity-history/index.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -390,6 +398,35 @@ async function runJudgment(submissionId: string, userId: string, isFollowupRejud
     logTrustEvaluation(trustLogEntry);
   } catch (trustErr) {
     console.error("[proofs] trust engine evaluation error (non-blocking):", trustErr);
+  }
+
+  try {
+    const existingFirsts = getUserExistingFirstSubtypes(userId);
+    const snapshotInput: SnapshotInput = {
+      level: user.level,
+      totalXp: user.xp,
+      currentStreak: user.currentStreak ?? 0,
+      coinBalance: user.coinBalance,
+      trustScore: user.trustScore,
+      skills: [],
+      ownedItemCount: 0,
+      equippedItemCount: 0,
+      prestigeTier: null,
+      currentArc: null,
+    };
+    const ctx: DetectionContext = { userId, snapshotInput, existingFirsts };
+
+    if (judgeResult.verdict === "approved") {
+      const firstProof = detectFirstProofApproved(ctx);
+      if (firstProof) recordHistoryEntry(firstProof);
+
+      if (coinsAwarded > 0) {
+        const firstReward = detectFirstReward(ctx);
+        if (firstReward) recordHistoryEntry(firstReward);
+      }
+    }
+  } catch (historyErr) {
+    console.error("[proofs] identity history detection error (non-blocking):", historyErr);
   }
 
   await db.insert(auditLogTable).values({

@@ -53,6 +53,8 @@ import carsRouter from "./cars.js";
 import adminWave3Router from "./admin-wave3.js";
 // Phase 29 — Metrics / Decision Dashboard
 import metricsRouter from "./metrics.js";
+// Phase 35 — Identity History
+import identityHistoryRouter from "./identity-history.js";
 
 const router: IRouter = Router();
 
@@ -110,5 +112,7 @@ router.use("/cars", carsRouter);
 router.use("/admin", adminWave3Router);
 // Phase 29 — Metrics Dashboard
 router.use("/admin/metrics", metricsRouter);
+// Phase 35 — Identity History
+router.use("/identity-history", identityHistoryRouter);
 
 export default router;
