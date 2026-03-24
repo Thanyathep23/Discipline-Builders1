@@ -74,4 +74,19 @@ export const Events = {
   RECOMMENDATION_CLICKED:        "recommendation_clicked",
   RECOMMENDATION_DISMISSED:      "recommendation_dismissed",
   RECOMMENDATION_NOT_RELEVANT:   "recommendation_not_relevant",
+  // Auth (Phase 29)
+  LOGIN_FAILED:                  "login_failed",
+  // Judge (Phase 29)
+  JUDGE_PROVIDER_FALLBACK:       "judge_provider_fallback",
+  JUDGE_FAILED:                  "judge_failed",
+  // Economy / Store (Phase 29)
+  ITEM_PURCHASED:                "item_purchased",
+  ITEM_PURCHASE_FAILED:          "item_purchase_failed",
+  ITEM_EQUIPPED:                 "item_equipped",
+  CAR_FEATURED:                  "car_featured",
+  ROOM_ENVIRONMENT_SWITCHED:     "room_environment_switched",
+  ROOM_DECOR_UPDATED:            "room_decor_updated",
+  WARDROBE_EQUIPPED:             "wardrobe_equipped",
+  // Progression (Phase 29)
+  LEVEL_UP:                      "level_up",
 } as const;

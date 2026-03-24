@@ -125,6 +125,7 @@ router.post("/login", async (req, res) => {
   const users = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
   if (!users[0]) {
     recordFailedLogin(ip);
+    trackEvent(Events.LOGIN_FAILED, null, { reason: "invalid_email" }).catch(() => {});
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }
@@ -133,11 +134,13 @@ router.post("/login", async (req, res) => {
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
     recordFailedLogin(ip);
+    trackEvent(Events.LOGIN_FAILED, user.id, { reason: "invalid_password" }).catch(() => {});
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }
 
   if (!user.isActive) {
+    trackEvent(Events.LOGIN_FAILED, user.id, { reason: "account_suspended" }).catch(() => {});
     res.status(403).json({ error: "Account suspended" });
     return;
   }

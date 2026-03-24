@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth, generateId } from "../lib/auth.js";
+import { trackEvent, Events } from "../lib/telemetry.js";
 import { db, shopItemsTable, userInventoryTable, usersTable, rewardTransactionsTable, auditLogTable } from "@workspace/db";
 import { eq, and, isNotNull, inArray } from "drizzle-orm";
 

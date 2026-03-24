@@ -6,6 +6,7 @@ import {
 } from "@workspace/db";
 import { eq, and, isNotNull, desc, sql } from "drizzle-orm";
 import { requireAuth, requireAdmin, generateId } from "../lib/auth.js";
+import { trackEvent, Events } from "../lib/telemetry.js";
 
 const router = Router();
 
@@ -573,6 +574,8 @@ router.post("/room/slots", requireAuth, async (req: any, res) => {
       details: JSON.stringify({ slot }),
     });
 
+    trackEvent(Events.ROOM_DECOR_UPDATED, userId, { slot, itemId }).catch(() => {});
+
     const allInv = await db.select({
       displaySlot: userInventoryTable.displaySlot,
       rarity: shopItemsTable.rarity,
@@ -747,8 +750,10 @@ router.post("/room/environments/:id/purchase", requireAuth, async (req: any, res
     if (existing.length > 0)
       return res.status(400).json({ error: "You already own this environment." });
 
-    if (user.coinBalance < env.cost)
+    if (user.coinBalance < env.cost) {
+      trackEvent(Events.ITEM_PURCHASE_FAILED, userId, { itemId: envId, reason: "insufficient_coins", cost: env.cost, balance: user.coinBalance, store: "world" }).catch(() => {});
       return res.status(400).json({ error: `Insufficient coins. Need ${env.cost}c — you have ${user.coinBalance}c.` });
+    }
 
     const newBalance = user.coinBalance - env.cost;
 
@@ -774,6 +779,9 @@ router.post("/room/environments/:id/purchase", requireAuth, async (req: any, res
       action: "room_environment_switch", targetId: envId, targetType: "room_environment",
       details: JSON.stringify({ environmentId: envId }),
     });
+
+    trackEvent(Events.ITEM_PURCHASED, userId, { itemId: envId, cost: env.cost, category: "room_environment", store: "world" }).catch(() => {});
+    trackEvent(Events.ROOM_ENVIRONMENT_SWITCHED, userId, { environmentId: envId }).catch(() => {});
 
     return res.json({ success: true, newBalance, environmentId: envId });
   } catch (err: any) {
@@ -802,6 +810,8 @@ router.post("/room/environments/:id/switch", requireAuth, async (req: any, res) 
       action: "room_environment_switch", targetId: envId, targetType: "room_environment",
       details: JSON.stringify({ environmentId: envId }),
     });
+
+    trackEvent(Events.ROOM_ENVIRONMENT_SWITCHED, userId, { environmentId: envId }).catch(() => {});
 
     return res.json({
       success: true,

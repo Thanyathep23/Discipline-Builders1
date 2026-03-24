@@ -6,6 +6,7 @@ import {
 import { checkUserPremium } from "./premium.js";
 import { eq, and, asc, desc, or, ilike, inArray, isNull, sql } from "drizzle-orm";
 import { requireAuth, requireAdmin, generateId } from "../lib/auth.js";
+import { trackEvent, Events } from "../lib/telemetry.js";
 import { isKilled } from "../lib/kill-switches.js";
 import { z } from "zod";
 
@@ -326,6 +327,7 @@ router.post("/:itemId/buy", requireAuth, async (req: any, res) => {
     if (!user) return res.status(404).json({ error: "User not found" });
 
     if (user.coinBalance < item.cost) {
+      trackEvent(Events.ITEM_PURCHASE_FAILED, userId, { itemId, reason: "insufficient_coins", cost: item.cost, balance: user.coinBalance, store: "marketplace" }).catch(() => {});
       return res.status(400).json({ error: "Insufficient coins", required: item.cost, balance: user.coinBalance });
     }
 
@@ -364,6 +366,8 @@ router.post("/:itemId/buy", requireAuth, async (req: any, res) => {
         details: JSON.stringify({ cost: item.cost, newBalance, category: item.category, rarity: item.rarity, itemType: item.itemType }),
       });
     });
+
+    trackEvent(Events.ITEM_PURCHASED, userId, { itemId: item.id, cost: item.cost, category: item.category, store: "marketplace" }).catch(() => {});
 
     return res.json({
       success: true,
@@ -446,6 +450,11 @@ router.post("/:itemId/equip", requireAuth, async (req: any, res) => {
       targetType: "shop_item",
       details: JSON.stringify({ itemType: item.itemType, category: item.category }),
     });
+
+    trackEvent(Events.ITEM_EQUIPPED, userId, { itemId, category: item.category, slot: item.wearableSlot }).catch(() => {});
+    if (item.wearableSlot) {
+      trackEvent(Events.WARDROBE_EQUIPPED, userId, { itemId, slot: item.wearableSlot }).catch(() => {});
+    }
 
     return res.json({ success: true, itemId, isEquipped: true });
   } catch (err: any) {

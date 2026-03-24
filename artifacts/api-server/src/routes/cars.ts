@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth, generateId } from "../lib/auth.js";
+import { trackEvent, Events } from "../lib/telemetry.js";
 import {
   db, shopItemsTable, userInventoryTable, usersTable,
   rewardTransactionsTable, auditLogTable,
@@ -300,15 +301,19 @@ router.post("/:id/purchase", requireAuth, async (req: any, res) => {
       .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    if (user.level < (car.minLevel ?? 0))
+    if (user.level < (car.minLevel ?? 0)) {
+      trackEvent(Events.ITEM_PURCHASE_FAILED, userId, { itemId: id, reason: "level_locked", minLevel: car.minLevel, userLevel: user.level, store: "cars" }).catch(() => {});
       return res.status(403).json({
         error: `You need to reach level ${car.minLevel} to purchase this vehicle.`,
       });
+    }
 
-    if (user.coinBalance < car.cost)
+    if (user.coinBalance < car.cost) {
+      trackEvent(Events.ITEM_PURCHASE_FAILED, userId, { itemId: id, reason: "insufficient_coins", cost: car.cost, balance: user.coinBalance, store: "cars" }).catch(() => {});
       return res.status(400).json({
         error: `Insufficient coins. You need ${car.cost} coins — you have ${user.coinBalance}.`,
       });
+    }
 
     const existing = await db.select({ id: userInventoryTable.id })
       .from(userInventoryTable)
@@ -349,6 +354,8 @@ router.post("/:id/purchase", requireAuth, async (req: any, res) => {
       });
     });
 
+    trackEvent(Events.ITEM_PURCHASED, userId, { itemId: id, cost: car.cost, category: "vehicle", store: "cars" }).catch(() => {});
+
     await checkCarCollectionBadges(userId).catch((e) =>
       console.error("[cars] badge check error:", e.message)
     );
@@ -382,6 +389,8 @@ router.post("/:id/feature", requireAuth, async (req: any, res) => {
     await db.update(userInventoryTable)
       .set({ displaySlot: "featured_car" })
       .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.itemId, id)));
+
+    trackEvent(Events.CAR_FEATURED, userId, { carId: id }).catch(() => {});
 
     return res.json({ success: true, featuredCarId: id });
   } catch (err: any) {

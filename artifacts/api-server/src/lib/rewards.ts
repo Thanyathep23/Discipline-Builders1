@@ -1,6 +1,7 @@
 import { db, usersTable, rewardTransactionsTable, auditLogTable, penaltiesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { generateId } from "./auth.js";
+import { trackEvent, Events } from "./telemetry.js";
 import {
   PRIORITY_MULTIPLIERS, RARITY_BONUSES, DIFFICULTY_BONUSES,
   BASE_COINS_PER_10_MIN, IMPACT_NORMALIZER, BASE_COINS_PER_VALUE_SCORE,
@@ -135,6 +136,10 @@ export async function grantReward(
       targetType: "user",
       details: JSON.stringify({ coins, xp: xpAmount, reason, leveledUp, newLevel, ...opts }),
     });
+
+    if (leveledUp) {
+      trackEvent(Events.LEVEL_UP, userId, { newLevel, previousLevel: user[0].level }).catch(() => {});
+    }
   });
 }
 

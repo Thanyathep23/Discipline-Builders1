@@ -51,6 +51,8 @@ import wearablesRouter from "./wearables.js";
 import carsRouter from "./cars.js";
 // Phase 35 — Admin Wave 3 (incidents, repair, experiments, diagnostics, runbooks, support cases)
 import adminWave3Router from "./admin-wave3.js";
+// Phase 29 — Metrics / Decision Dashboard
+import metricsRouter from "./metrics.js";
 
 const router: IRouter = Router();
 
@@ -106,5 +108,7 @@ router.use("/wearables", wearablesRouter);
 router.use("/cars", carsRouter);
 // Phase 35 — Admin Wave 3
 router.use("/admin", adminWave3Router);
+// Phase 29 — Metrics Dashboard
+router.use("/admin/metrics", metricsRouter);
 
 export default router;

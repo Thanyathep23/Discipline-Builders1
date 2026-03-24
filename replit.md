@@ -1390,6 +1390,44 @@ Added: `useAdminDashboard`, `useAdminPlayers(params)`, `useAdminPlayerSnapshot(i
 - Day 1 purchase achievable in 2-3 missions (Focus Trophy 80c)
 - Legendary items protected (15k-25k coins, months of dedicated play)
 
+## Phase 29 — Metrics / Decision Dashboard v1 (COMPLETE)
+
+### Telemetry Instrumentation
+- `telemetry.ts` — 11 new event constants: `LOGIN_FAILED`, `JUDGE_PROVIDER_FALLBACK`, `JUDGE_FAILED`, `ITEM_PURCHASED`, `ITEM_PURCHASE_FAILED`, `ITEM_EQUIPPED`, `CAR_FEATURED`, `ROOM_ENVIRONMENT_SWITCHED`, `ROOM_DECOR_UPDATED`, `WARDROBE_EQUIPPED`, `LEVEL_UP`
+- `rewards.ts` — emits `LEVEL_UP` event inside `grantReward` transaction
+- `auth.ts` — emits `LOGIN_FAILED` with reason (invalid_email, invalid_password, account_suspended)
+- `marketplace.ts` — emits `ITEM_PURCHASED` (buy) and `ITEM_EQUIPPED` (equip)
+- `cars.ts` — emits `ITEM_PURCHASED` (buy) and `CAR_FEATURED` (feature)
+- `world.ts` — emits `ITEM_PURCHASED` + `ROOM_ENVIRONMENT_SWITCHED` (env purchase), `ROOM_ENVIRONMENT_SWITCHED` (switch), `ROOM_DECOR_UPDATED` (slot assign)
+
+### Metrics Service (`artifacts/api-server/src/lib/metricsService.ts`)
+- 6 independent section functions: `getToplineHealth`, `getCoreFunnel`, `getTrustJudge`, `getEconomy`, `getStatusEngagement`, `getAlerts`
+- `getDashboard` — runs all 6 in parallel with per-section error isolation
+- All queries support `range` param: `24h | 7d | 30d`
+- Alert thresholds: judge_failed >5/24h (Critical), approval <40% (Critical), proof drop <30% of 7d avg (Warning), wallet anomaly >5/24h (Warning), mint/spend >5:1/7d (Warning), purchase stall 48h (Info)
+
+### Dashboard API (`artifacts/api-server/src/routes/metrics.ts`)
+- `GET /api/admin/metrics/dashboard?range=7d` — full dashboard (all 6 sections)
+- `GET /api/admin/metrics/topline` — Section 1 only
+- `GET /api/admin/metrics/funnel` — Section 2 only
+- `GET /api/admin/metrics/trust` — Section 3 only
+- `GET /api/admin/metrics/economy` — Section 4 only
+- `GET /api/admin/metrics/status-engagement` — Section 5 only
+- `GET /api/admin/metrics/alerts` — Section 6 only
+- All routes behind `requireAdmin` middleware
+
+### Metrics Docs (`docs/metrics/`)
+- `metrics-audit.md` — Full audit of existing vs missing instrumentation
+- `event-taxonomy.md` — Event naming conventions, schemas, and lifecycle
+- `kpi-dictionary.md` — 25 KPI definitions with formulas, sources, cadence
+- `funnel-definitions.md` — Core funnel + activation funnel + economy funnel
+- `dashboard-spec.md` — Dashboard layout, sections, alert thresholds
+- `economy-metrics.md` — Economy-specific metrics and health indicators
+- `trust-metrics.md` — Judge quality and trust score metrics
+- `status-engagement-metrics.md` — Wardrobe/car/room/level engagement metrics
+- `alert-watchlist.md` — Alert definitions with severity and response playbooks
+- `known-metrics-risks.md` — 8 known risks with mitigations
+
 ### QA Commands
 - `pnpm qa:smoke` — typecheck (libs + api-server) + all automated tests
 - `pnpm qa:test` — run tests only
