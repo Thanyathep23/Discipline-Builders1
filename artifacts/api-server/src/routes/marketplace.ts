@@ -331,36 +331,38 @@ router.post("/:itemId/buy", requireAuth, async (req: any, res) => {
 
     const newBalance = user.coinBalance - item.cost;
 
-    await db.update(usersTable)
-      .set({ coinBalance: newBalance, updatedAt: new Date() })
-      .where(eq(usersTable.id, userId));
+    await db.transaction(async (tx) => {
+      await tx.update(usersTable)
+        .set({ coinBalance: newBalance, updatedAt: new Date() })
+        .where(eq(usersTable.id, userId));
 
-    await db.insert(userInventoryTable).values({
-      id: generateId(),
-      userId,
-      itemId: item.id,
-      isEquipped: false,
-      source: "purchase",
-    });
+      await tx.insert(userInventoryTable).values({
+        id: generateId(),
+        userId,
+        itemId: item.id,
+        isEquipped: false,
+        source: "purchase",
+      });
 
-    await db.insert(rewardTransactionsTable).values({
-      id: generateId(),
-      userId,
-      type: "spent",
-      amount: -item.cost,
-      xpAmount: 0,
-      reason: `Purchased: ${item.name}`,
-      balanceAfter: newBalance,
-    });
+      await tx.insert(rewardTransactionsTable).values({
+        id: generateId(),
+        userId,
+        type: "spent",
+        amount: item.cost,
+        xpAmount: 0,
+        reason: `Purchased: ${item.name}`,
+        balanceAfter: newBalance,
+      });
 
-    await db.insert(auditLogTable).values({
-      id: generateId(),
-      actorId: userId,
-      actorRole: "user",
-      action: "marketplace_purchase",
-      targetId: item.id,
-      targetType: "shop_item",
-      details: JSON.stringify({ cost: item.cost, newBalance, category: item.category, rarity: item.rarity, itemType: item.itemType }),
+      await tx.insert(auditLogTable).values({
+        id: generateId(),
+        actorId: userId,
+        actorRole: "user",
+        action: "marketplace_purchase",
+        targetId: item.id,
+        targetType: "shop_item",
+        details: JSON.stringify({ cost: item.cost, newBalance, category: item.category, rarity: item.rarity, itemType: item.itemType }),
+      });
     });
 
     return res.json({

@@ -1357,6 +1357,39 @@ Added: `useAdminDashboard`, `useAdminPlayers(params)`, `useAdminPlayerSnapshot(i
 - `manual-qa-sheet.md` — 26 human-friendly test cases with curl-ready requests
 - `known-risks-and-gaps.md` — documented risks (shop redemption non-transactional, in-memory tokens)
 
+## Phase 28 — Economy Tuning v1 (COMPLETE)
+
+### Economy Config (`artifacts/api-server/src/lib/economy/`)
+- `economyConfig.ts` — Centralized economy constants: reward bands (trivial→extreme), price bands by category, priority/rarity/difficulty/distraction multipliers, chain bonuses, affordability targets (Day 1/7/30/90), anti-inflation guardrails
+- `economySimulation.ts` — Lightweight 30-day simulation script modeling 3 archetypes (Casual/Engaged/Power) with milestone tracking and inflation risk assessment. Run: `pnpm economy:simulate`
+
+### Rewards Centralization
+- `rewards.ts` now imports all constants from `economyConfig.ts` — priority multipliers, rarity bonuses, difficulty bonuses, distraction multiplier, XP formula, base coin rate
+- No magic numbers remain in rewards computation
+
+### Bug Fixes
+- **Marketplace transaction wrapping**: `marketplace.ts` POST buy now wraps balance update + inventory insert + reward_transaction + audit_log in a single `db.transaction()` (was separate operations — race condition risk)
+- **Spent amount sign convention**: Marketplace now records `amount: item.cost` (positive) for type="spent", matching cars.ts convention
+
+### Economy Docs (`docs/economy/`)
+- `economy-audit.md` — Full audit of all reward sources, coin sinks, progression dependencies, risk points, telemetry
+- `source-sink-map.md` — Detailed source/sink inventory with total sink capacity (~167k coins)
+- `reward-bands.md` — Reward band definitions and computation summary
+- `price-bands.md` — Price band definitions with coherence checks and ladder examples
+- `affordability-targets.md` — Day 1/7/30/90 affordability targets with archetype analysis
+- `progression-economy-map.md` — Stage-by-stage progression map (early→mid→advanced)
+- `anti-inflation-rules.md` — 6 guardrails (G1-G6) with risk assessment
+- `launch-balance-review.md` — Launch readiness assessment: 8.7/10 LAUNCH READY
+- `known-economy-risks.md` — 9 known risks (R1-R9) with severity and mitigations
+- `metrics-readiness.md` — Economy metrics inventory (tracked vs missing) with SQL examples
+
+### Economy Status: LAUNCH READY
+- Total sink capacity: ~167,000 coins across 56+ items
+- Reward bands bounded: 5-200 coins per mission
+- Anti-inflation: AI judge, duplicate prevention, no streak-to-coin inflation
+- Day 1 purchase achievable in 2-3 missions (Focus Trophy 80c)
+- Legendary items protected (15k-25k coins, months of dedicated play)
+
 ### QA Commands
 - `pnpm qa:smoke` — typecheck (libs + api-server) + all automated tests
 - `pnpm qa:test` — run tests only

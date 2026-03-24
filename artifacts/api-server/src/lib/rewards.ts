@@ -1,23 +1,20 @@
 import { db, usersTable, rewardTransactionsTable, auditLogTable, penaltiesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { generateId } from "./auth.js";
+import {
+  PRIORITY_MULTIPLIERS, RARITY_BONUSES, DIFFICULTY_BONUSES,
+  BASE_COINS_PER_10_MIN, IMPACT_NORMALIZER, BASE_COINS_PER_VALUE_SCORE,
+  getDistractionMultiplier, XP_PER_LEVEL, XP_FROM_COINS,
+} from "./economy/economyConfig.js";
 
-// XP required for each level = level * 100
 export function xpForLevel(level: number): number {
-  return level * 100;
+  return XP_PER_LEVEL(level);
 }
 
 export function calculateRewardPotential(priority: string, impactLevel: number, durationMinutes: number): number {
-  const priorityMultiplier: Record<string, number> = {
-    low: 0.5,
-    medium: 1.0,
-    high: 1.5,
-    critical: 2.5,
-  };
-
-  const base = Math.floor(durationMinutes / 10) * 10; // 10 coins per 10 minutes
-  const priority_mult = priorityMultiplier[priority] ?? 1.0;
-  const impact_mult = impactLevel / 5; // impact 1-10, normalized around 5
+  const base = Math.floor(durationMinutes / 10) * BASE_COINS_PER_10_MIN;
+  const priority_mult = PRIORITY_MULTIPLIERS[priority] ?? 1.0;
+  const impact_mult = impactLevel / IMPACT_NORMALIZER;
 
   return Math.floor(base * priority_mult * impact_mult);
 }
@@ -59,42 +56,28 @@ export function computeRewardCoins(input: ComputeRewardInput): { coins: number; 
   } = input;
 
   const base = missionValueScore
-    ? missionValueScore * 10
+    ? missionValueScore * BASE_COINS_PER_VALUE_SCORE
     : calculateRewardPotential(missionPriority, missionImpact, targetDurationMinutes);
 
   const distractions = distractionCount ?? blockedAttemptCount;
-  let distractionPenalty: number;
-  if (distractions === 0) {
-    distractionPenalty = 1.1;
-  } else if (distractions <= 2) {
-    distractionPenalty = 1.0;
-  } else if (distractions <= 5) {
-    distractionPenalty = 0.85;
-  } else {
-    distractionPenalty = 0.70;
-  }
+  const distractionPenalty = getDistractionMultiplier(distractions);
 
   const aiMult = aiRewardMult ?? 1.0;
 
   const multiplier = proofQuality * proofConfidence * aiMult * distractionPenalty;
   const coins = Math.max(0, Math.round(base * multiplier));
 
-  const xp = Math.max(1, Math.ceil(coins / 5));
+  const xp = XP_FROM_COINS(coins);
 
   return { coins, xp, multiplier: Math.round(multiplier * 100) / 100 };
 }
 
 export function computeRarityBonus(rarity: string | null | undefined): number {
-  if (rarity === "breakthrough") return 30;
-  if (rarity === "rare") return 12;
-  return 0;
+  return RARITY_BONUSES[rarity ?? "common"] ?? 0;
 }
 
 export function computeAdaptiveDifficultyBonus(difficultyColor: string | null | undefined): number {
-  const bonuses: Record<string, number> = {
-    gray: 0, green: 0, blue: 5, purple: 12, gold: 20, red: 30,
-  };
-  return bonuses[difficultyColor ?? "green"] ?? 0;
+  return DIFFICULTY_BONUSES[difficultyColor ?? "green"] ?? 0;
 }
 
 export async function grantReward(
