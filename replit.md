@@ -339,6 +339,7 @@ All tokens and components live in `artifacts/mobile/design-system/`. Import via 
 artifacts-monorepo/
 ├── artifacts/
 │   ├── api-server/         # Express API server
+│   │   └── tests/          # Vitest unit tests (6 files, 79 tests)
 │   └── mobile/             # Expo React Native app
 ├── lib/
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
@@ -346,7 +347,8 @@ artifacts-monorepo/
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
 │   └── db/                 # Drizzle ORM schema + DB connection
 │       └── src/schema/     # All table definitions
-├── scripts/                # Utility scripts
+├── docs/qa/                # QA documentation (8 files)
+├── scripts/                # Utility scripts (qa-seed.ts, qa-reset.ts)
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
 ├── tsconfig.json
@@ -1331,3 +1333,40 @@ Added: `useAdminDashboard`, `useAdminPlayers(params)`, `useAdminPlayerSnapshot(i
 - **RoomCanvas**: Accepts optional `environment` prop; applies environment-specific background colors (`ENV_BACKGROUNDS`) and window SVG rendering (small/city-skyline/panoramic)
 - **Hooks**: `useRoomEnvironments`, `usePurchaseEnvironment`, `useSwitchEnvironment` in `useApi.ts`
 - **Layout**: `room/select` registered in `_layout.tsx` with slide_from_right animation
+
+## Phase 27 — QA / Regression Foundation
+
+### Test Framework
+- **Vitest 4.1** added to `@workspace/api-server` as dev dependency
+- 6 test files, **79 automated tests** in `artifacts/api-server/tests/`:
+  - `rewards.test.ts` (21) — computeRewardCoins, XP formula, rarity/difficulty bonuses, streak, distraction penalties
+  - `reward-integrity.test.ts` (13) — verdict-to-reward mapping, economic boundaries, min XP, distraction penalty tiers
+  - `auth-logic.test.ts` (11) — password hashing, token store CRUD, admin roles, suspended accounts
+  - `prescreen.test.ts` (8) — 5-rule pre-screen pipeline
+  - `category-proof-requirements.test.ts` (17) — proof requirements by category, mission value score
+  - `judge-rules.test.ts` (9) — rule-based AI judge (all verdict paths, trust strictness, link bonus)
+- Config: `artifacts/api-server/vitest.config.ts`
+
+### QA Documentation (`docs/qa/`)
+- `qa-inventory.md` — 9 protected surfaces with routes, risk levels, coverage type
+- `regression-checklist.md` — 73 step-by-step regression tests
+- `smoke-test-list.md` — 14 must-run tests before deploy
+- `critical-path-matrix.md` — pass/fail matrix for all critical flows
+- `bug-severity-rules.md` — P0-P3 with app-specific examples
+- `release-gate.md` — 7 strict gates before release
+- `manual-qa-sheet.md` — 26 human-friendly test cases with curl-ready requests
+- `known-risks-and-gaps.md` — documented risks (shop redemption non-transactional, in-memory tokens)
+
+### QA Commands
+- `pnpm qa:smoke` — typecheck (libs + api-server) + all automated tests
+- `pnpm qa:test` — run tests only
+- `pnpm qa:seed` — seed QA users (5 profiles with known states)
+- `pnpm qa:reset` — reset QA user states to initial values
+
+### QA User Matrix (scripts/qa-seed.ts)
+- `qa_fresh` — L1, 100c, trust 1.0 (clean slate)
+- `qa_active` — L5, 500c, trust 0.85 (active user with missions)
+- `qa_rich` — L25, 10000c, trust 0.95 (can buy anything)
+- `qa_broke` — L3, 0c, trust 0.7 (insufficient funds testing)
+- `qa_suspicious` — L2, 50c, trust 0.3 (low-trust judge strictness)
+- Password for all: `QaTest123!`
