@@ -1044,9 +1044,15 @@ Maps 4 dimension scores to 6 visual axes: bodyTone (0-4), posture (0-3, 4-stage)
 - **CharacterVisualState** (`lib/characterEngine.ts`): Includes `bodyType: BodyType` field, computed from `appearance.bodyType`
   - Stage thresholds: posture neutral(<4)/upright(4-6)/athletic(7-8)/peak(9+); outfit starter(<4)/rising(4-6)/premium(7-8)/elite(9+); prestige none(<4)/subtle(4-6)/visible(7-8)/legendary(9+); refinement casual(<4)/composed(4-6)/sharp(7-8)/commanding(9+)
 - **Customization UI**: Body type selector (male/female icons), skin tone, gender-specific hair styles, hair color — saves via `PATCH /api/character/appearance` with bodyType field
-- **Integration**: `CharacterRenderer` used in character status hub with cross-fade animation; `EvolvedCharacter` legacy fallback in room editor + car photo mode both accept bodyType prop
+- **Integration**: `CharacterViewer3D` is the primary hero display in the character status hub (replaces SVG cross-fade); falls back to `CharacterRenderer` (SVG) on web. `EvolvedCharacter` legacy fallback in room editor + car photo mode both accept bodyType prop.
 - Default appearance: bodyType=male, hairStyle=clean_cut, hairColor=black
 - "WHY YOUR CHARACTER LOOKS LIKE THIS" explanation section
+
+### 3D Character System (React Three Fiber)
+- **CharacterModel3D** (`components/character/CharacterModel3D.tsx`): Procedural geometry with toon shading (MeshToonMaterial + 4-step gradient map). Includes: head (sphere + ear/nose), hair (10 style-specific geometry variants), torso (box + shoulder spheres + collar), arms/legs (cylinders), shoes (box + sole), dog tag (chain torus + tag box), leather bracelet (torus), belt (box + buckle), ground shadow (circle). Body proportions adapt to male/female bodyType. Posture transforms (shoulderBack, chestTilt, stanceW, armFlare, headLift) from PostureStage.
+- **CharacterViewer3D** (`components/character/CharacterViewer3D.tsx`): R3F Canvas wrapper with pan gesture 360° rotation via react-native-gesture-handler + reanimated `withDecay` for momentum. Camera at `[0, 4, 10]`, fov=40. Uses `useAnimatedReaction` to bridge shared value back to React state for useFrame. Falls back to SVG `CharacterRenderer` on web (R3F native Canvas requires expo-gl which is native-only).
+- **Packages**: `three@0.183.2`, `@react-three/fiber@9.1.2`, `expo-gl`, `expo-three`
+- **Hair styles**: buzz_cut, crew_cut, textured_crop, french_crop, side_part, classic_side_part, pompadour, slick_back, undercut, medium_waves, flow, man_bun, clean_cut (default)
 
 ## Phase 29 — Wearables / Style / Identity
 

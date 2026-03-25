@@ -19,7 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useCharacterStatus, useUpdateCharacterAppearance } from "@/hooks/useApi";
 import type { DimensionLevel, DimensionDetail, CharacterVisualState } from "@/lib/characterEngine";
 import { computeCharacterState } from "@/lib/characterEngine";
-import { CharacterRenderer } from "@/components/character";
+import { CharacterRenderer, CharacterViewer3D } from "@/components/character";
 
 // ─── Phase 29 — Wearable State Types ──────────────────────────────────────────
 
@@ -1150,18 +1150,13 @@ export default function CharacterStatusScreen() {
                 <Ionicons name="color-palette-outline" size={16} color={Colors.textSecondary} />
               </Pressable>
 
-              {/* The character — full hero presence with cross-fade */}
-              {fadingOutVS && (
-                <Animated.View style={[styles.characterWrap, prevCharAnimStyle]}>
-                  <CharacterRenderer visualState={fadingOutVS} size="large" showShadow={false} />
-                </Animated.View>
-              )}
+              {/* The character — 3D rotatable hero with SVG fallback */}
               <Animated.View style={[styles.characterWrap, characterAnimStyle]}>
                 {characterVS ? (
-                  <CharacterRenderer
+                  <CharacterViewer3D
                     visualState={characterVS}
-                    size="large"
-                    showShadow={false}
+                    height={320}
+                    interactive
                   />
                 ) : (
                   <EvolvedCharacter
