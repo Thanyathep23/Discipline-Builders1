@@ -1028,21 +1028,24 @@ Duplicate prevention: checks ownership before award, try/catch for concurrent re
 ### Backend: `computeVisualState()` in `routes/character.ts`
 Maps 4 dimension scores to 6 visual axes: bodyTone (0-4), posture (0-3, 4-stage), outfitTier (0-4), grooming (0-3), prestigeAccent (0-3), confidenceFace (0-2)
 
-### Frontend: 7-Layer Character Visual Evolution System
+### Frontend: High-Fidelity SVG Character System (Premium Upgrade)
+- **ViewBox**: `0 0 100 280` (full body with shoes, was 100×220)
+- **Body Types**: male/female — stored in `character_appearance.body_type` column, selectable in customization UI
 - **Architecture**: Composable layer components in `components/character/layers/`
-  - `BodyBaseLayer` — skin tone, head, ears, neck, hands
-  - `PostureLayer` — metrics provider (4 stages: neutral/upright/athletic/peak), mouth/brow path helpers
-  - `OutfitLayer` — tier-based outfit palettes (starter/rising/premium/elite) with equipped top style override
+  - `BodyBaseLayer` — gradient skin with realistic proportions, male/female body variants, anatomical detail
+  - `PostureLayer` — 4 posture stages (neutral/upright/athletic/peak), body-type-aware metrics with 14 fields (headCY, earCY, neckY, neckH, neckW, torsoX, torsoW, torsoH, shoulderW, armLX, armRX, armW, hipW, waistY)
+  - `OutfitLayer` — fabric textures, folds, 4 tier palettes (starter/rising/premium/elite) with gradient details
   - `OuterwearLayer` — jacket/coat layer from equipped wearables
-  - `WatchLayer` — equipped watch rendering
-  - `AccessoryLayer` — chain/pin/ring accessories
+  - `WatchLayer` — equipped watch rendering (center-aligned via armRX + armW/2)
+  - `AccessoryLayer` — default dog-tag necklace + leather bracelet when no accessory equipped; chain/pin/ring when equipped
   - `PrestigeLayer` — 4 stages (none/subtle/visible/legendary) with sparkle/glow effects
-  - `HairLayer` — 6 styles with grooming-level detail
-- **CharacterRenderer** (`components/character/CharacterRenderer.tsx`): Composes all 7 layers, supports size variants (small/medium/large/full), shadow control, memoized
-- **CharacterVisualState** (`lib/characterEngine.ts`): Typed interface mapping dimension levels → visual stages via `computeCharacterState()`
+  - `HairLayer` — 12 styles total: 6 male (clean_cut, side_part, textured_crop, buzz_cut, medium_natural, slicked_back) + 6 female (short_bob, side_part_long, textured_pixie, ponytail_sleek, natural_medium, bun_top)
+- **CharacterRenderer** (`components/character/CharacterRenderer.tsx`): 10-layer composited stack, bodyType/view props, fitness glow RadialGradient, size variants (small/medium/large/full), memoized
+- **CharacterVisualState** (`lib/characterEngine.ts`): Includes `bodyType: BodyType` field, computed from `appearance.bodyType`
   - Stage thresholds: posture neutral(<4)/upright(4-6)/athletic(7-8)/peak(9+); outfit starter(<4)/rising(4-6)/premium(7-8)/elite(9+); prestige none(<4)/subtle(4-6)/visible(7-8)/legendary(9+); refinement casual(<4)/composed(4-6)/sharp(7-8)/commanding(9+)
-- **Integration**: `CharacterRenderer` used in character status hub with graceful fallback to legacy `EvolvedCharacter`; cross-fade animation triggers on visual state changes
-- Legacy `EvolvedCharacter` still exists in `app/character/index.tsx` as fallback
+- **Customization UI**: Body type selector (male/female icons), skin tone, gender-specific hair styles, hair color — saves via `PATCH /api/character/appearance` with bodyType field
+- **Integration**: `CharacterRenderer` used in character status hub with cross-fade animation; `EvolvedCharacter` legacy fallback in room editor + car photo mode both accept bodyType prop
+- Default appearance: bodyType=male, hairStyle=clean_cut, hairColor=black
 - "WHY YOUR CHARACTER LOOKS LIKE THIS" explanation section
 
 ## Phase 29 — Wearables / Style / Identity

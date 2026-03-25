@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
-import Svg, { Ellipse, Path, G } from "react-native-svg";
-import type { CharacterVisualState } from "@/lib/characterEngine";
+import Svg, { Ellipse, Path, G, Defs, RadialGradient, Stop } from "react-native-svg";
+import type { CharacterVisualState, BodyType, CharacterView } from "@/lib/characterEngine";
 import { BodyBaseLayer } from "./layers/BodyBaseLayer";
 import { PostureLayer, getPostureMetrics, getGroomingLevel, getConfidenceLevel, mouthPath, browPaths } from "./layers/PostureLayer";
 import { OutfitLayer, OuterwearLayer } from "./layers/OutfitLayer";
@@ -11,9 +11,9 @@ import { PrestigeLayer } from "./layers/PrestigeLayer";
 import { HairLayer } from "./layers/HairLayer";
 
 const SIZE_MAP = {
-  small: { w: 80, h: 120 },
-  medium: { w: 120, h: 180 },
-  large: { w: 180, h: 270 },
+  small: { w: 80, h: 160 },
+  medium: { w: 140, h: 280 },
+  large: { w: 180, h: 360 },
   full: { w: 0, h: 0 },
 };
 
@@ -21,25 +21,29 @@ interface Props {
   visualState: CharacterVisualState;
   size?: "small" | "medium" | "large" | "full";
   showShadow?: boolean;
+  view?: CharacterView;
 }
 
-function CharacterRendererInner({ visualState, size = "large", showShadow = true }: Props) {
+function CharacterRendererInner({ visualState, size = "large", showShadow = true, view = "front" }: Props) {
   const vs = visualState;
+  const bodyType: BodyType = vs.bodyType ?? "male";
 
-  const metrics = useMemo(() => getPostureMetrics(vs.postureStage), [vs.postureStage]);
+  const metrics = useMemo(() => getPostureMetrics(vs.postureStage, bodyType), [vs.postureStage, bodyType]);
   const groomingLevel = useMemo(() => getGroomingLevel(vs.refinementStage), [vs.refinementStage]);
   const confidenceLevel = useMemo(() => getConfidenceLevel(vs.refinementStage), [vs.refinementStage]);
 
-  const { headCY, earCY, neckY, neckH, torsoX, torsoW, armLX, armRX, armW } = metrics;
+  const { headCY, earCY, neckY, neckH, neckW, torsoX, torsoW, torsoH, shoulderW, armLX, armRX, armW, hipW, waistY } = metrics;
   const neckBottom = neckY + neckH;
 
   const [bl, br] = useMemo(() => browPaths(confidenceLevel, headCY), [confidenceLevel, headCY]);
   const mouth = useMemo(() => mouthPath(confidenceLevel, headCY), [confidenceLevel, headCY]);
 
-  const aspect = 220 / 100;
+  const VB_W = 100;
+  const VB_H = 280;
+  const aspect = VB_H / VB_W;
   let w: number, h: number;
   if (size === "full") {
-    w = 200;
+    w = 220;
     h = w * aspect;
   } else {
     w = SIZE_MAP[size].w;
@@ -47,43 +51,56 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
   }
 
   const hasFitnessGlow = vs.postureStage === "athletic" || vs.postureStage === "peak";
+  const hasAccessoryEquipped = !!vs.equippedAccessoryStyle;
 
   return (
     <View style={[styles.container, size === "full" && styles.fullContainer]}>
-      <Svg width={w} height={h} viewBox="0 0 100 220">
+      <Svg width={w} height={h} viewBox={`0 0 ${VB_W} ${VB_H}`}>
+        <Defs>
+          <RadialGradient id="fitnessGlow" cx="0.5" cy="0.45" rx="0.4" ry="0.35">
+            <Stop offset="0" stopColor="#00E676" stopOpacity="0.06" />
+            <Stop offset="1" stopColor="#00E676" stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
+
         {hasFitnessGlow && (
-          <Ellipse cx="50" cy="130" rx="36" ry="90" fill="rgba(0,230,118,0.035)" />
+          <Ellipse cx="50" cy="150" rx="40" ry="110" fill="url(#fitnessGlow)" />
         )}
 
         {showShadow && (
-          <Ellipse cx="50" cy="212" rx="30" ry="5" fill="#00000055" />
+          <Ellipse cx="50" cy="274" rx="28" ry="4" fill="#00000040" />
         )}
 
-        {/* Layer 1: Body base (skin, head, neck, arms) */}
         <BodyBaseLayer
           skinTone={vs.skinTone}
+          bodyType={bodyType}
           headCY={headCY}
           earCY={earCY}
           neckY={neckY}
           neckH={neckH}
+          neckW={neckW}
           armLX={armLX}
           armRX={armRX}
           armW={armW}
+          shoulderW={shoulderW}
         />
 
-        {/* Layer 2: Posture overlay (body tone, muscle definition) */}
-        <PostureLayer stage={vs.postureStage} skinTone={vs.skinTone} />
+        <PostureLayer stage={vs.postureStage} bodyType={bodyType} skinTone={vs.skinTone} />
 
-        {/* Layer 3: Outfit (clothing over body) */}
         <OutfitLayer
           tier={vs.outfitTier}
+          bodyType={bodyType}
           equippedTopStyle={vs.equippedTopStyle}
           bottomColor={vs.bottomColor}
           torsoX={torsoX}
           torsoW={torsoW}
+          torsoH={torsoH}
           armLX={armLX}
           armRX={armRX}
           armW={armW}
+          hipW={hipW}
+          waistY={waistY}
+          shoulderW={shoulderW}
         />
 
         <OuterwearLayer
@@ -94,15 +111,15 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
           armLX={armLX}
           armRX={armRX}
           armW={armW}
+          shoulderW={shoulderW}
         />
 
-        {/* Layer 4: Watch (on wrist, over clothing) */}
         <WatchLayer
           style={vs.equippedWatchStyle}
           armRX={armRX}
+          armW={armW}
         />
 
-        {/* Layer 5: Prestige accents (pins, insignia) */}
         <PrestigeLayer
           stage={vs.prestigeStage}
           torsoX={torsoX}
@@ -112,29 +129,28 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
           headCY={headCY}
         />
 
-        {/* Layer 5b: Accessories (chain, etc) */}
         <AccessoryLayer
           style={vs.equippedAccessoryStyle}
           armLX={armLX}
           armW={armW}
           torsoX={torsoX}
           neckBottom={neckBottom}
+          showDogTag={!hasAccessoryEquipped}
+          showBracelet={!hasAccessoryEquipped}
         />
 
-        {/* Layer 6: Hair (over head, under face) */}
         <HairLayer
           hairStyle={vs.hairStyle}
           hairColor={vs.hairColor}
+          bodyType={bodyType}
           headCY={headCY}
           groomingLevel={groomingLevel}
         />
 
-        {/* Layer 7: Face (always on top — brows, mouth, nose) */}
         <G>
-          <Path d={bl} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-          <Path d={br} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-          <Path d={mouth} stroke="#B07A5A" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-          <Ellipse cx="50" cy={headCY + 14} rx="4" ry="1.2" fill="#C98C6C" />
+          <Path d={bl} stroke="#252535" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+          <Path d={br} stroke="#252535" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+          <Path d={mouth} stroke="#B07A5A" strokeWidth="1.4" fill="none" strokeLinecap="round" />
         </G>
       </Svg>
     </View>

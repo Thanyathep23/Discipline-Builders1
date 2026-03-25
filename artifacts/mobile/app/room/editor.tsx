@@ -389,6 +389,7 @@ export default function RoomEditorScreen() {
       visualState={charData.visualState}
       equippedWearables={charData.equippedWearables}
       skinTone={charData.appearance?.skinTone}
+      bodyType={charData.appearance?.bodyType}
       hairStyle={charData.appearance?.hairStyle}
       hairColor={charData.appearance?.hairColor}
       size={120}

@@ -90,7 +90,7 @@ const ASPECT_RATIOS: Record<AspectRatio, number> = { "4:5": 5 / 4, "1:1": 1 };
 function PhotoScene({
   car, scene, showIdentity, showCarName, showWatermark,
   username, statusTier, activeTitle, classLabel, aspectRatio,
-  visualState, equippedWearables, skinTone, hairStyle, hairColor,
+  visualState, equippedWearables, skinTone, bodyType, hairStyle, hairColor,
 }: {
   car: Car; scene: Scene; showIdentity: boolean; showCarName: boolean; showWatermark: boolean;
   username: string; statusTier: string | null; activeTitle: string | null; classLabel: string;
@@ -98,6 +98,7 @@ function PhotoScene({
   visualState?: VisualState | null;
   equippedWearables?: EquippedWearableState;
   skinTone?: string;
+  bodyType?: string;
   hairStyle?: string;
   hairColor?: string;
 }) {
@@ -195,7 +196,8 @@ function PhotoScene({
             visualState={visualState ?? undefined}
             equippedWearables={equippedWearables ?? undefined}
             skinTone={skinTone ?? "tone-3"}
-            hairStyle={hairStyle ?? "taper"}
+            bodyType={bodyType ?? "male"}
+            hairStyle={hairStyle ?? "clean_cut"}
             hairColor={hairColor ?? "black"}
             size={canvasH * 0.42}
           />
@@ -387,6 +389,7 @@ export default function PhotoModeScreen() {
                 visualState={visualState}
                 equippedWearables={equippedWearables}
                 skinTone={appearance?.skinTone}
+                bodyType={appearance?.bodyType}
                 hairStyle={appearance?.hairStyle}
                 hairColor={appearance?.hairColor}
               />

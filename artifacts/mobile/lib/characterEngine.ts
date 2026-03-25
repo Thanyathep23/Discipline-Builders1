@@ -7,11 +7,15 @@ export type OutfitTier = "starter" | "rising" | "premium" | "elite";
 export type PrestigeStage = "none" | "subtle" | "visible" | "legendary";
 export type RefinementStage = "casual" | "composed" | "sharp" | "commanding";
 
+export type BodyType = "male" | "female";
+export type CharacterView = "front" | "side";
+
 export interface CharacterVisualState {
   postureStage: PostureStage;
   outfitTier: OutfitTier;
   prestigeStage: PrestigeStage;
   refinementStage: RefinementStage;
+  bodyType: BodyType;
   skinTone: string;
   hairStyle: string;
   hairColor: string;
@@ -245,8 +249,9 @@ export function computeCharacterState(
     outfitTier: outfitTierStage,
     prestigeStage,
     refinementStage,
+    bodyType: (appearance.bodyType ?? "male") as BodyType,
     skinTone: appearance.skinTone ?? "tone-3",
-    hairStyle: appearance.hairStyle ?? "taper",
+    hairStyle: appearance.hairStyle ?? "clean_cut",
     hairColor: appearance.hairColor ?? "black",
     equippedWatchStyle: wearables.watch?.watchStyle ?? null,
     equippedTopStyle: wearables.top?.colorVariant ?? null,

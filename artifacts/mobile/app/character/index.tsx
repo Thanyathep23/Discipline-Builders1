@@ -76,13 +76,29 @@ const SKIN_TONE_DISPLAY: { key: string; label: string }[] = [
   { key: "tone-5", label: "Deep"   },
 ];
 
-const HAIR_STYLE_DISPLAY: { key: string; label: string }[] = [
-  { key: "low-fade", label: "Low Fade" },
-  { key: "caesar",   label: "Caesar"   },
-  { key: "taper",    label: "Taper"    },
-  { key: "waves",    label: "Waves"    },
-  { key: "natural",  label: "Natural"  },
-  { key: "bald",     label: "Bald"     },
+const HAIR_STYLE_MALE_DISPLAY: { key: string; label: string }[] = [
+  { key: "clean_cut",      label: "Clean Cut"   },
+  { key: "side_part",      label: "Side Part"   },
+  { key: "textured_crop",  label: "Textured"    },
+  { key: "buzz_cut",       label: "Buzz"        },
+  { key: "medium_natural", label: "Natural"     },
+  { key: "slicked_back",   label: "Slicked"     },
+];
+
+const HAIR_STYLE_FEMALE_DISPLAY: { key: string; label: string }[] = [
+  { key: "short_bob",       label: "Bob"       },
+  { key: "side_part_long",  label: "Side Part" },
+  { key: "textured_pixie",  label: "Pixie"     },
+  { key: "ponytail_sleek",  label: "Ponytail"  },
+  { key: "natural_medium",  label: "Natural"   },
+  { key: "bun_top",         label: "Bun"       },
+];
+
+const HAIR_STYLE_DISPLAY: { key: string; label: string }[] = HAIR_STYLE_MALE_DISPLAY;
+
+const BODY_TYPE_DISPLAY: { key: string; label: string; icon: string }[] = [
+  { key: "male",   label: "Male",   icon: "man-outline"   },
+  { key: "female", label: "Female", icon: "woman-outline" },
 ];
 
 const HAIR_COLOR_DISPLAY: { key: string; label: string }[] = [
@@ -259,13 +275,15 @@ export function EvolvedCharacter({
   visualState,
   equippedWearables,
   skinTone = "tone-3",
-  hairStyle = "taper",
+  bodyType = "male",
+  hairStyle = "clean_cut",
   hairColor = "black",
   size = 190,
 }: {
   visualState?: VisualState | null;
   equippedWearables?: EquippedWearableState;
   skinTone?: string;
+  bodyType?: string;
   hairStyle?: string;
   hairColor?: string;
   size?: number;
@@ -499,6 +517,7 @@ function CharacterCustomizeSheet({
   visible,
   onClose,
   currentSkinTone,
+  currentBodyType,
   currentHairStyle,
   currentHairColor,
   visualState,
@@ -510,29 +529,35 @@ function CharacterCustomizeSheet({
   visible: boolean;
   onClose: () => void;
   currentSkinTone: string;
+  currentBodyType: string;
   currentHairStyle: string;
   currentHairColor: string;
   visualState: VisualState | null;
   equippedWearables: EquippedWearableState;
   characterVisualState: CharacterVisualState | null;
-  onSave: (skinTone: string, hairStyle: string, hairColor: string) => void;
+  onSave: (skinTone: string, bodyType: string, hairStyle: string, hairColor: string) => void;
   isSaving: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const [skinTone,  setSkinTone]  = useState(currentSkinTone);
+  const [bodyType,  setBodyType]  = useState(currentBodyType);
   const [hairStyle, setHairStyle] = useState(currentHairStyle);
   const [hairColor, setHairColor] = useState(currentHairColor);
 
   React.useEffect(() => {
     if (visible) {
       setSkinTone(currentSkinTone);
+      setBodyType(currentBodyType);
       setHairStyle(currentHairStyle);
       setHairColor(currentHairColor);
     }
-  }, [visible, currentSkinTone, currentHairStyle, currentHairColor]);
+  }, [visible, currentSkinTone, currentBodyType, currentHairStyle, currentHairColor]);
+
+  const activeHairStyles = bodyType === "female" ? HAIR_STYLE_FEMALE_DISPLAY : HAIR_STYLE_MALE_DISPLAY;
 
   const hasChanges =
     skinTone !== currentSkinTone ||
+    bodyType !== currentBodyType ||
     hairStyle !== currentHairStyle ||
     hairColor !== currentHairColor;
 
@@ -559,7 +584,7 @@ function CharacterCustomizeSheet({
         <View style={sheetStyles.previewWrap}>
           {characterVisualState ? (
             <CharacterRenderer
-              visualState={{ ...characterVisualState, skinTone, hairStyle, hairColor }}
+              visualState={{ ...characterVisualState, skinTone, bodyType: bodyType as any, hairStyle, hairColor }}
               size="medium"
               showShadow={false}
             />
@@ -568,6 +593,7 @@ function CharacterCustomizeSheet({
               visualState={visualState}
               equippedWearables={equippedWearables}
               skinTone={skinTone}
+              bodyType={bodyType}
               hairStyle={hairStyle}
               hairColor={hairColor}
               size={160}
@@ -576,6 +602,40 @@ function CharacterCustomizeSheet({
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }}>
+
+          {/* ── Body Type ── */}
+          <Text style={sheetStyles.sectionLabel}>BODY TYPE</Text>
+          <View style={sheetStyles.swatchRow}>
+            {BODY_TYPE_DISPLAY.map((bt) => {
+              const active = bodyType === bt.key;
+              return (
+                <Pressable
+                  key={bt.key}
+                  style={[sheetStyles.swatchItem, active && { opacity: 1 }]}
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    setBodyType(bt.key);
+                    const newStyles = bt.key === "female" ? HAIR_STYLE_FEMALE_DISPLAY : HAIR_STYLE_MALE_DISPLAY;
+                    if (!newStyles.find(s => s.key === hairStyle)) {
+                      setHairStyle(newStyles[0].key);
+                    }
+                  }}
+                >
+                  <View style={[
+                    sheetStyles.swatchCircle,
+                    { backgroundColor: Colors.bgElevated },
+                    active && { borderColor: Colors.accent, borderWidth: 2.5 },
+                  ]}>
+                    <Ionicons name={bt.icon as any} size={18} color={active ? Colors.accent : Colors.textMuted} />
+                  </View>
+                  <Text style={[sheetStyles.swatchLabel, active && { color: Colors.textPrimary }]}>
+                    {bt.label}
+                  </Text>
+                  {active && <View style={sheetStyles.swatchCheck}><Ionicons name="checkmark" size={10} color={Colors.textOnAccent} /></View>}
+                </Pressable>
+              );
+            })}
+          </View>
 
           {/* ── Skin Tone ── */}
           <Text style={sheetStyles.sectionLabel}>SKIN TONE</Text>
@@ -606,7 +666,7 @@ function CharacterCustomizeSheet({
           {/* ── Hair Style ── */}
           <Text style={sheetStyles.sectionLabel}>HAIR STYLE</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={sheetStyles.styleScroll} contentContainerStyle={sheetStyles.styleScrollContent}>
-            {HAIR_STYLE_DISPLAY.map((s) => {
+            {activeHairStyles.map((s) => {
               const active = hairStyle === s.key;
               const previewColor = HAIR_COLOR_HEX[hairColor] ?? "#3B2314";
               return (
@@ -662,7 +722,7 @@ function CharacterCustomizeSheet({
             onPress={() => {
               if (!hasChanges || isSaving) return;
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-              onSave(skinTone, hairStyle, hairColor);
+              onSave(skinTone, bodyType, hairStyle, hairColor);
             }}
             variant="primary"
             fullWidth
@@ -1014,11 +1074,12 @@ export default function CharacterStatusScreen() {
 
   const appearance = (data as any)?.appearance;
   const currentSkinTone  = appearance?.skinTone  ?? "tone-3";
-  const currentHairStyle = appearance?.hairStyle ?? "taper";
+  const currentBodyType  = appearance?.bodyType  ?? "male";
+  const currentHairStyle = appearance?.hairStyle ?? "clean_cut";
   const currentHairColor = appearance?.hairColor ?? "black";
 
-  function handleSaveAppearance(skinTone: string, hairStyle: string, hairColor: string) {
-    updateAppearance.mutate({ skinTone, hairStyle, hairColor }, {
+  function handleSaveAppearance(skinTone: string, bodyType: string, hairStyle: string, hairColor: string) {
+    updateAppearance.mutate({ skinTone, bodyType, hairStyle, hairColor }, {
       onSuccess: () => {
         setShowCustomize(false);
         refetch();
@@ -1376,6 +1437,7 @@ export default function CharacterStatusScreen() {
         visible={showCustomize}
         onClose={() => setShowCustomize(false)}
         currentSkinTone={currentSkinTone}
+        currentBodyType={currentBodyType}
         currentHairStyle={currentHairStyle}
         currentHairColor={currentHairColor}
         visualState={data?.visualState as VisualState | null ?? null}

@@ -4,9 +4,9 @@ import {
   db, usersTable, userBadgesTable, focusSessionsTable,
   userInventoryTable, shopItemsTable,
   characterAppearanceTable,
-  SKIN_TONES, HAIR_STYLES, HAIR_COLORS, DEFAULT_APPEARANCE,
+  SKIN_TONES, BODY_TYPES, HAIR_STYLES, HAIR_COLORS, DEFAULT_APPEARANCE,
 } from "@workspace/db";
-import type { SkinTone, HairStyle, HairColor } from "@workspace/db";
+import type { SkinTone, BodyType, HairStyle, HairColor } from "@workspace/db";
 import { eq, and, count, inArray, isNotNull } from "drizzle-orm";
 import { z } from "zod/v4";
 import { getUserSkills } from "../lib/skill-engine.js";
@@ -233,6 +233,7 @@ const NEXT_HINTS: Record<string, { dimension: string; hint: string; action: stri
 
 const patchAppearanceSchema = z.object({
   skinTone:  z.enum([...SKIN_TONES]  as [SkinTone,  ...SkinTone[] ]).optional(),
+  bodyType:  z.enum([...BODY_TYPES]  as [BodyType,  ...BodyType[] ]).optional(),
   hairStyle: z.enum([...HAIR_STYLES] as [HairStyle, ...HairStyle[]]).optional(),
   hairColor: z.enum([...HAIR_COLORS] as [HairColor, ...HairColor[]]).optional(),
 });
@@ -243,7 +244,7 @@ async function getOrDefaultAppearance(userId: string) {
     .from(characterAppearanceTable)
     .where(eq(characterAppearanceTable.userId, userId))
     .limit(1);
-  if (row) return { skinTone: row.skinTone, hairStyle: row.hairStyle, hairColor: row.hairColor };
+  if (row) return { skinTone: row.skinTone, bodyType: row.bodyType, hairStyle: row.hairStyle, hairColor: row.hairColor };
   return { ...DEFAULT_APPEARANCE };
 }
 
@@ -276,7 +277,7 @@ router.patch("/appearance", requireAuth, async (req: any, res) => {
 
     await db
       .insert(characterAppearanceTable)
-      .values({ userId, skinTone: merged.skinTone, hairStyle: merged.hairStyle, hairColor: merged.hairColor })
+      .values({ userId, skinTone: merged.skinTone, bodyType: merged.bodyType, hairStyle: merged.hairStyle, hairColor: merged.hairColor })
       .onConflictDoUpdate({
         target: characterAppearanceTable.userId,
         set: { ...updates, updatedAt: new Date() },
