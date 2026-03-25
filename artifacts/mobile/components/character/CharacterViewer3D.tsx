@@ -1,73 +1,57 @@
-import React, { useRef, useState, useCallback, useEffect, Suspense } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   StyleSheet,
   Dimensions,
-  Platform,
-  PixelRatio,
+  Animated as RNAnimated,
 } from "react-native";
-import { Canvas, useFrame } from "@react-three/fiber/native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import {
   useSharedValue,
+  withSpring,
   withDecay,
   runOnJS,
   useAnimatedReaction,
 } from "react-native-reanimated";
-import * as THREE from "three";
 import type {
   CharacterVisualState,
   BodyType,
 } from "@/lib/characterEngine";
-import { CharacterModel3D } from "./CharacterModel3D";
-import { CharacterRenderer } from "./CharacterRenderer";
+import { CharacterFrontSVG } from "./views/CharacterFrontSVG";
+import { CharacterSideSVG } from "./views/CharacterSideSVG";
+import { CharacterBackSVG } from "./views/CharacterBackSVG";
 
-interface SceneProps {
-  rotationY: number;
-  skinTone: string;
-  hairColor: string;
-  hairStyle: string;
-  bodyType: BodyType;
-  outfitTier: CharacterVisualState["outfitTier"];
-  postureStage: CharacterVisualState["postureStage"];
+type ViewIndex = 0 | 1 | 2 | 3;
+
+const VIEW_LABELS = ["Front", "Side", "Back", "Side"] as const;
+const SNAP_ANGLES = [0, 90, 180, 270] as const;
+
+function normalizeAngle(a: number): number {
+  "worklet";
+  return ((a % 360) + 360) % 360;
 }
 
-function Scene({
-  rotationY,
-  skinTone,
-  hairColor,
-  hairStyle,
-  bodyType,
-  outfitTier,
-  postureStage,
-}: SceneProps) {
-  const groupRef = useRef<THREE.Group>(null);
-
-  useFrame(() => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = rotationY;
+function nearestSnap(angle: number): number {
+  "worklet";
+  const norm = normalizeAngle(angle);
+  let best = 0;
+  let bestDist = 360;
+  for (const s of SNAP_ANGLES) {
+    const dist = Math.min(Math.abs(norm - s), 360 - Math.abs(norm - s));
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = s;
     }
-  });
+  }
+  return best;
+}
 
-  return (
-    <>
-      <ambientLight intensity={0.6} color="#FFFFFF" />
-      <directionalLight position={[2, 4, 3]} intensity={1.2} color="#FFFFFF" />
-      <directionalLight position={[-2, 1, 2]} intensity={0.3} color="#C8D8FF" />
-      <directionalLight position={[0, 2, -3]} intensity={0.2} color="#FFFFFF" />
-
-      <group ref={groupRef} position={[0, -4, 0]}>
-        <CharacterModel3D
-          skinTone={skinTone}
-          hairColor={hairColor}
-          hairStyle={hairStyle}
-          bodyType={bodyType}
-          outfitTier={outfitTier}
-          postureStage={postureStage}
-        />
-      </group>
-    </>
-  );
+function angleToViewIndex(angle: number): ViewIndex {
+  const norm = normalizeAngle(angle);
+  if (norm < 45 || norm >= 315) return 0;
+  if (norm >= 45 && norm < 135) return 1;
+  if (norm >= 135 && norm < 225) return 2;
+  return 3;
 }
 
 interface Props {
@@ -83,18 +67,41 @@ export function CharacterViewer3D({
 }: Props) {
   const screenW = Dimensions.get("window").width;
   const height = containerH ?? screenW * 1.1;
-  const [rotY, setRotY] = useState(0);
+
+  const [activeView, setActiveView] = useState<ViewIndex>(0);
   const rotationRef = useSharedValue(0);
   const startRef = useSharedValue(0);
 
-  const updateRotation = useCallback((val: number) => {
-    setRotY(val);
-  }, []);
+  const frontOpacity = useRef(new RNAnimated.Value(1)).current;
+  const sideOpacity = useRef(new RNAnimated.Value(0)).current;
+  const backOpacity = useRef(new RNAnimated.Value(0)).current;
+  const sideMirrorOpacity = useRef(new RNAnimated.Value(0)).current;
+
+  const opacities = [frontOpacity, sideOpacity, backOpacity, sideMirrorOpacity];
+  const prevViewRef = useRef<ViewIndex>(0);
+
+  const switchToView = useCallback((newView: ViewIndex) => {
+    const prev = prevViewRef.current;
+    if (prev === newView) return;
+
+    RNAnimated.parallel([
+      RNAnimated.timing(opacities[prev], { toValue: 0, duration: 180, useNativeDriver: true }),
+      RNAnimated.timing(opacities[newView], { toValue: 1, duration: 180, useNativeDriver: true }),
+    ]).start();
+
+    prevViewRef.current = newView;
+    setActiveView(newView);
+  }, [opacities]);
+
+  const updateFromAngle = useCallback((angle: number) => {
+    const view = angleToViewIndex(angle);
+    switchToView(view);
+  }, [switchToView]);
 
   useAnimatedReaction(
     () => rotationRef.value,
     (current) => {
-      runOnJS(updateRotation)(current);
+      runOnJS(updateFromAngle)(current);
     },
   );
 
@@ -103,58 +110,73 @@ export function CharacterViewer3D({
       startRef.value = rotationRef.value;
     })
     .onUpdate((e) => {
-      const newRot = startRef.value + (e.translationX / screenW) * Math.PI * 2;
-      rotationRef.value = newRot;
+      const newAngle = startRef.value + (e.translationX / screenW) * 360;
+      rotationRef.value = newAngle;
     })
     .onEnd((e) => {
-      rotationRef.value = withDecay({
-        velocity: (e.velocityX / screenW) * Math.PI * 2,
-        deceleration: 0.997,
+      const velocity = (e.velocityX / screenW) * 360;
+      const predicted = rotationRef.value + velocity * 0.3;
+      const snap = nearestSnap(predicted);
+      const current = normalizeAngle(rotationRef.value);
+      let target = snap;
+      const diff = snap - current;
+      if (diff > 180) target = snap - 360;
+      else if (diff < -180) target = snap + 360;
+      else target = snap;
+      const finalTarget = rotationRef.value + (target - current);
+      rotationRef.value = withSpring(finalTarget, {
+        damping: 18,
+        stiffness: 120,
+        mass: 0.8,
       });
     })
     .enabled(interactive);
 
   const bodyType: BodyType = visualState.bodyType ?? "male";
-  const isMobile = Platform.OS !== "web";
-  const dpr = isMobile ? Math.min(PixelRatio.get(), 2) : 1;
+  const svgProps = {
+    skinTone: visualState.skinTone,
+    hairStyle: visualState.hairStyle,
+    hairColor: visualState.hairColor,
+    outfitTier: visualState.outfitTier,
+    postureStage: visualState.postureStage,
+  };
 
-  if (Platform.OS === "web") {
-    return (
-      <View style={[styles.container, { height }]}>
-        <CharacterRenderer
-          visualState={visualState}
-          size="large"
-          showShadow={false}
-        />
-      </View>
-    );
-  }
+  const characterContent = (
+    <View style={[styles.svgContainer, { height: height - 30 }]}>
+      <RNAnimated.View style={[styles.viewLayer, { opacity: frontOpacity }]}>
+        <CharacterFrontSVG {...svgProps} />
+      </RNAnimated.View>
+      <RNAnimated.View style={[styles.viewLayer, { opacity: sideOpacity }]}>
+        <CharacterSideSVG {...svgProps} />
+      </RNAnimated.View>
+      <RNAnimated.View style={[styles.viewLayer, { opacity: backOpacity }]}>
+        <CharacterBackSVG {...svgProps} />
+      </RNAnimated.View>
+      <RNAnimated.View style={[styles.viewLayer, { opacity: sideMirrorOpacity, transform: [{ scaleX: -1 }] }]}>
+        <CharacterSideSVG {...svgProps} />
+      </RNAnimated.View>
+    </View>
+  );
 
-  const canvasContent = (
-    <Canvas
-      camera={{ position: [0, 4, 10], fov: 40, near: 0.1, far: 100 }}
-      style={styles.canvas}
-      gl={{ antialias: !isMobile }}
-      dpr={dpr}
-    >
-      <Suspense fallback={null}>
-        <Scene
-          rotationY={rotY}
-          skinTone={visualState.skinTone}
-          hairColor={visualState.hairColor}
-          hairStyle={visualState.hairStyle}
-          bodyType={bodyType}
-          outfitTier={visualState.outfitTier}
-          postureStage={visualState.postureStage}
+  const dots = (
+    <View style={styles.dotsRow}>
+      {SNAP_ANGLES.map((_, i) => (
+        <View
+          key={i}
+          style={[
+            styles.dot,
+            activeView === i && styles.dotActive,
+          ]}
         />
-      </Suspense>
-    </Canvas>
+      ))}
+    </View>
   );
 
   if (!interactive) {
     return (
       <View style={[styles.container, { height }]}>
-        {canvasContent}
+        {characterContent}
+        {dots}
       </View>
     );
   }
@@ -162,7 +184,8 @@ export function CharacterViewer3D({
   return (
     <GestureDetector gesture={panGesture}>
       <View style={[styles.container, { height }]}>
-        {canvasContent}
+        {characterContent}
+        {dots}
       </View>
     </GestureDetector>
   );
@@ -174,8 +197,37 @@ const styles = StyleSheet.create({
     backgroundColor: "#0A0B14",
     borderRadius: 16,
     overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  canvas: {
-    flex: 1,
+  svgContainer: {
+    width: "100%",
+    position: "relative",
+  },
+  viewLayer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  dotsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingBottom: 8,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  dotActive: {
+    backgroundColor: "rgba(255,255,255,0.8)",
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });

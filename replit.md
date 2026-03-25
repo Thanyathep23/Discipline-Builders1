@@ -1048,11 +1048,15 @@ Maps 4 dimension scores to 6 visual axes: bodyTone (0-4), posture (0-3, 4-stage)
 - Default appearance: bodyType=male, hairStyle=clean_cut, hairColor=black
 - "WHY YOUR CHARACTER LOOKS LIKE THIS" explanation section
 
-### 3D Character System (React Three Fiber)
-- **CharacterModel3D** (`components/character/CharacterModel3D.tsx`): Procedural geometry with toon shading (MeshToonMaterial + 4-step gradient map). Includes: head (sphere + ear/nose), hair (10 style-specific geometry variants), torso (box + shoulder spheres + collar), arms/legs (cylinders), shoes (box + sole), dog tag (chain torus + tag box), leather bracelet (torus), belt (box + buckle), ground shadow (circle). Body proportions adapt to male/female bodyType. Posture transforms (shoulderBack, chestTilt, stanceW, armFlare, headLift) from PostureStage.
-- **CharacterViewer3D** (`components/character/CharacterViewer3D.tsx`): R3F Canvas wrapper with pan gesture 360° rotation via react-native-gesture-handler + reanimated `withDecay` for momentum. Camera at `[0, 4, 10]`, fov=40. Uses `useAnimatedReaction` to bridge shared value back to React state for useFrame. Falls back to SVG `CharacterRenderer` on web (R3F native Canvas requires expo-gl which is native-only).
-- **Packages**: `three@0.183.2`, `@react-three/fiber@9.1.2`, `expo-gl`, `expo-three`
-- **Hair styles**: buzz_cut, crew_cut, textured_crop, french_crop, side_part, classic_side_part, pompadour, slick_back, undercut, medium_waves, flow, man_bun, clean_cut (default)
+### SVG Character Viewer (360° Rotation)
+- **CharacterViewer3D** (`components/character/CharacterViewer3D.tsx`): Pure SVG character viewer with 360° swipe rotation. Uses pan gesture (react-native-gesture-handler) with spring snap to 4 quadrants (0°/90°/180°/270°). Crossfade transitions (180ms) between views using RN Animated opacity. Dot indicators show active view. No native modules required — works in Expo Go.
+- **Three SVG Views** (`components/character/views/`):
+  - `CharacterFrontSVG` — full frontal view with face, eyes, nose, mouth, jaw, collar, dog tag, belt, laces
+  - `CharacterSideSVG` — left profile with ear, nose bridge, shoulder from side, bracelet, side shoe shape
+  - `CharacterBackSVG` — back of head/hair, spine line, shoulder blades, back pockets with stitch detail, heel tabs
+  - 270° = mirrored side view (scaleX: -1)
+- All views share: skinTone (5 tones), hairStyle (14 styles with per-view geometry), hairColor (8 colors), outfitTier (4 tiers with progressive outfit changes), postureStage (4 stages with transform adjustments)
+- **Legacy note**: `CharacterModel3D.tsx` still exists but is not imported anywhere. Packages `three`, `@react-three/fiber`, `expo-gl`, `expo-three` remain in package.json but are not imported from any active source file.
 
 ## Phase 29 — Wearables / Style / Identity
 

@@ -1,0 +1,332 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope.
+
+Problem:
+The app crashes on device with:
+"Cannot find native module 'ExpoGL'"
+
+Root cause:
+CharacterViewer3D.tsx uses @react-three/fiber 
+which requires expo-gl native module.
+expo-gl is NOT available in Expo Go.
+This approach will never work in Expo Go.
+
+Fix:
+Remove all @react-three/fiber and expo-gl 
+dependencies from CharacterViewer3D.tsx entirely.
+
+Replace with a high-quality SVG character system
+that works in Expo Go without any native modules.
+
+==================================================
+STEP 1 — REMOVE BROKEN DEPENDENCIES
+==================================================
+
+In CharacterViewer3D.tsx:
+- Remove ALL imports from @react-three/fiber
+- Remove ALL imports from @react-three/drei  
+- Remove ALL imports from expo-gl
+- Remove ALL Three.js Canvas/useFrame usage
+
+Do NOT uninstall the packages from package.json
+(may break other things).
+Just stop importing them in this file.
+
+==================================================
+STEP 2 — REPLACE WITH SVG CHARACTER
+==================================================
+
+Rewrite CharacterViewer3D.tsx using ONLY:
+- react-native-svg (already in project)
+- React Native Animated
+- react-native-gesture-handler (already in project)
+- Standard React Native components
+
+No new native modules required.
+
+==================================================
+STEP 3 — CHARACTER SVG SPEC
+==================================================
+
+Build a premium high-quality SVG character
+that matches the KEN prototype reference:
+
+TARGET QUALITY:
+- Semi-realistic adult proportions
+- NOT cartoon/round/childish
+- Head-to-body ratio approximately 1:7
+- Slim athletic adult build
+- Clean confident expression
+
+CHARACTER MUST HAVE:
+- Defined jaw and facial features
+- Neck visible and proportional
+- Shoulder width realistic
+- Chest/torso with subtle depth shading
+- Arms with elbow definition
+- Hands visible
+- Legs: long slim straight
+- Feet with sneaker shape
+
+STARTER OUTFIT (from reference):
+- White cotton tee (#F5F5F5)
+  with collar detail and sleeve hem lines
+  subtle chest shadow for fabric depth
+- Raw indigo denim jeans (#1A2744)
+  slim straight cut
+  subtle knee distress lines
+  copper button at waist
+  rear pocket stitching on back view
+- Canvas sneakers (#C8BFA8 upper, #E8E8E8 sole)
+  lace detail visible
+
+ACCESSORIES:
+- Dog tag chain necklace
+  thin line from neck center
+  small rectangle tag
+- Leather bracelet on right wrist
+  dark brown (#5C3317) wrapped rectangle
+
+SKIN:
+Default: medium tone (#C68A5E)
+Applied to: face, neck, hands, arms
+
+HAIR (default: textured crop):
+Dark brown (#2C1810) with highlight (#4A2E1C)
+Short on sides, textured on top
+Realistic shape not cartoon blob
+
+FACE FEATURES:
+- Defined brow ridge (not cartoon arches)
+- Eyes: realistic almond shape with iris
+- Nose: small defined bridge and tip
+- Mouth: neutral slight expression
+- Jaw: defined angular adult jaw
+- Ear: visible on side view
+
+SHADING APPROACH:
+Use SVG gradient fills for depth:
+- Body shading: 2-3 tone gradient
+- Face: forehead lighter, jaw slightly darker
+- Clothing: main color + 15% darker shadow on sides
+- This creates semi-realistic depth without 3D
+
+==================================================
+STEP 4 — THREE VIEW SYSTEM
+==================================================
+
+Build three complete SVG character views:
+
+VIEW 1 — FRONT (default, primary view):
+Full body facing camera
+Both eyes visible
+Necklace centered on chest
+Belt and waist visible
+Both sneakers visible toe-forward
+
+VIEW 2 — SIDE (90° profile):
+Left side profile
+One eye visible
+Hair shape from side
+Shoulder from side (broader)
+Arm slightly separated from body
+Leg profile (slightly bent at knee)
+Sneaker from side showing sole thickness
+
+VIEW 3 — BACK (180°):
+Back of head and hair
+Back of shirt with neck
+Belt from behind
+Back pockets on jeans
+Sneaker heels visible
+Leather bracelet visible on wrist
+
+Each view = separate complete SVG component:
+- CharacterFrontSVG
+- CharacterSideSVG  
+- CharacterBackSVG
+
+Props for all three:
+{
+  skinTone: string
+  hairStyle: string
+  hairColor: string
+  outfitTier: 1|2|3|4
+  postureStage: 'neutral'|'upright'|'athletic'|'peak'
+}
+
+==================================================
+STEP 5 — 360° SWIPE ROTATION
+==================================================
+
+Implement rotation between 3 views using
+PanGestureHandler (already installed):
+
+ANGLE MAPPING:
+0° → Front view (CharacterFrontSVG)
+90° → Side view (CharacterSideSVG)
+180° → Back view (CharacterBackSVG)
+270° → Side view mirrored (CharacterSideSVG scaleX:-1)
+360° → Front again
+
+TRANSITION:
+Between each 90° zone:
+- Crossfade using React Native Animated
+- Opacity: current view 1→0, next view 0→1
+- Duration: 200ms
+- Creates smooth rotation feel
+
+GESTURE:
+const panGesture = Gesture.Pan()
+  .onUpdate((e) => {
+    // Map x translation to 0-360 rotation
+    const newAngle = (currentAngle + 
+      (e.translationX / SCREEN_WIDTH) * 360) % 360
+    setDisplayAngle(newAngle)
+  })
+
+SNAP BEHAVIOR:
+On gesture end: snap to nearest 90° (0/90/180/270)
+Use Animated.spring for snap animation
+Duration: 300ms
+
+VISUAL INDICATOR:
+4 small dots at bottom of character area:
+● ○ ○ ○ (front active)
+○ ● ○ ○ (side active)  
+etc.
+
+==================================================
+STEP 6 — POSTURE STAGES
+==================================================
+
+Each posture stage adjusts SVG transforms:
+
+neutral: default relaxed pose
+  torso: no adjustment
+  shoulders: natural
+
+upright: slight transform adjustments
+  shoulders: slightly rotated back (-3deg)
+  chest: translateY(-2px) subtle forward lean
+
+athletic: more visible
+  shoulderWidth: scale(1.05) 
+  chest: more forward
+  stance: legs slightly wider
+
+peak: commanding
+  shoulderWidth: scale(1.10)
+  head: lift (+2px)
+  overall: more presence
+
+These are SVG transform overrides
+applied to the shoulder/torso group elements.
+
+==================================================
+STEP 7 — OUTFIT TIER PROGRESSION
+==================================================
+
+Tier 1 (Finance L1-3) — Starter:
+  teeColor: #F5F5F5
+  jeansColor: #1A2744
+  shoeColor: #C8BFA8
+
+Tier 2 (Finance L4-6) — Rising:
+  teeColor: #FFFFFF (cleaner)
+  jeansColor: #0D1A35 (darker, no distress)
+  shoeColor: #E8E8E8 (white clean)
+
+Tier 3 (Finance L7-8) — Premium:
+  Replace tee with oxford shirt: #F0EDE8
+  Replace jeans with chinos: #2A2520
+  Shoe shape: loafer
+
+Tier 4 (Finance L9-10) — Elite:
+  Replace with dark blazer: #1A1A2E
+  Dark trousers: #0A0A14
+  Oxford shoes: dark leather
+
+==================================================
+STEP 8 — CHARACTER VIEWER COMPONENT
+==================================================
+
+Rewrite CharacterViewer3D.tsx as CharacterViewer.tsx
+(rename to avoid confusion with old 3D version)
+
+Layout:
+┌─────────────────────────────┐
+│    CHARACTER STATUS  ⚙️     │
+├─────────────────────────────┤
+│                             │
+│      [CHARACTER SVG]        │  ← 65% height
+│      swipe to rotate        │
+│                             │
+│    ● ○ ○ ○   (view dots)   │
+├─────────────────────────────┤
+│  [👁 Skin] [💇 Hair] [🎨]  │  ← customize row
+└─────────────────────────────┘
+
+GestureDetector wraps the SVG area.
+Character SVG scales to fill the space.
+Subtle radial glow behind character (View + shadow)
+Floor ellipse shadow below feet.
+
+==================================================
+STEP 9 — FIX NAVIGATION ERROR
+==================================================
+
+Also fix "This screen doesn't exist" error.
+
+Check the router/navigation config and ensure:
+- All screen routes are properly registered
+- No broken navigation links remain
+- Character screen route is correctly defined
+- Any routes pointing to 3D screens 
+  now point to the new SVG character screen
+
+==================================================
+STEP 10 — CLEANUP
+==================================================
+
+After fix:
+1. Remove or comment out any remaining
+   @react-three/fiber imports in all files
+2. Remove any expo-gl direct imports
+3. Ensure no file imports the broken 3D module
+4. Search codebase for "expo-gl" and 
+   "@react-three/fiber" imports — remove all
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. App opens without crash on Expo Go
+2. No "Cannot find native module 'ExpoGL'" error
+3. No "This screen doesn't exist" error
+4. Character screen loads and shows character
+5. Character has adult semi-realistic proportions
+6. NOT cartoon — adult face and body
+7. White tee + indigo denim visible
+8. Dog tag and leather bracelet visible
+9. Swipe rotates between front/side/back
+10. Front/side/back views all correct
+11. Skin tone customization works
+12. Hair customization works
+13. No new native modules required
+14. Works in standard Expo Go app
+15. No existing systems broken
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. Root cause confirmed and fixed
+2. 3D dependencies removed from all files
+3. New SVG character system built
+4. Three views implemented (front/side/back)
+5. Rotation gesture working
+6. Navigation error fixed
+7. Files changed only
+8. Test on device via Expo Go: PASS/FAIL
