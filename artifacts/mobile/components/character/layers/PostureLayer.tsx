@@ -21,23 +21,23 @@ export interface PostureMetrics {
 
 const MALE_METRICS: Record<PostureStage, PostureMetrics> = {
   neutral: {
-    headCY: 32, earCY: 34, neckY: 48, neckH: 10, neckW: 14,
-    torsoX: 26, torsoW: 48, torsoH: 68, shoulderW: 52,
+    headCY: 32, earCY: 34, neckY: 48, neckH: 10, neckW: 13,
+    torsoX: 26, torsoW: 48, torsoH: 68, shoulderW: 50,
     armLX: 10, armRX: 76, armW: 14, hipW: 40, waistY: 115,
   },
   upright: {
-    headCY: 30, earCY: 32, neckY: 45, neckH: 12, neckW: 14,
-    torsoX: 24, torsoW: 52, torsoH: 70, shoulderW: 56,
+    headCY: 30, earCY: 32, neckY: 45, neckH: 12, neckW: 13,
+    torsoX: 24, torsoW: 52, torsoH: 70, shoulderW: 54,
     armLX: 8, armRX: 78, armW: 14, hipW: 42, waistY: 115,
   },
   athletic: {
-    headCY: 28, earCY: 30, neckY: 42, neckH: 14, neckW: 15,
-    torsoX: 22, torsoW: 56, torsoH: 72, shoulderW: 60,
-    armLX: 5, armRX: 81, armW: 16, hipW: 42, waistY: 114,
+    headCY: 28, earCY: 30, neckY: 42, neckH: 14, neckW: 14,
+    torsoX: 22, torsoW: 56, torsoH: 72, shoulderW: 58,
+    armLX: 5, armRX: 81, armW: 15, hipW: 42, waistY: 114,
   },
   peak: {
-    headCY: 26, earCY: 28, neckY: 39, neckH: 16, neckW: 16,
-    torsoX: 20, torsoW: 60, torsoH: 74, shoulderW: 64,
+    headCY: 26, earCY: 28, neckY: 39, neckH: 16, neckW: 15,
+    torsoX: 20, torsoW: 60, torsoH: 74, shoulderW: 62,
     armLX: 3, armRX: 83, armW: 16, hipW: 44, waistY: 113,
   },
 };
@@ -45,22 +45,22 @@ const MALE_METRICS: Record<PostureStage, PostureMetrics> = {
 const FEMALE_METRICS: Record<PostureStage, PostureMetrics> = {
   neutral: {
     headCY: 32, earCY: 34, neckY: 48, neckH: 10, neckW: 11,
-    torsoX: 28, torsoW: 44, torsoH: 66, shoulderW: 46,
+    torsoX: 28, torsoW: 44, torsoH: 66, shoulderW: 44,
     armLX: 14, armRX: 74, armW: 12, hipW: 44, waistY: 112,
   },
   upright: {
     headCY: 30, earCY: 32, neckY: 45, neckH: 12, neckW: 11,
-    torsoX: 26, torsoW: 48, torsoH: 68, shoulderW: 48,
+    torsoX: 26, torsoW: 48, torsoH: 68, shoulderW: 46,
     armLX: 12, armRX: 76, armW: 12, hipW: 46, waistY: 112,
   },
   athletic: {
     headCY: 28, earCY: 30, neckY: 42, neckH: 14, neckW: 12,
-    torsoX: 25, torsoW: 50, torsoH: 70, shoulderW: 50,
+    torsoX: 25, torsoW: 50, torsoH: 70, shoulderW: 48,
     armLX: 10, armRX: 78, armW: 13, hipW: 46, waistY: 111,
   },
   peak: {
     headCY: 26, earCY: 28, neckY: 39, neckH: 16, neckW: 12,
-    torsoX: 24, torsoW: 52, torsoH: 72, shoulderW: 52,
+    torsoX: 24, torsoW: 52, torsoH: 72, shoulderW: 50,
     armLX: 8, armRX: 80, armW: 14, hipW: 46, waistY: 110,
   },
 };
@@ -87,24 +87,24 @@ export function getConfidenceLevel(stage: RefinementStage): number {
 
 export function mouthPath(cf: number, hY: number): string {
   const y = hY + 10;
-  if (cf === 0) return `M45 ${y} Q50 ${y + 2} 55 ${y}`;
-  if (cf === 1) return `M44 ${y} Q50 ${y + 3} 56 ${y}`;
-  return `M43 ${y} Q50 ${y + 4} 57 ${y}`;
+  if (cf === 0) return `M46 ${y} Q50 ${y + 1.5} 54 ${y}`;
+  if (cf === 1) return `M45.5 ${y} Q50 ${y + 2.5} 54.5 ${y}`;
+  return `M45 ${y - 0.5} Q50 ${y + 3} 55 ${y - 0.5}`;
 }
 
 export function browPaths(cf: number, hY: number): [string, string] {
   const y0 = hY - 8;
   if (cf === 0) return [
-    `M38.5 ${y0} Q42 ${y0 - 1.5} 45.5 ${y0}`,
-    `M54.5 ${y0} Q58 ${y0 - 1.5} 61.5 ${y0}`,
+    `M38.5 ${y0} Q42.5 ${y0 - 1.5} 46 ${y0 + 0.3}`,
+    `M54 ${y0 + 0.3} Q57.5 ${y0 - 1.5} 61.5 ${y0}`,
   ];
   if (cf === 1) return [
-    `M38 ${y0 - 0.5} Q42 ${y0 - 2.5} 46 ${y0 - 0.5}`,
-    `M54 ${y0 - 0.5} Q58 ${y0 - 2.5} 62 ${y0 - 0.5}`,
+    `M38 ${y0 - 0.5} Q42.5 ${y0 - 2.5} 46 ${y0 - 0.2}`,
+    `M54 ${y0 - 0.2} Q57.5 ${y0 - 2.5} 62 ${y0 - 0.5}`,
   ];
   return [
-    `M37.5 ${y0 - 1} Q42 ${y0 - 3} 46 ${y0 - 1}`,
-    `M54 ${y0 - 1} Q58 ${y0 - 3} 62.5 ${y0 - 1}`,
+    `M37.5 ${y0 - 0.8} Q42.5 ${y0 - 3} 46.5 ${y0 - 0.5}`,
+    `M53.5 ${y0 - 0.5} Q57.5 ${y0 - 3} 62.5 ${y0 - 0.8}`,
   ];
 }
 
@@ -130,17 +130,17 @@ function PostureLayerInner({ stage, bodyType, skinTone }: PostureProps) {
   if (stage === "neutral") return null;
 
   return (
-    <G opacity={0.45}>
+    <G opacity={0.4}>
       {(stage === "upright" || stage === "athletic" || stage === "peak") && (
         <>
           <Path
-            d={`M${m.torsoX + 4} 60 Q50 56 ${m.torsoX + m.torsoW - 4} 60`}
-            stroke={shadeFill} strokeWidth="1.5" fill="none" strokeLinecap="round"
+            d={`M${m.torsoX + 4} 60 Q50 ${isMale ? 56 : 58} ${m.torsoX + m.torsoW - 4} 60`}
+            stroke={shadeFill} strokeWidth="1.2" fill="none" strokeLinecap="round"
           />
           {isMale && (
             <Path
-              d={`M${50 - m.shoulderW / 2 + 4} 56 L50 62 L${50 + m.shoulderW / 2 - 4} 56`}
-              stroke={shadeFill} strokeWidth="0.8" fill="none" strokeLinecap="round" opacity={0.4}
+              d={`M${50 - m.shoulderW / 2 + 5} 57 Q50 62 ${50 + m.shoulderW / 2 - 5} 57`}
+              stroke={shadeFill} strokeWidth="0.6" fill="none" strokeLinecap="round" opacity={0.3}
             />
           )}
         </>
@@ -148,21 +148,21 @@ function PostureLayerInner({ stage, bodyType, skinTone }: PostureProps) {
 
       {(stage === "athletic" || stage === "peak") && (
         <>
-          <Rect x={m.armLX + 2} y="80" width={m.armW - 4} height="4" rx="2" fill={shadeFill} opacity={0.5} />
-          <Rect x={m.armRX + 2} y="80" width={m.armW - 4} height="4" rx="2" fill={shadeFill} opacity={0.5} />
+          <Ellipse cx={m.armLX + m.armW / 2} cy="78" rx={m.armW / 2 - 3} ry="3" fill={shadeFill} opacity={0.35} />
+          <Ellipse cx={m.armRX + m.armW / 2} cy="78" rx={m.armW / 2 - 3} ry="3" fill={shadeFill} opacity={0.35} />
           {isMale && (
             <>
-              <Ellipse cx="50" cy="95" rx={m.torsoW / 2 - 8} ry="4" fill={shadeFill} opacity={0.2} />
               <Path
-                d={`M${m.torsoX + 6} 66 Q50 72 ${m.torsoX + m.torsoW - 6} 66`}
-                stroke={shadeFill} strokeWidth="1" fill="none" strokeLinecap="round" opacity={0.3}
+                d={`M${m.torsoX + 8} 68 Q50 73 ${m.torsoX + m.torsoW - 8} 68`}
+                stroke={shadeFill} strokeWidth="0.8" fill="none" strokeLinecap="round" opacity={0.2}
               />
+              <Ellipse cx="50" cy="92" rx={m.torsoW / 2 - 10} ry="3" fill={shadeFill} opacity={0.15} />
             </>
           )}
           {!isMale && (
             <Path
-              d={`M${m.torsoX + 8} 80 Q50 76 ${m.torsoX + m.torsoW - 8} 80`}
-              stroke={shadeFill} strokeWidth="0.8" fill="none" strokeLinecap="round" opacity={0.3}
+              d={`M${m.torsoX + 8} 78 Q50 74 ${m.torsoX + m.torsoW - 8} 78`}
+              stroke={shadeFill} strokeWidth="0.6" fill="none" strokeLinecap="round" opacity={0.2}
             />
           )}
         </>
@@ -170,13 +170,17 @@ function PostureLayerInner({ stage, bodyType, skinTone }: PostureProps) {
 
       {stage === "peak" && (
         <>
-          <Rect x={m.armLX + 1} y="84" width={m.armW - 2} height="3" rx="1.5" fill={shadeFill} opacity={0.4} />
-          <Rect x={m.armRX + 1} y="84" width={m.armW - 2} height="3" rx="1.5" fill={shadeFill} opacity={0.4} />
+          <Ellipse cx={m.armLX + m.armW / 2} cy="82" rx={m.armW / 2 - 2} ry="2.5" fill={shadeFill} opacity={0.3} />
+          <Ellipse cx={m.armRX + m.armW / 2} cy="82" rx={m.armW / 2 - 2} ry="2.5" fill={shadeFill} opacity={0.3} />
           {isMale && (
-            <Path
-              d={`M${m.torsoX + 10} 76 L50 84 L${m.torsoX + m.torsoW - 10} 76`}
-              stroke={shadeFill} strokeWidth="1" fill="none" strokeLinecap="round" opacity={0.3}
-            />
+            <>
+              <Path
+                d={`M${m.torsoX + 10} 76 Q50 82 ${m.torsoX + m.torsoW - 10} 76`}
+                stroke={shadeFill} strokeWidth="0.8" fill="none" strokeLinecap="round" opacity={0.2}
+              />
+              <Path d={`M48 66 L48 100`} stroke={shadeFill} strokeWidth="0.4" fill="none" opacity={0.1} />
+              <Path d={`M52 66 L52 100`} stroke={shadeFill} strokeWidth="0.4" fill="none" opacity={0.1} />
+            </>
           )}
         </>
       )}

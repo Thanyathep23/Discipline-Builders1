@@ -17,23 +17,36 @@ function AccessoryLayerInner({ style, armLX, armW, torsoX, neckBottom, showDogTa
       {showDogTag && !style && (
         <G>
           <Path
-            d={`M44 ${neckBottom - 2} Q47 ${neckBottom + 8} 50 ${neckBottom + 12} Q53 ${neckBottom + 8} 56 ${neckBottom - 2}`}
-            stroke="#A0A0A8" strokeWidth="0.8" fill="none" opacity={0.7}
+            d={`M46 ${neckBottom - 3} Q47 ${neckBottom + 2} 48 ${neckBottom + 6} Q49 ${neckBottom + 9} 50 ${neckBottom + 12} Q51 ${neckBottom + 9} 52 ${neckBottom + 6} Q53 ${neckBottom + 2} 54 ${neckBottom - 3}`}
+            stroke="#9A9AA0" strokeWidth="0.7" fill="none" opacity={0.65}
           />
-          <Rect x="47" y={neckBottom + 10} width="6" height="10" rx="1.5" fill="#B0B0B8" opacity={0.8} />
-          <Rect x="48" y={neckBottom + 12} width="4" height="4" rx="0.5" fill="#C8C8D0" opacity={0.5} />
-          <Circle cx="50" cy={neckBottom + 11.5} r="0.6" fill="#888890" />
+          <Path
+            d={`M48.5 ${neckBottom + 4} L49 ${neckBottom + 6}`}
+            stroke="#8A8A90" strokeWidth="0.4" fill="none" opacity={0.3}
+          />
+          <Path
+            d={`M51.5 ${neckBottom + 4} L51 ${neckBottom + 6}`}
+            stroke="#8A8A90" strokeWidth="0.4" fill="none" opacity={0.3}
+          />
+
+          <Rect x="47.5" y={neckBottom + 10} width="5" height="9" rx="1.2" fill="#A8A8B0" opacity={0.75} />
+          <Rect x="48.2" y={neckBottom + 11.5} width="3.6" height="5" rx="0.5" fill="#B8B8C0" opacity={0.4} />
+          <Path d={`M48.5 ${neckBottom + 12.5} L51.5 ${neckBottom + 12.5}`} stroke="#C0C0C8" strokeWidth="0.3" opacity={0.3} />
+          <Path d={`M48.5 ${neckBottom + 14} L51.5 ${neckBottom + 14}`} stroke="#C0C0C8" strokeWidth="0.3" opacity={0.25} />
+          <Path d={`M48.5 ${neckBottom + 15.5} L51.5 ${neckBottom + 15.5}`} stroke="#C0C0C8" strokeWidth="0.3" opacity={0.2} />
+          <Circle cx="50" cy={neckBottom + 11} r="0.5" fill="#808088" />
         </G>
       )}
 
       {showBracelet && !style && (
         <G>
-          <Rect x={armLX + 1} y="138" width={armW - 2} height="5" rx="2" fill="#6B4226" opacity={0.85} />
-          <Rect x={armLX + 2} y="139" width={armW - 4} height="3" rx="1" fill="#8B5A30" opacity={0.6} />
-          <Path
-            d={`M${armLX + 3} 140 L${armLX + armW - 3} 140`}
-            stroke="#5A3418" strokeWidth="0.5" opacity={0.4}
-          />
+          <Rect x={armLX + 0.5} y="137" width={armW - 1} height="5.5" rx="2.2" fill="#6B4226" opacity={0.82} />
+          <Rect x={armLX + 1.5} y="138" width={armW - 3} height="3.5" rx="1.2" fill="#8B5A30" opacity={0.5} />
+          <Path d={`M${armLX + 2} 139.5 L${armLX + armW - 2} 139.5`} stroke="#5A3418" strokeWidth="0.4" opacity={0.35} />
+          <Path d={`M${armLX + 2.5} 141 L${armLX + armW - 2.5} 141`} stroke="#5A3418" strokeWidth="0.3" opacity={0.25} />
+          <Path d={`M${armLX + armW / 2 - 0.5} 137.5 L${armLX + armW / 2 - 0.5} 142`} stroke="#5A3418" strokeWidth="0.3" opacity={0.2} />
+          <Path d={`M${armLX + armW / 2 + 0.5} 137.5 L${armLX + armW / 2 + 0.5} 142`} stroke="#5A3418" strokeWidth="0.3" opacity={0.2} />
+          <Circle cx={armLX + armW / 2} cy="139.5" r="0.8" fill="#8B6A40" opacity={0.5} />
         </G>
       )}
 
@@ -47,10 +60,10 @@ function AccessoryLayerInner({ style, armLX, armW, torsoX, neckBottom, showDogTa
       {style === "chain" && (
         <G>
           <Path
-            d={`M44 ${neckBottom} Q47 ${neckBottom + 6} 50 ${neckBottom + 10} Q53 ${neckBottom + 6} 56 ${neckBottom}`}
-            stroke="#C0A030" strokeWidth="1.4" fill="none" strokeLinecap="round" opacity={0.85}
+            d={`M44 ${neckBottom} Q47 ${neckBottom + 5} 50 ${neckBottom + 9} Q53 ${neckBottom + 5} 56 ${neckBottom}`}
+            stroke="#C0A030" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity={0.85}
           />
-          <Rect x="47.5" y={neckBottom + 8} width="5" height="8" rx="1" fill="#C0A030" opacity={0.8} />
+          <Rect x="47.5" y={neckBottom + 7} width="5" height="8" rx="1" fill="#C0A030" opacity={0.8} />
         </G>
       )}
 
