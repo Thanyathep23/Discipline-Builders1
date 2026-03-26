@@ -1048,14 +1048,15 @@ Maps 4 dimension scores to 6 visual axes: bodyTone (0-4), posture (0-3, 4-stage)
 - Default appearance: bodyType=male, hairStyle=clean_cut, hairColor=black
 - "WHY YOUR CHARACTER LOOKS LIKE THIS" explanation section
 
-### SVG Character Viewer (360° Rotation)
-- **CharacterViewer3D** (`components/character/CharacterViewer3D.tsx`): Pure SVG character viewer with 360° swipe rotation. Uses pan gesture (react-native-gesture-handler) with spring snap to 4 quadrants (0°/90°/180°/270°). Crossfade transitions (180ms) between views using RN Animated opacity. Dot indicators show active view. No native modules required — works in Expo Go.
-- **Three SVG Views** (`components/character/views/`):
-  - `CharacterFrontSVG` — full frontal view with face, eyes, nose, mouth, jaw, collar, dog tag, belt, laces
-  - `CharacterSideSVG` — left profile with ear, nose bridge, shoulder from side, bracelet, side shoe shape
-  - `CharacterBackSVG` — back of head/hair, spine line, shoulder blades, back pockets with stitch detail, heel tabs
-  - 270° = mirrored side view (scaleX: -1)
-- All views share: skinTone (5 tones), hairStyle (14 styles with per-view geometry), hairColor (8 colors), outfitTier (4 tiers with progressive outfit changes), postureStage (4 stages with transform adjustments)
+### Voxel Art Character System (360° Rotation)
+- **CharacterViewer3D** (`components/character/CharacterViewer3D.tsx`): Premium voxel art character viewer with 360° swipe rotation. Uses pan gesture (react-native-gesture-handler) with spring snap to 4 quadrants (0°/90°/180°/270°). Crossfade transitions (180ms) between views using RN Animated opacity. Dot indicators show active view. Dark gradient background with spotlight effect. No native modules required — works in Expo Go.
+- **Voxel Engine** (`components/character/voxel/`):
+  - `VoxelRenderer.tsx` — SVG-based voxel grid renderer using react-native-svg. Each voxel = SVG Rect with highlight (top/left) and shadow (right/bottom) borders for isometric depth effect. useMemo for performance.
+  - `voxelPalette.ts` — Color palette builder. 5 skin tones, 8 hair colors, 4 outfit tier palettes (starter=casual, rising=business casual, premium=2-piece suit, elite=3-piece suit matching reference image). `buildPalette(skinTone, hairColor, outfitTier)` returns full VoxelPalette.
+  - `voxelMaps.ts` — Character voxel map data as string arrays. 4 front view variants (one per outfit tier), side view, back view. 6 hair style maps (textured_crop, side_part, slicked_back, buzz_cut, medium_natural, bald) with aliases for all 14+ existing hair keys. `buildVoxelMap(palette, view, tier, hairStyle)` produces final VoxelMap.
+  - Elite tier includes: 3-piece suit (jacket+vest+tie), lapel pin, pocket square, documents in hand, phone in hand, briefcase + coffee accessories at feet, platform base
+- **Three Views**: front (4 tier variants), side, back — 270° = mirrored side (scaleX: -1)
+- **Old SVG views** (`components/character/views/`) still exist as legacy but are no longer imported by CharacterViewer3D
 - **Legacy note**: `CharacterModel3D.tsx` still exists but is not imported anywhere. Packages `three`, `@react-three/fiber`, `expo-gl`, `expo-three` remain in package.json but are not imported from any active source file.
 
 ## Phase 29 — Wearables / Style / Identity

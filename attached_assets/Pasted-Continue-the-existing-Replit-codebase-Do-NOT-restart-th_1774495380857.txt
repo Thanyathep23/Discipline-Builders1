@@ -1,0 +1,485 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+VISUAL REFERENCE (see attached image):
+The attached image shows the exact target style:
+- Voxel/Pixel art businessman character
+- Dark navy/charcoal three-piece suit
+- Realistic face with voxel aesthetic
+- Holding phone in one hand, documents in other
+- Briefcase and accessories at feet
+- Dark background with dramatic lighting
+- Premium, aspirational, entrepreneurial feel
+- NOT cartoon — sophisticated adult voxel art
+
+Goal:
+Replace the current broken character renderer
+with a premium Voxel Art character system
+that works perfectly in Expo Go with zero
+native module dependencies.
+
+Current problems to fix:
+1. Character shows as black rectangle (broken SVG)
+2. ExpoGL crash is removed but character still broken
+3. Need complete character visual rebuild
+
+==================================================
+WHY VOXEL ART IS THE RIGHT APPROACH
+==================================================
+
+Voxel art is perfect for this app because:
+- Renders as SVG/React Native Views (no native deps)
+- Looks premium and distinctive
+- Scales perfectly on all screen sizes
+- Easy to implement multiple outfit tiers
+- Creates strong visual identity
+- Matches the reference image exactly
+
+==================================================
+PART 1 — VOXEL CHARACTER ARCHITECTURE
+==================================================
+
+Build the voxel character using React Native View
+components arranged in a grid/block system.
+
+Each "voxel" = a styled View with:
+- Fixed pixel size (8x8 or 6x6 points)
+- Background color
+- Subtle border for depth effect
+
+CHARACTER CANVAS:
+- Total size: 300x500 points on screen
+- Voxel size: 8x8 points
+- Grid: approximately 37 x 62 voxels
+- Background: transparent (dark bg from screen)
+
+VOXEL RENDERING ENGINE:
+Create a VoxelGrid component that accepts
+a 2D array of color values and renders them:
+
+type VoxelMap = (string | null)[][]
+
+const VoxelGrid = ({ 
+  map, 
+  voxelSize = 8 
+}: { 
+  map: VoxelMap
+  voxelSize: number 
+}) => {
+  return (
+    <View style={{ flexDirection: 'column' }}>
+      {map.map((row, y) => (
+        <View key={y} style={{ flexDirection: 'row' }}>
+          {row.map((color, x) => (
+            <View
+              key={x}
+              style={{
+                width: voxelSize,
+                height: voxelSize,
+                backgroundColor: color || 'transparent',
+                borderRightWidth: color ? 0.5 : 0,
+                borderBottomWidth: color ? 0.5 : 0,
+                borderColor: color ? 
+                  darken(color, 0.15) : 'transparent',
+              }}
+            />
+          ))}
+        </View>
+      ))}
+    </View>
+  )
+}
+
+==================================================
+PART 2 — CHARACTER VOXEL MAP DATA
+==================================================
+
+Define the character as voxel color maps.
+Create separate maps for each layer:
+
+COLOR PALETTE for Entrepreneur character:
+
+SKIN TONES:
+skinLight: '#F5CBA7'
+skinMedium: '#E59866'  (default)
+skinDark: '#784212'
+
+SUIT COLORS (Elite tier — matches reference):
+suitDark: '#1C2331'    (dark charcoal base)
+suitMid: '#2C3E50'     (midtone)
+suitLight: '#34495E'   (highlight)
+suitCheck: '#1A252F'   (subtle check pattern)
+
+SHIRT: '#F8F9FA'  (white)
+TIE_BASE: '#2C3E50'
+TIE_PATTERN: '#F39C12' (gold pattern)
+
+HAIR:
+hairBase: '#4A2C0A'   (dark brown)
+hairHigh: '#6B3A2A'   (highlight)
+
+SHOES: '#5D4037'      (brown leather)
+BRIEFCASE: '#6D4C41'  (cognac brown)
+
+ACCESSORIES:
+lapelPin: '#F1C40F'   (gold)
+pocketSquare: '#F39C12'
+
+==================================================
+PART 3 — CHARACTER VOXEL DESIGNS
+==================================================
+
+Create 3 view orientations as voxel maps:
+
+3A. FRONT VIEW — Primary display
+
+Design the front-facing businessman:
+
+HEAD (top ~10 voxels tall):
+- Hair: dark brown covering top and sides
+- Face: skin tone, defined features
+- Eyes: small dark squares
+- Nose: 1-2 voxel indication
+- Mouth: neutral expression
+- Jaw: angular, not round
+
+NECK (2 voxels):
+- Skin tone center
+- White collar sides
+
+TORSO (20 voxels tall):
+- Dark suit jacket dominant
+- White shirt strip center
+- Tie down center
+- Lapels with subtle lighter tone
+- Lapel pin detail (gold pixel)
+- Jacket buttons
+- Vest layer visible
+
+ARMS:
+- LEFT: suit sleeve, holding documents (white/paper)
+- RIGHT: suit sleeve, holding phone (dark rectangle)
+
+HANDS:
+- Skin tone
+- Phone: dark grey/black rectangle
+- Documents: white with line details
+
+WAIST/HIPS:
+- Suit trousers matching jacket
+- Belt if visible
+
+LEGS (20 voxels tall):
+- Dark trousers
+- Subtle vertical line for crease
+- Slightly lighter highlight one side
+
+FEET:
+- Brown leather Oxford shoes
+- White sock gap minimal
+
+ACCESSORIES AT BASE:
+- Briefcase: cognac brown box shape
+- Small building voxels (like reference)
+- Coffee cup (white with steam)
+- Papers
+
+3B. SIDE VIEW (90°):
+- Profile of head/hair
+- Shoulder from side
+- Suit from side view
+- Arm extended forward
+- Leg profile
+
+3C. BACK VIEW (180°):
+- Back of head/hair
+- Back of suit jacket
+- No face visible
+- Jacket vent detail
+
+==================================================
+PART 4 — OUTFIT TIER SYSTEM
+==================================================
+
+Tier 1 — Starter (Finance L1-3):
+  outfit: white tee + jeans (casual)
+  suitVisible: false
+  palette: casualPalette
+
+Tier 2 — Rising (Finance L4-6):
+  outfit: business casual
+  shirt + chinos
+  palette: businessCasualPalette
+
+Tier 3 — Premium (Finance L7-8):
+  outfit: full suit (2-piece)
+  palette: suitPalette
+
+Tier 4 — Elite (Finance L9-10):
+  outfit: THREE-PIECE SUIT
+  matches reference image exactly
+  briefcase + accessories visible
+  palette: eliteSuitPalette
+
+The voxel map CHANGES based on outfit tier.
+Each tier = different predefined voxel map.
+
+==================================================
+PART 5 — ROTATION / VIEW SYSTEM
+==================================================
+
+Implement swipe-to-rotate between 3 views:
+
+5A. Gesture Handler (no native modules needed):
+
+Use PanResponder (built into React Native):
+
+const panResponder = PanResponder.create({
+  onStartShouldSetPanResponder: () => true,
+  onPanResponderMove: (evt, gestureState) => {
+    const dragPercent = gestureState.dx / SCREEN_WIDTH
+    const newAngle = 
+      (currentAngle + dragPercent * 360 + 360) % 360
+    setRotationAngle(newAngle)
+  },
+  onPanResponderRelease: (evt, gestureState) => {
+    snapToNearestView(currentAngle)
+  },
+})
+
+5B. View Selection Logic:
+
+angle 0-45°: FRONT view
+angle 45-135°: SIDE view  
+angle 135-225°: BACK view
+angle 225-315°: SIDE view (mirrored)
+angle 315-360°: FRONT view
+
+5C. Crossfade Transition:
+
+Use React Native Animated.Value for opacity:
+When switching views:
+  Fade out current: opacity 1→0 (150ms)
+  Fade in next: opacity 0→1 (150ms)
+  Total transition: 300ms smooth
+
+5D. Rotation Indicator:
+4 small voxel-style dots below character:
+[●] [○] [○] [○]
+Shows current view direction.
+
+==================================================
+PART 6 — VOXEL DEPTH EFFECT
+==================================================
+
+Make voxels look 3D using border shading:
+
+Each filled voxel View has:
+- topBorder: color lightened 20% (highlight)
+- leftBorder: color lightened 10%  
+- rightBorder: color darkened 15% (shadow)
+- bottomBorder: color darkened 20% (deep shadow)
+
+This creates isometric voxel depth feel
+matching the reference image style.
+
+Helper function:
+const getVoxelStyle = (baseColor: string) => ({
+  backgroundColor: baseColor,
+  borderTopColor: lighten(baseColor, 0.2),
+  borderLeftColor: lighten(baseColor, 0.1),
+  borderRightColor: darken(baseColor, 0.15),
+  borderBottomColor: darken(baseColor, 0.2),
+  borderWidth: 0.5,
+})
+
+==================================================
+PART 7 — CHARACTER DISPLAY SCREEN
+==================================================
+
+Update Character Status Hub display:
+
+HERO AREA (60% of screen):
+
+Background:
+- Dark gradient #0A0B14 → #1A1A2E
+- Dramatic spotlight from above (radial gradient)
+- Subtle voxel platform/pedestal below character
+  (small isometric block base like reference image)
+
+Character:
+- VoxelCharacter component centered
+- Size: 260x440 points
+- Subtle drop shadow below
+- Character appears to stand on platform
+
+View rotation controls:
+- Swipe gesture on whole hero area
+- 4-dot indicator
+- "← Swipe →" hint text (first visit only)
+
+CUSTOMIZATION BUTTON:
+- Top-right corner of hero area
+- Voxel-style icon button
+
+==================================================
+PART 8 — SKIN TONE CUSTOMIZATION
+==================================================
+
+5 skin tones mapped to voxel face/hands/neck:
+
+When skin tone changes:
+- Replace all skin-colored voxels in map
+- Update both face and hands/neck layers
+- Instant update (no animation needed)
+
+Skin tone selector:
+5 colored circle buttons below character
+Selected: ring border
+Changes apply immediately to voxel map
+
+==================================================
+PART 9 — HAIR CUSTOMIZATION
+==================================================
+
+6 hair styles as different head voxel maps:
+
+1. textured_crop (default — matches reference)
+2. side_part (swept to side)
+3. slicked_back (clean executive)
+4. buzz_cut (very short)
+5. medium_natural (slightly longer)
+6. bald (clean)
+
+8 hair colors:
+Replace hair-colored voxels with selected color.
+
+==================================================
+PART 10 — PERFORMANCE
+==================================================
+
+Voxel optimization for 60fps mobile:
+
+1. Use useMemo for voxel map calculations
+   Recalculate only when props change
+
+2. FlatList instead of map() for large grids
+   Use getItemLayout for optimization
+
+3. Pre-calculate all voxel maps at init
+   Store as constants, not computed each render
+
+4. Consider using a Canvas/Skia approach
+   if View-based voxels are too slow:
+   
+   import { Canvas, Rect } from '@shopify/react-native-skia'
+   
+   Draw each voxel as a Rect:
+   Rect x={x*size} y={y*size} 
+        width={size} height={size} 
+        color={color}
+   
+   @shopify/react-native-skia is already
+   in many Expo projects and works in Expo Go.
+   Check if installed before using.
+
+5. If neither approach is fast enough:
+   Generate voxel character as SVG path
+   (each voxel = rect element in SVG)
+   Use react-native-svg which is already installed.
+
+RECOMMENDED: SVG-based voxel renderer
+(most compatible, already installed):
+
+const VoxelSVG = ({ map, voxelSize }) => (
+  <Svg width={map[0].length * voxelSize} 
+       height={map.length * voxelSize}>
+    {map.flatMap((row, y) =>
+      row.map((color, x) =>
+        color ? (
+          <Rect
+            key={`${x}-${y}`}
+            x={x * voxelSize}
+            y={y * voxelSize}
+            width={voxelSize - 0.5}
+            height={voxelSize - 0.5}
+            fill={color}
+            stroke={darken(color, 0.2)}
+            strokeWidth={0.5}
+          />
+        ) : null
+      )
+    )}
+  </Svg>
+)
+
+This uses react-native-svg (already installed)
+and requires ZERO new native modules.
+
+==================================================
+PART 11 — ACCESSORIES BASE (Elite tier)
+==================================================
+
+When outfit is Elite tier,
+add voxel accessories below character feet:
+
+BRIEFCASE (cognac brown):
+Small voxel box shape, left of feet
+~20x15 voxels
+
+COFFEE CUP (white):
+Small cylinder voxels, right of feet
+~8x10 voxels with steam dots
+
+These appear/disappear based on outfit tier.
+
+==================================================
+DO NOT BUILD
+==================================================
+
+- Any 3D / WebGL / OpenGL
+- expo-gl or @react-three/fiber
+- New native modules of any kind
+- Animation-heavy particle systems
+- Multiplayer character display
+- New gameplay features
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. App opens WITHOUT crash on Expo Go
+2. Character Status screen shows voxel character
+3. Voxel style matches reference image aesthetic
+4. Character looks like premium businessman
+5. NOT a black rectangle
+6. NOT a cartoon
+7. Voxel/pixel art style clearly visible
+8. Swipe left/right rotates through views
+9. Front view: face + suit + accessories visible
+10. Side view: profile visible
+11. Back view: back of suit visible
+12. Outfit Tier 4 shows three-piece suit
+13. Skin tone customization works
+14. Hair customization works
+15. Zero native module dependencies
+16. Works in standard Expo Go
+17. Smooth 60fps performance
+18. No existing progression systems broken
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. Approach chosen (SVG voxel confirmed)
+2. Voxel map structure
+3. Color palette defined
+4. 3 view maps (front/side/back) created
+5. Outfit tier maps created
+6. Rotation gesture working
+7. Customization working
+8. Files changed only
+9. Screenshot/description of result
+10. Performance notes
+11. Remaining gaps
