@@ -229,11 +229,11 @@ export default function VoxelCharacter3D({
         camera.position.set(0, 0, 11)
         camera.lookAt(0, 0, 0)
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.62))
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.88)
-        dirLight.position.set(3, 6, 4)
+        scene.add(new THREE.AmbientLight(0xffffff, 0.55))
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.9)
+        dirLight.position.set(2, 4, 3)
         scene.add(dirLight)
-        const fillLight = new THREE.DirectionalLight(0x8899CC, 0.28)
+        const fillLight = new THREE.DirectionalLight(0x8899CC, 0.25)
         fillLight.position.set(-2, 2, -1)
         scene.add(fillLight)
 
@@ -300,6 +300,7 @@ export default function VoxelCharacter3D({
   return (
     <View style={styles.container} {...panResponder.panHandlers}>
       <GLView style={styles.glView} onContextCreate={onContextCreate} />
+      <View style={styles.spotlight} pointerEvents="none" />
       <View style={styles.groundShadow} />
     </View>
   )
@@ -315,6 +316,15 @@ const styles = StyleSheet.create({
   glView: {
     width: '100%',
     height: GL_HEIGHT,
+  },
+  spotlight: {
+    position: 'absolute',
+    top: 10,
+    alignSelf: 'center',
+    width: 200,
+    height: 280,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.035)',
   },
   groundShadow: {
     width: 90,

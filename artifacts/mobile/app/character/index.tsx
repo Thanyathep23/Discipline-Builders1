@@ -1185,10 +1185,8 @@ export default function CharacterStatusScreen() {
               <Ionicons name="color-palette-outline" size={16} color={Colors.textSecondary} />
             </Pressable>
 
-            {/* Character voxel + static nav arrows */}
+            {/* Character voxel — free rotation via drag */}
             <View style={styles.characterStageWrap}>
-              <Ionicons name="chevron-back" size={18} color={Colors.textMuted} style={{ opacity: 0.4 }} />
-
               <Animated.View style={[styles.characterWrap, characterAnimStyle]}>
                 {(() => {
                   const financeDim = dims.find(d => d.id === "finance");
@@ -1221,7 +1219,6 @@ export default function CharacterStatusScreen() {
                 </Pressable>
               </Animated.View>
 
-              <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} style={{ opacity: 0.4 }} />
             </View>
 
             {/* Identity */}
