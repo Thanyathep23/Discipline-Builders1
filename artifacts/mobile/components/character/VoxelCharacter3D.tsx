@@ -162,6 +162,7 @@ export default function VoxelCharacter3D({
   outfitTier = 1,
 }: VoxelCharacter3DProps) {
   const [glFailed, setGlFailed]   = useState(false)
+  const fallbackTimerRef           = useRef<ReturnType<typeof setTimeout> | null>(null)
   const rotYRef                    = useRef(0)
   const velocityRef                = useRef(0)
   const draggingRef                = useRef(false)
@@ -277,7 +278,18 @@ export default function VoxelCharacter3D({
     [],
   )
 
-  useEffect(() => () => { cancelRef.current?.() }, [])
+  useEffect(() => {
+    fallbackTimerRef.current = setTimeout(() => {
+      if (!sceneRef.current) {
+        console.warn('[VoxelCharacter3D] GL context never fired, falling back to 2D')
+        setGlFailed(true)
+      }
+    }, 5000)
+    return () => {
+      cancelRef.current?.()
+      if (fallbackTimerRef.current !== null) clearTimeout(fallbackTimerRef.current)
+    }
+  }, [])
 
   if (glFailed) {
     return (
