@@ -571,10 +571,7 @@ function PremiumDimensionRow({ dim, badge, delay = 0, onPress }: {
           <View style={dimRowStyles.nameRow}>
             <Text style={dimRowStyles.name}>{dim.label}</Text>
             {badge && (
-              <View style={[dimRowStyles.badge, {
-                backgroundColor: badge === "LOWEST" ? Colors.bgElevated : Colors.bgElevated,
-                borderColor: badge === "LOWEST" ? Colors.border : Colors.border,
-              }]}>
+              <View style={[dimRowStyles.badge, { backgroundColor: Colors.bgElevated, borderColor: Colors.border }]}>
                 <Text style={[dimRowStyles.badgeText, {
                   color: badge === "LOWEST" ? Colors.textSecondary : Colors.textMuted,
                 }]}>
@@ -1166,7 +1163,7 @@ export default function CharacterStatusScreen() {
         >
 
           {/* ── 1. CHARACTER HERO ── */}
-          <Animated.View entering={FadeIn.duration(500)} style={styles.heroCard}>
+          <Animated.View entering={FadeInDown.duration(400)} style={styles.heroCard}>
             {/* Faint spotlight — one subtle radial glow, nothing animated */}
             <View
               pointerEvents="none"
@@ -1232,9 +1229,7 @@ export default function CharacterStatusScreen() {
             <Text style={styles.outfitLabel}>{data?.character?.outfitLabel ?? "Starter Kit"}</Text>
 
             {/* Score — large editorial number */}
-            <Animated.View entering={FadeIn.delay(200).duration(500)}>
-              <ScoreDisplay score={deScore} tierColor={tierColor} tierName={tierName} />
-            </Animated.View>
+            <ScoreDisplay score={deScore} tierColor={tierColor} tierName={tierName} />
           </Animated.View>
 
           {/* ── 2. STATUS + TIER CARD ── */}
@@ -1359,9 +1354,9 @@ export default function CharacterStatusScreen() {
             />
             <EquippedStyleRow equippedWearables={(data as any)?.equippedWearables ?? null} />
             {hasPrestigeWearable((data as any)?.equippedWearables) && (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, alignSelf: "flex-start", backgroundColor: Colors.gold + "14", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: Colors.gold + "30" }}>
-                <Ionicons name="sparkles" size={12} color={Colors.gold} />
-                <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: Colors.gold, letterSpacing: 0.6 }}>Wardrobe Boost</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, alignSelf: "flex-start", backgroundColor: Colors.bgElevated, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: Colors.border }}>
+                <Ionicons name="sparkles" size={12} color={Colors.accent} />
+                <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: Colors.textSecondary, letterSpacing: 0.6 }}>Wardrobe Boost</Text>
               </View>
             )}
           </Animated.View>
@@ -1421,8 +1416,8 @@ export default function CharacterStatusScreen() {
                 style={({ pressed }) => [styles.spaceChip, pressed && { opacity: 0.82 }]}
                 onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/world"); }}
               >
-                <View style={[styles.spaceChipIcon, { backgroundColor: Colors.cyan + "18" }]}>
-                  <Ionicons name="cube-outline" size={19} color={Colors.cyan} />
+                <View style={styles.spaceChipIcon}>
+                  <Ionicons name="cube-outline" size={19} color={Colors.textSecondary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.spaceChipTitle}>Command Center</Text>
@@ -1434,8 +1429,8 @@ export default function CharacterStatusScreen() {
                 style={({ pressed }) => [styles.spaceChip, pressed && { opacity: 0.82 }]}
                 onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/cars" as any); }}
               >
-                <View style={[styles.spaceChipIcon, { backgroundColor: Colors.amber + "18" }]}>
-                  <Ionicons name="car-sport-outline" size={19} color={Colors.amber} />
+                <View style={styles.spaceChipIcon}>
+                  <Ionicons name="car-sport-outline" size={19} color={Colors.textSecondary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.spaceChipTitle}>Dream Garage</Text>
@@ -1632,7 +1627,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14,
     borderWidth: 1, borderColor: Colors.border,
   },
-  spaceChipIcon: { width: 40, height: 40, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  spaceChipIcon: { width: 40, height: 40, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: Colors.bgElevated },
   spaceChipTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
   spaceChipSub:   { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, marginTop: 2 },
 
