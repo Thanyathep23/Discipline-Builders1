@@ -19,7 +19,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useCharacterStatus, useUpdateCharacterAppearance } from "@/hooks/useApi";
 import type { DimensionLevel, DimensionDetail, CharacterVisualState } from "@/lib/characterEngine";
 import { computeCharacterState } from "@/lib/characterEngine";
-import { CharacterRenderer, CharacterViewer3D } from "@/components/character";
+import { CharacterRenderer } from "@/components/character";
+import VoxelCharacter from "../../components/character/VoxelCharacter";
 
 // ─── Phase 29 — Wearable State Types ──────────────────────────────────────────
 
@@ -1150,24 +1151,22 @@ export default function CharacterStatusScreen() {
                 <Ionicons name="color-palette-outline" size={16} color={Colors.textSecondary} />
               </Pressable>
 
-              {/* The character — 3D rotatable hero with SVG fallback */}
+              {/* The character — voxel art hero */}
               <Animated.View style={[styles.characterWrap, characterAnimStyle]}>
-                {characterVS ? (
-                  <CharacterViewer3D
-                    visualState={characterVS}
-                    height={320}
-                    interactive
-                  />
-                ) : (
-                  <EvolvedCharacter
-                    visualState={data?.visualState as VisualState | null}
-                    equippedWearables={(data as any)?.equippedWearables as EquippedWearableState ?? null}
-                    skinTone={currentSkinTone}
-                    hairStyle={currentHairStyle}
-                    hairColor={currentHairColor}
-                    size={250}
-                  />
-                )}
+                {(() => {
+                  const financeDim = dims.find(d => d.id === "finance");
+                  const financeLevel = financeDim?.level ?? 0;
+                  const outfitTier = financeLevel >= 9 ? 4 :
+                                     financeLevel >= 7 ? 3 :
+                                     financeLevel >= 4 ? 2 : 1;
+                  return (
+                    <VoxelCharacter
+                      skinTone={currentSkinTone}
+                      hairColor={currentHairColor}
+                      outfitTier={outfitTier}
+                    />
+                  );
+                })()}
                 <Pressable
                   style={{
                     position: "absolute", bottom: 0, right: 0,
