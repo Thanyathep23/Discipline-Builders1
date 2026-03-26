@@ -1,0 +1,244 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Problem:
+The voxel character is too small and lacks detail.
+Current issues:
+1. Character occupies only ~30% of the display area
+2. Voxel size too small (8px) — looks like noise
+3. Face has no detail — just a dark blob
+4. Suit has no depth or shading variation
+5. No dramatic lighting effect
+
+Reference target:
+The voxel businessman in the reference image has:
+- Large detailed voxels clearly visible
+- Realistic face with eyes/nose/mouth readable
+- Rich suit detail with highlight and shadow
+- Dramatic top-down lighting
+- Character fills most of the display area
+
+==================================================
+FIX 1 — INCREASE VOXEL SIZE
+==================================================
+
+Change voxel size from 8 to 14 points.
+
+In VoxelRenderer component:
+- Default voxelSize prop: change to 14
+- This makes each block clearly visible
+- Character will be more readable
+
+In CharacterViewer3D / CharacterViewer:
+- Set explicit voxelSize={14} on VoxelRenderer
+
+Adjust canvas size accordingly:
+- If grid is 28 wide × 48 tall
+- At 14px: 392 × 672 points
+- Scale to fit screen using transform: scale()
+- Target: character fills 75% of hero area height
+
+==================================================
+FIX 2 — IMPROVE FACE VOXEL MAP
+==================================================
+
+The face/head map needs complete redesign.
+
+Current problem: head is mostly dark colored blocks.
+Fix: Add proper face detail.
+
+FACE DESIGN (viewed from front):
+Head shape: 12 wide × 14 tall voxels
+
+Row by row color assignment:
+Row 1-3:    HAIR across full width
+Row 4:      HAIR sides + SKIN center 8
+Row 5:      HAIR sides (2) + SKIN center (8) + HAIR (2)
+Row 6:      SKIN full width (12) — forehead
+Row 7:      SKIN(2) + BROW(2) + SKIN(4) + BROW(2) + SKIN(2)
+Row 8:      SKIN full (forehead lower)
+Row 9:      SKIN(2) + EYE_WHITE(2) + SKIN(2) + EYE_WHITE(2) + SKIN(2)
+            EYE_IRIS in center of each eye
+Row 10:     SKIN full (under eyes / nose bridge)
+Row 11:     SKIN(4) + NOSE_TIP(2) + SKIN(4) + NOSE_SHADOW(2)
+Row 12:     SKIN full (upper lip area)
+Row 13:     SKIN(4) + MOUTH(4) + SKIN(4)
+Row 14:     JAW skin (slightly darker than forehead)
+
+Color values:
+SKIN = '#E59866' (or selected skin tone)
+SKIN_SHADOW = darken skin 15% 
+HAIR = selected hair color
+EYE_WHITE = '#FFFFFF'
+EYE_IRIS = '#2C3E50' (dark grey-blue)
+BROW = darken(HAIR, 10%)
+NOSE_TIP = darken(SKIN, 8%)
+MOUTH = '#8B4513' (lip color)
+JAW = darken(SKIN, 5%)
+
+==================================================
+FIX 3 — IMPROVE SUIT VOXEL MAP
+==================================================
+
+The suit needs proper depth shading.
+
+THREE-PIECE SUIT color system:
+Use 4 shades of the same color for depth:
+
+suitHighlight: '#3D5166'  (lightest — catch light)
+suitBase:      '#2C3E50'  (main color)
+suitShadow:    '#1C2E3E'  (shadow areas)
+suitDeep:      '#0F1C2A'  (deepest shadow)
+
+Apply shading rules:
+- Left side of jacket: suitHighlight
+- Center: suitBase
+- Right side and under arms: suitShadow
+- Deep fold areas: suitDeep
+
+VEST (waistcoat) in center:
+- Slightly different tone: '#253545'
+- Creates visual separation from jacket
+
+WHITE SHIRT strip:
+- '#F8F9FA' highlight area
+- '#E8E8E8' shadow side
+- 3-4 voxels wide down center
+
+TIE:
+- Base: '#1A252F' (dark)
+- Diamond pattern: '#F39C12' (gold dots)
+- 2 voxels wide, tapers at bottom
+
+LAPEL PIN:
+- Single pixel '#F1C40F' (gold)
+- Position: left lapel area
+
+POCKET SQUARE:
+- 2×2 voxels '#F39C12' top right chest
+- Creates luxury detail
+
+==================================================
+FIX 4 — DRAMATIC LIGHTING
+==================================================
+
+Add dramatic top-down spotlight effect.
+
+In CharacterViewer screen background:
+
+BACKGROUND:
+- Base: '#050508' (near black)
+- Radial gradient from top center
+- Spotlight: rgba(255,255,255,0.08) at top
+- Fades to transparent at character waist
+
+CHARACTER GLOW:
+Add a subtle warm ambient rim light effect:
+- Below character: ellipse gradient
+  rgba(59,130,246,0.15) → transparent
+  Width: character width
+  Height: 30px
+  Position: just below character feet
+
+PLATFORM:
+Add small isometric voxel platform below feet:
+3×3 grid of dark grey voxels
+Creates "standing on something" depth
+
+==================================================
+FIX 5 — MAKE CHARACTER FILL THE HERO AREA
+==================================================
+
+The character must be much larger on screen.
+
+HERO AREA: 
+- Takes 62% of screen height
+- Character SVG fills 90% of this area
+- Center character both horizontally and vertically
+
+Scaling approach:
+1. Calculate available height
+2. Scale VoxelRenderer to fill it
+3. Maintain aspect ratio
+
+const HERO_HEIGHT = screenHeight * 0.62
+const CHAR_NATIVE_HEIGHT = mapRows * voxelSize
+const scale = HERO_HEIGHT / CHAR_NATIVE_HEIGHT
+
+<View style={{ 
+  transform: [{ scale }],
+  alignSelf: 'center' 
+}}>
+  <VoxelRenderer map={currentMap} voxelSize={14} />
+</View>
+
+==================================================
+FIX 6 — ACCESSORIES AT BASE
+==================================================
+
+For Elite tier, add small voxel accessories
+at base of character (like reference image):
+
+BRIEFCASE (left of feet):
+8×6 voxel box:
+- Main: '#6D4C41' (cognac)
+- Handle: '#4E342E' (darker)
+- Clasp: '#F1C40F' (gold dot)
+
+COFFEE CUP (right side):
+4×5 voxels:
+- Cup: '#FFFFFF'
+- Handle: '#CCCCCC' arc
+- Steam: 2 grey dots above
+
+These render below the main character SVG
+as a separate small SVG component.
+
+==================================================
+FIX 7 — ROTATION INDICATOR REDESIGN
+==================================================
+
+Replace plain dots with voxel-style direction UI:
+
+4 small square indicators (voxel style):
+[■] [□] [□] [□]
+
+■ = active (accent color, filled)
+□ = inactive (grey outline)
+
+Each: 8×8 pt with 2px gap
+Position: centered below character, above name
+
+Labels below each:
+FRONT  SIDE  BACK  SIDE
+(shown only for active one)
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. Character is large — fills 70%+ of hero area
+2. Face has readable eyes, nose, mouth detail
+3. Suit has 4-shade depth shading (not flat)
+4. Vest/shirt/tie clearly visible and distinct
+5. Voxel blocks are large enough to see clearly
+6. Dark dramatic background with spotlight
+7. Swipe rotation still works between views
+8. Elite tier shows briefcase + coffee accessory
+9. Skin tone changes face/hands/neck correctly
+10. No performance issues (smooth scroll/swipe)
+11. Works in Expo Go without crash
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. Voxel size updated (confirm new size)
+2. Face map redesigned (describe detail added)
+3. Suit shading improved (4-shade system)
+4. Character scale fix (fills hero area)
+5. Background/lighting improved
+6. Files changed only
+7. Test: character visible, large, detailed
+8. Remaining gaps if any

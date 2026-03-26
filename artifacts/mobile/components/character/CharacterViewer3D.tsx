@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo } from "react";
 import {
   View,
+  Text,
   StyleSheet,
   Dimensions,
   Animated as RNAnimated,
@@ -19,6 +20,7 @@ import { VoxelRenderer, buildPalette, buildVoxelMap } from "./voxel";
 type ViewIndex = 0 | 1 | 2 | 3;
 
 const SNAP_ANGLES = [0, 90, 180, 270] as const;
+const VIEW_LABELS = ["FRONT", "SIDE", "BACK", "SIDE"] as const;
 
 function normalizeAngle(a: number): number {
   "worklet";
@@ -40,13 +42,21 @@ function nearestSnap(angle: number): number {
   return best;
 }
 
-function angleToViewIndex(angle: number): ViewIndex {
-  const norm = normalizeAngle(angle);
-  if (norm < 45 || norm >= 315) return 0;
-  if (norm >= 45 && norm < 135) return 1;
-  if (norm >= 135 && norm < 225) return 2;
-  return 3;
-}
+const OUTFIT_TIER_MAP: Record<string, number> = {
+  starter: 1, rising: 2, premium: 3, elite: 4,
+};
+const SKIN_TONE_MAP: Record<string, string> = {
+  "tone-1": "light", "tone-2": "medium", "tone-3": "tan",
+  "tone-4": "brown", "tone-5": "dark",
+  light: "light", medium: "medium", tan: "tan",
+  brown: "brown", dark: "dark",
+};
+const HAIR_COLOR_MAP: Record<string, string> = {
+  black: "black", "dark-brown": "dark_brown", dark_brown: "dark_brown",
+  brown: "brown", "light-brown": "light_brown", light_brown: "light_brown",
+  blonde: "blonde", red: "red", auburn: "auburn", gray: "gray",
+  platinum: "blonde", "medium-brown": "brown",
+};
 
 interface Props {
   visualState: CharacterVisualState;
@@ -60,7 +70,8 @@ export function CharacterViewer3D({
   interactive = true,
 }: Props) {
   const screenW = Dimensions.get("window").width;
-  const height = containerH ?? screenW * 1.1;
+  const screenH = Dimensions.get("window").height;
+  const height = containerH ?? Math.round(screenH * 0.52);
 
   const [activeView, setActiveView] = useState<ViewIndex>(0);
   const rotationRef = useSharedValue(0);
@@ -110,8 +121,7 @@ export function CharacterViewer3D({
       startRef.value = rotationRef.value;
     })
     .onUpdate((e) => {
-      const newAngle = startRef.value + (e.translationX / screenW) * 360;
-      rotationRef.value = newAngle;
+      rotationRef.value = startRef.value + (e.translationX / screenW) * 360;
     })
     .onEnd((e) => {
       const velocity = (e.velocityX / screenW) * 360;
@@ -132,27 +142,12 @@ export function CharacterViewer3D({
     })
     .enabled(interactive);
 
-  const OUTFIT_TIER_MAP: Record<string, number> = {
-    starter: 1, rising: 2, premium: 3, elite: 4,
-  };
-  const SKIN_TONE_MAP: Record<string, string> = {
-    "tone-1": "light", "tone-2": "medium", "tone-3": "tan",
-    "tone-4": "brown", "tone-5": "dark",
-    light: "light", medium: "medium", tan: "tan",
-    brown: "brown", dark: "dark",
-  };
-  const HAIR_COLOR_MAP: Record<string, string> = {
-    black: "black", "dark-brown": "dark_brown", dark_brown: "dark_brown",
-    brown: "brown", "light-brown": "light_brown", light_brown: "light_brown",
-    blonde: "blonde", red: "red", auburn: "auburn", gray: "gray",
-    platinum: "blonde", "medium-brown": "brown",
-  };
-
   const skinTone = SKIN_TONE_MAP[visualState.skinTone ?? "tone-3"] ?? "tan";
   const hairStyle = visualState.hairStyle ?? "side_part";
   const hairColor = HAIR_COLOR_MAP[visualState.hairColor ?? "black"] ?? "dark_brown";
   const outfitTier = OUTFIT_TIER_MAP[visualState.outfitTier ?? "elite"] ?? 4;
-  const VOXEL_SIZE = 7;
+
+  const VOXEL_SIZE = 10;
 
   const palette = useMemo(
     () => buildPalette(skinTone, hairColor, outfitTier),
@@ -172,41 +167,60 @@ export function CharacterViewer3D({
     [palette, outfitTier, hairStyle],
   );
 
+  const mapRows = frontMap.length;
+  const mapCols = frontMap[0]?.length ?? 30;
+  const nativeH = mapRows * VOXEL_SIZE;
+  const nativeW = mapCols * VOXEL_SIZE;
+  const availableH = height - 60;
+  const scale = Math.min(availableH / nativeH, (screenW - 32) / nativeW, 1.4);
+
   const characterContent = (
-    <View style={[styles.svgContainer, { height: height - 40 }]}>
+    <View style={[styles.svgContainer, { height: availableH }]}>
       <RNAnimated.View style={[styles.viewLayer, { opacity: frontOpacity }]}>
         <View style={styles.voxelCenter}>
-          <VoxelRenderer map={frontMap} voxelSize={VOXEL_SIZE} />
+          <View style={{ transform: [{ scale }] }}>
+            <VoxelRenderer map={frontMap} voxelSize={VOXEL_SIZE} />
+          </View>
         </View>
       </RNAnimated.View>
       <RNAnimated.View style={[styles.viewLayer, { opacity: sideOpacity }]}>
         <View style={styles.voxelCenter}>
-          <VoxelRenderer map={sideMap} voxelSize={VOXEL_SIZE} />
+          <View style={{ transform: [{ scale }] }}>
+            <VoxelRenderer map={sideMap} voxelSize={VOXEL_SIZE} />
+          </View>
         </View>
       </RNAnimated.View>
       <RNAnimated.View style={[styles.viewLayer, { opacity: backOpacity }]}>
         <View style={styles.voxelCenter}>
-          <VoxelRenderer map={backMap} voxelSize={VOXEL_SIZE} />
+          <View style={{ transform: [{ scale }] }}>
+            <VoxelRenderer map={backMap} voxelSize={VOXEL_SIZE} />
+          </View>
         </View>
       </RNAnimated.View>
       <RNAnimated.View style={[styles.viewLayer, { opacity: sideMirrorOpacity, transform: [{ scaleX: -1 }] }]}>
         <View style={styles.voxelCenter}>
-          <VoxelRenderer map={sideMap} voxelSize={VOXEL_SIZE} />
+          <View style={{ transform: [{ scale }] }}>
+            <VoxelRenderer map={sideMap} voxelSize={VOXEL_SIZE} />
+          </View>
         </View>
       </RNAnimated.View>
     </View>
   );
 
-  const dots = (
-    <View style={styles.dotsRow}>
+  const indicator = (
+    <View style={styles.indicatorRow}>
       {SNAP_ANGLES.map((_, i) => (
-        <View
-          key={i}
-          style={[
-            styles.dot,
-            activeView === i && styles.dotActive,
-          ]}
-        />
+        <View key={i} style={styles.indicatorItem}>
+          <View
+            style={[
+              styles.indicatorBlock,
+              activeView === i ? styles.indicatorActive : styles.indicatorInactive,
+            ]}
+          />
+          {activeView === i && (
+            <Text style={styles.indicatorLabel}>{VIEW_LABELS[i]}</Text>
+          )}
+        </View>
       ))}
     </View>
   );
@@ -214,14 +228,17 @@ export function CharacterViewer3D({
   const inner = (
     <View style={[styles.container, { height }]}>
       <LinearGradient
-        colors={["#0A0B14", "#12132A", "#0A0B14"]}
+        colors={["#08090F", "#0E1028", "#0A0B16", "#050508"]}
+        locations={[0, 0.3, 0.7, 1]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={StyleSheet.absoluteFillObject}
       />
-      <View style={styles.spotlight} />
+      <View style={styles.spotlightOuter} />
+      <View style={styles.spotlightInner} />
+      <View style={styles.groundGlow} />
       {characterContent}
-      {dots}
+      {indicator}
     </View>
   );
 
@@ -242,14 +259,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  spotlight: {
+  spotlightOuter: {
     position: "absolute",
-    top: -40,
-    left: "25%",
-    width: "50%",
-    height: 120,
+    top: -60,
+    left: "15%",
+    width: "70%",
+    height: 180,
+    borderRadius: 200,
+    backgroundColor: "rgba(255,255,255,0.025)",
+  },
+  spotlightInner: {
+    position: "absolute",
+    top: -30,
+    left: "30%",
+    width: "40%",
+    height: 100,
     borderRadius: 100,
     backgroundColor: "rgba(255,255,255,0.04)",
+  },
+  groundGlow: {
+    position: "absolute",
+    bottom: 40,
+    left: "20%",
+    width: "60%",
+    height: 30,
+    borderRadius: 100,
+    backgroundColor: "rgba(59,130,246,0.08)",
   },
   svgContainer: {
     width: "100%",
@@ -267,23 +302,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  dotsRow: {
+  indicatorRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    paddingBottom: 8,
+    gap: 12,
+    paddingBottom: 10,
+    paddingTop: 4,
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.2)",
+  indicatorItem: {
+    alignItems: "center",
+    minWidth: 28,
   },
-  dotActive: {
-    backgroundColor: "rgba(255,255,255,0.8)",
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  indicatorBlock: {
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+  },
+  indicatorActive: {
+    backgroundColor: "rgba(241,196,15,0.9)",
+    borderWidth: 1,
+    borderColor: "rgba(241,196,15,0.4)",
+  },
+  indicatorInactive: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  indicatorLabel: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 8,
+    fontWeight: "600",
+    letterSpacing: 1,
+    marginTop: 3,
   },
 });

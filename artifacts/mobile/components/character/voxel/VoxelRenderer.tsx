@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import Svg, { Rect, Defs, LinearGradient, Stop } from "react-native-svg";
+import Svg, { Rect } from "react-native-svg";
 
 export type VoxelMap = (string | null)[][];
 
@@ -23,16 +23,22 @@ function darken(hex: string, amount: number): string {
   return `#${nr.toString(16).padStart(2, "0")}${ng.toString(16).padStart(2, "0")}${nb.toString(16).padStart(2, "0")}`;
 }
 
+interface VoxelRect {
+  x: number;
+  y: number;
+  color: string;
+  hl: string;
+  sh: string;
+}
+
 interface Props {
   map: VoxelMap;
   voxelSize?: number;
-  width?: number;
-  height?: number;
 }
 
-export function VoxelRenderer({ map, voxelSize = 6, width, height }: Props) {
+export function VoxelRenderer({ map, voxelSize = 10 }: Props) {
   const rects = useMemo(() => {
-    const result: { x: number; y: number; color: string; highlight: string; shadow: string }[] = [];
+    const result: VoxelRect[] = [];
     for (let y = 0; y < map.length; y++) {
       const row = map[y];
       for (let x = 0; x < row.length; x++) {
@@ -42,8 +48,8 @@ export function VoxelRenderer({ map, voxelSize = 6, width, height }: Props) {
             x: x * voxelSize,
             y: y * voxelSize,
             color,
-            highlight: lighten(color, 0.18),
-            shadow: darken(color, 0.22),
+            hl: lighten(color, 0.22),
+            sh: darken(color, 0.28),
           });
         }
       }
@@ -51,20 +57,23 @@ export function VoxelRenderer({ map, voxelSize = 6, width, height }: Props) {
     return result;
   }, [map, voxelSize]);
 
-  const svgW = width ?? (map[0]?.length ?? 0) * voxelSize;
-  const svgH = height ?? map.length * voxelSize;
+  const cols = map[0]?.length ?? 0;
+  const rows = map.length;
+  const svgW = cols * voxelSize;
+  const svgH = rows * voxelSize;
   const vs = voxelSize;
-  const vs1 = vs - 0.5;
+  const gap = 0.5;
+  const bw = Math.max(1, vs * 0.12);
 
   return (
     <Svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
-      {rects.map(({ x, y, color, highlight, shadow }, i) => (
+      {rects.map(({ x, y, color, hl, sh }, i) => (
         <React.Fragment key={i}>
-          <Rect x={x} y={y} width={vs1} height={vs1} fill={color} />
-          <Rect x={x} y={y} width={vs1} height={1} fill={highlight} opacity={0.5} />
-          <Rect x={x} y={y} width={1} height={vs1} fill={highlight} opacity={0.3} />
-          <Rect x={x + vs1 - 1} y={y} width={1} height={vs1} fill={shadow} opacity={0.4} />
-          <Rect x={x} y={y + vs1 - 1} width={vs1} height={1} fill={shadow} opacity={0.5} />
+          <Rect x={x} y={y} width={vs - gap} height={vs - gap} fill={color} />
+          <Rect x={x} y={y} width={vs - gap} height={bw} fill={hl} opacity={0.55} />
+          <Rect x={x} y={y} width={bw} height={vs - gap} fill={hl} opacity={0.35} />
+          <Rect x={x + vs - gap - bw} y={y} width={bw} height={vs - gap} fill={sh} opacity={0.45} />
+          <Rect x={x} y={y + vs - gap - bw} width={vs - gap} height={bw} fill={sh} opacity={0.55} />
         </React.Fragment>
       ))}
     </Svg>

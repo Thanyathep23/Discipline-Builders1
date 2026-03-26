@@ -4,16 +4,22 @@ export interface VoxelPalette {
   skinShadow: string;
   hairBase: string;
   hairHighlight: string;
+  eyeWhite: string;
+  eyeIris: string;
   eyeColor: string;
   mouthColor: string;
   browColor: string;
+  noseTip: string;
+  jawShadow: string;
   suitBase: string;
   suitMid: string;
   suitLight: string;
+  suitDeep: string;
   suitCheck: string;
   vestBase: string;
   vestLight: string;
   shirtWhite: string;
+  shirtShadow: string;
   tieBase: string;
   tiePattern: string;
   beltColor: string;
@@ -37,6 +43,16 @@ export interface VoxelPalette {
   coffeeLid: string;
   platformBase: string;
   platformLight: string;
+}
+
+function darkenHex(hex: string, amount: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const nr = Math.max(0, Math.round(r * (1 - amount)));
+  const ng = Math.max(0, Math.round(g * (1 - amount)));
+  const nb = Math.max(0, Math.round(b * (1 - amount)));
+  return `#${nr.toString(16).padStart(2, "0")}${ng.toString(16).padStart(2, "0")}${nb.toString(16).padStart(2, "0")}`;
 }
 
 export const SKIN_TONES: Record<string, { base: string; highlight: string; shadow: string }> = {
@@ -66,11 +82,30 @@ export function buildPalette(
   const skin = SKIN_TONES[skinTone] ?? SKIN_TONES.medium;
   const hair = HAIR_COLORS[hairColor] ?? HAIR_COLORS.dark_brown;
 
-  const suitPalettes: Record<number, { base: string; mid: string; light: string; check: string; vest: string; vestL: string; tie: string; tieP: string; pocket: string }> = {
-    1: { base: "#4A4A5A", mid: "#5A5A6A", light: "#6A6A7A", check: "#4A4A5A", vest: "#4A4A5A", vestL: "#5A5A6A", tie: "#4A4A5A", tieP: "#4A4A5A", pocket: "#4A4A5A" },
-    2: { base: "#3A3A4E", mid: "#4A4A5E", light: "#5A5A6E", check: "#3A3A4E", vest: "#3A3A4E", vestL: "#4A4A5E", tie: "#3A3A4E", tieP: "#4A4A5E", pocket: "#3A3A4E" },
-    3: { base: "#2A3040", mid: "#3A4050", light: "#4A5060", check: "#252B38", vest: "#2E3648", vestL: "#3A4458", tie: "#2C3E50", tieP: "#F39C12", pocket: "#F39C12" },
-    4: { base: "#1C2331", mid: "#2C3E50", light: "#34495E", check: "#1A252F", vest: "#232D3F", vestL: "#2E3A4E", tie: "#2C3E50", tieP: "#F1C40F", pocket: "#F39C12" },
+  const suitPalettes: Record<number, {
+    base: string; mid: string; light: string; deep: string; check: string;
+    vest: string; vestL: string; tie: string; tieP: string; pocket: string;
+  }> = {
+    1: {
+      base: "#4A4A5A", mid: "#5A5A6A", light: "#6A6A7A", deep: "#3A3A48",
+      check: "#4A4A5A", vest: "#4A4A5A", vestL: "#5A5A6A",
+      tie: "#4A4A5A", tieP: "#4A4A5A", pocket: "#4A4A5A",
+    },
+    2: {
+      base: "#3A3A4E", mid: "#4A4A5E", light: "#5A5A6E", deep: "#2A2A3E",
+      check: "#3A3A4E", vest: "#3A3A4E", vestL: "#4A4A5E",
+      tie: "#3A3A4E", tieP: "#4A4A5E", pocket: "#3A3A4E",
+    },
+    3: {
+      base: "#2A3040", mid: "#3A4050", light: "#4A5060", deep: "#1A2030",
+      check: "#252B38", vest: "#2E3648", vestL: "#3A4458",
+      tie: "#2C3E50", tieP: "#F39C12", pocket: "#F39C12",
+    },
+    4: {
+      base: "#1C2331", mid: "#2C3E50", light: "#3D5166", deep: "#0F1820",
+      check: "#1A252F", vest: "#232D3F", vestL: "#2E3A4E",
+      tie: "#2C3E50", tieP: "#F1C40F", pocket: "#F39C12",
+    },
   };
 
   const s = suitPalettes[outfitTier] ?? suitPalettes[4];
@@ -81,23 +116,29 @@ export function buildPalette(
     skinShadow: skin.shadow,
     hairBase: hair.base,
     hairHighlight: hair.highlight,
+    eyeWhite: "#F0F0F8",
+    eyeIris: "#2C3E50",
     eyeColor: "#1A1A2E",
-    mouthColor: "#8B4513",
-    browColor: hair.base,
+    mouthColor: "#9E5040",
+    browColor: darkenHex(hair.base, 0.1),
+    noseTip: darkenHex(skin.base, 0.10),
+    jawShadow: darkenHex(skin.base, 0.15),
     suitBase: s.base,
     suitMid: s.mid,
     suitLight: s.light,
+    suitDeep: s.deep,
     suitCheck: s.check,
     vestBase: s.vest,
     vestLight: s.vestL,
     shirtWhite: "#F0F0F4",
+    shirtShadow: "#D8D8DC",
     tieBase: s.tie,
     tiePattern: s.tieP,
     beltColor: "#2A2A38",
     beltBuckle: "#C0C0C8",
     trouserBase: s.base,
     trouserLight: s.mid,
-    trouserCrease: s.check,
+    trouserCrease: s.deep,
     shoeBase: "#5D4037",
     shoeSole: "#3E2723",
     shoeHighlight: "#795548",
