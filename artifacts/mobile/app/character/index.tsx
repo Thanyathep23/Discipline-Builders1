@@ -1021,9 +1021,6 @@ function hasPrestigeWearable(equippedWearables: any): boolean {
 // ─── Tier constants ────────────────────────────────────────────────────────────
 
 const TIER_ORDER = ["Starter", "Hustle", "Rising", "Refined", "Elite"];
-const TIER_COLORS: Record<string, string> = {
-  Starter: "#8888AA", Hustle: "#FFB300", Rising: "#00E676", Refined: "#00D4FF", Elite: "#F5C842",
-};
 
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -1149,11 +1146,8 @@ export default function CharacterStatusScreen() {
           <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle}>CHARACTER STATUS</Text>
-        <View style={[styles.tierPillHeader, { borderColor: tierColor + "60", backgroundColor: tierColor + "15" }]}>
-          <View style={[styles.tierDotHeader, { backgroundColor: tierColor }]} />
-          <Text style={[styles.tierPillHeaderText, { color: tierColor }]}>
-            {tierName}
-          </Text>
+        <View style={styles.tierPillHeader}>
+          <Text style={styles.tierPillHeaderText}>{tierName}</Text>
         </View>
       </View>
 
@@ -1244,23 +1238,23 @@ export default function CharacterStatusScreen() {
           </Animated.View>
 
           {/* ── 2. STATUS + TIER CARD ── */}
-          <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.tierCard}>
+          <Animated.View entering={FadeInDown.delay(50).duration(350)} style={styles.tierCard}>
             <View style={styles.tierCardTop}>
               <View style={{ flex: 1, gap: 5 }}>
                 <Text style={styles.tierCardEyebrow}>CURRENT STATUS</Text>
-                <Text style={[styles.tierCardName, { color: tierColor }]}>{tierName}</Text>
+                <Text style={styles.tierCardName}>{tierName}</Text>
                 <Text style={styles.tierCardDesc}>
                   {tierMessage || data?.statusTierDescription || "Keep pushing. Your status is earned through consistent action."}
                 </Text>
               </View>
               <View style={styles.statsCol}>
                 <View style={styles.miniStat}>
-                  <Text style={[styles.miniStatNum, { color: Colors.gold }]}>{data?.completedSessions ?? 0}</Text>
+                  <Text style={styles.miniStatNum}>{data?.completedSessions ?? 0}</Text>
                   <Text style={styles.miniStatLabel}>Sessions</Text>
                 </View>
                 <View style={styles.miniStatDivider} />
                 <View style={styles.miniStat}>
-                  <Text style={[styles.miniStatNum, { color: Colors.cyan }]}>{data?.badgeCount ?? 0}</Text>
+                  <Text style={styles.miniStatNum}>{data?.badgeCount ?? 0}</Text>
                   <Text style={styles.miniStatLabel}>Badges</Text>
                 </View>
               </View>
@@ -1269,7 +1263,6 @@ export default function CharacterStatusScreen() {
             {/* Vertical Prestige Ladder */}
             <View style={styles.tierLadder}>
               {TIER_ORDER.map((tier, i) => {
-                const tc = TIER_COLORS[tier];
                 const isActive = i === currentTierIdx;
                 const isPast = i < currentTierIdx;
                 const isLast = i === TIER_ORDER.length - 1;
@@ -1280,12 +1273,11 @@ export default function CharacterStatusScreen() {
                       <View style={[
                         styles.tierStepDot,
                         isActive ? {
-                          width: 18, height: 18, borderRadius: 9,
-                          backgroundColor: tc,
-                          borderColor: tc,
-                          shadowColor: tc, shadowRadius: 12, shadowOpacity: 0.9, shadowOffset: { width: 0, height: 0 }, elevation: 10,
+                          width: 14, height: 14, borderRadius: 7,
+                          backgroundColor: Colors.accent,
+                          borderColor: Colors.accent,
                         } : isPast ? {
-                          backgroundColor: tc + "60", borderColor: tc, borderWidth: 1.5,
+                          backgroundColor: Colors.textMuted + "50", borderColor: Colors.textMuted, borderWidth: 1.5,
                         } : {
                           backgroundColor: "transparent", borderColor: Colors.border, borderWidth: 1.5,
                         },
@@ -1293,9 +1285,7 @@ export default function CharacterStatusScreen() {
                       {!isLast && (
                         <View style={[
                           styles.tierRail,
-                          isPast ? { backgroundColor: TIER_COLORS[TIER_ORDER[i + 1]] + "55" } :
-                          isActive ? { backgroundColor: tc + "30" } :
-                          { backgroundColor: Colors.border },
+                          { backgroundColor: isPast ? Colors.textMuted + "30" : Colors.border },
                         ]} />
                       )}
                     </View>
@@ -1303,25 +1293,22 @@ export default function CharacterStatusScreen() {
                     <View style={[styles.tierLadderContent, !isLast && { paddingBottom: 14 }]}>
                       <Text style={[
                         styles.tierStepLabel,
-                        isActive && { color: tc, fontFamily: "Inter_700Bold", fontSize: 12, letterSpacing: 0.5 },
-                        isPast  && { color: tc + "AA", fontSize: 11 },
-                        !isPast && !isActive && { fontSize: 11 },
+                        isActive && { color: Colors.textPrimary, fontFamily: "Inter_700Bold", fontSize: 12 },
+                        isPast  && { color: Colors.textSecondary, fontSize: 11 },
+                        !isPast && !isActive && { fontSize: 11, color: Colors.textMuted },
                       ]}>
                         {tier}
                       </Text>
                       {isActive && (
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 }}>
-                          <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: tc }} />
-                          <Text style={{ fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted }}>
-                            Current tier
-                          </Text>
-                        </View>
+                        <Text style={{ fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted, marginTop: 2 }}>
+                          Current tier
+                        </Text>
                       )}
                     </View>
-                    {/* Right: score badge on active */}
+                    {/* Score badge on active */}
                     {isActive && (
-                      <View style={[styles.tierActiveBadge, { borderColor: tc + "50", backgroundColor: tc + "12" }]}>
-                        <Text style={{ fontFamily: "Inter_700Bold", fontSize: 13, color: tc }}>{deScore}</Text>
+                      <View style={[styles.tierActiveBadge, { borderColor: Colors.border, backgroundColor: Colors.bgElevated }]}>
+                        <Text style={{ fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.textPrimary }}>{deScore}</Text>
                         <Text style={{ fontFamily: "Inter_400Regular", fontSize: 8, color: Colors.textMuted, marginTop: -1 }}>score</Text>
                       </View>
                     )}
@@ -1333,7 +1320,7 @@ export default function CharacterStatusScreen() {
 
           {/* ── 3. NEXT EVOLUTION ── */}
           {nextEvolution && (
-            <Animated.View entering={FadeInDown.delay(120).springify()}>
+            <Animated.View entering={FadeInDown.delay(100).duration(350)}>
               <View style={styles.evolutionCard}>
                 <View style={styles.evolutionTopRow}>
                   <View style={styles.evolutionIconWrap}>
@@ -1364,7 +1351,7 @@ export default function CharacterStatusScreen() {
           )}
 
           {/* ── 4. EQUIPPED STYLE ── */}
-          <Animated.View entering={FadeInDown.delay(160).springify()}>
+          <Animated.View entering={FadeInDown.delay(150).duration(350)}>
             <SectionLabel
               label="EQUIPPED STYLE"
               linkLabel="Manage"
@@ -1380,7 +1367,7 @@ export default function CharacterStatusScreen() {
           </Animated.View>
 
           {/* ── 5. STATUS DIMENSIONS ── */}
-          <Animated.View entering={FadeInDown.delay(200).springify()}>
+          <Animated.View entering={FadeInDown.delay(200).duration(350)}>
             <SectionLabel label="STATUS DIMENSIONS" />
             <View style={styles.dimsStack}>
               {dims.map((dim, i) => {
@@ -1403,7 +1390,7 @@ export default function CharacterStatusScreen() {
 
           {/* ── 6. EVOLUTION LOG ── */}
           {data?.visualState?.evolutionExplanations && data.visualState.evolutionExplanations.length > 0 && (
-            <Animated.View entering={FadeInDown.delay(310).springify()}>
+            <Animated.View entering={FadeInDown.delay(250).duration(350)}>
               <SectionLabel label="EVOLUTION LOG" />
               <View style={logStyles.card}>
                 {(data.visualState.evolutionExplanations as { source: string; text: string }[]).map((ex, i) => (
@@ -1427,7 +1414,7 @@ export default function CharacterStatusScreen() {
           )}
 
           {/* ── 7. YOUR SPACE ── */}
-          <Animated.View entering={FadeInDown.delay(360).springify()}>
+          <Animated.View entering={FadeInDown.delay(300).duration(350)}>
             <SectionLabel label="YOUR SPACE" />
             <View style={styles.spaceRow}>
               <Pressable
@@ -1460,7 +1447,7 @@ export default function CharacterStatusScreen() {
           </Animated.View>
 
           {/* ── 8. QUICK ACTIONS ── */}
-          <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.quickActions}>
+          <Animated.View entering={FadeInDown.delay(350).duration(350)} style={styles.quickActions}>
             {[
               { icon: "radio-button-on-outline", label: "Missions",  onPress: () => router.push("/(tabs)/missions") },
               { icon: "cart-outline",            label: "Store",     onPress: () => router.push("/(tabs)/rewards")  },
@@ -1533,17 +1520,17 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary, letterSpacing: 2, flex: 1,
   },
   tierPillHeader: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
+    backgroundColor: Colors.bgElevated,
+    borderWidth: 1, borderColor: Colors.border,
   },
-  tierDotHeader:    { width: 6, height: 6, borderRadius: 3 },
-  tierPillHeaderText: { fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 1.2 },
+  tierPillHeaderText: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 1.2 },
 
   scroll: { paddingHorizontal: 16, gap: 16 },
 
   // ── Hero Card ──
   heroCard: {
-    backgroundColor: Colors.bgCard,
+    backgroundColor: PREMIUM_BG,
     borderRadius: 24, borderWidth: 1, borderColor: Colors.border,
     paddingTop: 52, paddingBottom: 28, paddingHorizontal: 20,
     alignItems: "center", gap: 10, position: "relative",
@@ -1577,11 +1564,11 @@ const styles = StyleSheet.create({
   },
   tierCardTop:    { flexDirection: "row", alignItems: "flex-start", gap: 16 },
   tierCardEyebrow: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 2 },
-  tierCardName:   { fontFamily: "Inter_700Bold", fontSize: 34, letterSpacing: -1.5 },
+  tierCardName:   { fontFamily: "Inter_700Bold", fontSize: 34, letterSpacing: -1.5, color: Colors.textPrimary },
   tierCardDesc:   { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
   statsCol:       { alignItems: "center", gap: 6, minWidth: 52 },
   miniStat:       { alignItems: "center" },
-  miniStatNum:    { fontFamily: "Inter_700Bold", fontSize: 22 },
+  miniStatNum:    { fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.textPrimary },
   miniStatLabel:  { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted },
   miniStatDivider: { width: 28, height: 1, backgroundColor: Colors.border },
 
