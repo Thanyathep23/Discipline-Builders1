@@ -549,59 +549,118 @@ function ScoreRingGauge({ score, tierColor }: { score: number; tierColor: string
   const arcFraction = 0.75;
   const arcLength = circumference * arcFraction;
   const gapLength = circumference - arcLength;
-  const filled = arcLength * Math.min(Math.max(score, 0), 100) / 100;
-  const empty = circumference - filled;
+
+  const [displayScore, setDisplayScore] = useState(0);
+  const animRef = useRef(new RNAnimated.Value(0)).current;
+  const pulseAnim = useRef(new RNAnimated.Value(0.4)).current;
+
+  useEffect(() => {
+    animRef.setValue(0);
+    const listenerId = animRef.addListener(({ value }) => {
+      setDisplayScore(Math.round(value));
+    });
+    const countUp = RNAnimated.timing(animRef, {
+      toValue: Math.min(Math.max(score, 0), 100),
+      duration: 1100,
+      useNativeDriver: false,
+    });
+    countUp.start();
+
+    const pulse = RNAnimated.loop(
+      RNAnimated.sequence([
+        RNAnimated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        RNAnimated.timing(pulseAnim, { toValue: 0.4, duration: 800, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+
+    return () => {
+      animRef.removeListener(listenerId);
+      countUp.stop();
+      pulse.stop();
+    };
+  }, [score]);
+
+  const filled = arcLength * displayScore / 100;
+  const empty  = circumference - filled;
+
+  const startAngleRad = -225 * (Math.PI / 180);
+  const filledAngleRad = (270 * displayScore / 100) * (Math.PI / 180);
+  const endAngle = startAngleRad + filledAngleRad;
+  const glowX = CX + R * Math.cos(endAngle);
+  const glowY = CY + R * Math.sin(endAngle);
 
   return (
     <View style={{ alignItems: "center" }}>
-      <Svg width={128} height={128} viewBox="0 0 128 128">
-        <Circle
-          cx={CX} cy={CY} r={R}
-          fill="none"
-          stroke="#1A1A2E"
-          strokeWidth={9}
-          strokeDasharray={[arcLength, gapLength] as any}
-          strokeLinecap="round"
-          transform={`rotate(-225 ${CX} ${CY})`}
-        />
-        <Circle
-          cx={CX} cy={CY} r={R}
-          fill="none"
-          stroke={tierColor}
-          strokeWidth={9}
-          strokeDasharray={[filled, empty] as any}
-          strokeLinecap="round"
-          transform={`rotate(-225 ${CX} ${CY})`}
-          opacity={0.9}
-        />
-        <Circle
-          cx={CX} cy={CY} r={R - 5}
-          fill="none"
-          stroke={tierColor + "20"}
-          strokeWidth={1}
-        />
-        <SvgText
-          x={CX}
-          y={CY - 7}
-          textAnchor="middle"
-          fill={tierColor}
-          fontSize="26"
-          fontWeight="bold"
-        >
-          {score}
-        </SvgText>
-        <SvgText
-          x={CX}
-          y={CY + 11}
-          textAnchor="middle"
-          fill="#888899"
-          fontSize="8"
-          fontWeight="bold"
-          letterSpacing="2"
-        >
-          STATUS
-        </SvgText>
-      </Svg>
+      <View>
+        <Svg width={128} height={128} viewBox="0 0 128 128">
+          <Circle
+            cx={CX} cy={CY} r={R}
+            fill="none"
+            stroke="#1A1A2E"
+            strokeWidth={9}
+            strokeDasharray={[arcLength, gapLength] as any}
+            strokeLinecap="round"
+            transform={`rotate(-225 ${CX} ${CY})`}
+          />
+          <Circle
+            cx={CX} cy={CY} r={R}
+            fill="none"
+            stroke={tierColor}
+            strokeWidth={9}
+            strokeDasharray={[filled, empty] as any}
+            strokeLinecap="round"
+            transform={`rotate(-225 ${CX} ${CY})`}
+            opacity={0.9}
+          />
+          <Circle
+            cx={CX} cy={CY} r={R - 5}
+            fill="none"
+            stroke={tierColor + "20"}
+            strokeWidth={1}
+          />
+          <SvgText
+            x={CX}
+            y={CY - 7}
+            textAnchor="middle"
+            fill={tierColor}
+            fontSize="26"
+            fontWeight="bold"
+          >
+            {displayScore}
+          </SvgText>
+          <SvgText
+            x={CX}
+            y={CY + 11}
+            textAnchor="middle"
+            fill="#888899"
+            fontSize="8"
+            fontWeight="bold"
+            letterSpacing="2"
+          >
+            STATUS
+          </SvgText>
+        </Svg>
+        {displayScore > 2 && (
+          <RNAnimated.View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              width: 18,
+              height: 18,
+              borderRadius: 9,
+              backgroundColor: tierColor,
+              left: glowX - 9,
+              top: glowY - 9,
+              opacity: pulseAnim,
+              shadowColor: tierColor,
+              shadowRadius: 10,
+              shadowOpacity: 0.9,
+              shadowOffset: { width: 0, height: 0 },
+            }}
+          />
+        )}
+      </View>
     </View>
   );
 }
@@ -694,8 +753,17 @@ function PremiumDimensionRow({ dim, badge, delay = 0, onPress }: {
                 dimRowStyles.barFill,
                 { width: barWidth, backgroundColor: dim.color },
               ]}
-            />
-            <View style={[dimRowStyles.barGlow, { shadowColor: dim.color }]} />
+            >
+              <View
+                style={[
+                  dimRowStyles.barGlow,
+                  {
+                    backgroundColor: dim.color,
+                    shadowColor: dim.color,
+                  },
+                ]}
+              />
+            </RNAnimated.View>
           </View>
 
           <Text style={dimRowStyles.xpText}>{dim.totalXp} XP · {dim.progressPct}%</Text>
@@ -1329,38 +1397,57 @@ export default function CharacterStatusScreen() {
                 <Ionicons name="color-palette-outline" size={16} color={Colors.textSecondary} />
               </Pressable>
 
-              {/* Character voxel */}
-              <Animated.View style={[styles.characterWrap, characterAnimStyle]}>
-                {(() => {
-                  const financeDim = dims.find(d => d.id === "finance");
-                  const financeLevel = financeDim?.level ?? 0;
-                  const outfitTier = financeLevel >= 9 ? 4 :
-                                     financeLevel >= 7 ? 3 :
-                                     financeLevel >= 4 ? 2 : 1;
-                  return (
-                    <VoxelCharacter
-                      skinTone={currentSkinTone}
-                      hairColor={currentHairColor}
-                      outfitTier={outfitTier}
-                    />
-                  );
-                })()}
-                <Pressable
-                  style={{
-                    position: "absolute", bottom: 0, right: 0,
-                    width: 34, height: 34, borderRadius: 10,
-                    backgroundColor: Colors.bgElevated + "CC",
-                    borderWidth: 1, borderColor: Colors.border,
-                    alignItems: "center", justifyContent: "center",
-                  }}
-                  onPress={() => {
-                    Haptics.selectionAsync().catch(() => {});
-                    router.push("/wardrobe?tab=equipped" as any);
-                  }}
-                >
-                  <Ionicons name="shirt-outline" size={16} color={Colors.accent} />
-                </Pressable>
-              </Animated.View>
+              {/* Scanline texture overlay */}
+              <View style={styles.scanlineOverlay} pointerEvents="none">
+                {Array.from({ length: 30 }).map((_, i) => (
+                  <View key={i} style={styles.scanline} />
+                ))}
+              </View>
+
+              {/* Character voxel with swipe arrows */}
+              <View style={styles.characterStageWrap}>
+                {/* Left swipe arrow */}
+                <View style={styles.swipeArrow} pointerEvents="none">
+                  <Ionicons name="chevron-back" size={16} color={tierColor + "70"} />
+                </View>
+
+                <Animated.View style={[styles.characterWrap, characterAnimStyle]}>
+                  {(() => {
+                    const financeDim = dims.find(d => d.id === "finance");
+                    const financeLevel = financeDim?.level ?? 0;
+                    const outfitTier = financeLevel >= 9 ? 4 :
+                                       financeLevel >= 7 ? 3 :
+                                       financeLevel >= 4 ? 2 : 1;
+                    return (
+                      <VoxelCharacter
+                        skinTone={currentSkinTone}
+                        hairColor={currentHairColor}
+                        outfitTier={outfitTier}
+                      />
+                    );
+                  })()}
+                  <Pressable
+                    style={{
+                      position: "absolute", bottom: 0, right: 0,
+                      width: 34, height: 34, borderRadius: 10,
+                      backgroundColor: Colors.bgElevated + "CC",
+                      borderWidth: 1, borderColor: Colors.border,
+                      alignItems: "center", justifyContent: "center",
+                    }}
+                    onPress={() => {
+                      Haptics.selectionAsync().catch(() => {});
+                      router.push("/wardrobe?tab=equipped" as any);
+                    }}
+                  >
+                    <Ionicons name="shirt-outline" size={16} color={Colors.accent} />
+                  </Pressable>
+                </Animated.View>
+
+                {/* Right swipe arrow */}
+                <View style={styles.swipeArrow} pointerEvents="none">
+                  <Ionicons name="chevron-forward" size={16} color={tierColor + "70"} />
+                </View>
+              </View>
 
               {/* Identity */}
               <Text style={styles.characterName}>{user?.username ?? "Character"}</Text>
@@ -1396,7 +1483,7 @@ export default function CharacterStatusScreen() {
               </View>
             </View>
 
-            {/* Premium Tier Progression Ladder */}
+            {/* Vertical Prestige Ladder */}
             <View style={styles.tierLadder}>
               {TIER_ORDER.map((tier, i) => {
                 const tc = TIER_COLORS[tier];
@@ -1404,37 +1491,58 @@ export default function CharacterStatusScreen() {
                 const isPast = i < currentTierIdx;
                 const isLast = i === TIER_ORDER.length - 1;
                 return (
-                  <React.Fragment key={tier}>
-                    <View style={styles.tierStep}>
+                  <View key={tier} style={styles.tierLadderRow}>
+                    {/* Left: dot + connecting rail */}
+                    <View style={styles.tierLadderLeft}>
                       <View style={[
                         styles.tierStepDot,
-                        isActive
-                          ? {
-                              width: 18, height: 18, borderRadius: 9,
-                              backgroundColor: tc,
-                              borderColor: tc,
-                              shadowColor: tc, shadowRadius: 10, shadowOpacity: 0.8, shadowOffset: { width: 0, height: 0 }, elevation: 8,
-                            }
-                          : isPast
-                            ? { backgroundColor: tc + "55", borderColor: tc + "80", borderWidth: 1.5 }
-                            : { backgroundColor: "transparent", borderColor: Colors.border + "60", borderWidth: 1.5 },
+                        isActive ? {
+                          width: 18, height: 18, borderRadius: 9,
+                          backgroundColor: tc,
+                          borderColor: tc,
+                          shadowColor: tc, shadowRadius: 12, shadowOpacity: 0.9, shadowOffset: { width: 0, height: 0 }, elevation: 10,
+                        } : isPast ? {
+                          backgroundColor: tc + "60", borderColor: tc, borderWidth: 1.5,
+                        } : {
+                          backgroundColor: "transparent", borderColor: Colors.border, borderWidth: 1.5,
+                        },
                       ]} />
+                      {!isLast && (
+                        <View style={[
+                          styles.tierRail,
+                          isPast ? { backgroundColor: TIER_COLORS[TIER_ORDER[i + 1]] + "55" } :
+                          isActive ? { backgroundColor: tc + "30" } :
+                          { backgroundColor: Colors.border },
+                        ]} />
+                      )}
+                    </View>
+                    {/* Right: tier info */}
+                    <View style={[styles.tierLadderContent, !isLast && { paddingBottom: 14 }]}>
                       <Text style={[
                         styles.tierStepLabel,
-                        isActive && { color: tc, fontFamily: "Inter_700Bold", fontSize: 9 },
-                        isPast  && { color: tc + "90" },
+                        isActive && { color: tc, fontFamily: "Inter_700Bold", fontSize: 12, letterSpacing: 0.5 },
+                        isPast  && { color: tc + "AA", fontSize: 11 },
+                        !isPast && !isActive && { fontSize: 11 },
                       ]}>
                         {tier}
                       </Text>
+                      {isActive && (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 }}>
+                          <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: tc }} />
+                          <Text style={{ fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted }}>
+                            Current tier
+                          </Text>
+                        </View>
+                      )}
                     </View>
-                    {!isLast && (
-                      <View style={[
-                        styles.tierRail,
-                        isPast && { backgroundColor: TIER_COLORS[TIER_ORDER[i + 1]] + "50" },
-                        isActive && { backgroundColor: tc + "30" },
-                      ]} />
+                    {/* Right: score badge on active */}
+                    {isActive && (
+                      <View style={[styles.tierActiveBadge, { borderColor: tc + "50", backgroundColor: tc + "12" }]}>
+                        <Text style={{ fontFamily: "Inter_700Bold", fontSize: 13, color: tc }}>{deScore}</Text>
+                        <Text style={{ fontFamily: "Inter_400Regular", fontSize: 8, color: Colors.textMuted, marginTop: -1 }}>score</Text>
+                      </View>
                     )}
-                  </React.Fragment>
+                  </View>
                 );
               })}
             </View>
@@ -1691,6 +1799,20 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     zIndex: 10,
   },
+  scanlineOverlay: {
+    position: "absolute", left: 0, right: 0, top: 0, bottom: 0,
+    gap: 9, overflow: "hidden", zIndex: 0, pointerEvents: "none",
+  },
+  scanline: {
+    height: 1, backgroundColor: "rgba(255,255,255,0.022)",
+  },
+  characterStageWrap: {
+    flexDirection: "row", alignItems: "center", zIndex: 1, gap: 8,
+  },
+  swipeArrow: {
+    opacity: 0.7,
+    paddingHorizontal: 2,
+  },
   characterWrap: { alignItems: "center", zIndex: 1 },
   characterName: {
     fontFamily: "Inter_700Bold", fontSize: 26,
@@ -1716,14 +1838,21 @@ const styles = StyleSheet.create({
   miniStatLabel:  { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted },
   miniStatDivider: { width: 28, height: 1, backgroundColor: Colors.border },
 
-  tierLadder: { flexDirection: "row", alignItems: "center" },
+  tierLadder: { flexDirection: "column", gap: 0 },
+  tierLadderRow: { flexDirection: "row", alignItems: "flex-start" },
+  tierLadderLeft: { width: 26, alignItems: "center" },
+  tierLadderContent: { flex: 1, paddingLeft: 12, paddingTop: 1 },
+  tierActiveBadge: {
+    alignItems: "center", borderRadius: 10, borderWidth: 1,
+    paddingHorizontal: 12, paddingVertical: 4, marginTop: 2,
+  },
   tierStep:   { alignItems: "center", gap: 6 },
   tierStepDot: { width: 13, height: 13, borderRadius: 7, borderWidth: 1.5 },
   tierStepLabel: {
     fontFamily: "Inter_400Regular", fontSize: 8,
     color: Colors.textMuted, letterSpacing: 0.3,
   },
-  tierRail: { flex: 1, height: 2, backgroundColor: Colors.border, marginBottom: 14 },
+  tierRail: { width: 2, flex: 1, minHeight: 20, backgroundColor: Colors.border, marginTop: 2 },
 
   // Dims
   dimsStack: { gap: 6 },
@@ -1847,7 +1976,12 @@ const dimRowStyles = StyleSheet.create({
     overflow: "hidden",
   },
   barFill:  { height: 5, borderRadius: 3 },
-  barGlow: { position: "absolute", top: 0, right: 0, bottom: 0, width: 20 },
+  barGlow: {
+    position: "absolute", top: -4, right: -4,
+    width: 12, height: 12, borderRadius: 6,
+    shadowRadius: 7, shadowOpacity: 0.85, shadowOffset: { width: 0, height: 0 },
+    elevation: 4,
+  },
   xpText: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted },
   right: { alignItems: "center", minWidth: 36 },
   levelNum: { fontFamily: "Inter_700Bold", fontSize: 22 },
