@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet, Platform, RefreshControl,
-  Modal, TouchableOpacity,
+  Modal, TouchableOpacity, Animated as RNAnimated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,8 +10,9 @@ import * as Haptics from "expo-haptics";
 import Animated, {
   FadeIn, FadeInDown, FadeOut, SlideInDown, FadeInUp,
   useSharedValue, useAnimatedStyle, withTiming, Easing,
+  withRepeat, withSequence,
 } from "react-native-reanimated";
-import Svg, { Circle, Ellipse, Rect, Path, G, Line } from "react-native-svg";
+import Svg, { Circle, Ellipse, Rect, Path, G, Line, Text as SvgText, Defs, Stop, RadialGradient as SvgRadialGradient } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/colors";
 import { LoadingScreen, Button } from "@/design-system";
@@ -21,6 +22,8 @@ import type { DimensionLevel, DimensionDetail, CharacterVisualState } from "@/li
 import { computeCharacterState } from "@/lib/characterEngine";
 import { CharacterRenderer } from "@/components/character";
 import VoxelCharacter from "../../components/character/VoxelCharacter";
+
+const PREMIUM_BG = "#07071A";
 
 // ─── Phase 29 — Wearable State Types ──────────────────────────────────────────
 
@@ -192,7 +195,6 @@ function HairLayer({ style, color, hCY, hsRx, hsRy, hcRy }: {
       </G>
     );
   }
-  // taper (default)
   return (
     <G>
       <Ellipse cx="50" cy={hCY - 16} rx="20" ry={hcRy} fill={color} />
@@ -214,9 +216,7 @@ function HairStylePreview({ style, color, size = 44 }: { style: string; color: s
   const hTop = cy - r - 3;
   return (
     <Svg width={size} height={size} viewBox="0 0 40 40">
-      {/* head */}
       <Ellipse cx={cx} cy={cy + 2} rx={r} ry={r + 1} fill={headFill} />
-      {/* hair per style */}
       {style === "natural" && (
         <G>
           <Ellipse cx={cx} cy={hTop - 2} rx="12" ry="9" fill={color} />
@@ -297,7 +297,6 @@ export function EvolvedCharacter({
   const accessoryStyle: "chain" | "pin" | "ring" | null = equippedWearables?.accessory?.accessoryStyle ?? null;
   const oc = OC[Math.min(effectiveOutfitTier, 4)];
 
-  // User-chosen skin tone overrides stat-driven skin color
   const [skin, skinS] = SKIN_TONE_COLORS[skinTone] ?? SKIN_TONE_COLORS["tone-3"];
   const hairFill = HAIR_COLOR_HEX[hairColor] ?? "#141414";
 
@@ -328,20 +327,16 @@ export function EvolvedCharacter({
 
   return (
     <Svg width={w} height={h} viewBox="0 0 100 220">
-      {/* Fitness glow for high body tone */}
       {v.bodyTone >= 3 && (
         <Ellipse cx="50" cy="130" rx="36" ry="90" fill="rgba(0,230,118,0.035)" />
       )}
-      {/* Shadow */}
       <Ellipse cx="50" cy="212" rx="30" ry="5" fill="#00000055" />
-      {/* Shoes */}
       <Ellipse cx="36" cy="197" rx="16" ry="7.5" fill="#0C0C1A" />
       <Ellipse cx="25" cy="195" rx="8"  ry="5"   fill="#0C0C1A" />
       <Ellipse cx="64" cy="197" rx="16" ry="7.5" fill="#0C0C1A" />
       <Ellipse cx="75" cy="195" rx="8"  ry="5"   fill="#0C0C1A" />
       <Ellipse cx="28" cy="192" rx="5"  ry="2.5" fill="#1A1A2A" />
       <Ellipse cx="72" cy="192" rx="5"  ry="2.5" fill="#1A1A2A" />
-      {/* Trousers */}
       {(() => {
         const bottomHex = equippedWearables?.bottom?.colorVariant;
         const pFill = bottomHex ?? oc.p;
@@ -364,11 +359,9 @@ export function EvolvedCharacter({
           </G>
         );
       })()}
-      {/* Belt */}
       <Rect x="25" y="113" width="50" height="7" rx="2.5" fill={oc.belt} />
       <Rect x="43" y="113" width="14" height="7" rx="1.5" fill={oc.bk} />
       <Rect x="47" y="115" width="6"  height="3" rx="1"   fill={oc.bk2} />
-      {/* Shirt/Top */}
       <Rect x={tX}          y="52" width={tW}      height="64" rx="6"   fill={oc.s} />
       <Rect x={tX}          y="52" width={5}        height="64" rx="2.5" fill={oc.ss} />
       <Rect x={tX + tW - 5} y="52" width={5}        height="64" rx="2.5" fill={oc.ss} />
@@ -380,17 +373,14 @@ export function EvolvedCharacter({
           <Rect x="49.2" y="60" width="1.5" height="52" rx="0.5" fill={oc.ss} />
         </>
       )}
-      {/* Arms */}
       <Rect x={aLX}      y="54" width={aW} height="50" rx="8" fill={oc.s} />
       <Rect x={aRX}      y="54" width={aW} height="50" rx="8" fill={oc.s} />
       <Rect x={aLX}      y="54" width={4}  height="50" rx="2" fill={oc.ss} />
       <Rect x={aRX + aW - 4} y="54" width={4} height="50" rx="2" fill={oc.ss} />
-      {/* Hands */}
       <Ellipse cx={aLX + aW / 2} cy="106" rx="9" ry="7" fill={skin} />
       <Ellipse cx={aRX + aW / 2} cy="106" rx="9" ry="7" fill={skin} />
       <Ellipse cx={aLX + 2}      cy="106" rx="3" ry="2.5" fill={skinS} />
       <Ellipse cx={aRX + aW - 2} cy="106" rx="3" ry="2.5" fill={skinS} />
-      {/* Watch */}
       {hasWatch && watchStyle === "basic" && (
         <G>
           <Rect x={aRX + 2} y="99" width="10" height="6" rx="1.5" fill="#7A6030" />
@@ -421,7 +411,6 @@ export function EvolvedCharacter({
           <Circle cx={aRX + 7} cy="102" r="0.9" fill="#E8E8FF" />
         </G>
       )}
-      {/* Outerwear layer (coat/jacket over shirt) */}
       {equippedWearables?.outerwear && (
         <G opacity={0.92}>
           <Rect x={tX - 2} y="50" width={tW + 4} height="68" rx="7" fill={equippedWearables.outerwear.colorVariant ?? "#36363C"} />
@@ -431,14 +420,12 @@ export function EvolvedCharacter({
           <Path d={`M${tX + 10} 50 L50 62 L${tX + tW - 10} 50`} stroke="#00000020" strokeWidth="1.5" fill="none" strokeLinecap="round" />
         </G>
       )}
-      {/* Accessory ring on hand */}
       {equippedWearables?.accessory?.accessoryStyle === "ring" && (
         <G>
           <Ellipse cx={aLX + aW / 2} cy="104" rx="4" ry="2.5" fill={equippedWearables.accessory.colorVariant ?? "#8A8A8A"} opacity={0.85} />
           <Ellipse cx={aLX + aW / 2} cy="104" rx="3" ry="1.8" fill={equippedWearables.accessory.colorVariant ?? "#8A8A8A"} opacity={0.5} />
         </G>
       )}
-      {/* Collar */}
       {oc.col ? (
         <Path
           d={`M${tX + 16} 52 L50 60 L${tX + tW - 16} 52`}
@@ -447,7 +434,6 @@ export function EvolvedCharacter({
       ) : (
         <Path d="M42 52 L50 62 L58 52" stroke="#DDDDDD" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
       )}
-      {/* Chain/Lapel */}
       {hasChain && (
         <Path
           d={`M44 ${nBottom + 2} Q50 ${nBottom + 6} 56 ${nBottom + 2}`}
@@ -457,45 +443,22 @@ export function EvolvedCharacter({
       {hasGold && (
         <Circle cx={tX + 10} cy="61" r="2.2" fill="#C0A030" />
       )}
-      {/* Neck */}
       <Rect x="44" y={nY} width="12" height={nH} rx="4" fill={skin} />
-      {/* Ears */}
       <Ellipse cx="31" cy={eCY} rx="4" ry="6"   fill={skin} />
       <Ellipse cx="69" cy={eCY} rx="4" ry="6"   fill={skin} />
       <Ellipse cx="31" cy={eCY} rx="2" ry="3.5" fill={skinS} />
       <Ellipse cx="69" cy={eCY} rx="2" ry="3.5" fill={skinS} />
-      {/* Face */}
       <Ellipse cx="50" cy={hCY}      rx="19" ry="21" fill={skin} />
       <Ellipse cx="50" cy={hCY + 16} rx="14" ry="5"  fill={skinS} />
-      {/* Eyes */}
       <Ellipse cx="43" cy={hCY - 2} rx="3"   ry="3.2" fill="#2A2A3A" />
       <Ellipse cx="57" cy={hCY - 2} rx="3"   ry="3.2" fill="#2A2A3A" />
       <Ellipse cx="43" cy={hCY - 2} rx="2.2" ry="2.4" fill="#1A1A28" />
       <Ellipse cx="57" cy={hCY - 2} rx="2.2" ry="2.4" fill="#1A1A28" />
       <Circle  cx={44.2} cy={hCY - 3.2} r="0.9" fill="#FFFFFF" />
       <Circle  cx={58.2} cy={hCY - 3.2} r="0.9" fill="#FFFFFF" />
-      {/* Eyebrows */}
       <Path d={bl} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
       <Path d={br} stroke="#252535" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-      {/* Nose */}
-      <Path
-        d={`M50 ${hCY + 3} L48 ${hCY + 8} L52 ${hCY + 8}`}
-        stroke="#C09070" strokeWidth="0.9" fill="none" strokeLinecap="round" strokeLinejoin="round"
-      />
-      <Ellipse cx="50" cy={hCY + 7.5} rx="3" ry="1.5" fill={skin} />
-      {/* Mouth */}
-      <Path d={mouth} stroke="#B07A5A" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-      <Ellipse cx="50" cy={hCY + 14} rx="4" ry="1.2" fill="#C98C6C" />
-      {/* Hair — separate colorable layer */}
-      <HairLayer
-        style={hairStyle}
-        color={hairFill}
-        hCY={hCY}
-        hsRx={hsRx}
-        hsRy={hsRy}
-        hcRy={hcRy}
-      />
-      {/* Grooming details (fade lines) drawn on top of hair */}
+      <Path d={mouth} stroke="#6A3A2A" strokeWidth="1.2" fill="none" strokeLinecap="round" />
       {hairStyle !== "bald" && v.grooming >= 1 && (
         <G>
           <Path d={`M30 ${hCY - 14} Q31 ${hCY - 8} 32 ${hCY - 2}`}  stroke="#00000030" strokeWidth="0.9" fill="none" strokeLinecap="round" />
@@ -508,7 +471,242 @@ export function EvolvedCharacter({
           <Path d={`M68 ${hCY - 11} Q67 ${hCY - 4} 65 ${hCY + 1}`} stroke="#00000040" strokeWidth="1.4" fill="none" strokeLinecap="round" />
         </G>
       )}
+      <HairLayer
+        style={hairStyle}
+        color={hairFill}
+        hCY={hCY}
+        hsRx={hsRx}
+        hsRy={hsRy}
+        hcRy={hcRy}
+      />
     </Svg>
+  );
+}
+
+// ─── Sparkle Particles ────────────────────────────────────────────────────────
+
+const SPARKLE_POSITIONS = [
+  { x: "12%",  y: "22%", size: 3,   delay: 0    },
+  { x: "85%",  y: "18%", size: 2.5, delay: 400  },
+  { x: "8%",   y: "65%", size: 2,   delay: 800  },
+  { x: "90%",  y: "58%", size: 3.5, delay: 200  },
+  { x: "20%",  y: "80%", size: 2,   delay: 600  },
+  { x: "75%",  y: "78%", size: 2.5, delay: 1000 },
+  { x: "50%",  y: "10%", size: 2,   delay: 300  },
+  { x: "40%",  y: "88%", size: 3,   delay: 700  },
+];
+
+function SparkleParticles({ color }: { color: string }) {
+  const anims = useRef(SPARKLE_POSITIONS.map(() => new RNAnimated.Value(0))).current;
+
+  useEffect(() => {
+    const loops = anims.map((anim, i) => {
+      const loop = RNAnimated.loop(
+        RNAnimated.sequence([
+          RNAnimated.delay(SPARKLE_POSITIONS[i].delay),
+          RNAnimated.timing(anim, { toValue: 1, duration: 1400, useNativeDriver: true }),
+          RNAnimated.timing(anim, { toValue: 0, duration: 1200, useNativeDriver: true }),
+          RNAnimated.delay(600),
+        ])
+      );
+      loop.start();
+      return loop;
+    });
+    return () => loops.forEach(l => l.stop());
+  }, []);
+
+  return (
+    <>
+      {SPARKLE_POSITIONS.map((sp, i) => (
+        <RNAnimated.View
+          key={i}
+          pointerEvents="none"
+          style={[
+            {
+              position: "absolute",
+              left: sp.x as any,
+              top:  sp.y as any,
+              width:  sp.size * 2,
+              height: sp.size * 2,
+              borderRadius: sp.size,
+              backgroundColor: color,
+            },
+            { opacity: anims[i] },
+          ]}
+        />
+      ))}
+    </>
+  );
+}
+
+// ─── Score Ring Gauge ─────────────────────────────────────────────────────────
+
+function ScoreRingGauge({ score, tierColor }: { score: number; tierColor: string }) {
+  const R = 46;
+  const CX = 64;
+  const CY = 64;
+  const circumference = 2 * Math.PI * R;
+  const arcFraction = 0.75;
+  const arcLength = circumference * arcFraction;
+  const gapLength = circumference - arcLength;
+  const filled = arcLength * Math.min(Math.max(score, 0), 100) / 100;
+  const empty = circumference - filled;
+
+  return (
+    <View style={{ alignItems: "center" }}>
+      <Svg width={128} height={128} viewBox="0 0 128 128">
+        <Circle
+          cx={CX} cy={CY} r={R}
+          fill="none"
+          stroke="#1A1A2E"
+          strokeWidth={9}
+          strokeDasharray={[arcLength, gapLength] as any}
+          strokeLinecap="round"
+          transform={`rotate(-225 ${CX} ${CY})`}
+        />
+        <Circle
+          cx={CX} cy={CY} r={R}
+          fill="none"
+          stroke={tierColor}
+          strokeWidth={9}
+          strokeDasharray={[filled, empty] as any}
+          strokeLinecap="round"
+          transform={`rotate(-225 ${CX} ${CY})`}
+          opacity={0.9}
+        />
+        <Circle
+          cx={CX} cy={CY} r={R - 5}
+          fill="none"
+          stroke={tierColor + "20"}
+          strokeWidth={1}
+        />
+        <SvgText
+          x={CX}
+          y={CY - 7}
+          textAnchor="middle"
+          fill={tierColor}
+          fontSize="26"
+          fontWeight="bold"
+        >
+          {score}
+        </SvgText>
+        <SvgText
+          x={CX}
+          y={CY + 11}
+          textAnchor="middle"
+          fill="#888899"
+          fontSize="8"
+          fontWeight="bold"
+          letterSpacing="2"
+        >
+          STATUS
+        </SvgText>
+      </Svg>
+    </View>
+  );
+}
+
+// ─── Premium Section Header ────────────────────────────────────────────────────
+
+function PremiumSectionHeader({
+  icon, label, linkLabel, onLinkPress,
+}: {
+  icon: string; label: string; linkLabel?: string; onLinkPress?: () => void;
+}) {
+  return (
+    <View style={premiumStyles.sectionHeaderRow}>
+      <View style={premiumStyles.sectionHeaderLeft} />
+      <Ionicons name={icon as any} size={11} color={Colors.gold} />
+      <Text style={premiumStyles.sectionHeaderLabel}>{label}</Text>
+      {linkLabel && onLinkPress && (
+        <Pressable
+          style={premiumStyles.sectionLink}
+          onPress={onLinkPress}
+        >
+          <Text style={premiumStyles.sectionLinkText}>{linkLabel}</Text>
+          <Ionicons name="chevron-forward" size={10} color={Colors.accent} />
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+// ─── Premium Dimension Row ─────────────────────────────────────────────────────
+
+function PremiumDimensionRow({ dim, badge, delay = 0, onPress }: {
+  dim: DimensionLevel;
+  badge?: "LOWEST" | "TOP";
+  delay?: number;
+  onPress?: () => void;
+}) {
+  const barAnim = useRef(new RNAnimated.Value(0)).current;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      RNAnimated.timing(barAnim, {
+        toValue: dim.progressPct / 100,
+        duration: 700,
+        useNativeDriver: false,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      }).start();
+    }, delay + 100);
+    return () => clearTimeout(timer);
+  }, [dim.progressPct]);
+
+  const barWidth = barAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0%", `${dim.progressPct}%`],
+  });
+
+  return (
+    <Pressable onPress={onPress}>
+      <Animated.View entering={FadeInDown.delay(delay).duration(400)} style={dimRowStyles.row}>
+        <View style={[dimRowStyles.iconWrap, { backgroundColor: dim.color + "18" }]}>
+          {badge === "TOP" && (
+            <View style={dimRowStyles.topDot} />
+          )}
+          {badge === "LOWEST" && (
+            <View style={dimRowStyles.lowDot} />
+          )}
+          <Ionicons name={dim.icon as any} size={17} color={dim.color} />
+        </View>
+
+        <View style={dimRowStyles.center}>
+          <View style={dimRowStyles.nameRow}>
+            <Text style={dimRowStyles.name}>{dim.label}</Text>
+            {badge && (
+              <View style={[dimRowStyles.badge, {
+                backgroundColor: badge === "LOWEST" ? Colors.crimsonDim : dim.color + "22",
+                borderColor: badge === "LOWEST" ? Colors.crimson + "40" : dim.color + "40",
+              }]}>
+                <Text style={[dimRowStyles.badgeText, {
+                  color: badge === "LOWEST" ? Colors.crimson : dim.color,
+                }]}>
+                  {badge === "LOWEST" ? "FOCUS" : "PEAK"}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <View style={dimRowStyles.barBg}>
+            <RNAnimated.View
+              style={[
+                dimRowStyles.barFill,
+                { width: barWidth, backgroundColor: dim.color },
+              ]}
+            />
+            <View style={[dimRowStyles.barGlow, { shadowColor: dim.color }]} />
+          </View>
+
+          <Text style={dimRowStyles.xpText}>{dim.totalXp} XP · {dim.progressPct}%</Text>
+        </View>
+
+        <View style={dimRowStyles.right}>
+          <Text style={[dimRowStyles.levelNum, { color: dim.color }]}>{dim.level}</Text>
+          <Text style={dimRowStyles.levelLabel}>LVL</Text>
+        </View>
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -567,21 +765,18 @@ function CharacterCustomizeSheet({
       <TouchableOpacity style={sheetStyles.backdrop} activeOpacity={1} onPress={onClose} />
       <Animated.View entering={SlideInDown.springify().damping(18)} style={[sheetStyles.sheet, { paddingBottom: insets.bottom + 16 }]}>
 
-        {/* Handle */}
         <View style={sheetStyles.handle} />
 
-        {/* Header */}
         <View style={sheetStyles.header}>
           <View>
-            <Text style={sheetStyles.headerTitle}>CUSTOMIZE</Text>
-            <Text style={sheetStyles.headerSub}>Appearance</Text>
+            <Text style={sheetStyles.headerEyebrow}>APPEARANCE</Text>
+            <Text style={sheetStyles.headerTitle}>Customize</Text>
           </View>
           <Pressable style={sheetStyles.closeBtn} onPress={onClose}>
             <Ionicons name="close" size={18} color={Colors.textMuted} />
           </Pressable>
         </View>
 
-        {/* Live preview */}
         <View style={sheetStyles.previewWrap}>
           {characterVisualState ? (
             <CharacterRenderer
@@ -604,8 +799,10 @@ function CharacterCustomizeSheet({
 
         <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }}>
 
-          {/* ── Body Type ── */}
-          <Text style={sheetStyles.sectionLabel}>BODY TYPE</Text>
+          <View style={sheetStyles.sectionRow}>
+            <View style={sheetStyles.sectionAccent} />
+            <Text style={sheetStyles.sectionLabel}>BODY TYPE</Text>
+          </View>
           <View style={sheetStyles.swatchRow}>
             {BODY_TYPE_DISPLAY.map((bt) => {
               const active = bodyType === bt.key;
@@ -625,7 +822,7 @@ function CharacterCustomizeSheet({
                   <View style={[
                     sheetStyles.swatchCircle,
                     { backgroundColor: Colors.bgElevated },
-                    active && { borderColor: Colors.accent, borderWidth: 2.5 },
+                    active && { borderColor: Colors.accent, borderWidth: 2.5, shadowColor: Colors.accent, shadowRadius: 6, shadowOpacity: 0.35, shadowOffset: { width: 0, height: 0 } },
                   ]}>
                     <Ionicons name={bt.icon as any} size={18} color={active ? Colors.accent : Colors.textMuted} />
                   </View>
@@ -638,8 +835,10 @@ function CharacterCustomizeSheet({
             })}
           </View>
 
-          {/* ── Skin Tone ── */}
-          <Text style={sheetStyles.sectionLabel}>SKIN TONE</Text>
+          <View style={sheetStyles.sectionRow}>
+            <View style={sheetStyles.sectionAccent} />
+            <Text style={sheetStyles.sectionLabel}>SKIN TONE</Text>
+          </View>
           <View style={sheetStyles.swatchRow}>
             {SKIN_TONE_DISPLAY.map((s) => {
               const [bg] = SKIN_TONE_COLORS[s.key] ?? ["#C8956C"];
@@ -653,7 +852,7 @@ function CharacterCustomizeSheet({
                   <View style={[
                     sheetStyles.swatchCircle,
                     { backgroundColor: bg },
-                    active && { borderColor: Colors.accent, borderWidth: 2.5 },
+                    active && { borderColor: "#FFFFFF", borderWidth: 2.5, shadowColor: bg, shadowRadius: 8, shadowOpacity: 0.5, shadowOffset: { width: 0, height: 0 } },
                   ]} />
                   <Text style={[sheetStyles.swatchLabel, active && { color: Colors.textPrimary }]}>
                     {s.label}
@@ -664,9 +863,11 @@ function CharacterCustomizeSheet({
             })}
           </View>
 
-          {/* ── Hair Style ── */}
-          <Text style={sheetStyles.sectionLabel}>HAIR STYLE</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={sheetStyles.styleScroll} contentContainerStyle={sheetStyles.styleScrollContent}>
+          <View style={sheetStyles.sectionRow}>
+            <View style={sheetStyles.sectionAccent} />
+            <Text style={sheetStyles.sectionLabel}>HAIR STYLE</Text>
+          </View>
+          <View style={sheetStyles.styleGrid}>
             {activeHairStyles.map((s) => {
               const active = hairStyle === s.key;
               const previewColor = HAIR_COLOR_HEX[hairColor] ?? "#3B2314";
@@ -685,10 +886,12 @@ function CharacterCustomizeSheet({
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
 
-          {/* ── Hair Color ── */}
-          <Text style={sheetStyles.sectionLabel}>HAIR COLOR</Text>
+          <View style={sheetStyles.sectionRow}>
+            <View style={sheetStyles.sectionAccent} />
+            <Text style={sheetStyles.sectionLabel}>HAIR COLOR</Text>
+          </View>
           <View style={sheetStyles.colorGrid}>
             {HAIR_COLOR_DISPLAY.map((c) => {
               const hex = HAIR_COLOR_HEX[c.key] ?? "#141414";
@@ -702,8 +905,8 @@ function CharacterCustomizeSheet({
                   <View style={[
                     sheetStyles.colorCircle,
                     { backgroundColor: hex },
-                    active && { borderColor: Colors.accent, borderWidth: 2.5 },
-                    c.key === "platinum" && { borderWidth: 1.5, borderColor: Colors.border },
+                    active && { borderColor: Colors.accent, borderWidth: 2.5, shadowColor: Colors.accent, shadowRadius: 6, shadowOpacity: 0.4, shadowOffset: { width: 0, height: 0 } },
+                    c.key === "platinum" && !active && { borderWidth: 1.5, borderColor: Colors.border },
                   ]} />
                   <Text style={[sheetStyles.colorLabel, active && { color: Colors.textPrimary }]}>
                     {c.label}
@@ -716,10 +919,9 @@ function CharacterCustomizeSheet({
 
         </ScrollView>
 
-        {/* Save */}
         <View style={sheetStyles.saveRow}>
           <Button
-            label={isSaving ? "Saving…" : hasChanges ? "Save Appearance" : "No Changes"}
+            label={isSaving ? "Saving…" : hasChanges ? "Save Look" : "No Changes"}
             onPress={() => {
               if (!hasChanges || isSaving) return;
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -732,47 +934,6 @@ function CharacterCustomizeSheet({
         </View>
       </Animated.View>
     </Modal>
-  );
-}
-
-// ─── Dimension Card (XP-based) ─────────────────────────────────────────────────
-
-function DimensionCard({ dim, badge, delay = 0, onPress }: {
-  dim: DimensionLevel;
-  badge?: "LOWEST" | "TOP";
-  delay?: number;
-  onPress?: () => void;
-}) {
-  return (
-    <Pressable onPress={onPress}>
-      <Animated.View entering={FadeInDown.delay(delay).springify()} style={dimStyles.card}>
-        <View style={dimStyles.topRow}>
-          <View style={[dimStyles.iconWrap, { backgroundColor: dim.color + "18" }]}>
-            <Ionicons name={dim.icon as any} size={15} color={dim.color} />
-          </View>
-          {badge && (
-            <View style={[dimStyles.badge, {
-              backgroundColor: badge === "LOWEST" ? Colors.crimsonDim : dim.color + "20",
-            }]}>
-              <Text style={[dimStyles.badgeText, {
-                color: badge === "LOWEST" ? Colors.crimson : dim.color,
-              }]}>
-                {badge === "LOWEST" ? "FOCUS" : "TOP"}
-              </Text>
-            </View>
-          )}
-        </View>
-        <Text style={dimStyles.name}>{dim.label}</Text>
-        <View style={dimStyles.barBg}>
-          <View style={[dimStyles.barFill, { width: `${dim.progressPct}%` as any, backgroundColor: dim.color }]} />
-        </View>
-        <View style={dimStyles.footer}>
-          <Text style={[dimStyles.label, { color: dim.color }]}>Lv {dim.level}</Text>
-          <Text style={[dimStyles.scoreNum, { color: dim.color }]}>{dim.level}</Text>
-        </View>
-        <Text style={dimStyles.xpText}>{dim.totalXp} XP</Text>
-      </Animated.View>
-    </Pressable>
   );
 }
 
@@ -927,6 +1088,10 @@ function EquippedStyleRow({ equippedWearables }: { equippedWearables: any }) {
               alignItems: "center",
               gap: 5,
               opacity: pressed ? 0.75 : 1,
+              shadowColor: item ? Colors.accent : "transparent",
+              shadowRadius: item ? 6 : 0,
+              shadowOpacity: item ? 0.2 : 0,
+              shadowOffset: { width: 0, height: 0 },
             })}
             onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/wardrobe" as any); }}
           >
@@ -981,6 +1146,13 @@ const EXPL_TEXT: Record<string, string> = {
   "Finance/Lifestyle": "#F5C842",
   "Prestige":          "#00D4FF",
   "Starting Out":      Colors.textMuted,
+};
+const EXPL_BORDER: Record<string, string> = {
+  "Fitness":           "#00E67650",
+  "Discipline":        "#7C5CFC50",
+  "Finance/Lifestyle": "#F5C84250",
+  "Prestige":          "#00D4FF50",
+  "Starting Out":      Colors.border,
 };
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -1131,16 +1303,22 @@ export default function CharacterStatusScreen() {
           {/* ── 1. CHARACTER HERO ── */}
           <Animated.View entering={FadeIn.duration(600)} style={styles.heroCard}>
             <LinearGradient
-              colors={[tierColor + "28", "#0E0A20", "#06060F"]}
+              colors={[tierColor + "35", "#0D0A22", PREMIUM_BG]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
               style={styles.heroGradient}
             >
-              {/* Ambient glow rings */}
-              <View style={[styles.glowRing, { width: 320, height: 320, borderColor: tierColor + "14", marginLeft: -160, marginTop: -160 }]} />
-              <View style={[styles.glowRing, { width: 220, height: 220, borderColor: tierColor + "10", marginLeft: -110, marginTop: -110 }]} />
+              {/* Sparkle particles */}
+              <SparkleParticles color={tierColor} />
 
-              {/* Customize button — top right */}
+              {/* Radial glow disc behind character */}
+              <View style={[styles.glowDisc, { backgroundColor: tierColor + "14" }]} />
+              <View style={[styles.glowDiscInner, { backgroundColor: tierColor + "08" }]} />
+
+              {/* Shimmer line */}
+              <View style={[styles.shimmerLine, { backgroundColor: tierColor + "30" }]} />
+
+              {/* Customize button */}
               <Pressable
                 style={styles.customizeBtn}
                 onPress={() => {
@@ -1151,7 +1329,7 @@ export default function CharacterStatusScreen() {
                 <Ionicons name="color-palette-outline" size={16} color={Colors.textSecondary} />
               </Pressable>
 
-              {/* The character — voxel art hero */}
+              {/* Character voxel */}
               <Animated.View style={[styles.characterWrap, characterAnimStyle]}>
                 {(() => {
                   const financeDim = dims.find(d => d.id === "finance");
@@ -1184,19 +1362,14 @@ export default function CharacterStatusScreen() {
                 </Pressable>
               </Animated.View>
 
-              {/* Identity beneath the figure */}
+              {/* Identity */}
               <Text style={styles.characterName}>{user?.username ?? "Character"}</Text>
               <Text style={styles.outfitLabel}>{data?.character?.outfitLabel ?? "Starter Kit"}</Text>
 
-              {/* Status score pill — with glow */}
-              <View style={[
-                styles.scoreChip,
-                { borderColor: tierColor + "60", backgroundColor: tierColor + "18" },
-                { shadowColor: tierColor, shadowRadius: 14, shadowOpacity: 0.45, shadowOffset: { width: 0, height: 0 }, elevation: 8 },
-              ]}>
-                <Text style={[styles.scoreChipNum, { color: tierColor }]}>{deScore}</Text>
-                <Text style={styles.scoreChipLabel}> STATUS SCORE</Text>
-              </View>
+              {/* Score ring gauge */}
+              <Animated.View entering={FadeIn.delay(300).duration(600)}>
+                <ScoreRingGauge score={deScore} tierColor={tierColor} />
+              </Animated.View>
             </LinearGradient>
           </Animated.View>
 
@@ -1223,7 +1396,7 @@ export default function CharacterStatusScreen() {
               </View>
             </View>
 
-            {/* Tier progression ladder */}
+            {/* Premium Tier Progression Ladder */}
             <View style={styles.tierLadder}>
               {TIER_ORDER.map((tier, i) => {
                 const tc = TIER_COLORS[tier];
@@ -1236,15 +1409,20 @@ export default function CharacterStatusScreen() {
                       <View style={[
                         styles.tierStepDot,
                         isActive
-                          ? { backgroundColor: tc, borderColor: tc, width: 16, height: 16, borderRadius: 8, shadowColor: tc, shadowRadius: 8, shadowOpacity: 0.6, shadowOffset: { width: 0, height: 0 }, elevation: 6 }
+                          ? {
+                              width: 18, height: 18, borderRadius: 9,
+                              backgroundColor: tc,
+                              borderColor: tc,
+                              shadowColor: tc, shadowRadius: 10, shadowOpacity: 0.8, shadowOffset: { width: 0, height: 0 }, elevation: 8,
+                            }
                           : isPast
-                            ? { backgroundColor: tc + "60", borderColor: tc + "80" }
-                            : { backgroundColor: "transparent", borderColor: Colors.border + "80" },
+                            ? { backgroundColor: tc + "55", borderColor: tc + "80", borderWidth: 1.5 }
+                            : { backgroundColor: "transparent", borderColor: Colors.border + "60", borderWidth: 1.5 },
                       ]} />
                       <Text style={[
                         styles.tierStepLabel,
-                        isActive && { color: tc, fontFamily: "Inter_700Bold" },
-                        isPast  && { color: tc + "80" },
+                        isActive && { color: tc, fontFamily: "Inter_700Bold", fontSize: 9 },
+                        isPast  && { color: tc + "90" },
                       ]}>
                         {tier}
                       </Text>
@@ -1252,7 +1430,8 @@ export default function CharacterStatusScreen() {
                     {!isLast && (
                       <View style={[
                         styles.tierRail,
-                        isPast && { backgroundColor: TIER_COLORS[TIER_ORDER[i + 1]] + "40" },
+                        isPast && { backgroundColor: TIER_COLORS[TIER_ORDER[i + 1]] + "50" },
+                        isActive && { backgroundColor: tc + "30" },
                       ]} />
                     )}
                   </React.Fragment>
@@ -1265,7 +1444,7 @@ export default function CharacterStatusScreen() {
           {nextEvolution && (
             <Animated.View entering={FadeInDown.delay(120).springify()}>
               <LinearGradient
-                colors={[Colors.accent + "18", Colors.bgCard]}
+                colors={[Colors.accent + "20", Colors.bgCard]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.evolutionCard}
@@ -1299,20 +1478,15 @@ export default function CharacterStatusScreen() {
 
           {/* ── 4. EQUIPPED STYLE ── */}
           <Animated.View entering={FadeInDown.delay(160).springify()}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="shirt-outline" size={12} color={Colors.textMuted} />
-              <Text style={styles.sectionHeaderText}>EQUIPPED STYLE</Text>
-              <Pressable
-                style={styles.sectionLink}
-                onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/wardrobe?tab=equipped" as any); }}
-              >
-                <Text style={styles.sectionLinkText}>Manage</Text>
-                <Ionicons name="chevron-forward" size={11} color={Colors.accent} />
-              </Pressable>
-            </View>
+            <PremiumSectionHeader
+              icon="shirt-outline"
+              label="EQUIPPED STYLE"
+              linkLabel="Manage"
+              onLinkPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/wardrobe?tab=equipped" as any); }}
+            />
             <EquippedStyleRow equippedWearables={(data as any)?.equippedWearables ?? null} />
             {hasPrestigeWearable((data as any)?.equippedWearables) && (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, alignSelf: "flex-start", backgroundColor: Colors.gold + "14", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: Colors.gold + "30" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, alignSelf: "flex-start", backgroundColor: Colors.gold + "14", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: Colors.gold + "30" }}>
                 <Ionicons name="sparkles" size={12} color={Colors.gold} />
                 <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: Colors.gold, letterSpacing: 0.6 }}>Wardrobe Boost</Text>
               </View>
@@ -1321,22 +1495,19 @@ export default function CharacterStatusScreen() {
 
           {/* ── 5. STATUS DIMENSIONS ── */}
           <Animated.View entering={FadeInDown.delay(200).springify()}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="stats-chart-outline" size={12} color={Colors.textMuted} />
-              <Text style={styles.sectionHeaderText}>STATUS DIMENSIONS</Text>
-            </View>
-            <View style={styles.dimsGrid}>
+            <PremiumSectionHeader icon="stats-chart-outline" label="STATUS DIMENSIONS" />
+            <View style={styles.dimsStack}>
               {dims.map((dim, i) => {
                 const badge =
                   i === weakestIdx ? "LOWEST" as const :
                   i === strongestIdx ? "TOP" as const :
                   undefined;
                 return (
-                  <DimensionCard
+                  <PremiumDimensionRow
                     key={dim.id}
                     dim={dim}
                     badge={badge}
-                    delay={220 + i * 30}
+                    delay={220 + i * 50}
                     onPress={() => handleDimPress(dim)}
                   />
                 );
@@ -1344,22 +1515,27 @@ export default function CharacterStatusScreen() {
             </View>
           </Animated.View>
 
-          {/* ── 6. WHY YOU LOOK LIKE THIS ── */}
+          {/* ── 6. EVOLUTION LOG ── */}
           {data?.visualState?.evolutionExplanations && data.visualState.evolutionExplanations.length > 0 && (
             <Animated.View entering={FadeInDown.delay(310).springify()}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="eye-outline" size={12} color={Colors.textMuted} />
-                <Text style={styles.sectionHeaderText}>WHY YOU LOOK LIKE THIS</Text>
-              </View>
-              <View style={evolStyles.card}>
+              <PremiumSectionHeader icon="eye-outline" label="EVOLUTION LOG" />
+              <View style={logStyles.card}>
+                <View style={logStyles.cardTopBar} />
                 {(data.visualState.evolutionExplanations as { source: string; text: string }[]).map((ex, i) => (
-                  <View key={i} style={[evolStyles.row, i > 0 && evolStyles.rowBorder]}>
-                    <View style={[evolStyles.sourcePill, { backgroundColor: EXPL_COLORS[ex.source] ?? Colors.accentGlow }]}>
-                      <Text style={[evolStyles.sourceText, { color: EXPL_TEXT[ex.source] ?? Colors.accent }]}>
+                  <View
+                    key={i}
+                    style={[
+                      logStyles.row,
+                      i > 0 && logStyles.rowBorder,
+                      { borderLeftColor: EXPL_BORDER[ex.source] ?? Colors.border },
+                    ]}
+                  >
+                    <View style={[logStyles.sourcePill, { backgroundColor: EXPL_COLORS[ex.source] ?? Colors.accentGlow }]}>
+                      <Text style={[logStyles.sourceText, { color: EXPL_TEXT[ex.source] ?? Colors.accent }]}>
                         {ex.source.toUpperCase()}
                       </Text>
                     </View>
-                    <Text style={evolStyles.text}>{ex.text}</Text>
+                    <Text style={logStyles.text}>{ex.text}</Text>
                   </View>
                 ))}
               </View>
@@ -1368,10 +1544,7 @@ export default function CharacterStatusScreen() {
 
           {/* ── 7. YOUR SPACE ── */}
           <Animated.View entering={FadeInDown.delay(360).springify()}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="home-outline" size={12} color={Colors.textMuted} />
-              <Text style={styles.sectionHeaderText}>YOUR SPACE</Text>
-            </View>
+            <PremiumSectionHeader icon="home-outline" label="YOUR SPACE" />
             <View style={styles.spaceRow}>
               <Pressable
                 style={({ pressed }) => [styles.spaceChip, pressed && { opacity: 0.82 }]}
@@ -1458,11 +1631,10 @@ export default function CharacterStatusScreen() {
 // ─── Core Styles ──────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container:        { flex: 1, backgroundColor: Colors.bg },
+  container:        { flex: 1, backgroundColor: PREMIUM_BG },
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
   loadingText:      { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textMuted },
 
-  // Header
   header: {
     flexDirection: "row", alignItems: "center",
     paddingHorizontal: 20, paddingVertical: 12, gap: 12,
@@ -1474,7 +1646,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: "Inter_700Bold", fontSize: 15,
-    color: Colors.textPrimary, letterSpacing: 1.5, flex: 1,
+    color: Colors.textPrimary, letterSpacing: 2, flex: 1,
   },
   tierPillHeader: {
     flexDirection: "row", alignItems: "center", gap: 5,
@@ -1483,17 +1655,33 @@ const styles = StyleSheet.create({
   tierDotHeader:    { width: 6, height: 6, borderRadius: 3 },
   tierPillHeaderText: { fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 1.2 },
 
-  scroll: { paddingHorizontal: 16, gap: 14 },
+  scroll: { paddingHorizontal: 16, gap: 16 },
 
   // ── Hero Card ──
-  heroCard:     { borderRadius: 26, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
+  heroCard:     { borderRadius: 28, overflow: "hidden", borderWidth: 1, borderColor: Colors.border + "80" },
   heroGradient: {
-    paddingTop: 44, paddingBottom: 28, paddingHorizontal: 20,
-    alignItems: "center", gap: 8, position: "relative",
+    paddingTop: 52, paddingBottom: 32, paddingHorizontal: 20,
+    alignItems: "center", gap: 10, position: "relative",
   },
-  glowRing: {
-    position: "absolute", borderRadius: 1000, borderWidth: 1,
-    top: "50%", left: "50%",
+  glowDisc: {
+    position: "absolute",
+    width: 280, height: 280,
+    borderRadius: 140,
+    top: "10%",
+    alignSelf: "center",
+  },
+  glowDiscInner: {
+    position: "absolute",
+    width: 180, height: 180,
+    borderRadius: 90,
+    top: "20%",
+    alignSelf: "center",
+  },
+  shimmerLine: {
+    position: "absolute",
+    height: 1,
+    left: 0, right: 0,
+    top: "40%",
   },
   customizeBtn: {
     position: "absolute", top: 14, right: 14,
@@ -1505,29 +1693,22 @@ const styles = StyleSheet.create({
   },
   characterWrap: { alignItems: "center", zIndex: 1 },
   characterName: {
-    fontFamily: "Inter_700Bold", fontSize: 24,
-    color: Colors.textPrimary, letterSpacing: -0.3, zIndex: 1,
+    fontFamily: "Inter_700Bold", fontSize: 26,
+    color: Colors.textPrimary, letterSpacing: 0.5, zIndex: 1,
   },
   outfitLabel: {
     fontFamily: "Inter_500Medium", fontSize: 12,
-    color: Colors.textSecondary, zIndex: 1, letterSpacing: 0.3,
+    color: Colors.textSecondary, zIndex: 1, letterSpacing: 0.5,
   },
-  scoreChip: {
-    flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 18, paddingVertical: 8,
-    borderRadius: 22, borderWidth: 1, marginTop: 8, zIndex: 1,
-  },
-  scoreChipNum:   { fontFamily: "Inter_700Bold", fontSize: 18 },
-  scoreChipLabel: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.5 },
 
   // ── Status Tier Card ──
   tierCard: {
     backgroundColor: Colors.bgCard, borderRadius: 22,
-    padding: 20, borderWidth: 1, borderColor: Colors.border, gap: 18,
+    padding: 20, borderWidth: 1, borderColor: Colors.border, gap: 20,
   },
   tierCardTop:    { flexDirection: "row", alignItems: "flex-start", gap: 16 },
   tierCardEyebrow: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 2 },
-  tierCardName:   { fontFamily: "Inter_700Bold", fontSize: 32, letterSpacing: -1.5 },
+  tierCardName:   { fontFamily: "Inter_700Bold", fontSize: 34, letterSpacing: -1.5 },
   tierCardDesc:   { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
   statsCol:       { alignItems: "center", gap: 6, minWidth: 52 },
   miniStat:       { alignItems: "center" },
@@ -1535,27 +1716,17 @@ const styles = StyleSheet.create({
   miniStatLabel:  { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted },
   miniStatDivider: { width: 28, height: 1, backgroundColor: Colors.border },
 
-  // Tier ladder
   tierLadder: { flexDirection: "row", alignItems: "center" },
-  tierStep:   { alignItems: "center", gap: 5 },
-  tierStepDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1.5 },
+  tierStep:   { alignItems: "center", gap: 6 },
+  tierStepDot: { width: 13, height: 13, borderRadius: 7, borderWidth: 1.5 },
   tierStepLabel: {
     fontFamily: "Inter_400Regular", fontSize: 8,
     color: Colors.textMuted, letterSpacing: 0.3,
   },
-  tierRail: { flex: 1, height: 1.5, backgroundColor: Colors.border, marginBottom: 13 },
+  tierRail: { flex: 1, height: 2, backgroundColor: Colors.border, marginBottom: 14 },
 
-  // Section header
-  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 10 },
-  sectionHeaderText: {
-    fontFamily: "Inter_700Bold", fontSize: 10,
-    color: Colors.textMuted, letterSpacing: 1.8, flex: 1,
-  },
-  sectionLink:     { flexDirection: "row", alignItems: "center", gap: 3 },
-  sectionLinkText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.accent },
-
-  // Dimensions grid
-  dimsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  // Dims
+  dimsStack: { gap: 6 },
 
   // ── Next Evolution CTA ──
   evolutionCard: {
@@ -1619,42 +1790,91 @@ const styles = StyleSheet.create({
   },
 });
 
-// ─── Dimension Card Styles ─────────────────────────────────────────────────────
+// ─── Premium Section Header Styles ─────────────────────────────────────────────
 
-const dimStyles = StyleSheet.create({
-  card: {
-    width: "48.5%" as any,
-    backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14,
-    borderWidth: 1, borderColor: Colors.border, gap: 7,
+const premiumStyles = StyleSheet.create({
+  sectionHeaderRow: {
+    flexDirection: "row", alignItems: "center",
+    gap: 7, marginBottom: 12,
   },
-  topRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  iconWrap:    { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center" },
-  badge:       { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
-  badgeText:   { fontFamily: "Inter_700Bold", fontSize: 7, letterSpacing: 0.8 },
-  name:        { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.textPrimary },
-  barBg:       { height: 4, backgroundColor: Colors.bgElevated, borderRadius: 2 },
-  barFill:     { height: 4, borderRadius: 2 },
-  footer:      { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  label:       { fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 0.4 },
-  scoreNum:    { fontFamily: "Inter_700Bold", fontSize: 18 },
-  xpText:      { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted },
+  sectionHeaderLeft: {
+    width: 3, height: 14, borderRadius: 2,
+    backgroundColor: Colors.gold,
+  },
+  sectionHeaderLabel: {
+    fontFamily: "Inter_700Bold", fontSize: 10,
+    color: Colors.textSecondary, letterSpacing: 2, flex: 1,
+  },
+  sectionLink: { flexDirection: "row", alignItems: "center", gap: 3 },
+  sectionLinkText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.accent },
 });
 
-// ─── Evolution Explanation Styles ─────────────────────────────────────────────
+// ─── Premium Dimension Row Styles ──────────────────────────────────────────────
 
-const evolStyles = StyleSheet.create({
+const dimRowStyles = StyleSheet.create({
+  row: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  iconWrap: {
+    width: 38, height: 38, borderRadius: 11,
+    alignItems: "center", justifyContent: "center",
+    position: "relative",
+  },
+  topDot: {
+    position: "absolute", top: -2, right: -2,
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: Colors.gold,
+    borderWidth: 1.5, borderColor: PREMIUM_BG,
+  },
+  lowDot: {
+    position: "absolute", top: -2, right: -2,
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: Colors.crimson,
+    borderWidth: 1.5, borderColor: PREMIUM_BG,
+  },
+  center: { flex: 1, gap: 5 },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  name: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.textPrimary },
+  badge: {
+    borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2,
+    borderWidth: 1,
+  },
+  badgeText: { fontFamily: "Inter_700Bold", fontSize: 7, letterSpacing: 0.8 },
+  barBg: {
+    height: 5, backgroundColor: Colors.bgElevated, borderRadius: 3,
+    overflow: "hidden",
+  },
+  barFill:  { height: 5, borderRadius: 3 },
+  barGlow: { position: "absolute", top: 0, right: 0, bottom: 0, width: 20 },
+  xpText: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted },
+  right: { alignItems: "center", minWidth: 36 },
+  levelNum: { fontFamily: "Inter_700Bold", fontSize: 22 },
+  levelLabel: { fontFamily: "Inter_700Bold", fontSize: 8, color: Colors.textMuted, letterSpacing: 1 },
+});
+
+// ─── Evolution Log Styles ──────────────────────────────────────────────────────
+
+const logStyles = StyleSheet.create({
   card: {
     backgroundColor: Colors.bgCard, borderRadius: 18, overflow: "hidden",
     borderWidth: 1, borderColor: Colors.border,
   },
-  row:       { flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 14 },
+  cardTopBar: {
+    height: 2, backgroundColor: Colors.gold + "60",
+  },
+  row: {
+    flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 14,
+    borderLeftWidth: 3,
+  },
   rowBorder: { borderTopWidth: 1, borderTopColor: Colors.border },
   sourcePill: {
     borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4,
     minWidth: 70, alignItems: "center", flexShrink: 0,
   },
   sourceText: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.2 },
-  text:       { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, flex: 1, lineHeight: 19 },
+  text: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, flex: 1, lineHeight: 19 },
 });
 
 // ─── Customize Sheet Styles ────────────────────────────────────────────────────
@@ -1674,7 +1894,7 @@ const sheetStyles = StyleSheet.create({
     maxHeight: "90%",
   },
   handle: {
-    width: 40, height: 4, borderRadius: 2,
+    width: 44, height: 4, borderRadius: 2,
     backgroundColor: Colors.border,
     alignSelf: "center", marginBottom: 16,
   },
@@ -1682,12 +1902,12 @@ const sheetStyles = StyleSheet.create({
     flexDirection: "row", alignItems: "flex-start",
     justifyContent: "space-between", marginBottom: 4,
   },
-  headerTitle: {
-    fontFamily: "Inter_700Bold", fontSize: 10,
-    color: Colors.textMuted, letterSpacing: 2,
+  headerEyebrow: {
+    fontFamily: "Inter_700Bold", fontSize: 9,
+    color: Colors.gold, letterSpacing: 2,
   },
-  headerSub: {
-    fontFamily: "Inter_700Bold", fontSize: 20,
+  headerTitle: {
+    fontFamily: "Inter_700Bold", fontSize: 22,
     color: Colors.textPrimary, marginTop: 2,
   },
   closeBtn: {
@@ -1698,37 +1918,45 @@ const sheetStyles = StyleSheet.create({
   },
   previewWrap: {
     alignItems: "center", paddingVertical: 12,
-    backgroundColor: Colors.bg,
+    backgroundColor: PREMIUM_BG,
     borderRadius: 18, marginVertical: 12,
-    borderWidth: 1, borderColor: Colors.border,
+    borderWidth: 1, borderColor: Colors.border + "80",
+  },
+  sectionRow: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    marginTop: 18, marginBottom: 12,
+  },
+  sectionAccent: {
+    width: 3, height: 12, borderRadius: 2, backgroundColor: Colors.gold,
   },
   sectionLabel: {
     fontFamily: "Inter_700Bold", fontSize: 9,
-    color: Colors.textMuted, letterSpacing: 2,
-    marginTop: 16, marginBottom: 12,
+    color: Colors.textSecondary, letterSpacing: 2,
   },
-  // Skin tone swatches
+  // Skin tone / body type swatches
   swatchRow: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 4 },
   swatchItem: { alignItems: "center", gap: 6, opacity: 0.75 },
-  swatchCircle: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: "transparent" },
+  swatchCircle: { width: 48, height: 48, borderRadius: 24, borderWidth: 1.5, borderColor: "transparent" },
   swatchLabel: { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textMuted },
   swatchCheck: {
     position: "absolute", top: 0, right: -2,
-    width: 16, height: 16, borderRadius: 8,
+    width: 18, height: 18, borderRadius: 9,
     backgroundColor: Colors.accent,
     alignItems: "center", justifyContent: "center",
   },
-  // Hair style cards
-  styleScroll: { marginHorizontal: -20 },
-  styleScrollContent: { paddingHorizontal: 20, gap: 10, flexDirection: "row" },
-  styleCard: {
-    alignItems: "center", gap: 8, paddingVertical: 14, paddingHorizontal: 16,
-    backgroundColor: Colors.bg, borderRadius: 16,
-    borderWidth: 1.5, borderColor: Colors.border, minWidth: 80,
+  // Hair style grid (3-column)
+  styleGrid: {
+    flexDirection: "row", flexWrap: "wrap", gap: 10,
   },
-  styleCardActive: { borderColor: Colors.accent, backgroundColor: Colors.accent + "10" },
+  styleCard: {
+    alignItems: "center", gap: 8, paddingVertical: 14, paddingHorizontal: 12,
+    backgroundColor: Colors.bg, borderRadius: 16,
+    borderWidth: 1.5, borderColor: Colors.border,
+    width: "30.5%" as any,
+  },
+  styleCardActive: { borderColor: Colors.accent, backgroundColor: Colors.accent + "12" },
   styleIconWrap: {
-    width: 44, height: 44, borderRadius: 12,
+    width: 52, height: 52, borderRadius: 13,
     backgroundColor: Colors.bgElevated,
     alignItems: "center", justifyContent: "center",
   },
@@ -1741,15 +1969,14 @@ const sheetStyles = StyleSheet.create({
     flexDirection: "row", flexWrap: "wrap", gap: 12, paddingHorizontal: 4, marginBottom: 8,
   },
   colorItem: { alignItems: "center", gap: 6, width: "21%" as any },
-  colorCircle: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: "transparent" },
+  colorCircle: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: "transparent" },
   colorLabel: { fontFamily: "Inter_500Medium", fontSize: 9, color: Colors.textMuted, textAlign: "center" },
   colorCheck: {
     position: "absolute", top: 0, right: 2,
-    width: 16, height: 16, borderRadius: 8,
+    width: 18, height: 18, borderRadius: 9,
     backgroundColor: Colors.accent,
     alignItems: "center", justifyContent: "center",
   },
-  // Save
   saveRow: { paddingTop: 16, paddingBottom: 4 },
 });
 
