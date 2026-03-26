@@ -1,8 +1,9 @@
-import React, { useRef, useCallback, useEffect } from 'react'
+import React, { useRef, useCallback, useEffect, useState } from 'react'
 import { View, PanResponder, StyleSheet } from 'react-native'
-import { GLView } from 'expo-gl'
+import { GLView, ExpoWebGLRenderingContext } from 'expo-gl'
 import * as THREE from 'three'
 import { Renderer } from 'expo-three'
+import VoxelCharacter from './VoxelCharacter'
 
 const GL_HEIGHT = 460
 
@@ -21,9 +22,7 @@ function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.replace('#', ''), 16)
   return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff]
 }
-
 function clamp(v: number): number { return Math.max(0, Math.min(255, v)) }
-
 function darken(rgb: [number, number, number], amt: number): [number, number, number] {
   return [clamp(rgb[0] - amt), clamp(rgb[1] - amt), clamp(rgb[2] - amt)]
 }
@@ -68,10 +67,8 @@ function buildFaceTexture(skinHex: string, hairHex: string): THREE.DataTexture {
   const lipHi: [number, number, number] = [clamp(sk[0] - 15), clamp(sk[1] - 20), clamp(sk[2] - 18)]
 
   rect(0, 0, S, 14, hr[0], hr[1], hr[2])
-
   rect(14, 18, 13, 3, hrD[0], hrD[1], hrD[2])
   rect(37, 18, 13, 3, hrD[0], hrD[1], hrD[2])
-
   rect(13, 22, 16, 9, eyeW[0], eyeW[1], eyeW[2])
   rect(35, 22, 16, 9, eyeW[0], eyeW[1], eyeW[2])
   for (let dx = 0; dx < 16; dx++) {
@@ -80,17 +77,13 @@ function buildFaceTexture(skinHex: string, hairHex: string): THREE.DataTexture {
     px(35 + dx, 21, eyeRim[0], eyeRim[1], eyeRim[2])
     px(35 + dx, 31, eyeRim[0], eyeRim[1], eyeRim[2])
   }
-
   rect(17, 23, 8, 7, iris[0], iris[1], iris[2])
   rect(39, 23, 8, 7, iris[0], iris[1], iris[2])
-
   rect(19, 24, 4, 5, pupil[0], pupil[1], pupil[2])
   rect(41, 24, 4, 5, pupil[0], pupil[1], pupil[2])
-
   rect(29, 33, 4, 6, skD[0], skD[1], skD[2])
   rect(27, 38, 4, 3, skN[0], skN[1], skN[2])
   rect(33, 38, 4, 3, skN[0], skN[1], skN[2])
-
   rect(21, 43, 22, 3, lipHi[0], lipHi[1], lipHi[2])
   rect(21, 46, 22, 2, lip[0], lip[1], lip[2])
 
@@ -168,14 +161,37 @@ export default function VoxelCharacter3D({
   hairColor = 'dark-brown',
   outfitTier = 1,
 }: VoxelCharacter3DProps) {
-  const rotYRef      = useRef(0)
-  const velocityRef  = useRef(0)
-  const draggingRef  = useRef(false)
-  const prevDxRef    = useRef(0)
-  const cancelRef    = useRef<(() => void) | null>(null)
+  const [glFailed, setGlFailed]   = useState(false)
+  const rotYRef                    = useRef(0)
+  const velocityRef                = useRef(0)
+  const draggingRef                = useRef(false)
+  const prevDxRef                  = useRef(0)
+  const cancelRef                  = useRef<(() => void) | null>(null)
+  const characterRef               = useRef<THREE.Group | null>(null)
+  const sceneRef                   = useRef<THREE.Scene | null>(null)
 
   const skinHex = SKIN_TONES[skinTone] ?? SKIN_TONES['tone-3']
   const hairHex = HAIR_COLORS[hairColor] ?? HAIR_COLORS['dark-brown']
+
+  useEffect(() => {
+    if (!sceneRef.current || !characterRef.current) return
+    const scene = sceneRef.current
+    const oldChar = characterRef.current
+    scene.remove(oldChar)
+    oldChar.traverse(child => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+        mats.forEach(m => m.dispose())
+        mesh.geometry.dispose()
+      }
+    })
+    const newChar = buildCharacter(skinHex, hairHex, outfitTier)
+    newChar.position.set(0, -4.2, 0)
+    newChar.rotation.y = rotYRef.current
+    scene.add(newChar)
+    characterRef.current = newChar
+  }, [skinHex, hairHex, outfitTier])
 
   const panResponder = useRef(
     PanResponder.create({
@@ -198,57 +214,76 @@ export default function VoxelCharacter3D({
   ).current
 
   const onContextCreate = useCallback(
-    (gl: any) => {
-      const { drawingBufferWidth: w, drawingBufferHeight: h } = gl
+    (gl: ExpoWebGLRenderingContext) => {
+      try {
+        const { drawingBufferWidth: w, drawingBufferHeight: h } = gl
 
-      const renderer = new Renderer({ gl, alpha: false })
-      renderer.setSize(w, h)
-      renderer.setPixelRatio(1)
-      renderer.setClearColor(0x07071A, 1)
+        const renderer = new Renderer({ gl, alpha: false })
+        renderer.setSize(w, h)
+        renderer.setPixelRatio(1)
+        renderer.setClearColor(0x07071A, 1)
 
-      const scene  = new THREE.Scene()
-      const camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 100)
-      camera.position.set(0, 0, 11)
-      camera.lookAt(0, 0, 0)
+        const scene  = new THREE.Scene()
+        const camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 100)
+        camera.position.set(0, 0, 11)
+        camera.lookAt(0, 0, 0)
 
-      scene.add(new THREE.AmbientLight(0xffffff, 0.62))
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.88)
-      dirLight.position.set(3, 6, 4)
-      scene.add(dirLight)
-      const fillLight = new THREE.DirectionalLight(0x8899CC, 0.28)
-      fillLight.position.set(-2, 2, -1)
-      scene.add(fillLight)
+        scene.add(new THREE.AmbientLight(0xffffff, 0.62))
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.88)
+        dirLight.position.set(3, 6, 4)
+        scene.add(dirLight)
+        const fillLight = new THREE.DirectionalLight(0x8899CC, 0.28)
+        fillLight.position.set(-2, 2, -1)
+        scene.add(fillLight)
 
-      const character = buildCharacter(skinHex, hairHex, outfitTier)
-      character.position.set(0, -4.2, 0)
-      scene.add(character)
+        const character = buildCharacter(skinHex, hairHex, outfitTier)
+        character.position.set(0, -4.2, 0)
+        scene.add(character)
 
-      let rafId: number
-      const tick = () => {
-        rafId = requestAnimationFrame(tick)
-        if (!draggingRef.current) {
-          if (Math.abs(velocityRef.current) > 0.0005) {
-            velocityRef.current *= 0.93
-            rotYRef.current     += velocityRef.current
-          } else {
-            velocityRef.current = 0
+        sceneRef.current    = scene
+        characterRef.current = character
+
+        let rafId: number
+        const tick = () => {
+          rafId = requestAnimationFrame(tick)
+          if (!draggingRef.current) {
+            if (Math.abs(velocityRef.current) > 0.0005) {
+              velocityRef.current *= 0.93
+              rotYRef.current     += velocityRef.current
+            } else {
+              velocityRef.current = 0
+            }
           }
+          if (characterRef.current) {
+            characterRef.current.rotation.y = rotYRef.current
+          }
+          renderer.render(scene, camera)
+          gl.endFrameEXP()
         }
-        character.rotation.y = rotYRef.current
-        renderer.render(scene, camera)
-        gl.endFrameEXP()
-      }
-      tick()
+        tick()
 
-      cancelRef.current = () => {
-        cancelAnimationFrame(rafId)
-        renderer.dispose()
+        cancelRef.current = () => {
+          cancelAnimationFrame(rafId)
+          renderer.dispose()
+          sceneRef.current     = null
+          characterRef.current = null
+        }
+      } catch (err) {
+        console.warn('[VoxelCharacter3D] GL init failed, falling back to 2D', err)
+        setGlFailed(true)
       }
     },
-    [skinHex, hairHex, outfitTier],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
   )
 
   useEffect(() => () => { cancelRef.current?.() }, [])
+
+  if (glFailed) {
+    return (
+      <VoxelCharacter skinTone={skinTone} hairColor={hairColor} outfitTier={outfitTier} />
+    )
+  }
 
   return (
     <View style={styles.container} {...panResponder.panHandlers}>
