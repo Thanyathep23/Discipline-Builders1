@@ -72,28 +72,38 @@ const RIGHT_MULT = 0.65
 //   W = white shirt    w = shirt shadow   E = shirt dark
 //   K = black trouser  k = dark trouser
 //   O = brown shoe     o = dark shoe      P = medium shoe
-//   e = eye white      r = iris/pupil     . = transparent
-//   M = nose           L = lip
+//   e = sclera white   i = iris (#2A5080) r = pupil (dark)
+//   a = eyelid shadow  l = lower lid highlight
+//   b = eyebrow (dark hair)
+//   M = nose/bridge    n = nostril (dark skin)
+//   U = upper lip      V = lower lip      c = lip corner shadow
+//   j = jaw shadow     . = transparent
 
 // FRONT_MAP — 32 cols × 56 rows — front facing
+// Head: 12 cols wide (cols 10-21), ears at 9 & 22 (eye-level only)
+// Eyes: left cols 13-14, right cols 17-18 (2-voxel nose-bridge gap at cols 15-16)
+//   6 voxels per eye: eyelid shadow row 8, sclera+iris row 9, lower-lid+pupil row 10
+// Nose bridge: MM at cols 15-16 (inside the eye gap), nostrils n at cols 14 & 17
+// Mouth: upper lip UUU cols 14-16 row 12, lower lip VVVV cols 13-16 row 13
+// Jaw tapers rows 14-16, neck 4 wide cols 14-17 rows 15-16
 const FRONT_MAP: string[] = [
-  '........HHHHhHhHhHhHhHHHH.......',
-  '.......HhHhHhHhHhHhHhHhHhH......',
-  '......HHhHhHhHhHhHhHhHhHhHH.....',
-  '......HHHhHhHhHhHhHhHhHhHHH.....',
-  '.....SHHHHHHHHHHHHHHHHHHHHHHs...',
-  '.....SSSSSSSSSSSSSSSSSSSSSSSSs..',
-  '......SSdSSSSSSSSSSSSSSSdSSS....',
-  '......SSeeeSSSSSSSeeeSSSSSSS....',
-  '......SSerreSSSSSrrreSSSSSS.....',
-  '......SSSSSSSSSSSSSSSSSSSSSSs...',
-  '......SSSSSMSSSSSSMSSSSSSSSS....',
-  '......SSSSSSSSSSSSSSSSSSSSSd....',
-  '......SSSLLLLLLLLLLLLSSSSSSs....',
-  '.......dSSSSSSSSSSSSSSSSSSd.....',
-  '........zzSSSSSSSSSSSSzz........',
-  '..........SSSSSSSSSSSSSSs.......',
-  '..........SSSSSSSSSSSSSSs.......',
+  '..........HhHhHhHhHhHh..........',
+  '.........HhHhHhHhHhHhHH.........',
+  '.........hHhHhHhHhHhHhH.........',
+  '.........HHhHhHhHhHhHHH.........',
+  '.........SHhHhHhHhHhHhs.........',
+  '.........SSSSSSSSSSSSSs.........',
+  '.........SSSSSbSSbSSSSS.........',
+  '.........SSSbbSSSSbbSSS.........',
+  '.........SSSSaaSSaaSSSS.........',
+  '.........dSSSeiSSieSSSd.........',
+  '.........dSSSlrMMrlSSSd.........',
+  '..........SSSdnMMndSSS..........',
+  '..........SSScUUUcSSSS..........',
+  '...........SSVVVVSSSS...........',
+  '...........jSSSSSSSSj...........',
+  '............jdSSSSdj............',
+  '.............dSzzSd.............',
   '....SSSSSSwWWWWWWWWWWWWwSSSSS...',
   '...SSSSSSwWWWWWWWWWWWWWWwSSSSSs.',
   '..SSSSSSSwWWWWWWWWWWWWWWwSSSSSSs',
@@ -136,24 +146,26 @@ const FRONT_MAP: string[] = [
 ]
 
 // SIDE_MAP — 24 cols × 56 rows — right-side facing
+// Cols map front-to-back (col 6 = front of face, col 20 = back of head)
+// Ear at back (cols 18-20), nose protrudes (col 5), eye at cols 7-8
 const SIDE_MAP: string[] = [
-  '........HHhHhHHHHHHh....',
-  '.......HhHhHhHhHHHhH....',
-  '.......HHhHhHhHhHhHH....',
-  '.......HHHhHhHhHhHHH....',
-  '......SHHHHHHHHHHHHH....',
-  '......SSSSSSSSSSSSSSd...',
-  '......SSSdSSSSSSSSSSd...',
-  '......SSSeeeSSSSSSSS....',
-  '......SSSerreSSSSSSd....',
-  '......SSSSSSSSSSSSSSd...',
-  '......SSSSMSSSSSSSSSd...',
-  '......SSSSSSSSSSSSSSd...',
-  '......SSSLLLLSSSSSSd....',
-  '.......dSSSSSSSSSSd.....',
-  '........zzSSSSSSzz......',
-  '..........SSSSSSS.......',
-  '..........SSSSSSS.......',
+  '.......HHhHhHHHHh.......',
+  '......HhHhHhHhHhHH......',
+  '......HHhHhHhHhHhHH.....',
+  '......HHHhHhHhHhHHH.....',
+  '.....SHHHHHHHHHHHHHs....',
+  '.....SSSSSSSSSSSSSSd....',
+  '.....SSbSSSSSSSSSSSSd...',
+  '.....SaaSSSSSSSSdSSS....',
+  '.....SeiSSSSSSSSSdSS....',
+  '.....SlrSSSSSSSSSdSS....',
+  '......MSSSSSSSSSSSSd....',
+  '......nSSSSSSSSSSSSSd...',
+  '......cUSSSSSSSSSSSd....',
+  '.......VSSSSSSSSSSd.....',
+  '........jSSSSSSSjS......',
+  '.........dSSSSSdS.......',
+  '..........zSSzSS........',
   '........SSwWWWWWWwS.....',
   '.......SSSwWWWWWWWwSs...',
   '......SSSSwWWWWWWWwSs...',
@@ -274,11 +286,23 @@ function buildPalette(skinHex: string, hairHex: string): Palette {
     'H': hc,
     'h': lightenHex(hc, 0.15),
     'B': darkenHex(hc, 0.12),
-    // face features
+    // eyes — sclera, iris, pupil, eyelid shadow, lower lid highlight
     'e': '#F0F0F0',
+    'i': '#2A5080',
     'r': '#1A0A00',
+    'a': darkenHex(sk, 0.15),
+    'l': lightenHex(sk, 0.10),
+    // eyebrows (darkened hair)
+    'b': darkenHex(hc, 0.20),
+    // nose/bridge
     'M': darkenHex(sk, 0.08),
-    'L': darkenHex(sk, 0.18),
+    'n': darkenHex(sk, 0.18),
+    // lips
+    'U': '#8B4030',
+    'V': '#9B5038',
+    'c': darkenHex(sk, 0.20),
+    // jaw and chin shadows
+    'j': darkenHex(sk, 0.12),
     // white shirt
     'W': '#F8F8F8',
     'w': '#E4E4E4',
@@ -375,7 +399,39 @@ function buildVoxelModel(pal: Palette): Voxel[] {
     }
   }
 
-  return [...frontVoxels, ...backVoxels, ...sideVoxelsRight, ...sideVoxelsLeft]
+  // ── Nose tip: extra voxel(s) at z+1 (in front of the front plane) ──────────
+  // Nose tip at face center, rows 10-11 in FRONT_MAP (nose bridge area)
+  // Map row r → world y = -(r + frontOffY) = -(r - frontRows/2) = frontRows/2 - r
+  const noseZ  = MODEL_DEPTH / 2 + 1  // z+1 forward-offset
+  const noseTipColor = pal['M'] ?? ''
+  const noseExtraVoxels: Voxel[] = noseTipColor ? [
+    makeVoxel(frontOffX + 15, -(10 + frontOffY), noseZ, noseTipColor),
+    makeVoxel(frontOffX + 16, -(11 + frontOffY), noseZ, noseTipColor),
+  ] : []
+
+  // ── Ears: 3 voxels per ear at eye level ─────────────────────────────────────
+  // Outer ear (2 voxels): skin color, x just beyond head edge, z at face level
+  // Inner ear (1 voxel): darkened ~12%, same outer-x position, z-1 (recessed)
+  const earSkin  = pal['S'] ?? ''
+  const earInner = darkenHex(earSkin, 0.12)  // 12% darkened inner ear
+  const earFaceZ = MODEL_DEPTH / 2           // front face z
+
+  const earVoxels: Voxel[] = []
+  if (earSkin) {
+    // FRONT_MAP rows 9 and 10 correspond to eye level for ear outer voxels
+    const eyR9 = -(9 + frontOffY)   // world y for FRONT_MAP row 9
+    const eyR10 = -(10 + frontOffY) // world y for FRONT_MAP row 10
+    // Left ear (3 voxels): outer x = col 8 in map coords = frontOffX + 8
+    earVoxels.push(makeVoxel(frontOffX + 8, eyR9,  earFaceZ,     earSkin))   // outer top
+    earVoxels.push(makeVoxel(frontOffX + 8, eyR10, earFaceZ,     earSkin))   // outer bottom
+    earVoxels.push(makeVoxel(frontOffX + 8, eyR10, earFaceZ - 1, earInner))  // inner recessed z-1
+    // Right ear (3 voxels): outer x = col 23 in map coords = frontOffX + 23
+    earVoxels.push(makeVoxel(frontOffX + 23, eyR9,  earFaceZ,     earSkin))  // outer top
+    earVoxels.push(makeVoxel(frontOffX + 23, eyR10, earFaceZ,     earSkin))  // outer bottom
+    earVoxels.push(makeVoxel(frontOffX + 23, eyR10, earFaceZ - 1, earInner)) // inner recessed z-1
+  }
+
+  return [...frontVoxels, ...backVoxels, ...sideVoxelsRight, ...sideVoxelsLeft, ...noseExtraVoxels, ...earVoxels]
 }
 
 // ─── 3D rotation ───────────────────────────────────────────────────────────────
