@@ -9,11 +9,9 @@ import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Animated, {
   FadeIn, FadeInDown, FadeOut, SlideInDown, FadeInUp,
-  useSharedValue, useAnimatedStyle, useAnimatedReaction, withTiming, Easing,
-  withRepeat, withSequence, runOnJS,
+  useSharedValue, useAnimatedStyle, withTiming, Easing,
 } from "react-native-reanimated";
-import Svg, { Circle, Ellipse, Rect, Path, G, Line, Text as SvgText } from "react-native-svg";
-import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Circle, Ellipse, Rect, Path, G, Line } from "react-native-svg";
 import { Colors } from "@/constants/colors";
 import { LoadingScreen, Button } from "@/design-system";
 import { useAuth } from "@/context/AuthContext";
@@ -483,392 +481,57 @@ export function EvolvedCharacter({
   );
 }
 
-// ─── Sparkle Particles ────────────────────────────────────────────────────────
+// ─── Score Display (editorial large number) ────────────────────────────────────
 
-const SPARKLE_POSITIONS = [
-  { x: "12%",  y: "22%", size: 3,   delay: 0    },
-  { x: "85%",  y: "18%", size: 2.5, delay: 400  },
-  { x: "8%",   y: "65%", size: 2,   delay: 800  },
-  { x: "90%",  y: "58%", size: 3.5, delay: 200  },
-  { x: "20%",  y: "80%", size: 2,   delay: 600  },
-  { x: "75%",  y: "78%", size: 2.5, delay: 1000 },
-  { x: "50%",  y: "10%", size: 2,   delay: 300  },
-  { x: "40%",  y: "88%", size: 3,   delay: 700  },
-];
-
-function SparkleParticles({ color }: { color: string }) {
-  const anims = useRef(SPARKLE_POSITIONS.map(() => new RNAnimated.Value(0))).current;
-
-  useEffect(() => {
-    const loops = anims.map((anim, i) => {
-      const loop = RNAnimated.loop(
-        RNAnimated.sequence([
-          RNAnimated.delay(SPARKLE_POSITIONS[i].delay),
-          RNAnimated.timing(anim, { toValue: 1, duration: 1400, useNativeDriver: true }),
-          RNAnimated.timing(anim, { toValue: 0, duration: 1200, useNativeDriver: true }),
-          RNAnimated.delay(600),
-        ])
-      );
-      loop.start();
-      return loop;
-    });
-    return () => loops.forEach(l => l.stop());
-  }, []);
-
+function ScoreDisplay({ score, tierName, tierColor }: { score: number; tierName: string; tierColor: string }) {
   return (
-    <>
-      {SPARKLE_POSITIONS.map((sp, i) => (
-        <RNAnimated.View
-          key={i}
-          pointerEvents="none"
-          style={[
-            {
-              position: "absolute",
-              left: sp.x,
-              top:  sp.y,
-              width:  sp.size * 2,
-              height: sp.size * 2,
-              borderRadius: sp.size,
-              backgroundColor: color,
-            },
-            { opacity: anims[i] },
-          ]}
-        />
-      ))}
-    </>
-  );
-}
-
-// ─── Shimmer Pass ─────────────────────────────────────────────────────────────
-
-function ShimmerPass({ color }: { color: string }) {
-  const shimmerX = useSharedValue(-180);
-
-  useEffect(() => {
-    shimmerX.value = -180;
-    shimmerX.value = withRepeat(
-      withSequence(
-        withTiming(400, { duration: 2200, easing: Easing.inOut(Easing.ease) }),
-        withTiming(400, { duration: 1800 }),
-      ),
-      -1,
-      false,
-    );
-  }, [color]);
-
-  const shimmerStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: shimmerX.value }],
-  }));
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        {
-          position: "absolute",
-          top: 0, bottom: 0,
-          width: 80,
-          backgroundColor: "transparent",
-          borderRightWidth: 40,
-          borderRightColor: "transparent",
-          borderLeftWidth: 40,
-          borderLeftColor: "transparent",
-          zIndex: 2,
-        },
-        shimmerStyle,
-      ]}
-    >
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: color + "14",
-        }}
-      />
-    </Animated.View>
-  );
-}
-
-// ─── Swipe Nudge Arrow ────────────────────────────────────────────────────────
-
-function SwipeNudgeArrow({ dir, color }: { dir: "left" | "right"; color: string }) {
-  const nudge = useSharedValue(0);
-
-  useEffect(() => {
-    nudge.value = withRepeat(
-      withSequence(
-        withTiming(dir === "left" ? -4 : 4, { duration: 500, easing: Easing.out(Easing.ease) }),
-        withTiming(0, { duration: 500, easing: Easing.in(Easing.ease) }),
-        withTiming(0, { duration: 700 }),
-      ),
-      -1,
-      false,
-    );
-  }, [dir]);
-
-  const arrowStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: nudge.value }],
-    opacity: 0.6,
-  }));
-
-  return (
-    <Animated.View pointerEvents="none" style={arrowStyle}>
-      <Ionicons
-        name={dir === "left" ? "chevron-back" : "chevron-forward"}
-        size={18}
-        color={color}
-      />
-    </Animated.View>
-  );
-}
-
-// ─── Evolution Arc (mini progress toward next level) ──────────────────────────
-
-function EvolutionArc({ current, target, color }: { current: number; target: number; color: string }) {
-  const MR = 24;
-  const MCX = 32;
-  const MCY = 32;
-  const mCirc = 2 * Math.PI * MR;
-  const mArcLen = mCirc * 0.75;
-  const mGapLen = mCirc - mArcLen;
-  const rawFrac = target > 0 ? Math.min(current / target, 1) : 0;
-  const filled = mArcLen * rawFrac;
-  const empty = mCirc - filled;
-
-  return (
-    <View style={{ alignItems: "center" }}>
-      <Svg width={64} height={64} viewBox="0 0 64 64">
-        <Circle
-          cx={MCX} cy={MCY} r={MR}
-          fill="none"
-          stroke="#1A1A2E"
-          strokeWidth={5}
-          strokeDasharray={[mArcLen, mGapLen] as any}
-          strokeLinecap="round"
-          transform={`rotate(-225 ${MCX} ${MCY})`}
-        />
-        <Circle
-          cx={MCX} cy={MCY} r={MR}
-          fill="none"
-          stroke={color}
-          strokeWidth={5}
-          strokeDasharray={[filled, empty] as any}
-          strokeLinecap="round"
-          transform={`rotate(-225 ${MCX} ${MCY})`}
-          opacity={0.95}
-        />
-        <SvgText
-          x={MCX} y={MCY - 5}
-          textAnchor="middle"
-          fill={color}
-          fontSize="11"
-          fontWeight="bold"
-        >{current}</SvgText>
-        <SvgText
-          x={MCX} y={MCY + 7}
-          textAnchor="middle"
-          fill="#888899"
-          fontSize="7"
-          letterSpacing="1"
-        >/ {target}</SvgText>
-      </Svg>
-    </View>
-  );
-}
-
-// ─── Pulsing CTA Button ───────────────────────────────────────────────────────
-
-function PulsingCTA({ label, onPress, color }: { label: string; onPress: () => void; color: string }) {
-  const glowOpacity = useSharedValue(0.35);
-
-  useEffect(() => {
-    glowOpacity.value = withRepeat(
-      withSequence(
-        withTiming(0.85, { duration: 950, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.35, { duration: 950, easing: Easing.inOut(Easing.ease) }),
-      ),
-      -1,
-      false,
-    );
-  }, []);
-
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: glowOpacity.value,
-  }));
-
-  return (
-    <View style={{ marginTop: 12 }}>
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          {
-            position: "absolute",
-            top: -6, bottom: -6, left: -6, right: -6,
-            borderRadius: 18,
-            borderWidth: 2,
-            borderColor: color,
-          },
-          glowStyle,
-        ]}
-      />
-      <Button
-        label={label}
-        onPress={onPress}
-        variant="primary"
-        iconLeft="flash"
-      />
-    </View>
-  );
-}
-
-// ─── Score Ring Gauge ─────────────────────────────────────────────────────────
-
-function ScoreRingGauge({ score, tierColor }: { score: number; tierColor: string }) {
-  const R = 46;
-  const CX = 64;
-  const CY = 64;
-  const circumference = 2 * Math.PI * R;
-  const arcFraction = 0.75;
-  const arcLength = circumference * arcFraction;
-  const gapLength = circumference - arcLength;
-
-  const [displayScore, setDisplayScore] = useState(0);
-  const scoreShared = useSharedValue(0);
-  const pulseShared = useSharedValue(0.4);
-
-  const _setScore = useCallback((v: number) => setDisplayScore(v), []);
-
-  useEffect(() => {
-    scoreShared.value = 0;
-    scoreShared.value = withTiming(Math.min(Math.max(score, 0), 100), {
-      duration: 1100,
-      easing: Easing.out(Easing.cubic),
-    });
-    pulseShared.value = withRepeat(
-      withSequence(
-        withTiming(1,   { duration: 800, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.3, { duration: 800, easing: Easing.inOut(Easing.ease) }),
-      ),
-      -1,
-      false,
-    );
-  }, [score]);
-
-  useAnimatedReaction(
-    () => Math.round(scoreShared.value),
-    (val) => runOnJS(_setScore)(val),
-  );
-
-  const pulseStyle = useAnimatedStyle(() => ({ opacity: pulseShared.value }));
-
-  const filled = arcLength * displayScore / 100;
-  const empty  = circumference - filled;
-
-  const startAngleRad = -225 * (Math.PI / 180);
-  const endAngle = startAngleRad + (270 * displayScore / 100) * (Math.PI / 180);
-  const glowX = CX + R * Math.cos(endAngle);
-  const glowY = CY + R * Math.sin(endAngle);
-
-  return (
-    <View style={{ alignItems: "center" }}>
-      <View>
-        <Svg width={128} height={128} viewBox="0 0 128 128">
-          <Circle
-            cx={CX} cy={CY} r={R}
-            fill="none"
-            stroke="#1A1A2E"
-            strokeWidth={9}
-            strokeDasharray={[arcLength, gapLength] as any}
-            strokeLinecap="round"
-            transform={`rotate(-225 ${CX} ${CY})`}
-          />
-          <Circle
-            cx={CX} cy={CY} r={R}
-            fill="none"
-            stroke={tierColor}
-            strokeWidth={9}
-            strokeDasharray={[filled, empty] as any}
-            strokeLinecap="round"
-            transform={`rotate(-225 ${CX} ${CY})`}
-            opacity={0.9}
-          />
-          <Circle
-            cx={CX} cy={CY} r={R - 5}
-            fill="none"
-            stroke={tierColor + "20"}
-            strokeWidth={1}
-          />
-          <SvgText
-            x={CX}
-            y={CY - 7}
-            textAnchor="middle"
-            fill={tierColor}
-            fontSize="26"
-            fontWeight="bold"
-          >
-            {displayScore}
-          </SvgText>
-          <SvgText
-            x={CX}
-            y={CY + 11}
-            textAnchor="middle"
-            fill="#888899"
-            fontSize="8"
-            fontWeight="bold"
-            letterSpacing="2"
-          >
-            STATUS
-          </SvgText>
-        </Svg>
-        {displayScore > 2 && (
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              {
-                position: "absolute",
-                width: 18,
-                height: 18,
-                borderRadius: 9,
-                backgroundColor: tierColor,
-                left: glowX - 9,
-                top: glowY - 9,
-                shadowColor: tierColor,
-                shadowRadius: 10,
-                shadowOpacity: 0.9,
-                shadowOffset: { width: 0, height: 0 },
-              },
-              pulseStyle,
-            ]}
-          />
-        )}
+    <View style={scoreDisplayStyles.wrap}>
+      <Text style={scoreDisplayStyles.number}>{score}</Text>
+      <View style={scoreDisplayStyles.right}>
+        <View style={[scoreDisplayStyles.tierBadge, { borderColor: tierColor + "50" }]}>
+          <Text style={[scoreDisplayStyles.tierText, { color: tierColor }]}>{tierName}</Text>
+        </View>
+        <Text style={scoreDisplayStyles.label}>STATUS SCORE</Text>
       </View>
     </View>
   );
 }
 
-// ─── Premium Section Header ────────────────────────────────────────────────────
+// ─── Section Label ────────────────────────────────────────────────────────────
 
-function PremiumSectionHeader({
-  icon, label, linkLabel, onLinkPress,
+function SectionLabel({
+  label, linkLabel, onLinkPress,
 }: {
-  icon: string; label: string; linkLabel?: string; onLinkPress?: () => void;
+  label: string; linkLabel?: string; onLinkPress?: () => void;
 }) {
   return (
-    <View style={premiumStyles.sectionHeaderRow}>
-      <View style={premiumStyles.sectionHeaderLeft} />
-      <Ionicons name={icon as any} size={11} color={Colors.gold} />
-      <Text style={premiumStyles.sectionHeaderLabel}>{label}</Text>
+    <View style={sectionLabelStyles.row}>
+      <Text style={sectionLabelStyles.label}>{label}</Text>
       {linkLabel && onLinkPress && (
-        <Pressable
-          style={premiumStyles.sectionLink}
-          onPress={onLinkPress}
-        >
-          <Text style={premiumStyles.sectionLinkText}>{linkLabel}</Text>
+        <Pressable onPress={onLinkPress} style={sectionLabelStyles.link}>
+          <Text style={sectionLabelStyles.linkText}>{linkLabel}</Text>
           <Ionicons name="chevron-forward" size={10} color={Colors.accent} />
         </Pressable>
       )}
     </View>
   );
 }
+
+const sectionLabelStyles = StyleSheet.create({
+  row:      { flexDirection: "row", alignItems: "center", marginBottom: 10, marginTop: 2 },
+  label:    { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.textMuted, letterSpacing: 1.8, flex: 1 },
+  link:     { flexDirection: "row", alignItems: "center", gap: 2 },
+  linkText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.accent },
+});
+
+const scoreDisplayStyles = StyleSheet.create({
+  wrap:      { flexDirection: "row", alignItems: "center", gap: 16, paddingTop: 4 },
+  number:    { fontFamily: "Inter_700Bold", fontSize: 52, color: Colors.textPrimary, letterSpacing: -2 },
+  right:     { gap: 6, justifyContent: "center" },
+  tierBadge: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, alignSelf: "flex-start" },
+  tierText:  { fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 0.8 },
+  label:     { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted, letterSpacing: 1.5 },
+});
 
 // ─── Premium Dimension Row ─────────────────────────────────────────────────────
 
@@ -899,15 +562,9 @@ function PremiumDimensionRow({ dim, badge, delay = 0, onPress }: {
 
   return (
     <Pressable onPress={onPress}>
-      <Animated.View entering={FadeInDown.delay(delay).duration(400)} style={dimRowStyles.row}>
-        <View style={[dimRowStyles.iconWrap, { backgroundColor: dim.color + "18" }]}>
-          {badge === "TOP" && (
-            <View style={dimRowStyles.topDot} />
-          )}
-          {badge === "LOWEST" && (
-            <View style={dimRowStyles.lowDot} />
-          )}
-          <Ionicons name={dim.icon as any} size={17} color={dim.color} />
+      <Animated.View entering={FadeInDown.delay(delay).duration(350)} style={dimRowStyles.row}>
+        <View style={dimRowStyles.iconWrap}>
+          <Ionicons name={dim.icon as any} size={17} color={Colors.textSecondary} />
         </View>
 
         <View style={dimRowStyles.center}>
@@ -915,11 +572,11 @@ function PremiumDimensionRow({ dim, badge, delay = 0, onPress }: {
             <Text style={dimRowStyles.name}>{dim.label}</Text>
             {badge && (
               <View style={[dimRowStyles.badge, {
-                backgroundColor: badge === "LOWEST" ? Colors.crimsonDim : dim.color + "22",
-                borderColor: badge === "LOWEST" ? Colors.crimson + "40" : dim.color + "40",
+                backgroundColor: badge === "LOWEST" ? Colors.bgElevated : Colors.bgElevated,
+                borderColor: badge === "LOWEST" ? Colors.border : Colors.border,
               }]}>
                 <Text style={[dimRowStyles.badgeText, {
-                  color: badge === "LOWEST" ? Colors.crimson : dim.color,
+                  color: badge === "LOWEST" ? Colors.textSecondary : Colors.textMuted,
                 }]}>
                   {badge === "LOWEST" ? "FOCUS" : "PEAK"}
                 </Text>
@@ -931,26 +588,16 @@ function PremiumDimensionRow({ dim, badge, delay = 0, onPress }: {
             <RNAnimated.View
               style={[
                 dimRowStyles.barFill,
-                { width: barWidth, backgroundColor: dim.color },
+                { width: barWidth, backgroundColor: Colors.accent },
               ]}
-            >
-              <View
-                style={[
-                  dimRowStyles.barGlow,
-                  {
-                    backgroundColor: dim.color,
-                    shadowColor: dim.color,
-                  },
-                ]}
-              />
-            </RNAnimated.View>
+            />
           </View>
 
           <Text style={dimRowStyles.xpText}>{dim.totalXp} XP · {dim.progressPct}%</Text>
         </View>
 
         <View style={dimRowStyles.right}>
-          <Text style={[dimRowStyles.levelNum, { color: dim.color }]}>{dim.level}</Text>
+          <Text style={dimRowStyles.levelNum}>{dim.level}</Text>
           <Text style={dimRowStyles.levelLabel}>LVL</Text>
         </View>
       </Animated.View>
@@ -1299,9 +946,8 @@ function TierCelebration({ tier, color, visible }: { tier: string; color: string
       style={celebrationStyles.overlay}
     >
       <Animated.View entering={FadeInUp.delay(200).duration(800)} style={celebrationStyles.content}>
-        <LinearGradient
-          colors={[color + "40", color + "18", "transparent"]}
-          style={celebrationStyles.glow}
+        <View
+          style={[celebrationStyles.glow, { backgroundColor: color + "20" }]}
         />
         <Text style={[celebrationStyles.label, { color }]}>TIER UP</Text>
         <Text style={[celebrationStyles.tierName, { color }]}>{tier}</Text>
@@ -1379,29 +1025,6 @@ const TIER_COLORS: Record<string, string> = {
   Starter: "#8888AA", Hustle: "#FFB300", Rising: "#00E676", Refined: "#00D4FF", Elite: "#F5C842",
 };
 
-// ─── Evolution explanation colors ─────────────────────────────────────────────
-
-const EXPL_COLORS: Record<string, string> = {
-  "Fitness":           "#00E67620",
-  "Discipline":        "#7C5CFC20",
-  "Finance/Lifestyle": "#F5C84220",
-  "Prestige":          "#00D4FF20",
-  "Starting Out":      Colors.bgElevated,
-};
-const EXPL_TEXT: Record<string, string> = {
-  "Fitness":           "#00E676",
-  "Discipline":        "#7C5CFC",
-  "Finance/Lifestyle": "#F5C842",
-  "Prestige":          "#00D4FF",
-  "Starting Out":      Colors.textMuted,
-};
-const EXPL_BORDER: Record<string, string> = {
-  "Fitness":           "#00E67650",
-  "Discipline":        "#7C5CFC50",
-  "Finance/Lifestyle": "#F5C84250",
-  "Prestige":          "#00D4FF50",
-  "Starting Out":      Colors.border,
-};
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
@@ -1549,98 +1172,75 @@ export default function CharacterStatusScreen() {
         >
 
           {/* ── 1. CHARACTER HERO ── */}
-          <Animated.View entering={FadeIn.duration(600)} style={styles.heroCard}>
-            <LinearGradient
-              colors={[tierColor + "35", "#0D0A22", PREMIUM_BG]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={styles.heroGradient}
+          <Animated.View entering={FadeIn.duration(500)} style={styles.heroCard}>
+            {/* Faint spotlight — one subtle radial glow, nothing animated */}
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute", top: 0, alignSelf: "center",
+                width: 240, height: 240, borderRadius: 120,
+                backgroundColor: Colors.accent + "08",
+              }}
+            />
+
+            {/* Customize button */}
+            <Pressable
+              style={styles.customizeBtn}
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
+                setShowCustomize(true);
+              }}
             >
-              {/* Sparkle particles */}
-              <SparkleParticles color={tierColor} />
+              <Ionicons name="color-palette-outline" size={16} color={Colors.textSecondary} />
+            </Pressable>
 
-              {/* Radial glow disc behind character */}
-              <View style={[styles.glowDisc, { backgroundColor: tierColor + "14" }]} />
-              <View style={[styles.glowDiscInner, { backgroundColor: tierColor + "08" }]} />
+            {/* Character voxel + static nav arrows */}
+            <View style={styles.characterStageWrap}>
+              <Ionicons name="chevron-back" size={18} color={Colors.textMuted} style={{ opacity: 0.4 }} />
 
-              {/* Shimmer line */}
-              <View style={[styles.shimmerLine, { backgroundColor: tierColor + "30" }]} />
-
-              {/* Customize button */}
-              <Pressable
-                style={styles.customizeBtn}
-                onPress={() => {
-                  Haptics.selectionAsync().catch(() => {});
-                  setShowCustomize(true);
-                }}
-              >
-                <Ionicons name="color-palette-outline" size={16} color={Colors.textSecondary} />
-              </Pressable>
-
-              {/* Scanline texture overlay */}
-              <View style={styles.scanlineOverlay} pointerEvents="none">
-                {Array.from({ length: 30 }).map((_, i) => (
-                  <View key={i} style={styles.scanline} />
-                ))}
-              </View>
-
-              {/* Animated shimmer pass */}
-              <ShimmerPass color={tierColor} />
-
-              {/* Grounded stage aura beneath character */}
-              <View
-                pointerEvents="none"
-                style={[styles.stageAura, { backgroundColor: tierColor + "22", shadowColor: tierColor }]}
-              />
-
-              {/* Character voxel with swipe arrows */}
-              <View style={styles.characterStageWrap}>
-                <SwipeNudgeArrow dir="left" color={tierColor + "80"} />
-
-                <Animated.View style={[styles.characterWrap, characterAnimStyle]}>
-                  {(() => {
-                    const financeDim = dims.find(d => d.id === "finance");
-                    const financeLevel = financeDim?.level ?? 0;
-                    const outfitTier = financeLevel >= 9 ? 4 :
-                                       financeLevel >= 7 ? 3 :
-                                       financeLevel >= 4 ? 2 : 1;
-                    return (
-                      <VoxelCharacter
-                        skinTone={currentSkinTone}
-                        hairColor={currentHairColor}
-                        outfitTier={outfitTier}
-                      />
-                    );
-                  })()}
-                  <Pressable
-                    style={{
-                      position: "absolute", bottom: 0, right: 0,
-                      width: 34, height: 34, borderRadius: 10,
-                      backgroundColor: Colors.bgElevated + "CC",
-                      borderWidth: 1, borderColor: Colors.border,
-                      alignItems: "center", justifyContent: "center",
-                    }}
-                    onPress={() => {
-                      Haptics.selectionAsync().catch(() => {});
-                      router.push("/wardrobe?tab=equipped" as any);
-                    }}
-                  >
-                    <Ionicons name="shirt-outline" size={16} color={Colors.accent} />
-                  </Pressable>
-                </Animated.View>
-
-                <SwipeNudgeArrow dir="right" color={tierColor + "80"} />
-              </View>
-
-              {/* Identity */}
-              <Text style={styles.characterName}>{user?.username ?? "Character"}</Text>
-              <Text style={styles.outfitLabel}>{data?.character?.outfitLabel ?? "Starter Kit"}</Text>
-
-              {/* Score ring gauge */}
-              <Animated.View entering={FadeIn.delay(300).duration(600)}>
-                <ScoreRingGauge score={deScore} tierColor={tierColor} />
+              <Animated.View style={[styles.characterWrap, characterAnimStyle]}>
+                {(() => {
+                  const financeDim = dims.find(d => d.id === "finance");
+                  const financeLevel = financeDim?.level ?? 0;
+                  const outfitTier = financeLevel >= 9 ? 4 :
+                                     financeLevel >= 7 ? 3 :
+                                     financeLevel >= 4 ? 2 : 1;
+                  return (
+                    <VoxelCharacter
+                      skinTone={currentSkinTone}
+                      hairColor={currentHairColor}
+                      outfitTier={outfitTier}
+                    />
+                  );
+                })()}
+                <Pressable
+                  style={{
+                    position: "absolute", bottom: 0, right: 0,
+                    width: 34, height: 34, borderRadius: 10,
+                    backgroundColor: Colors.bgElevated + "CC",
+                    borderWidth: 1, borderColor: Colors.border,
+                    alignItems: "center", justifyContent: "center",
+                  }}
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    router.push("/wardrobe?tab=equipped" as any);
+                  }}
+                >
+                  <Ionicons name="shirt-outline" size={16} color={Colors.accent} />
+                </Pressable>
               </Animated.View>
-            </LinearGradient>
+
+              <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} style={{ opacity: 0.4 }} />
+            </View>
+
+            {/* Identity */}
+            <Text style={styles.characterName}>{user?.username ?? "Character"}</Text>
+            <Text style={styles.outfitLabel}>{data?.character?.outfitLabel ?? "Starter Kit"}</Text>
+
+            {/* Score — large editorial number */}
+            <Animated.View entering={FadeIn.delay(200).duration(500)}>
+              <ScoreDisplay score={deScore} tierColor={tierColor} tierName={tierName} />
+            </Animated.View>
           </Animated.View>
 
           {/* ── 2. STATUS + TIER CARD ── */}
@@ -1734,12 +1334,7 @@ export default function CharacterStatusScreen() {
           {/* ── 3. NEXT EVOLUTION ── */}
           {nextEvolution && (
             <Animated.View entering={FadeInDown.delay(120).springify()}>
-              <LinearGradient
-                colors={[Colors.accent + "20", Colors.bgCard]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.evolutionCard}
-              >
+              <View style={styles.evolutionCard}>
                 <View style={styles.evolutionTopRow}>
                   <View style={styles.evolutionIconWrap}>
                     <Ionicons name="trending-up" size={21} color={Colors.accent} />
@@ -1748,30 +1343,29 @@ export default function CharacterStatusScreen() {
                     <Text style={styles.evolutionEyebrow}>NEXT EVOLUTION</Text>
                     <Text style={styles.evolutionDimension}>{nextEvolution.dimension}</Text>
                   </View>
-                  {/* Mini arc progress toward next level */}
-                  <EvolutionArc
-                    current={nextEvolution.currentLevel}
-                    target={nextEvolution.targetLevel}
-                    color={Colors.accent}
-                  />
+                  <Text style={{ fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.accent }}>
+                    Lv {nextEvolution.currentLevel}→{nextEvolution.targetLevel}
+                  </Text>
                 </View>
                 <Text style={styles.evolutionHint}>{charState?.evolutionHints?.[0]?.message ?? nextEvolution.hint}</Text>
-                <PulsingCTA
-                  label={nextEvolution.action}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-                    router.push("/(tabs)/missions");
-                  }}
-                  color={Colors.accent}
-                />
-              </LinearGradient>
+                <View style={{ marginTop: 12 }}>
+                  <Button
+                    label={nextEvolution.action}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                      router.push("/(tabs)/missions");
+                    }}
+                    variant="primary"
+                    iconLeft="flash"
+                  />
+                </View>
+              </View>
             </Animated.View>
           )}
 
           {/* ── 4. EQUIPPED STYLE ── */}
           <Animated.View entering={FadeInDown.delay(160).springify()}>
-            <PremiumSectionHeader
-              icon="shirt-outline"
+            <SectionLabel
               label="EQUIPPED STYLE"
               linkLabel="Manage"
               onLinkPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/wardrobe?tab=equipped" as any); }}
@@ -1787,7 +1381,7 @@ export default function CharacterStatusScreen() {
 
           {/* ── 5. STATUS DIMENSIONS ── */}
           <Animated.View entering={FadeInDown.delay(200).springify()}>
-            <PremiumSectionHeader icon="stats-chart-outline" label="STATUS DIMENSIONS" />
+            <SectionLabel label="STATUS DIMENSIONS" />
             <View style={styles.dimsStack}>
               {dims.map((dim, i) => {
                 const badge =
@@ -1810,20 +1404,18 @@ export default function CharacterStatusScreen() {
           {/* ── 6. EVOLUTION LOG ── */}
           {data?.visualState?.evolutionExplanations && data.visualState.evolutionExplanations.length > 0 && (
             <Animated.View entering={FadeInDown.delay(310).springify()}>
-              <PremiumSectionHeader icon="eye-outline" label="EVOLUTION LOG" />
+              <SectionLabel label="EVOLUTION LOG" />
               <View style={logStyles.card}>
-                <View style={logStyles.cardTopBar} />
                 {(data.visualState.evolutionExplanations as { source: string; text: string }[]).map((ex, i) => (
                   <View
                     key={i}
                     style={[
                       logStyles.row,
                       i > 0 && logStyles.rowBorder,
-                      { borderLeftColor: EXPL_BORDER[ex.source] ?? Colors.border },
                     ]}
                   >
-                    <View style={[logStyles.sourcePill, { backgroundColor: EXPL_COLORS[ex.source] ?? Colors.accentGlow }]}>
-                      <Text style={[logStyles.sourceText, { color: EXPL_TEXT[ex.source] ?? Colors.accent }]}>
+                    <View style={logStyles.sourcePill}>
+                      <Text style={logStyles.sourceText}>
                         {ex.source.toUpperCase()}
                       </Text>
                     </View>
@@ -1836,7 +1428,7 @@ export default function CharacterStatusScreen() {
 
           {/* ── 7. YOUR SPACE ── */}
           <Animated.View entering={FadeInDown.delay(360).springify()}>
-            <PremiumSectionHeader icon="home-outline" label="YOUR SPACE" />
+            <SectionLabel label="YOUR SPACE" />
             <View style={styles.spaceRow}>
               <Pressable
                 style={({ pressed }) => [styles.spaceChip, pressed && { opacity: 0.82 }]}
@@ -1950,30 +1542,12 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 16, gap: 16 },
 
   // ── Hero Card ──
-  heroCard:     { borderRadius: 28, overflow: "hidden", borderWidth: 1, borderColor: Colors.border + "80" },
-  heroGradient: {
-    paddingTop: 52, paddingBottom: 32, paddingHorizontal: 20,
+  heroCard: {
+    backgroundColor: Colors.bgCard,
+    borderRadius: 24, borderWidth: 1, borderColor: Colors.border,
+    paddingTop: 52, paddingBottom: 28, paddingHorizontal: 20,
     alignItems: "center", gap: 10, position: "relative",
-  },
-  glowDisc: {
-    position: "absolute",
-    width: 280, height: 280,
-    borderRadius: 140,
-    top: "10%",
-    alignSelf: "center",
-  },
-  glowDiscInner: {
-    position: "absolute",
-    width: 180, height: 180,
-    borderRadius: 90,
-    top: "20%",
-    alignSelf: "center",
-  },
-  shimmerLine: {
-    position: "absolute",
-    height: 1,
-    left: 0, right: 0,
-    top: "40%",
+    overflow: "hidden",
   },
   customizeBtn: {
     position: "absolute", top: 14, right: 14,
@@ -1983,37 +1557,17 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     zIndex: 10,
   },
-  scanlineOverlay: {
-    position: "absolute", left: 0, right: 0, top: 0, bottom: 0,
-    gap: 9, overflow: "hidden", zIndex: 0, pointerEvents: "none",
-  },
-  scanline: {
-    height: 1, backgroundColor: "rgba(255,255,255,0.022)",
-  },
   characterStageWrap: {
-    flexDirection: "row", alignItems: "center", zIndex: 1, gap: 8,
+    flexDirection: "row", alignItems: "center", gap: 8,
   },
-  stageAura: {
-    position: "absolute",
-    bottom: 108,
-    alignSelf: "center",
-    width: 140,
-    height: 22,
-    borderRadius: 70,
-    shadowRadius: 22,
-    shadowOpacity: 0.75,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 12,
-    zIndex: 0,
-  },
-  characterWrap: { alignItems: "center", zIndex: 1 },
+  characterWrap: { alignItems: "center" },
   characterName: {
     fontFamily: "Inter_700Bold", fontSize: 26,
-    color: Colors.textPrimary, letterSpacing: 0.5, zIndex: 1,
+    color: Colors.textPrimary, letterSpacing: 0.5,
   },
   outfitLabel: {
     fontFamily: "Inter_500Medium", fontSize: 12,
-    color: Colors.textSecondary, zIndex: 1, letterSpacing: 0.5,
+    color: Colors.textMuted, letterSpacing: 0.5,
   },
 
   // ── Status Tier Card ──
@@ -2052,6 +1606,7 @@ const styles = StyleSheet.create({
 
   // ── Next Evolution CTA ──
   evolutionCard: {
+    backgroundColor: Colors.bgCard,
     borderRadius: 22, padding: 18,
     borderWidth: 1, borderColor: Colors.accentDim, gap: 13,
   },
@@ -2112,24 +1667,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// ─── Premium Section Header Styles ─────────────────────────────────────────────
-
-const premiumStyles = StyleSheet.create({
-  sectionHeaderRow: {
-    flexDirection: "row", alignItems: "center",
-    gap: 7, marginBottom: 12,
-  },
-  sectionHeaderLeft: {
-    width: 3, height: 14, borderRadius: 2,
-    backgroundColor: Colors.gold,
-  },
-  sectionHeaderLabel: {
-    fontFamily: "Inter_700Bold", fontSize: 10,
-    color: Colors.textSecondary, letterSpacing: 2, flex: 1,
-  },
-  sectionLink: { flexDirection: "row", alignItems: "center", gap: 3 },
-  sectionLinkText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.accent },
-});
 
 // ─── Premium Dimension Row Styles ──────────────────────────────────────────────
 
@@ -2141,20 +1678,8 @@ const dimRowStyles = StyleSheet.create({
   },
   iconWrap: {
     width: 38, height: 38, borderRadius: 11,
+    backgroundColor: Colors.bgElevated,
     alignItems: "center", justifyContent: "center",
-    position: "relative",
-  },
-  topDot: {
-    position: "absolute", top: -2, right: -2,
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: Colors.gold,
-    borderWidth: 1.5, borderColor: PREMIUM_BG,
-  },
-  lowDot: {
-    position: "absolute", top: -2, right: -2,
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: Colors.crimson,
-    borderWidth: 1.5, borderColor: PREMIUM_BG,
   },
   center: { flex: 1, gap: 5 },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -2165,19 +1690,13 @@ const dimRowStyles = StyleSheet.create({
   },
   badgeText: { fontFamily: "Inter_700Bold", fontSize: 7, letterSpacing: 0.8 },
   barBg: {
-    height: 5, backgroundColor: Colors.bgElevated, borderRadius: 3,
+    height: 4, backgroundColor: Colors.bgElevated, borderRadius: 2,
     overflow: "hidden",
   },
-  barFill:  { height: 5, borderRadius: 3 },
-  barGlow: {
-    position: "absolute", top: -4, right: -4,
-    width: 12, height: 12, borderRadius: 6,
-    shadowRadius: 7, shadowOpacity: 0.85, shadowOffset: { width: 0, height: 0 },
-    elevation: 4,
-  },
+  barFill: { height: 4, borderRadius: 2 },
   xpText: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textMuted },
   right: { alignItems: "center", minWidth: 36 },
-  levelNum: { fontFamily: "Inter_700Bold", fontSize: 22 },
+  levelNum: { fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.textPrimary },
   levelLabel: { fontFamily: "Inter_700Bold", fontSize: 8, color: Colors.textMuted, letterSpacing: 1 },
 });
 
@@ -2185,22 +1704,20 @@ const dimRowStyles = StyleSheet.create({
 
 const logStyles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.bgCard, borderRadius: 18, overflow: "hidden",
+    backgroundColor: Colors.bgCard, borderRadius: 18,
     borderWidth: 1, borderColor: Colors.border,
-  },
-  cardTopBar: {
-    height: 2, backgroundColor: Colors.gold + "60",
   },
   row: {
     flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 14,
-    borderLeftWidth: 3,
   },
   rowBorder: { borderTopWidth: 1, borderTopColor: Colors.border },
   sourcePill: {
-    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4,
+    borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4,
     minWidth: 70, alignItems: "center", flexShrink: 0,
+    backgroundColor: Colors.bgElevated,
+    borderWidth: 1, borderColor: Colors.border,
   },
-  sourceText: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.2 },
+  sourceText: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.2, color: Colors.textMuted },
   text: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, flex: 1, lineHeight: 19 },
 });
 
