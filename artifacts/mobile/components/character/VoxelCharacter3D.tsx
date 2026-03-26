@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react'
 import { PanResponder, useWindowDimensions, View } from 'react-native'
-import Svg, { Rect, G } from 'react-native-svg'
+import Svg, { Rect, G, Ellipse, Defs, RadialGradient, LinearGradient, Stop } from 'react-native-svg'
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -59,11 +59,38 @@ function lightenHex(hex: string, amt: number): string {
   return shade(hex, 1 + amt)
 }
 
-// Face multipliers — exact spec values
-const TOP_MULT   = 1.30
-const FRONT_MULT = 1.00
-const LEFT_MULT  = 0.80
-const RIGHT_MULT = 0.65
+function brightnessAdjust(hex: string, factor: number): string {
+  return shade(hex, factor)
+}
+
+// ─── Three-point lighting ──────────────────────────────────────────────────────
+// Key light: top-left-front  (bright, warm)
+// Fill light: right          (subtle)
+// Rim/back light: behind     (faint, cool)
+
+const TOP_MULT    = 1.40
+const FRONT_MULT  = 1.00
+const LEFT_MULT   = 0.78
+const RIGHT_MULT  = 0.62
+
+// Compute a combined lighting factor from a voxel's position and normal direction
+// nx, ny, nz describe the voxel face normal
+function applyThreePointLight(nx: number, ny: number, nz: number): number {
+  // Key light direction: top-left-front
+  const keyDir   = { x: -0.6, y:  0.8, z: 0.5 }
+  const fillDir  = { x:  0.8, y:  0.1, z: 0.3 }
+  const rimDir   = { x:  0.0, y:  0.0, z: -1.0 }
+
+  const keyLen  = Math.sqrt(keyDir.x**2  + keyDir.y**2  + keyDir.z**2)
+  const fillLen = Math.sqrt(fillDir.x**2 + fillDir.y**2 + fillDir.z**2)
+
+  const keyDot  = Math.max(0, (nx * keyDir.x  + ny * keyDir.y  + nz * keyDir.z)  / keyLen)
+  const fillDot = Math.max(0, (nx * fillDir.x + ny * fillDir.y + nz * fillDir.z) / fillLen)
+  const rimDot  = Math.max(0, (nx * rimDir.x  + ny * rimDir.y  + nz * rimDir.z))
+
+  const combined = keyDot * 1.20 + fillDot * 0.25 + rimDot * 0.10 + 0.25
+  return Math.max(0.25, Math.min(1.40, combined))
+}
 
 // ─── Sprite maps ───────────────────────────────────────────────────────────────
 // Legend (resolved at parse time based on skin/hair props):
@@ -303,12 +330,12 @@ function buildPalette(skinHex: string, hairHex: string): Palette {
     'c': darkenHex(sk, 0.20),
     // jaw and chin shadows
     'j': darkenHex(sk, 0.12),
-    // white shirt
+    // white shirt — base values; zone overrides applied in post-pass
     'W': '#F8F8F8',
     'w': '#E4E4E4',
     'E': '#C8C8C8',
-    // black slim trousers
-    'K': '#1C1C1C',
+    // black slim trousers — base values; zone overrides applied in post-pass
+    'K': '#18181F',
     'k': '#0E0E0E',
     // brown shoes
     'O': '#7A4E2D',
@@ -327,29 +354,204 @@ interface Voxel {
   topColor: string
   rightColor: string
   leftColor: string
+  // metadata for post-processing
+  mapChar?: string
+  mapRow?: number
+  mapCol?: number
 }
 
-function makeVoxel(x: number, y: number, z: number, color: string): Voxel {
+function makeVoxel(
+  x: number, y: number, z: number, color: string,
+  mapChar?: string, mapRow?: number, mapCol?: number
+): Voxel {
   return {
     x, y, z, color,
-    topColor: shade(color, TOP_MULT),
+    topColor:   shade(color, TOP_MULT),
     rightColor: shade(color, RIGHT_MULT),
-    leftColor: shade(color, LEFT_MULT),
+    leftColor:  shade(color, LEFT_MULT),
+    mapChar,
+    mapRow,
+    mapCol,
   }
+}
+
+// ─── Face-region shading ───────────────────────────────────────────────────────
+// FRONT_MAP rows 0-16 are head/face rows.
+// Face structure approximation (row indices in FRONT_MAP):
+//   rows 0-4:  forehead/hair boundary
+//   rows 5-6:  forehead
+//   rows 7-8:  eye region (eye sockets)
+//   rows 9:    mid-face / nose root
+//  rows 10:    nose
+//  rows 11-12: upper lip / mouth
+//  rows 13-14: chin
+//  rows 15-16: neck shadow
+
+function applyFaceShading(color: string, mapChar: string, mapRow: number, mapCol: number): string {
+  const isSkin = mapChar === 'S' || mapChar === 's' || mapChar === 'd' || mapChar === 'z'
+  if (!isSkin || mapRow > 16) return color
+
+  // Forehead highlight (+8%)
+  if (mapRow >= 4 && mapRow <= 6) {
+    return brightnessAdjust(color, 1.08)
+  }
+  // Eye socket / brow darkening (-12%)
+  if (mapRow === 7 || mapRow === 8) {
+    if (mapCol >= 6 && mapCol <= 12) return brightnessAdjust(color, 0.88)
+    if (mapCol >= 18 && mapCol <= 24) return brightnessAdjust(color, 0.88)
+  }
+  // Under-nose shadow (-18%)
+  if (mapRow === 10) {
+    return brightnessAdjust(color, 0.82)
+  }
+  // Under-chin / mouth shadow (-15%)
+  if (mapRow >= 13 && mapRow <= 14) {
+    return brightnessAdjust(color, 0.85)
+  }
+  // Cheek highlights — outer cheeks get subtle lift
+  if (mapRow >= 9 && mapRow <= 12) {
+    if (mapCol <= 8 || mapCol >= 24) return brightnessAdjust(color, 1.05)
+  }
+  return color
+}
+
+// ─── Clothing shading zones ───────────────────────────────────────────────────
+// Shirt zone colors per spec:
+//   chest-center highlight: #F8F8F8
+//   standard:               #F0F0F0
+//   side shadow:            #D8D8D8
+//   fold:                   #C8C8C8
+//   armpit:                 #BCBCBC
+// Trouser zone colors per spec:
+//   thigh highlight:        #2A2A3A
+//   standard:               #18181F
+//   inner shadow:           #0C0C12
+//   deep crease:            #060608
+
+function applyClothingZone(
+  color: string, mapChar: string, mapRow: number, mapCol: number,
+  totalCols: number
+): string {
+  // Shirt characters
+  if (mapChar === 'W' || mapChar === 'w' || mapChar === 'E') {
+    // shirt rows ~17-28, cols vary. Center column approx totalCols/2
+    const center = totalCols / 2
+    const distFromCenter = Math.abs(mapCol - center)
+    const relDist = distFromCenter / (totalCols / 2)
+
+    // Armpit zone (shirt edge chars 'E' near top rows 23-24)
+    if (mapChar === 'E') return '#BCBCBC'
+
+    // Fold zone (shirt shadow 'w' chars)
+    if (mapChar === 'w') {
+      if (relDist > 0.6) return '#C8C8C8'
+      return '#D8D8D8'
+    }
+
+    // Main 'W' zones by horizontal position
+    if (relDist < 0.2) return '#F8F8F8'  // chest center highlight
+    if (relDist < 0.5) return '#F0F0F0'  // standard
+    return '#D8D8D8'                      // side shadow
+  }
+
+  // Trouser characters
+  if (mapChar === 'K' || mapChar === 'k') {
+    const center = totalCols / 2
+    const distFromCenter = Math.abs(mapCol - center)
+    const relDist = distFromCenter / (totalCols / 2)
+
+    // Dark trouser ('k') = inner shadow / crease
+    if (mapChar === 'k') {
+      if (relDist > 0.5) return '#060608'  // deep crease
+      return '#0C0C12'                     // inner shadow
+    }
+
+    // Main 'K' zones
+    // Thigh highlight — upper trouser rows (front-facing rows 29-34)
+    if (mapRow >= 29 && mapRow <= 34) {
+      if (relDist < 0.35) return '#2A2A3A'  // thigh highlight
+    }
+    if (relDist < 0.5) return '#18181F'     // standard
+    return '#0C0C12'                        // inner shadow
+  }
+
+  return color
+}
+
+// ─── Ambient occlusion simulation ────────────────────────────────────────────
+// Joint regions with their darkening amounts:
+//   neck-shoulder (rows 17, col near center sides): 15%
+//   armpit (rows 23-24, outer cols): 20%
+//   elbow inner (rows 25-26): 12%
+//   trouser crotch (row 29-30, near center): 25%
+//   behind knee (rows 40-44): 15%
+//   ankle-shoe boundary (rows 47-51): 10%
+
+function applyAmbientOcclusion(
+  color: string, mapChar: string, mapRow: number, mapCol: number,
+  totalCols: number
+): string {
+  const center = totalCols / 2
+  const distFromCenter = Math.abs(mapCol - center)
+
+  // Neck-shoulder junction
+  if (mapRow === 17 && (mapChar === 'S' || mapChar === 's' || mapChar === 'W' || mapChar === 'w')) {
+    if (distFromCenter < 4) return darkenHex(color, 0.15)
+  }
+
+  // Armpit zone
+  if ((mapRow === 23 || mapRow === 24) && (mapChar === 'E' || mapChar === 'w' || mapChar === 'W')) {
+    if (distFromCenter > totalCols * 0.3) return darkenHex(color, 0.20)
+  }
+
+  // Elbow inner crease
+  if ((mapRow === 25 || mapRow === 26) && mapChar === 'E') {
+    return darkenHex(color, 0.12)
+  }
+
+  // Trouser crotch
+  if ((mapRow === 29 || mapRow === 30) && (mapChar === 'K' || mapChar === 'k')) {
+    if (distFromCenter < 3) return darkenHex(color, 0.25)
+  }
+
+  // Behind knee
+  if (mapRow >= 40 && mapRow <= 44 && (mapChar === 'K' || mapChar === 'k')) {
+    if (distFromCenter > totalCols * 0.15 && distFromCenter < totalCols * 0.35) {
+      return darkenHex(color, 0.15)
+    }
+  }
+
+  // Ankle-shoe boundary
+  if (mapRow >= 47 && mapRow <= 51 && (mapChar === 'O' || mapChar === 'o' || mapChar === 'K' || mapChar === 'k')) {
+    if (distFromCenter > totalCols * 0.2) return darkenHex(color, 0.10)
+  }
+
+  return color
 }
 
 // ─── Parse sprite maps into 3D voxel arrays ────────────────────────────────────
 
-function parseMap(lines: string[], pal: Palette, offsetX: number, offsetY: number, z: number): Voxel[] {
+function parseMap(
+  lines: string[], pal: Palette, offsetX: number, offsetY: number, z: number
+): Voxel[] {
   const result: Voxel[] = []
+  const totalCols = lines[0]?.length ?? 32
   for (let row = 0; row < lines.length; row++) {
     const line = lines[row]
     for (let col = 0; col < line.length; col++) {
       const ch = line[col]
       if (!ch || ch === '.') continue
-      const color = pal[ch]
-      if (!color) continue
-      result.push(makeVoxel(col + offsetX, -(row + offsetY), z, color))
+      const baseColor = pal[ch]
+      if (!baseColor) continue
+
+      // Apply face shading
+      let color = applyFaceShading(baseColor, ch, row, col)
+      // Apply clothing zone shading
+      color = applyClothingZone(color, ch, row, col, totalCols)
+      // Apply ambient occlusion
+      color = applyAmbientOcclusion(color, ch, row, col, totalCols)
+
+      result.push(makeVoxel(col + offsetX, -(row + offsetY), z, color, ch, row, col))
     }
   }
   return result
@@ -387,15 +589,21 @@ function buildVoxelModel(pal: Palette): Voxel[] {
 
   for (let row = 0; row < sideRows; row++) {
     const line = SIDE_MAP[row]
+    const totalCols = line.length
     for (let col = 0; col < line.length; col++) {
       const ch = line[col]
       if (!ch || ch === '.') continue
-      const color = pal[ch]
-      if (!color) continue
+      const baseColor = pal[ch]
+      if (!baseColor) continue
+
+      let color = applyFaceShading(baseColor, ch, row, col)
+      color = applyClothingZone(color, ch, row, col, totalCols)
+      color = applyAmbientOcclusion(color, ch, row, col, totalCols)
+
       const y = -(row + sideOffY)
       const z = MODEL_DEPTH / 2 - (col / sideCols) * MODEL_DEPTH
-      sideVoxelsRight.push(makeVoxel(sideXRight, y,  z, color))
-      sideVoxelsLeft.push( makeVoxel(sideXLeft,  y, -z, color))
+      sideVoxelsRight.push(makeVoxel(sideXRight, y,  z, color, ch, row, col))
+      sideVoxelsLeft.push( makeVoxel(sideXLeft,  y, -z, color, ch, row, col))
     }
   }
 
@@ -481,14 +689,20 @@ function projectVoxels(
     const sx = cx + rx.x * VOXEL_SCALE * perspective
     const sy = cy - rx.y * VOXEL_SCALE * perspective
 
+    // Compute three-point lighting for top and side faces
+    const topLightFactor  = applyThreePointLight(0, 1, 0)
+    const sideLightFactor = rx.x > 0
+      ? applyThreePointLight(1, 0, 0) * 0.9
+      : applyThreePointLight(-1, 0, 0)
+
     return {
       sx,
       sy,
       depth: rx.z,
       s: VOXEL_SCALE * perspective,
-      topColor: v.topColor,
+      topColor:   shade(v.topColor,   topLightFactor / TOP_MULT),
       frontColor: v.color,
-      sideColor: rx.x > 0 ? v.rightColor : v.leftColor,
+      sideColor:  shade(rx.x > 0 ? v.rightColor : v.leftColor, sideLightFactor),
       sideRight: rx.x > 0,
       key: `${i}`,
     }
@@ -631,9 +845,61 @@ export default function VoxelCharacter3D({
   // Painter's algorithm: far (most negative z) drawn first so near voxels occlude them
   rendered.sort((a, b) => b.depth - a.depth)
 
+  // Background spotlight: chest height is roughly 38% down from top
+  const spotlightCy = CH * 0.38
+  const groundY = CH * 0.92
+
   return (
     <View style={{ width: SW, height: CH }} {...panResponder.panHandlers}>
       <Svg width={SW} height={CH}>
+        <Defs>
+          {/* Spotlight oval at chest height */}
+          <RadialGradient id="spotlight" cx="50%" cy="50%" rx="50%" ry="50%" fx="50%" fy="50%">
+            <Stop offset="0%"   stopColor="#FFFFFF" stopOpacity="0.18" />
+            <Stop offset="60%"  stopColor="#D0E8FF" stopOpacity="0.07" />
+            <Stop offset="100%" stopColor="#000000" stopOpacity="0.00" />
+          </RadialGradient>
+          {/* Ground reflection blur */}
+          <RadialGradient id="groundReflect" cx="50%" cy="30%" rx="50%" ry="30%" fx="50%" fy="30%">
+            <Stop offset="0%"   stopColor="#8899BB" stopOpacity="0.22" />
+            <Stop offset="100%" stopColor="#000000" stopOpacity="0.00" />
+          </RadialGradient>
+          {/* Right-edge rim light gradient */}
+          <LinearGradient id="rimLight" x1="100%" y1="0%" x2="0%" y2="0%">
+            <Stop offset="0%"   stopColor="#3366AA" stopOpacity="0.18" />
+            <Stop offset="30%"  stopColor="#224488" stopOpacity="0.06" />
+            <Stop offset="100%" stopColor="#000000" stopOpacity="0.00" />
+          </LinearGradient>
+        </Defs>
+
+        {/* Background spotlight oval at chest height */}
+        <Ellipse
+          cx={cx}
+          cy={spotlightCy}
+          rx={SW * 0.40}
+          ry={CH * 0.28}
+          fill="url(#spotlight)"
+        />
+
+        {/* Ground reflection ellipse */}
+        <Ellipse
+          cx={cx}
+          cy={groundY}
+          rx={SW * 0.30}
+          ry={CH * 0.05}
+          fill="url(#groundReflect)"
+        />
+
+        {/* Right-edge rim light strip */}
+        <Rect
+          x={SW * 0.60}
+          y={0}
+          width={SW * 0.40}
+          height={CH}
+          fill="url(#rimLight)"
+        />
+
+        {/* Voxel character */}
         {rendered.map((v) => {
           const { sx, sy, s, topColor, frontColor, sideColor, sideRight } = v
           const half  = s / 2
@@ -641,8 +907,8 @@ export default function VoxelCharacter3D({
           const sideW = s * 0.25
           return (
             <G key={v.key}>
-              <Rect x={sx - half}                            y={sy - half - topH} width={s}     height={topH}    fill={topColor}   />
-              <Rect x={sx - half}                            y={sy - half}        width={s}     height={s}       fill={frontColor} />
+              <Rect x={sx - half}                                  y={sy - half - topH} width={s}     height={topH}    fill={topColor}   />
+              <Rect x={sx - half}                                  y={sy - half}        width={s}     height={s}       fill={frontColor} />
               <Rect x={sideRight ? sx + half : sx - half - sideW} y={sy - half - topH} width={sideW} height={s + topH} fill={sideColor}  />
             </G>
           )
