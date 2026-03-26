@@ -1,0 +1,95 @@
+Continue existing codebase. Do NOT restart.
+Only edit VoxelCharacter3D.tsx
+
+Goal: Fix body proportions to adult male standard.
+Current body looks blocky and cartoon-like.
+
+TARGET PROPORTIONS (8-head proportion system):
+- Total height: 8x head height
+- Shoulder width: 2x head width  
+- Waist: 1.5x head width
+- Hip: 1.6x head width
+- Leg length: 4x head height
+- Torso: 3x head height
+
+FIXES NEEDED:
+
+1. TORSO VOLUME
+   Current torso is a flat slab.
+   
+   Add chest protrusion:
+   - Pectoral area (y: 70-80%): 
+     add extra voxel layer z+1 at center chest
+   - This creates 3D chest volume
+   
+   Waist taper:
+   - At waist level (y: 45-55%):
+     reduce x range by 1 on each side
+   - Creates V-taper silhouette
+   
+   Torso depth front-to-back: 4 voxels minimum
+   (not just 1-2 voxels deep)
+
+2. SHOULDERS
+   Current shoulders are flat cuts.
+   
+   Real shoulder shape:
+   - Deltoid cap: 3 voxels wide, 3 tall
+   - Curves from neck down to arm
+   - Top of shoulder = slightly rounded
+   
+   Build as trapezoid:
+   Row 1 (top): 2 voxels
+   Row 2: 3 voxels  
+   Row 3: 2 voxels (merges into arm)
+
+3. ARMS
+   Current arms are 1 voxel wide = cartoon.
+   
+   Upper arm cross-section: 2x2 voxels
+   Forearm cross-section: 2x2 voxels
+   (slightly thinner than upper arm)
+   
+   Add bicep bulge at mid upper arm:
+   - 1 extra voxel on outer face (z+1)
+   - Creates muscle definition
+   
+   Elbow: slight angle bend
+   - Forearm hangs 1 voxel forward vs upper arm
+   - Mimics natural arm hang
+
+4. HANDS
+   Not blobs — recognizable hands:
+   - Palm: 2x2 voxels
+   - Thumb stub: 1 voxel offset
+   - Finger mass: 2 voxels wide, 1 tall
+   - Skin colored throughout
+   - Subtle knuckle shadow: darken 8%
+
+5. LEGS
+   Current legs too thin.
+   
+   Thigh cross-section: 3x3 voxels
+   Calf cross-section: 2x3 voxels
+   (slight taper from thigh to calf)
+   
+   Add quad definition on front of thigh:
+   - Center line slightly lighter
+   - Creates muscle shape
+   
+   Knee: slight protrusion
+   - 1 voxel z+1 at knee level
+   - Knee cap effect
+
+6. FEET/SHOES
+   Shoes should:
+   - Extend forward 2 voxels past toes
+   - Have visible sole (1 voxel thick, darker)
+   - Slight toe box roundness (front corner)
+   - Lace area on top (lighter stripe)
+
+After changes verify proportions:
+- Head is ~1/8 of total height
+- Shoulders visibly wider than head
+- Waist visibly narrower than shoulders
+- Legs make up bottom half of body
