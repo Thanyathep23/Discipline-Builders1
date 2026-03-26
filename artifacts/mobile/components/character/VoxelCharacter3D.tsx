@@ -2,15 +2,11 @@ import React, { useRef, useEffect, useCallback, useState } from 'react'
 import { PanResponder, useWindowDimensions, View } from 'react-native'
 import Svg, { Rect, G, Ellipse, Defs, RadialGradient, LinearGradient, Stop } from 'react-native-svg'
 
-// ─── Props ─────────────────────────────────────────────────────────────────────
-
 export interface VoxelCharacter3DProps {
   skinTone?: string
   hairColor?: string
   outfitTier?: number
 }
-
-// ─── Color look-ups ────────────────────────────────────────────────────────────
 
 const SKIN_TONES: Record<string, string> = {
   'tone-1': '#F5CBA7',
@@ -33,8 +29,6 @@ const HAIR_COLORS: Record<string, string> = {
   'dirty-blonde': '#BF9B5A',
   'platinum': '#DCDCDC',
 }
-
-// ─── Shading helpers ───────────────────────────────────────────────────────────
 
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.replace('#', ''), 16)
@@ -114,7 +108,7 @@ function applyThreePointLight(nx: number, ny: number, nz: number): number {
 //   N = midsole        q = midsole shadow (lowercase; n = nostril)
 //   R = outsole        p = outsole shadow (lowercase; b = eyebrow)
 
-// FRONT_MAP_BASE — 32 cols × 56 rows
+// FRONT_MAP — 32 cols × 80 rows
 // Rows 0–16: head/face (detailed eyes, nose, lips)
 // Rows 17–28: shirt (collar, fold lines, dog tag, bracelet/watch)
 // Rows 29–33: belt + waistband
@@ -124,62 +118,86 @@ function applyThreePointLight(nx: number, ny: number, nz: number): number {
 // Row 53–55: outsole (R/p) + sole bottom
 
 const FRONT_MAP_BASE: string[] = [
-  '..........HhHhHhHhHhHh..........',   // 0  hair top
-  '.........HhHhHhHhHhHhHH.........',   // 1
-  '.........hHhHhHhHhHhHhH.........',   // 2
-  '.........HHhHhHhHhHhHHH.........',   // 3
-  '.........SHhHhHhHhHhHhs.........',   // 4  scalp edge
-  '.........SSSSSSSSSSSSSs.........',   // 5  face top
-  '.........SSSSSbSSbSSSSS.........',   // 6  eyebrow area
-  '.........SSSbbSSSSbbSSS.........',   // 7  eyebrows
-  '.........SSSSaaSSaaSSSS.........',   // 8  eyelid shadow
-  '.........dSSSeiSSieSSSd.........',   // 9  eyes (sclera+iris)
-  '.........dSSSlrMMrlSSSd.........',   // 10 lower lid + nose bridge
-  '..........SSSdnMMndSSS..........',   // 11 nostril
-  '..........SSScUUUcSSSS..........',   // 12 upper lip
-  '...........SSVVVVSSSS...........',   // 13 lower lip
-  '...........jSSSSSSSSj...........',   // 14 jaw
-  '............jdSSSSdj............',   // 15 chin
-  '.............dSzzSd.............',   // 16 neck
-  '....SSSSSSCCCCCCCCCCCCCCSSSSSs..',  // 17 collar band top
-  '...SSSSSSwCCCCCCCCCCCCCCwSSSSSs.',  // 18 collar band bottom
-  '..SSSSSSSwWFWWWWWWWWWWFWwSSSSSSs',  // 19 shirt + fold lines
-  '..SSSSSSwWWFWWTWWWWWWFWWwSSSSSS.',  // 20 dog tag chain
-  '..SSSSSSwWWFWWTWWWWWWFWWwSSSSSS.',  // 21
-  '..SSSSSSwWWFWWTTWWWWWFWWwSSSSSS.',  // 22 tag block
-  '..SSSSSSEWWFWWTTWWWWWFWWESSSSSSs',  // 23 tag block
-  '..SSSSSSEwWFWWTTWWWWWFWwESSSSSSs',  // 24 tag block
-  '...SSSSSSEEFEEEEEEEEEFEESSSSSSs.',  // 25 shirt hem
-  '..vvSSSSSSSSSSSSSSSSSSSSSSSSSss.',  // 26 wrist bracelet (vv = bracelet brown)
-  '..vvSSSSSwWWWWWWWWWWWWWwSSSSSSS.',  // 27 lower shirt + bracelet
-  '..SSSSSSSEEEEEEEEEEEEEEESSSSSSSs',  // 28 shirt bottom hem
-  '..........XXXXXGGGXXXXX.........',  // 29 belt row 1 + buckle
-  '..........XXXXXGGGXXXXX.........',  // 30 belt row 2
-  '..........AAQAAAAAQAAAAAQAK.....',  // 31 waistband top + belt loops
-  '..........AAAAAAAAAAAAAAAK......',  // 32 waistband mid
-  '..........AAQAAAAAQAAAAAQAKK....',  // 33 waistband bottom
-  '..........KJKKKKKKKKKJKKkk......',  // 34 trouser top + crease J
-  '..........KJKKKKKKKKKJKKkk......',  // 35
-  '.......KKKKJKKKk.kKKKJKKK.......',  // 36 leg split
-  '.......KKKKJKKKk.kKKKJKKK.......',  // 37
-  '.......KKQKJKKKk.kKKKJKKK.......',  // 38 pocket Q
-  '.......KKQKJKKKk.kKKKJKKK.......',  // 39
-  '.......KKKKJKKKk.kKKKJKKK.......',  // 40
-  '.......KKKKJKKKk.kKKKJKKK.......',  // 41
-  '.......KKKKJKKKk.kKKKJKKK.......',  // 42
-  '.......KKKKJKKKk.kKKKJKKK.......',  // 43
-  '.......KKKKJKKKk.kKKKJKKK.......',  // 44
-  '.......KKKKJKKKk.kKKKJKKK.......',  // 45
-  '.......KKKKkKKKk.kKKKkKKK.......',  // 46 trouser break
-  '.......OOOOOOOo.oOOOOOOO........',  // 47 shoe upper
-  '.......OOPOOOOo.oOOOOPOO........',  // 48 toe seam
-  '.......OOOOOOOo.oOOOOOOO........',  // 49
-  '......oOOOOOOOo.oOOOOOOOo.......',  // 50
-  '......oOOOOOOOo.oOOOOOOOo.......',  // 51
-  '......NNNNNNNNq.qNNNNNNNNq......',  // 52 midsole
-  '......RRRRRRRRp.pRRRRRRRRp......',  // 53 outsole
-  '......oooooooooo.ooooooooo......',   // 54 sole bottom
-  '......oooooooooo.ooooooooo......',   // 55
+  '..........HhHhHhHhHhHh..........',
+  '.........HhHhHhHhHhHhHH.........',
+  '.........hHhHhHhHhHhHhH.........',
+  '.........HHhHhHhHhHhHHH.........',
+  '.........SHhHhHhHhHhHhs.........',
+  '.........SSSSSSSSSSSSSs.........',
+  '.........SSSSSbSSbSSSSS.........',
+  '.........SSSbbSSSSbbSSS.........',
+  '.........dSSSaaSSaaSSSd.........',
+  '.........dSSSeiSSieSSSd.........',
+  '..............dSSSSd............',
+  '..............dSSSSd............',
+  '....SSSSSSCCCCCCCCCCCCCCSSSSSs..',
+  '...SSSSSSwCCCCCCCCCCCCCCwSSSSSs.',
+  '..SSSSSSSwWFWWWWWWWWWWFWwSSSSSSs',
+  '..SSSSSSwWWFWWTWWWWWWFWWwSSSSSS.',
+  '..SSSSSSwWWFWWTWWWWWWFWWwSSSSSS.',
+  '..SSSSSSwWWFWWTTWWWWWFWWwSSSSSS.',
+  '..SSSSSSEWWFWWTTWWWWWFWWESSSSSSs',
+  '..SSSSSSEwWFWWTTWWWWWFWwESSSSSSs',
+  '....SSSSSSEEFEEEEEEEEEFEESSSSSSs',
+  '..vvSSSSSSSSSSSSSSSSSSSSSSSSSss.',
+  '..vvSSSSSwWWWWWWWWWWWWWwSSSSSSS.',
+  '..SSSSSSSEEEEEEEEEEEEEEESSSSSSSs',
+  '..SSSSSSSEEEEEEEEEEEEEEESSSSSSSs',
+  '....SSSSSSSSSSSSSSSSSSSSSSSSSS..',
+  '..........XXXXXGGGXXXXX.........',
+  '..........XXXXXGGGXXXXx.........',
+  '..........AAQAAAAAQAAAAAK.......',
+  '..........AAAAAAAAAAAAAAAK......',
+  '..........AAQAAAAAQAAAAAQAKK....',
+  '..........KJKKKKKKKKKJKKkk......',
+  '..........KJKKKKKKKKKJKKkk......',
+  '.......KKKKJKKKk.kKKKJKKK.......',
+  '.......KKKKJKKKk.kKKKJKKK.......',
+  '.......KKQKJKKKk.kKKKJKKK.......',
+  '.......KKQKJKKKk.kKKKJKKK.......',
+  '.......KKKKJKKKk.kKKKJKKK.......',
+  '.......KKKKJKKKk.kKKKJKKK.......',
+  '.......KKKKJKKKk.kKKKJKKK.......',
+  '.......KKKKJKKKk.kKKKJKKK.......',
+  '.......KKKKJKKKk.kKKKJKKK.......',
+  '.......KKKKJKKKk.kKKKJKKK.......',
+  '.......KKKKJKKKk.kKKKJKKK.......',
+  '.......KKKKJKKKk.kKKKJKKK.......',
+  '.......KKKKJKKKk.kKKKJKKK.......',
+  '.......KKKKJKKKk.kKKKJKKK.......',
+  '.......KKKKJKKKk.kKKKJKKK.......',
+  '.......KKKKJKKKk.kKKKJKKK.......',
+  '.......KKKKkKKKk.kKKKkKKK.......',
+  '.......KkKKKKKKk.kKKKKKkK.......',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKkk...kkKKKK.........',
+  '........KKKKkk...kkKKKK.........',
+  '........PPPPPPo...oPPPPPP.......',
+  '.......OOOOOOOo...oOOOOOOO......',
+  '.......OOPOOOOo...oOOOOPOO......',
+  '.......OOOOOOOo...oOOOOOOO......',
+  '......oOOOOOOOo...oOOOOOOOo.....',
+  '......oOOOOOOOo...oOOOOOOOo.....',
+  '......NNNNNNNNq...qNNNNNNNNq....',
+  '......RRRRRRRRp...pRRRRRRRRp....',
+  '......oooooooooo..oooooooooo....',
+  '......oooooooooo..oooooooooo....',
+  '.....ooooooooooo..ooooooooooo...',
+  '.....ooooooooooo..ooooooooooo...',
+  '.....ooooooooooo..ooooooooooo...',
 ]
 
 // FRONT_MAP_WATCH — outfitTier >= 2: replace rows 25-27 with 4×3 watch block
@@ -191,66 +209,90 @@ const FRONT_MAP_WATCH: string[] = [
   ...FRONT_MAP_BASE.slice(28),
 ]
 
-// SIDE_MAP_BASE — 24 cols × 56 rows
+// SIDE_MAP — 24 cols × 80 rows
 // Rows 0–16: head/face (detailed), rows 17–55: clothing
 
 const SIDE_MAP_BASE: string[] = [
-  '.......HHhHhHHHHh.......',   // 0  hair top
-    '......HhHhHhHhHhHH......',   // 1
-    '......HHhHhHhHhHhHH.....',   // 2
-    '......HHHhHhHhHhHHH.....',   // 3
-    '.....SHHHHHHHHHHHHHs....',   // 4  scalp edge
-    '.....SSSSSSSSSSSSSSd....',   // 5  face
-    '.....SSbSSSSSSSSSSSSd...',   // 6  eyebrow
-    '.....SaaSSSSSSSSdSSS....',   // 7  eye shadow
-    '.....SeiSSSSSSSSSdSS....',   // 8  eye (sclera+iris)
-    '.....SlrSSSSSSSSSdSS....',   // 9  lower lid + pupil
-    '......MSSSSSSSSSSSSd....',   // 10 nose
-    '......nSSSSSSSSSSSSSd...',   // 11 nostril
-    '......cUSSSSSSSSSSSd....',   // 12 upper lip
-    '.......VSSSSSSSSSSd.....',   // 13 lower lip
-    '........jSSSSSSSjS......',   // 14 jaw
-    '.........dSSSSSdS.......',   // 15 chin
-    '..........zSSzSS........',   // 16 neck
-    '........SSCCCCCCCSs.....',   // 17 collar band
-    '.......SSSCCCCCCCCSs....',   // 18
-    '......SSSSwWFWWWWWwSs...',   // 19 shirt + fold
-    '......SSSSwWFWWWWWwSs...',   // 20
-    '......SSSSwWFWWWWWwSs...',   // 21
-    '......SSSSwWFWWWWWwSs...',   // 22
-    '......SSSSEWFWWWWWESs...',   // 23
-    '......SSSSwWFWWWWwSSs...',   // 24
-    '.......SSSSEFEEEEESSs....',  // 25 shirt hem
-    '........SSSSSSSSSs......',   // 26 wrist area (no bracelet in base)
-    '........vvwWWWWwSSs.....',   // 27 bracelet (vv) visible side
-    '........SEEEEEEESSs.....',   // 28 shirt bottom hem
-    '..........XXXXXXXx......',   // 29 belt
-    '..........XXXXXXXx......',   // 30 belt
-    '..........AAAAAAAk......',   // 31 waistband
-    '..........AAAAAAAk......',   // 32
-    '..........AAQAAAAk......',   // 33 waistband + belt loop
-    '..........KJKKKKKk......',   // 34 trouser + crease J
-    '..........KJKKKKKk......',   // 35
-    '..........KJKKKKKk......',   // 36
-    '..........KJKKKKKk......',   // 37
-    '..........KJKKKKKk......',   // 38
-    '..........KJKKKKKk......',   // 39
-    '..........KJKKKKKk......',   // 40
-    '..........KJKKKKKk......',   // 41
-    '..........KJKKKKKk......',   // 42
-    '..........KJKKKKKk......',   // 43
-    '..........KJKKKKKk......',   // 44
-    '..........KJKKKKKk......',   // 45
-    '..........KJKKKKkk......',   // 46 trouser break
-    '..........OOOOOOOo......',   // 47 shoe upper
-    '..........OOPOOOOo......',   // 48 toe seam
-    '..........OOOOOOOo......',   // 49
-    '.........oOOOOOOOo......',   // 50
-    '.........oOOOOOOOo......',   // 51
-    '.........NNNNNNNNq......',   // 52 midsole
-    '.........RRRRRRRRp......',   // 53 outsole
-    '.........ooooooooo......',   // 54 sole bottom
-    '.........ooooooooo......',   // 55
+  '.......HHhHhHHHHh.......',
+  '......HhHhHhHhHhHH......',
+  '......HHhHhHhHhHhHH.....',
+  '......HHHhHhHhHhHHH.....',
+  '.....SHHHHHHHHHHHHHs....',
+  '.....SSSSSSSSSSSSSSd....',
+  '.....SSbSSSSSSSSSSSSd...',
+  '.....SaaSSSSSSSSdSSS....',
+  '.....SeiSSSSSSSSSdSS....',
+  '.....SlrSSSSSSSSSdSS....',
+  '........SSSSSSSS........',
+  '........SSSSSSSS........',
+  '........SSCCCCCCCSs.....',
+  '.......SSSCCCCCCCCSs....',
+  '......SSSSwWFWWWWWwSs...',
+  '......SSSSwWFWWWWWwSs...',
+  '......SSSSwWFWWWWWwSs...',
+  '......SSSSwWFWWWWWwSs...',
+  '......SSSSEWFWWWWWESs...',
+  '......SSSSwWFWWWWwSSs...',
+  '.......SSSSEFEEEEESSs...',
+  '........SSSSSSSSSs......',
+  '........vvwWWWWwSSs.....',
+  '........SEEEEEEESSs.....',
+  '........SEEEEEEESSs.....',
+  '.........SSSSSSSSs......',
+  '..........XXXXXXXx......',
+  '..........XXXXXXXx......',
+  '..........AAAAAAAk......',
+  '..........AAAAAAAk......',
+  '..........AAQAAAAk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKKk......',
+  '..........KJKKKKkk......',
+  '..........KKJKKKkk......',
+  '..........KKKKKKKk......',
+  '..........KKKKKKKk......',
+  '..........KKKKKKKk......',
+  '..........KKKKKKKk......',
+  '..........KKKKKKKk......',
+  '..........KKKKKKKk......',
+  '..........KKKKKKKk......',
+  '..........KKKKKKKk......',
+  '..........KKKKKKKk......',
+  '..........KKKKKKKk......',
+  '..........KKKKKKKk......',
+  '..........KKKKKKKk......',
+  '..........KKKKKKKk......',
+  '..........KKKKKKKk......',
+  '..........KKKKKKkk......',
+  '..........KKKKKKkk......',
+  '.........PPPPPPPPo......',
+  '.........OOOOOOOOo......',
+  '.........OOPOOOOOo......',
+  '.........OOOOOOOOo......',
+  '........oOOOOOOOOo......',
+  '........oOOOOOOOOo......',
+  '........NNNNNNNNNq......',
+  '........RRRRRRRRRp......',
+  '........ooooooooooo.....',
+  '........ooooooooooo.....',
+  '.......oooooooooooo.....',
+  '.......oooooooooooo.....',
+  '.......oooooooooooo.....',
 ]
 
 // SIDE_MAP_WATCH — outfitTier >= 2: replace rows 25-27 with watch block
@@ -262,64 +304,88 @@ const SIDE_MAP_WATCH: string[] = [
   ...SIDE_MAP_BASE.slice(28),
 ]
 
-// BACK_MAP — 32 cols × 56 rows — back facing
+// BACK_MAP — 32 cols × 80 rows - back facing
 const BACK_MAP: string[] = [
-  '........HHHHhHhHhHhHhHHHH.......',   // 0
-    '.......HhHhHhHhHhHhHhHhHhH......',   // 1
-    '......HHhHhHhHhHhHhHhHhHhHH.....',   // 2
-    '......HHHhHhHhHhHhHhHhHhHHH.....',   // 3
-    '.....HHHHHHHHHHHHHHHHHHHHHHHHH..',    // 4
-    '......HHHHHHHHHHHHHHHHHHHHHHh...',   // 5
-    '......HHHHHHHHHHHHHHHHHHHHHHh...',   // 6
-    '......HHHHHHHHHHHHHHHHHHHHHHh...',   // 7
-    '......HHHHHHHHHHHHHHHHHHHHHHh...',   // 8
-    '......HHHHBBBHHHHHHHHHBBBHHHHh..',   // 9  back head bump
-    '......HHHHHHHHHHHHHHHHHHHHHHh...',   // 10
-    '......HHHHHHHHHHHHHHHHHHHHHHh...',   // 11
-    '......HHHHHHHHHHHHHHHHHHHHHHh...',   // 12
-    '.......dSSSSSSSSSSSSSSSSSSd.....',    // 13 neck top
-    '........zzSSSSSSSSSSSSzz........',   // 14 neck
-    '..........SSSSSSSSSSSSSSs.......',   // 15 neck bottom
-    '..........SSSSSSSSSSSSSSs.......',   // 16
-    '....SSSSSSCCCCCCCCCCCCCCSSSSSs..',  // 17 collar band
-    '...SSSSSSwCCCCCCCCCCCCCCwSSSSSs.',  // 18
-    '..SSSSSSSwWFWWWWWWWWWWFWwSSSSSSs',  // 19 shirt back + fold seams
-    '..SSSSSSwWWFWWWWWWWWWFWWwSSSSSS.',  // 20
-    '..SSSSSSwWWFWWWWWWWWWFWWwSSSSSS.',  // 21
-    '..SSSSSSwWWFWWWWWWWWWFWWwSSSSSS.',  // 22
-    '..SSSSSSEWWFWWWWWWWWWFWWESSSSSSs',  // 23
-    '..SSSSSSEwWFWWWWWWWWWFWwESSSSSSs',  // 24
-    '...SSSSSSEEFEEEEEEEEEFEESSSSSSs.',  // 25 shirt hem
-    '....SSSSSSSSSSSSSSSSSSSSSSSSSSs.',  // 26 lower shirt
-    '..SSSSSSSwWWWWWWWWWWWWWwSSSSSSS.',  // 27
-    '..SSSSSSSEEEEEEEEEEEEEEESSSSSSSs',  // 28 shirt bottom hem
-    '..........XXXXXXXXXXXXX.........',  // 29 belt (no buckle on back)
-    '..........XXXXXXXXXXXXX.........',  // 30 belt
-    '..........AAQAAAAAQAAAAAQAK.....',  // 31 waistband top + belt loops
-    '..........AAAAAAAAAAAAAAAK......',  // 32 waistband mid
-    '..........AAQAAAAAQAAAAAQAKK....',  // 33 waistband bottom
-    '..........KJKKKKKKKKKJKKkk......',  // 34 trousers + crease
-    '..........KJKKKKKKKKKJKKkk......',  // 35
-    '.......KKKKJKKKk.kKKKJKKK.......',  // 36
-    '.......KKKKJKKKk.kKKKJKKK.......',  // 37
-    '.......KKKKJKKKk.kKKKJKKK.......',  // 38
-    '.......KKKKJKKKk.kKKKJKKK.......',  // 39
-    '.......KKKKJKKKk.kKKKJKKK.......',  // 40
-    '.......KKKKJKKKk.kKKKJKKK.......',  // 41
-    '.......KKKKJKKKk.kKKKJKKK.......',  // 42
-    '.......KKKKJKKKk.kKKKJKKK.......',  // 43
-    '.......KKKKJKKKk.kKKKJKKK.......',  // 44
-    '.......KKKKJKKKk.kKKKJKKK.......',  // 45
-    '.......KKKKkKKKk.kKKKkKKK.......',  // 46 trouser break
-    '.......OOOOOOOo.oOOOOOOO........',  // 47 shoe upper
-    '.......OOPOOOOo.oOOOOPOO........',  // 48 toe seam
-    '.......OOOOOOOo.oOOOOOOO........',  // 49
-    '......oOOOOOOOo.oOOOOOOOo.......',  // 50
-    '......oOOOOOOOo.oOOOOOOOo.......',  // 51
-    '......NNNNNNNNq.qNNNNNNNNq......',  // 52 midsole (renamed n->q)
-    '......RRRRRRRRp.pRRRRRRRRp......',  // 53 outsole (renamed b->p)
-    '......oooooooooo.ooooooooo......',   // 54 sole bottom
-    '......oooooooooo.ooooooooo......',   // 55
+  '..........HhHhHhHhHhHh..........',
+  '.........HhHhHhHhHhHhHH.........',
+  '.........hHhHhHhHhHhHhH.........',
+  '.........HHhHhHhHhHhHHH.........',
+  '.........HHhHhHhHhHhHHH.........',
+  '.........HHHHHHHHHHHHHh.........',
+  '.........HHHHHHHHHHHHHh.........',
+  '.........HHHHBBBHHHBBBHh........',
+  '.........HHHHHHHHHHHHHh.........',
+  '..........dSSSSSSSSSSSSd........',
+  '..............dSSSSd............',
+  '..............dSSSSd............',
+  '..SSwWWWWWWWWWWWWWWWWWWWWWWwSS..',
+  '.SSSwWWWWWWWWWWWWWWWWWWWWWWwSSS.',
+  'SSSSSwWWWWWWWWWWWWWWWWWWWWwSSSSS',
+  'SSSSSwWWWWWWWWWWWWWWWWWWWWwSSSSS',
+  '.SSSSwWWWWWWWWWWWWWWWWWWWWwSSSS.',
+  '.SSSSEWWWWWWWWWWWWWWWWWWWWwSSSS.',
+  '..SSSEwWWWWWWWWWWWWWWWWWWEwSSS..',
+  '...SSEwWWWWWWWWWWWWWWWWWWEwSS...',
+  '...SSEEEEEEEEEEEEEEEEEEEEEESS...',
+  '....SSSSSSSSSSSSSSSSSSSSSSsS....',
+  '..SSSwWWWWWWWWWWWWWWWWWWWWwSSS..',
+  '..SSSwWWWWWWWWWWWWWWWWWWWWwSSS..',
+  '..SSSEEEEEEEEEEEEEEEEEEEEEESSS..',
+  '....SSSSSSSSSSSSSSSSSSSSSSSS....',
+  '..SS........................SS..',
+  '..SS........................SS..',
+  '.SSss......................ssSS.',
+  '.dSSd......................dSSd.',
+  '..dSd......................dSd..',
+  '..........KKKKKKKKKKKKkk........',
+  '..........KKKKKKKKKKKKkk........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKKKKKkk.kkKKKKKK........',
+  '.......KKkKKKKk.kKKKKkKK........',
+  '.......KkKKKKKk.kKKKKKkK........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKKk...kKKKKK.........',
+  '........KKKKkk...kkKKKK.........',
+  '........KKKKkk...kkKKKK.........',
+  '........PPPPPPo...oPPPPPP.......',
+  '.......OOOOOOOo...oOOOOOOO......',
+  '.......OOOOOOOo...oOOOOOOO......',
+  '......oOOOOOOOo...oOOOOOOOo.....',
+  '......oOOOOOOOo...oOOOOOOOo.....',
+  '......oooooooooo..ooooooooooo...',
+  '......oooooooooo..ooooooooooo...',
+  '.....ooooooooooo..oooooooooooo..',
+  '.....ooooooooooo..oooooooooooo..',
+  '.....ooooooooooo..oooooooooooo..',
+  '.....ooooooooooo..oooooooooooo..',
 ]
 
 // ─── Palette ───────────────────────────────────────────────────────────────────
@@ -336,7 +402,6 @@ function buildPalette(skinHex: string, hairHex: string): Palette {
     's': lightenHex(sk, 0.08),
     'd': darkenHex(sk, 0.10),
     'z': darkenHex(sk, 0.22),
-    // hair
     'H': hc,
     'h': lightenHex(hc, 0.15),
     'B': darkenHex(hc, 0.12),
@@ -400,8 +465,6 @@ function buildPalette(skinHex: string, hairHex: string): Palette {
   }
 }
 
-// ─── Voxel types ───────────────────────────────────────────────────────────────
-
 interface Voxel {
   x: number
   y: number
@@ -432,16 +495,13 @@ function makeVoxel(
 }
 
 // ─── Face-region shading ───────────────────────────────────────────────────────
-// FRONT_MAP rows 0-16 are head/face rows.
+// FRONT_MAP rows 0-9 are head/face rows (10 rows = 1/8 of 80).
 // Face structure approximation (row indices in FRONT_MAP):
-//   rows 0-4:  forehead/hair boundary
-//   rows 5-6:  forehead
-//   rows 7-8:  eye region (eye sockets)
-//   rows 9:    mid-face / nose root
-//  rows 10:    nose
-//  rows 11-12: upper lip / mouth
-//  rows 13-14: chin
-//  rows 15-16: neck shadow
+//   rows 0-4:  hair crown / forehead boundary
+//   rows 5-6:  brow / eyelid shadow
+//   rows 7-8:  eye level (sclera, iris, lower lid)
+//   rows 9:    mouth / chin
+//  rows 10-11: neck
 
 function applyFaceShading(color: string, mapChar: string, mapRow: number, mapCol: number): string {
   const isSkin = mapChar === 'S' || mapChar === 's' || mapChar === 'd' || mapChar === 'z'
@@ -613,8 +673,6 @@ function parseMap(
   return result
 }
 
-// ─── Build unified voxel model ─────────────────────────────────────────────────
-
 const MODEL_DEPTH = 12
 
 function buildVoxelModel(pal: Palette, outfitTier: number): Voxel[] {
@@ -690,8 +748,6 @@ function buildVoxelModel(pal: Palette, outfitTier: number): Voxel[] {
   return [...frontVoxels, ...backVoxels, ...sideVoxelsRight, ...sideVoxelsLeft, ...noseExtraVoxels, ...earVoxels]
 }
 
-// ─── 3D rotation ───────────────────────────────────────────────────────────────
-
 function rotateY(v: Voxel, cos: number, sin: number): Voxel {
   return { ...v, x: v.x * cos - v.z * sin, z: v.x * sin + v.z * cos }
 }
@@ -699,8 +755,6 @@ function rotateY(v: Voxel, cos: number, sin: number): Voxel {
 function rotateX(v: Voxel, cos: number, sin: number): Voxel {
   return { ...v, y: v.y * cos - v.z * sin, z: v.y * sin + v.z * cos }
 }
-
-// ─── Projection ────────────────────────────────────────────────────────────────
 
 const FOV = 300
 const CAMERA_Z = 80
@@ -756,8 +810,6 @@ function projectVoxels(
     }
   })
 }
-
-// ─── Main component ────────────────────────────────────────────────────────────
 
 export default function VoxelCharacter3D({
   skinTone = 'tone-3',
