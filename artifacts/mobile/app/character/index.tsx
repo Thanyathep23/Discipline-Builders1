@@ -9,10 +9,10 @@ import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Animated, {
   FadeIn, FadeInDown, FadeOut, SlideInDown, FadeInUp,
-  useSharedValue, useAnimatedStyle, withTiming, Easing,
-  withRepeat, withSequence,
+  useSharedValue, useAnimatedStyle, useAnimatedReaction, withTiming, Easing,
+  withRepeat, withSequence, runOnJS,
 } from "react-native-reanimated";
-import Svg, { Circle, Ellipse, Rect, Path, G, Line, Text as SvgText, Defs, Stop, RadialGradient as SvgRadialGradient } from "react-native-svg";
+import Svg, { Circle, Ellipse, Rect, Path, G, Line, Text as SvgText } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/colors";
 import { LoadingScreen, Button } from "@/design-system";
@@ -524,8 +524,8 @@ function SparkleParticles({ color }: { color: string }) {
           style={[
             {
               position: "absolute",
-              left: sp.x as any,
-              top:  sp.y as any,
+              left: sp.x,
+              top:  sp.y,
               width:  sp.size * 2,
               height: sp.size * 2,
               borderRadius: sp.size,
@@ -536,6 +536,187 @@ function SparkleParticles({ color }: { color: string }) {
         />
       ))}
     </>
+  );
+}
+
+// ─── Shimmer Pass ─────────────────────────────────────────────────────────────
+
+function ShimmerPass({ color }: { color: string }) {
+  const shimmerX = useSharedValue(-180);
+
+  useEffect(() => {
+    shimmerX.value = -180;
+    shimmerX.value = withRepeat(
+      withSequence(
+        withTiming(400, { duration: 2200, easing: Easing.inOut(Easing.ease) }),
+        withTiming(400, { duration: 1800 }),
+      ),
+      -1,
+      false,
+    );
+  }, [color]);
+
+  const shimmerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shimmerX.value }],
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: "absolute",
+          top: 0, bottom: 0,
+          width: 80,
+          backgroundColor: "transparent",
+          borderRightWidth: 40,
+          borderRightColor: "transparent",
+          borderLeftWidth: 40,
+          borderLeftColor: "transparent",
+          zIndex: 2,
+        },
+        shimmerStyle,
+      ]}
+    >
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: color + "14",
+        }}
+      />
+    </Animated.View>
+  );
+}
+
+// ─── Swipe Nudge Arrow ────────────────────────────────────────────────────────
+
+function SwipeNudgeArrow({ dir, color }: { dir: "left" | "right"; color: string }) {
+  const nudge = useSharedValue(0);
+
+  useEffect(() => {
+    nudge.value = withRepeat(
+      withSequence(
+        withTiming(dir === "left" ? -4 : 4, { duration: 500, easing: Easing.out(Easing.ease) }),
+        withTiming(0, { duration: 500, easing: Easing.in(Easing.ease) }),
+        withTiming(0, { duration: 700 }),
+      ),
+      -1,
+      false,
+    );
+  }, [dir]);
+
+  const arrowStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: nudge.value }],
+    opacity: 0.6,
+  }));
+
+  return (
+    <Animated.View pointerEvents="none" style={arrowStyle}>
+      <Ionicons
+        name={dir === "left" ? "chevron-back" : "chevron-forward"}
+        size={18}
+        color={color}
+      />
+    </Animated.View>
+  );
+}
+
+// ─── Evolution Arc (mini progress toward next level) ──────────────────────────
+
+function EvolutionArc({ current, target, color }: { current: number; target: number; color: string }) {
+  const MR = 24;
+  const MCX = 32;
+  const MCY = 32;
+  const mCirc = 2 * Math.PI * MR;
+  const mArcLen = mCirc * 0.75;
+  const mGapLen = mCirc - mArcLen;
+  const rawFrac = target > 0 ? Math.min(current / target, 1) : 0;
+  const filled = mArcLen * rawFrac;
+  const empty = mCirc - filled;
+
+  return (
+    <View style={{ alignItems: "center" }}>
+      <Svg width={64} height={64} viewBox="0 0 64 64">
+        <Circle
+          cx={MCX} cy={MCY} r={MR}
+          fill="none"
+          stroke="#1A1A2E"
+          strokeWidth={5}
+          strokeDasharray={[mArcLen, mGapLen] as any}
+          strokeLinecap="round"
+          transform={`rotate(-225 ${MCX} ${MCY})`}
+        />
+        <Circle
+          cx={MCX} cy={MCY} r={MR}
+          fill="none"
+          stroke={color}
+          strokeWidth={5}
+          strokeDasharray={[filled, empty] as any}
+          strokeLinecap="round"
+          transform={`rotate(-225 ${MCX} ${MCY})`}
+          opacity={0.95}
+        />
+        <SvgText
+          x={MCX} y={MCY - 5}
+          textAnchor="middle"
+          fill={color}
+          fontSize="11"
+          fontWeight="bold"
+        >{current}</SvgText>
+        <SvgText
+          x={MCX} y={MCY + 7}
+          textAnchor="middle"
+          fill="#888899"
+          fontSize="7"
+          letterSpacing="1"
+        >/ {target}</SvgText>
+      </Svg>
+    </View>
+  );
+}
+
+// ─── Pulsing CTA Button ───────────────────────────────────────────────────────
+
+function PulsingCTA({ label, onPress, color }: { label: string; onPress: () => void; color: string }) {
+  const glowOpacity = useSharedValue(0.35);
+
+  useEffect(() => {
+    glowOpacity.value = withRepeat(
+      withSequence(
+        withTiming(0.85, { duration: 950, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.35, { duration: 950, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      false,
+    );
+  }, []);
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
+  }));
+
+  return (
+    <View style={{ marginTop: 12 }}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
+            position: "absolute",
+            top: -6, bottom: -6, left: -6, right: -6,
+            borderRadius: 18,
+            borderWidth: 2,
+            borderColor: color,
+          },
+          glowStyle,
+        ]}
+      />
+      <Button
+        label={label}
+        onPress={onPress}
+        variant="primary"
+        iconLeft="flash"
+      />
+    </View>
   );
 }
 
@@ -551,42 +732,39 @@ function ScoreRingGauge({ score, tierColor }: { score: number; tierColor: string
   const gapLength = circumference - arcLength;
 
   const [displayScore, setDisplayScore] = useState(0);
-  const animRef = useRef(new RNAnimated.Value(0)).current;
-  const pulseAnim = useRef(new RNAnimated.Value(0.4)).current;
+  const scoreShared = useSharedValue(0);
+  const pulseShared = useSharedValue(0.4);
+
+  const _setScore = useCallback((v: number) => setDisplayScore(v), []);
 
   useEffect(() => {
-    animRef.setValue(0);
-    const listenerId = animRef.addListener(({ value }) => {
-      setDisplayScore(Math.round(value));
-    });
-    const countUp = RNAnimated.timing(animRef, {
-      toValue: Math.min(Math.max(score, 0), 100),
+    scoreShared.value = 0;
+    scoreShared.value = withTiming(Math.min(Math.max(score, 0), 100), {
       duration: 1100,
-      useNativeDriver: false,
+      easing: Easing.out(Easing.cubic),
     });
-    countUp.start();
-
-    const pulse = RNAnimated.loop(
-      RNAnimated.sequence([
-        RNAnimated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-        RNAnimated.timing(pulseAnim, { toValue: 0.4, duration: 800, useNativeDriver: true }),
-      ])
+    pulseShared.value = withRepeat(
+      withSequence(
+        withTiming(1,   { duration: 800, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.3, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      false,
     );
-    pulse.start();
-
-    return () => {
-      animRef.removeListener(listenerId);
-      countUp.stop();
-      pulse.stop();
-    };
   }, [score]);
+
+  useAnimatedReaction(
+    () => Math.round(scoreShared.value),
+    (val) => runOnJS(_setScore)(val),
+  );
+
+  const pulseStyle = useAnimatedStyle(() => ({ opacity: pulseShared.value }));
 
   const filled = arcLength * displayScore / 100;
   const empty  = circumference - filled;
 
   const startAngleRad = -225 * (Math.PI / 180);
-  const filledAngleRad = (270 * displayScore / 100) * (Math.PI / 180);
-  const endAngle = startAngleRad + filledAngleRad;
+  const endAngle = startAngleRad + (270 * displayScore / 100) * (Math.PI / 180);
   const glowX = CX + R * Math.cos(endAngle);
   const glowY = CY + R * Math.sin(endAngle);
 
@@ -642,22 +820,24 @@ function ScoreRingGauge({ score, tierColor }: { score: number; tierColor: string
           </SvgText>
         </Svg>
         {displayScore > 2 && (
-          <RNAnimated.View
+          <Animated.View
             pointerEvents="none"
-            style={{
-              position: "absolute",
-              width: 18,
-              height: 18,
-              borderRadius: 9,
-              backgroundColor: tierColor,
-              left: glowX - 9,
-              top: glowY - 9,
-              opacity: pulseAnim,
-              shadowColor: tierColor,
-              shadowRadius: 10,
-              shadowOpacity: 0.9,
-              shadowOffset: { width: 0, height: 0 },
-            }}
+            style={[
+              {
+                position: "absolute",
+                width: 18,
+                height: 18,
+                borderRadius: 9,
+                backgroundColor: tierColor,
+                left: glowX - 9,
+                top: glowY - 9,
+                shadowColor: tierColor,
+                shadowRadius: 10,
+                shadowOpacity: 0.9,
+                shadowOffset: { width: 0, height: 0 },
+              },
+              pulseStyle,
+            ]}
           />
         )}
       </View>
@@ -1404,12 +1584,18 @@ export default function CharacterStatusScreen() {
                 ))}
               </View>
 
+              {/* Animated shimmer pass */}
+              <ShimmerPass color={tierColor} />
+
+              {/* Grounded stage aura beneath character */}
+              <View
+                pointerEvents="none"
+                style={[styles.stageAura, { backgroundColor: tierColor + "22", shadowColor: tierColor }]}
+              />
+
               {/* Character voxel with swipe arrows */}
               <View style={styles.characterStageWrap}>
-                {/* Left swipe arrow */}
-                <View style={styles.swipeArrow} pointerEvents="none">
-                  <Ionicons name="chevron-back" size={16} color={tierColor + "70"} />
-                </View>
+                <SwipeNudgeArrow dir="left" color={tierColor + "80"} />
 
                 <Animated.View style={[styles.characterWrap, characterAnimStyle]}>
                   {(() => {
@@ -1443,10 +1629,7 @@ export default function CharacterStatusScreen() {
                   </Pressable>
                 </Animated.View>
 
-                {/* Right swipe arrow */}
-                <View style={styles.swipeArrow} pointerEvents="none">
-                  <Ionicons name="chevron-forward" size={16} color={tierColor + "70"} />
-                </View>
+                <SwipeNudgeArrow dir="right" color={tierColor + "80"} />
               </View>
 
               {/* Identity */}
@@ -1565,20 +1748,21 @@ export default function CharacterStatusScreen() {
                     <Text style={styles.evolutionEyebrow}>NEXT EVOLUTION</Text>
                     <Text style={styles.evolutionDimension}>{nextEvolution.dimension}</Text>
                   </View>
-                  <View style={{ alignItems: "center" }}>
-                    <Text style={{ fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.accent }}>Lv {nextEvolution.currentLevel}</Text>
-                    <Text style={{ fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted }}>→ Lv {nextEvolution.targetLevel}</Text>
-                  </View>
+                  {/* Mini arc progress toward next level */}
+                  <EvolutionArc
+                    current={nextEvolution.currentLevel}
+                    target={nextEvolution.targetLevel}
+                    color={Colors.accent}
+                  />
                 </View>
                 <Text style={styles.evolutionHint}>{charState?.evolutionHints?.[0]?.message ?? nextEvolution.hint}</Text>
-                <Button
+                <PulsingCTA
                   label={nextEvolution.action}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
                     router.push("/(tabs)/missions");
                   }}
-                  variant="primary"
-                  iconLeft="flash"
+                  color={Colors.accent}
                 />
               </LinearGradient>
             </Animated.View>
@@ -1809,9 +1993,18 @@ const styles = StyleSheet.create({
   characterStageWrap: {
     flexDirection: "row", alignItems: "center", zIndex: 1, gap: 8,
   },
-  swipeArrow: {
-    opacity: 0.7,
-    paddingHorizontal: 2,
+  stageAura: {
+    position: "absolute",
+    bottom: 108,
+    alignSelf: "center",
+    width: 140,
+    height: 22,
+    borderRadius: 70,
+    shadowRadius: 22,
+    shadowOpacity: 0.75,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 12,
+    zIndex: 0,
   },
   characterWrap: { alignItems: "center", zIndex: 1 },
   characterName: {
