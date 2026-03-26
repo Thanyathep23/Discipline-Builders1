@@ -19,7 +19,7 @@ import { useCharacterStatus, useUpdateCharacterAppearance } from "@/hooks/useApi
 import type { DimensionLevel, DimensionDetail, CharacterVisualState } from "@/lib/characterEngine";
 import { computeCharacterState } from "@/lib/characterEngine";
 import { CharacterRenderer } from "@/components/character";
-import VoxelCharacter from "../../components/character/VoxelCharacter";
+import VoxelCharacter from "../../components/character/VoxelCharacter3D";
 
 const PREMIUM_BG = "#07071A";
 
@@ -1540,9 +1540,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   characterStageWrap: {
-    flexDirection: "row", alignItems: "center", gap: 8,
+    flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "stretch",
   },
-  characterWrap: { alignItems: "center" },
+  characterWrap: { flex: 1, alignItems: "center" },
   characterName: {
     fontFamily: "Inter_700Bold", fontSize: 26,
     color: Colors.textPrimary, letterSpacing: 0.5,
