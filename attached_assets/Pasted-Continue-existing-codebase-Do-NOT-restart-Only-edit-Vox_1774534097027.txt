@@ -1,0 +1,118 @@
+Continue existing codebase. Do NOT restart.
+Only edit VoxelCharacter3D.tsx
+
+Goal: Make white tee and black trousers look
+like premium quality clothing with fabric detail.
+Add accessories that match reference image.
+
+WHITE T-SHIRT IMPROVEMENTS:
+
+1. COLLAR DETAIL
+   Crew neck collar:
+   - Collar band: 2 voxels tall, full width
+   - Slightly different tone (#E8E8E8 vs #F2F2F2)
+   - Collar edge highlight: top row slightly brighter
+   - Neckline follows neck curve
+
+2. SLEEVE DETAIL  
+   Short sleeve cuff:
+   - Cuff band: 2 voxels tall at sleeve end
+   - Slightly rolled appearance:
+     1 voxel slight outward protrusion
+   - Hem stitching: darker pixel line at cuff bottom
+
+3. FABRIC FOLD LINES
+   T-shirts have natural folds.
+   Add subtle fold lines:
+   - Chest: 2 gentle vertical lines
+     from collar to mid-chest
+     Color: darken(shirtBase, 0.06)
+   - Side seams: visible line from armpit to hem
+     Color: darken(shirtBase, 0.08)
+   - Bottom hem: darker line at shirt base
+   - Shoulder seam: from neck to sleeve
+
+4. SHIRT FIT
+   Athletic fit appearance:
+   - Chest area slightly form-fitting
+   - Side seams curve inward at waist
+   - Bottom of shirt just covers waist
+
+BLACK TROUSERS IMPROVEMENTS:
+
+1. TROUSER BREAK
+   Where trousers meet shoes:
+   - Slight "break" fold at ankle
+   - 1 row of slightly bunched fabric
+   - Adds realism
+
+2. CREASE LINE
+   Well-pressed trousers have center crease:
+   - Single voxel line down center front of each leg
+   - Color: lighten(pantsBase, 0.08) — highlight
+   - Runs from waist to hem
+   - Creates sharp trouser look
+
+3. POCKET DETAIL
+   Front pockets (subtle):
+   - Pocket opening: 2 voxel diagonal line
+   - Position: side of thigh, hip area
+   - Color: darken(pantsBase, 0.06)
+
+4. WAISTBAND
+   Distinct from trousers:
+   - 3 voxels tall
+   - Slightly different shade: darken 8%
+   - Belt loops: 3 single-voxel darker marks
+     evenly spaced around waistband
+
+BELT:
+   - 2 voxels tall
+   - Dark brown/black (#1A0A00)
+   - Buckle: 3×2 voxels, gold (#C0A030)
+   - Slightly glossy: top face lighter
+
+ACCESSORIES:
+
+1. DOG TAG NECKLACE
+   - Thin chain: alternating dark pixels
+     down center chest from neck
+   - Tag: 2×3 voxel rectangle
+     metallic silver (#B0B8C0)
+     Hangs at mid-chest
+
+2. LEATHER WRIST BRACELET  
+   On right wrist:
+   - 2 voxels tall band
+   - Dark brown (#5C3317)
+   - Clasp detail: 1 metal-colored voxel
+
+3. MINIMAL WATCH (optional, left wrist)
+   If outfit tier >= 2:
+   - Watch case: 4×3 voxels
+   - Strap: dark color
+   - Dial face: lighter center
+
+SHOES DETAIL:
+
+1. SOLE
+   2 distinct layers:
+   - Midsole: lighter (#8A7060)
+   - Outsole: dark rubber (#2A1A0A)
+   - Both 1 voxel thick
+
+2. TOE BOX
+   - Slightly rounded front
+   - Center seam line
+   - Subtle stitching at sole join
+
+3. HEEL
+   - Heel counter: slightly raised back
+   - Same dark color as upper
+
+After all changes:
+- Shirt has visible fabric character
+- Trousers look sharp and tailored
+- Accessories visible at normal viewing
+- No z-fighting between layers
+- Build passes, Expo Go works
