@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react'
-import { PanResponder, useWindowDimensions, View } from 'react-native'
+import React, { useRef, useEffect, useState } from 'react'
+import { PanResponder, useWindowDimensions, View, Animated, Easing } from 'react-native'
 import Svg, { Rect, G, Ellipse, Defs, RadialGradient, LinearGradient, Stop } from 'react-native-svg'
 
 export interface VoxelCharacter3DProps {
@@ -58,19 +58,13 @@ function brightnessAdjust(hex: string, factor: number): string {
 }
 
 // ─── Three-point lighting ──────────────────────────────────────────────────────
-// Key light: top-left-front  (bright, warm)
-// Fill light: right          (subtle)
-// Rim/back light: behind     (faint, cool)
 
 const TOP_MULT    = 1.40
 const FRONT_MULT  = 1.00
 const LEFT_MULT   = 0.78
 const RIGHT_MULT  = 0.62
 
-// Compute a combined lighting factor from a voxel's position and normal direction
-// nx, ny, nz describe the voxel face normal
 function applyThreePointLight(nx: number, ny: number, nz: number): number {
-  // Key light direction: top-left-front
   const keyDir   = { x: -0.6, y:  0.8, z: 0.5 }
   const fillDir  = { x:  0.8, y:  0.1, z: 0.3 }
   const rimDir   = { x:  0.0, y:  0.0, z: -1.0 }
@@ -87,35 +81,6 @@ function applyThreePointLight(nx: number, ny: number, nz: number): number {
 }
 
 // ─── Sprite maps ───────────────────────────────────────────────────────────────
-// Legend:
-//   S = skin tone      s = light skin     d = dark skin      z = darkest skin
-//   H = hair color     h = light hair     B = dark hair
-//   e = sclera white   i = iris (#2A5080) r = pupil (dark)
-//   a = eyelid shadow  l = lower lid highlight
-//   b = eyebrow (dark hair)
-//   M = nose/bridge    n = nostril (dark skin)
-//   U = upper lip      V = lower lip      c = lip corner shadow
-//   j = jaw shadow     . = transparent
-//   W = white shirt    w = shirt shadow   E = shirt dark
-//   C = collar/cuff    F = fold/seam
-//   K = black trouser  k = dark trouser
-//   A = waistband      J = crease hi      Q = pocket/loop dark
-//   X = belt dark      x = belt shadow    G = buckle gold
-//   T = dog tag silver
-//   v = bracelet brown (lowercase; V = lower lip)
-//   u = watch strap    Y = watch face     (lowercase; U = upper lip)
-//   O = shoe upper     o = shoe dark      P = shoe medium
-//   N = midsole        q = midsole shadow (lowercase; n = nostril)
-//   R = outsole        p = outsole shadow (lowercase; b = eyebrow)
-
-// FRONT_MAP — 32 cols × 80 rows
-// Rows 0–16: head/face (detailed eyes, nose, lips)
-// Rows 17–28: shirt (collar, fold lines, dog tag, bracelet/watch)
-// Rows 29–33: belt + waistband
-// Rows 34–46: trouser legs (crease J, pocket Q)
-// Row 47–51: shoe upper
-// Row 52: midsole (N/q)
-// Row 53–55: outsole (R/p) + sole bottom
 
 const FRONT_MAP_BASE: string[] = [
   '..........HhHhHhHhHhHh..........',
@@ -200,7 +165,6 @@ const FRONT_MAP_BASE: string[] = [
   '.....ooooooooooo..ooooooooooo...',
 ]
 
-// FRONT_MAP_WATCH — outfitTier >= 2: replace rows 25-27 with 4×3 watch block
 const FRONT_MAP_WATCH: string[] = [
   ...FRONT_MAP_BASE.slice(0, 25),
   '...SSSSSSEEFEEEEEEEEEFEEuuuuss.',  // 25 watch strap visible (u)
@@ -208,9 +172,6 @@ const FRONT_MAP_WATCH: string[] = [
   '..vvSSSSSwWWWWWWWWWWWWWwSYYuuSs',  // 27 bracelet (vv) + watch lower
   ...FRONT_MAP_BASE.slice(28),
 ]
-
-// SIDE_MAP — 24 cols × 80 rows
-// Rows 0–16: head/face (detailed), rows 17–55: clothing
 
 const SIDE_MAP_BASE: string[] = [
   '.......HHhHhHHHHh.......',
@@ -295,7 +256,6 @@ const SIDE_MAP_BASE: string[] = [
   '.......oooooooooooo.....',
 ]
 
-// SIDE_MAP_WATCH — outfitTier >= 2: replace rows 25-27 with watch block
 const SIDE_MAP_WATCH: string[] = [
   ...SIDE_MAP_BASE.slice(0, 25),
   '.......SSSSuuuuESSs.....',  // 25 watch strap (u) visible side
@@ -304,7 +264,6 @@ const SIDE_MAP_WATCH: string[] = [
   ...SIDE_MAP_BASE.slice(28),
 ]
 
-// BACK_MAP — 32 cols × 80 rows - back facing
 const BACK_MAP: string[] = [
   '..........HhHhHhHhHhHh..........',
   '.........HhHhHhHhHhHhHH.........',
@@ -397,7 +356,6 @@ function buildPalette(skinHex: string, hairHex: string): Palette {
   const hc = hairHex
   return {
     '.': null,
-    // skin tones
     'S': sk,
     's': lightenHex(sk, 0.08),
     'd': darkenHex(sk, 0.10),
@@ -405,62 +363,41 @@ function buildPalette(skinHex: string, hairHex: string): Palette {
     'H': hc,
     'h': lightenHex(hc, 0.15),
     'B': darkenHex(hc, 0.12),
-    // eyes — sclera, iris, pupil, eyelid shadow, lower lid highlight
     'e': '#F0F0F0',
     'i': '#2A5080',
     'r': '#1A0A00',
     'a': darkenHex(sk, 0.15),
     'l': lightenHex(sk, 0.10),
-    // eyebrows (darkened hair)
     'b': darkenHex(hc, 0.20),
-    // nose/bridge
     'M': darkenHex(sk, 0.08),
     'n': darkenHex(sk, 0.18),
-    // lips
     'U': '#8B4030',
     'V': '#9B5038',
     'c': darkenHex(sk, 0.20),
-    // jaw shadow
     'j': darkenHex(sk, 0.12),
-    // white shirt — base values; zone overrides applied in post-pass
     'W': '#F8F8F8',
     'w': '#E4E4E4',
     'E': '#C8C8C8',
-    // shirt collar/cuff (off-white warm)
     'C': '#EDE8E0',
-    // shirt fold/seam line
     'F': '#D8D8D8',
-    // black slim trousers — base values; zone overrides applied in post-pass
     'K': '#18181F',
     'k': '#0E0E0E',
-    // trouser crease highlight
     'J': '#2E2E2E',
-    // pocket/belt-loop dark
     'Q': '#080808',
-    // waistband dark
     'A': '#141414',
-    // brown shoes
     'O': '#7A4E2D',
     'o': '#3E2518',
     'P': '#A0724F',
-    // shoe midsole (lighter tan)
     'N': '#B8967A',
     'q': '#9E7A60',
-    // shoe outsole (dark rubber)
     'R': '#1A1A1A',
     'p': '#0A0A0A',
-    // belt dark brown/black
     'X': '#1A0E05',
     'x': '#100805',
-    // belt buckle gold
     'G': '#C8A850',
-    // dog tag silver (chain + tag)
     'T': '#A8A8B0',
-    // wrist bracelet brown leather (v = lowercase; V = lower lip)
     'v': '#6B3A1F',
-    // watch strap dark (u = lowercase; U = upper lip)
     'u': '#2C1A0E',
-    // watch face
     'Y': '#1C3A5C',
   }
 }
@@ -473,7 +410,6 @@ interface Voxel {
   topColor: string
   rightColor: string
   leftColor: string
-  // metadata for post-processing
   mapChar?: string
   mapRow?: number
   mapCol?: number
@@ -495,36 +431,24 @@ function makeVoxel(
 }
 
 // ─── Face-region shading ───────────────────────────────────────────────────────
-// FRONT_MAP rows 0-9 are head/face rows (10 rows = 1/8 of 80).
-// Face structure approximation (row indices in FRONT_MAP):
-//   rows 0-4:  hair crown / forehead boundary
-//   rows 5-6:  brow / eyelid shadow
-//   rows 7-8:  eye level (sclera, iris, lower lid)
-//   rows 9:    mouth / chin
-//  rows 10-11: neck
 
 function applyFaceShading(color: string, mapChar: string, mapRow: number, mapCol: number): string {
   const isSkin = mapChar === 'S' || mapChar === 's' || mapChar === 'd' || mapChar === 'z'
   if (!isSkin || mapRow > 16) return color
 
-  // Forehead highlight (+8%)
   if (mapRow >= 4 && mapRow <= 6) {
     return brightnessAdjust(color, 1.08)
   }
-  // Eye socket / brow darkening (-12%)
   if (mapRow === 7 || mapRow === 8) {
     if (mapCol >= 6 && mapCol <= 12) return brightnessAdjust(color, 0.88)
     if (mapCol >= 18 && mapCol <= 24) return brightnessAdjust(color, 0.88)
   }
-  // Under-nose shadow (-18%)
   if (mapRow === 10) {
     return brightnessAdjust(color, 0.82)
   }
-  // Under-chin / mouth shadow (-15%)
   if (mapRow >= 13 && mapRow <= 14) {
     return brightnessAdjust(color, 0.85)
   }
-  // Cheek highlights — outer cheeks get subtle lift
   if (mapRow >= 9 && mapRow <= 12) {
     if (mapCol <= 8 || mapCol >= 24) return brightnessAdjust(color, 1.05)
   }
@@ -532,76 +456,49 @@ function applyFaceShading(color: string, mapChar: string, mapRow: number, mapCol
 }
 
 // ─── Clothing shading zones ───────────────────────────────────────────────────
-// Shirt zone colors per spec:
-//   chest-center highlight: #F8F8F8
-//   standard:               #F0F0F0
-//   side shadow:            #D8D8D8
-//   fold:                   #C8C8C8
-//   armpit:                 #BCBCBC
-// Trouser zone colors per spec:
-//   thigh highlight:        #2A2A3A
-//   standard:               #18181F
-//   inner shadow:           #0C0C12
-//   deep crease:            #060608
 
 function applyClothingZone(
   color: string, mapChar: string, mapRow: number, mapCol: number,
   totalCols: number
 ): string {
-  // Shirt characters
   if (mapChar === 'W' || mapChar === 'w' || mapChar === 'E') {
-    // shirt rows ~17-28, cols vary. Center column approx totalCols/2
     const center = totalCols / 2
     const distFromCenter = Math.abs(mapCol - center)
     const relDist = distFromCenter / (totalCols / 2)
 
-    // Armpit zone (shirt edge chars 'E' near top rows 23-24)
     if (mapChar === 'E') return '#BCBCBC'
 
-    // Fold zone (shirt shadow 'w' chars)
     if (mapChar === 'w') {
       if (relDist > 0.6) return '#C8C8C8'
       return '#D8D8D8'
     }
 
-    // Main 'W' zones by horizontal position
-    if (relDist < 0.2) return '#F8F8F8'  // chest center highlight
-    if (relDist < 0.5) return '#F0F0F0'  // standard
-    return '#D8D8D8'                      // side shadow
+    if (relDist < 0.2) return '#F8F8F8'
+    if (relDist < 0.5) return '#F0F0F0'
+    return '#D8D8D8'
   }
 
-  // Trouser characters
   if (mapChar === 'K' || mapChar === 'k') {
     const center = totalCols / 2
     const distFromCenter = Math.abs(mapCol - center)
     const relDist = distFromCenter / (totalCols / 2)
 
-    // Dark trouser ('k') = inner shadow / crease
     if (mapChar === 'k') {
-      if (relDist > 0.5) return '#060608'  // deep crease
-      return '#0C0C12'                     // inner shadow
+      if (relDist > 0.5) return '#060608'
+      return '#0C0C12'
     }
 
-    // Main 'K' zones
-    // Thigh highlight — upper trouser rows (front-facing rows 29-34)
     if (mapRow >= 29 && mapRow <= 34) {
-      if (relDist < 0.35) return '#2A2A3A'  // thigh highlight
+      if (relDist < 0.35) return '#2A2A3A'
     }
-    if (relDist < 0.5) return '#18181F'     // standard
-    return '#0C0C12'                        // inner shadow
+    if (relDist < 0.5) return '#18181F'
+    return '#0C0C12'
   }
 
   return color
 }
 
 // ─── Ambient occlusion simulation ────────────────────────────────────────────
-// Joint regions with their darkening amounts:
-//   neck-shoulder (rows 17, col near center sides): 15%
-//   armpit (rows 23-24, outer cols): 20%
-//   elbow inner (rows 25-26): 12%
-//   trouser crotch (row 29-30, near center): 25%
-//   behind knee (rows 40-44): 15%
-//   ankle-shoe boundary (rows 47-51): 10%
 
 function applyAmbientOcclusion(
   color: string, mapChar: string, mapRow: number, mapCol: number,
@@ -610,34 +507,28 @@ function applyAmbientOcclusion(
   const center = totalCols / 2
   const distFromCenter = Math.abs(mapCol - center)
 
-  // Neck-shoulder junction
   if (mapRow === 17 && (mapChar === 'S' || mapChar === 's' || mapChar === 'W' || mapChar === 'w')) {
     if (distFromCenter < 4) return darkenHex(color, 0.15)
   }
 
-  // Armpit zone
   if ((mapRow === 23 || mapRow === 24) && (mapChar === 'E' || mapChar === 'w' || mapChar === 'W')) {
     if (distFromCenter > totalCols * 0.3) return darkenHex(color, 0.20)
   }
 
-  // Elbow inner crease
   if ((mapRow === 25 || mapRow === 26) && mapChar === 'E') {
     return darkenHex(color, 0.12)
   }
 
-  // Trouser crotch
   if ((mapRow === 29 || mapRow === 30) && (mapChar === 'K' || mapChar === 'k')) {
     if (distFromCenter < 3) return darkenHex(color, 0.25)
   }
 
-  // Behind knee
   if (mapRow >= 40 && mapRow <= 44 && (mapChar === 'K' || mapChar === 'k')) {
     if (distFromCenter > totalCols * 0.15 && distFromCenter < totalCols * 0.35) {
       return darkenHex(color, 0.15)
     }
   }
 
-  // Ankle-shoe boundary
   if (mapRow >= 47 && mapRow <= 51 && (mapChar === 'O' || mapChar === 'o' || mapChar === 'K' || mapChar === 'k')) {
     if (distFromCenter > totalCols * 0.2) return darkenHex(color, 0.10)
   }
@@ -660,11 +551,8 @@ function parseMap(
       const baseColor = pal[ch]
       if (!baseColor) continue
 
-      // Apply face shading
       let color = applyFaceShading(baseColor, ch, row, col)
-      // Apply clothing zone shading
       color = applyClothingZone(color, ch, row, col, totalCols)
-      // Apply ambient occlusion
       color = applyAmbientOcclusion(color, ch, row, col, totalCols)
 
       result.push(makeVoxel(col + offsetX, -(row + offsetY), z, color, ch, row, col))
@@ -720,7 +608,6 @@ function buildVoxelModel(pal: Palette, outfitTier: number): Voxel[] {
     }
   }
 
-  // ── Nose tip: extra voxel(s) at z+1 (protruding forward) ───────────────────
   const noseZ  = MODEL_DEPTH / 2 + 1
   const noseTipColor = pal['M'] ?? ''
   const noseExtraVoxels: Voxel[] = noseTipColor ? [
@@ -728,7 +615,6 @@ function buildVoxelModel(pal: Palette, outfitTier: number): Voxel[] {
     makeVoxel(frontOffX + 16, -(11 + frontOffY), noseZ, noseTipColor),
   ] : []
 
-  // ── Ears: 3 voxels per ear at eye level ─────────────────────────────────────
   const earSkin  = pal['S'] ?? ''
   const earInner = darkenHex(earSkin, 0.12)
   const earFaceZ = MODEL_DEPTH / 2
@@ -760,6 +646,13 @@ const FOV = 300
 const CAMERA_Z = 80
 const VOXEL_SCALE = 8
 
+// Approximate row boundaries for body regions (FRONT_MAP rows):
+// Head: rows 0–16   → voxel y range after offset
+// Torso: rows 17–28
+// Hips: rows 29–33
+// Arms: x outside body width (~cols 0–7 and 25–31 in front map, frontCols=32)
+// We classify by original mapRow stored in voxel
+
 interface RenderedVoxel {
   sx: number
   sy: number
@@ -772,26 +665,81 @@ interface RenderedVoxel {
   key: string
 }
 
+interface AnimState {
+  breathPhase: number     // 0..2π
+  headYaw: number         // head yaw offset in radians
+  hipTilt: number         // hip tilt offset
+  armSwingL: number       // arm swing left
+  armSwingR: number       // arm swing right
+  spotlightOpacity: number
+  time: number            // elapsed time in seconds
+  idlePauseUntil: number  // timestamp ms when idle pause ends
+  idlePhase: number       // 0..2π for idle rotate cycle
+}
+
 function projectVoxels(
   voxels: Voxel[],
   rotY: number,
   rotXAngle: number,
   cx: number,
   cy: number,
+  anim: AnimState,
 ): RenderedVoxel[] {
   const cosY = Math.cos(rotY)
   const sinY = Math.sin(rotY)
   const cosX = Math.cos(rotXAngle)
   const sinX = Math.sin(rotXAngle)
 
+  // Head yaw rotation matrix components
+  const cosHY = Math.cos(anim.headYaw)
+  const sinHY = Math.sin(anim.headYaw)
+
   return voxels.map((v, i) => {
-    const ry = rotateY(v, cosY, sinY)
+    let vx = v.x
+    let vy = v.y
+    let vz = v.z
+
+    const row = v.mapRow ?? -1
+
+    // Breathing: chest/head rise on y (rows 0-28)
+    if (row >= 0 && row <= 28) {
+      const breathAmt = row <= 16 ? 0.45 : 0.25 // head moves more than chest
+      vy += Math.sin(anim.breathPhase) * breathAmt
+    }
+
+    // Head yaw: rotate head voxels (rows 0-16) around Y axis
+    if (row >= 0 && row <= 16) {
+      const nx = vx * cosHY - vz * sinHY
+      const nz = vx * sinHY + vz * cosHY
+      vx = nx
+      vz = nz
+    }
+
+    // Hip tilt: slight y offset for hips (rows 29-33)
+    if (row >= 29 && row <= 33) {
+      vy += anim.hipTilt * vx * 0.05
+    }
+
+    // Arm swing: x outside body center (cols 0-7 left arm, cols 25+ right arm for 32-col map)
+    const col = v.mapCol ?? 16
+    const isLeftArm  = col <= 7  && row >= 17 && row <= 28
+    const isRightArm = col >= 25 && row >= 17 && row <= 28
+    if (isLeftArm) {
+      vy += Math.sin(anim.armSwingL) * 0.3
+    }
+    if (isRightArm) {
+      vy += Math.sin(anim.armSwingR) * 0.3
+    }
+
+    // Now apply world rotations
+    const rxv: Voxel = { ...v, x: vx, y: vy, z: vz,
+      topColor: v.topColor, rightColor: v.rightColor, leftColor: v.leftColor }
+    const ry = rotateY(rxv, cosY, sinY)
     const rx = rotateX(ry, cosX, sinX)
     const perspective = FOV / (FOV + rx.z + CAMERA_Z)
     const sx = cx + rx.x * VOXEL_SCALE * perspective
     const sy = cy - rx.y * VOXEL_SCALE * perspective
 
-    // Compute three-point lighting for top and side faces
     const topLightFactor  = applyThreePointLight(0, 1, 0)
     const sideLightFactor = rx.x > 0
       ? applyThreePointLight(1, 0, 0) * 0.9
@@ -811,6 +759,43 @@ function projectVoxels(
   })
 }
 
+// ─── Particle types ────────────────────────────────────────────────────────────
+
+interface Particle {
+  id: number
+  angle: number
+  distance: number
+  color: string
+  anim: Animated.Value
+  translateX: Animated.Value
+  translateY: Animated.Value
+}
+
+const PARTICLE_COLORS = ['#FFD700', '#FFA500', '#FF6B35', '#FFE066', '#FFFACD', '#F4C430']
+
+// ─── Idle rotate speed curve ───────────────────────────────────────────────────
+// Returns angular speed (rad/frame) based on current angle mod 2π.
+// Slows near 0°, 90° (π/2), 270° (3π/2) using a sin-blend.
+
+function idleSpeed(rotY: number): number {
+  const twoPi = Math.PI * 2
+  const a = ((rotY % twoPi) + twoPi) % twoPi
+  // Pause angles: 0, π/2, 3π/2  — use cos(2a) to get minima at these points
+  // Blend between 0.001 (min) and 0.008 (max)
+  const blend = (1 + Math.cos(2 * a)) / 2   // 1 at 0,π → 0 at π/2,3π/2
+  // Actually we want slow at 0, π/2, 3π/2 — use different approach:
+  // slow zones at 0 (front), π/2 (side R), 3π/2 (side L)
+  const d0   = Math.min(Math.abs(a),       Math.abs(a - twoPi))
+  const d90  = Math.abs(a - Math.PI / 2)
+  const d270 = Math.abs(a - 3 * Math.PI / 2)
+  const minD = Math.min(d0, d90, d270)
+  // Speed: 0.002 near pause zones, 0.007 elsewhere, smooth transition over 0.3 rad
+  const t = Math.min(1, minD / 0.35)
+  return 0.002 + 0.005 * t
+}
+
+// ─── Main component ────────────────────────────────────────────────────────────
+
 export default function VoxelCharacter3D({
   skinTone = 'tone-3',
   hairColor = 'dark-brown',
@@ -821,21 +806,54 @@ export default function VoxelCharacter3D({
   const cx = SW / 2
   const cy = CH / 2
 
-  const rotYRef       = useRef(0.3)
-  const rotXRef       = useRef(-0.05)
-  const velocityYRef  = useRef(0)
-  const velocityXRef  = useRef(0)
-  const draggingRef   = useRef(false)
-  const lastDxRef     = useRef(0)
-  const lastDyRef     = useRef(0)
-  const recentDxRef   = useRef<number[]>([])
-  const recentDyRef   = useRef<number[]>([])
-  const rafRef        = useRef<number | null>(null)
-  const idleRafRef    = useRef<number | null>(null)
-  const [, setTick]   = useState(0)
-  const runInertiaRef = useRef<(() => void) | null>(null)
-  const startIdleRef  = useRef<(() => void) | null>(null)
+  // ── Rotation state ──────────────────────────────────────────────────────────
+  const rotYRef      = useRef(0.3)
+  const rotXRef      = useRef(-0.05)
+  const velocityYRef = useRef(0)
+  const velocityXRef = useRef(0)
+  const draggingRef  = useRef(false)
+  const lastDxRef    = useRef(0)
+  const lastDyRef    = useRef(0)
+  const recentDxRef  = useRef<number[]>([])
+  const recentDyRef  = useRef<number[]>([])
 
+  // ── Master rAF ─────────────────────────────────────────────────────────────
+  const masterRafRef = useRef<number | null>(null)
+  const [, setTick]  = useState(0)
+
+  // ── Animation state ref (single shared state for master loop) ───────────────
+  const animRef = useRef<AnimState>({
+    breathPhase:      0,
+    headYaw:          0,
+    hipTilt:          0,
+    armSwingL:        0,
+    armSwingR:        Math.PI * 0.6, // out of phase
+    spotlightOpacity: 0.035,
+    time:             0,
+    idlePauseUntil:   0,
+    idlePhase:        0,
+  })
+
+  // ── Idle / inertia mode ─────────────────────────────────────────────────────
+  const inertiaActiveRef = useRef(false)
+  const idleActiveRef    = useRef(false)
+
+  // ── Mount entry animation (Animated API) ───────────────────────────────────
+  const entryOpacity = useRef(new Animated.Value(0)).current
+  const entryScale   = useRef(new Animated.Value(0.85)).current
+  const spotlightAnim = useRef(new Animated.Value(0.035)).current
+
+  // ── Drag scale pulse (Animated API) ───────────────────────────────────────
+  const scaleAnim = useRef(new Animated.Value(1)).current
+
+  // ── Particles state ────────────────────────────────────────────────────────
+  const [particles, setParticles] = useState<Particle[]>([])
+  const particleIdRef = useRef(0)
+
+  // ── Outfit tier previous ref for tier-up detection ─────────────────────────
+  const prevTierRef = useRef(outfitTier)
+
+  // ── Voxel model ────────────────────────────────────────────────────────────
   const skinHex = SKIN_TONES[skinTone] ?? SKIN_TONES['tone-3']
   const hairHex = HAIR_COLORS[hairColor] ?? HAIR_COLORS['dark-brown']
 
@@ -848,64 +866,235 @@ export default function VoxelCharacter3D({
     setTick(t => t + 1)
   }, [skinHex, hairHex, outfitTier])
 
-  const redraw = useCallback(() => { setTick(t => t + 1) }, [])
-
-  const stopAll = useCallback(() => {
-    if (rafRef.current     !== null) { cancelAnimationFrame(rafRef.current);     rafRef.current     = null }
-    if (idleRafRef.current !== null) { cancelAnimationFrame(idleRafRef.current); idleRafRef.current = null }
-  }, [])
-
-  const startIdleRotate = useCallback(() => {
-    if (idleRafRef.current !== null) return
-    const step = () => {
-      if (draggingRef.current) { idleRafRef.current = null; return }
-      rotYRef.current += 0.005
-      redraw()
-      idleRafRef.current = requestAnimationFrame(step)
-    }
-    idleRafRef.current = requestAnimationFrame(step)
-  }, [redraw])
-
-  const runInertia = useCallback(() => {
-    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
-    const step = () => {
-      if (draggingRef.current) { rafRef.current = null; return }
-      velocityYRef.current *= 0.93
-      velocityXRef.current *= 0.93
-      rotYRef.current      += velocityYRef.current
-      rotXRef.current       = Math.max(-0.4, Math.min(0.3, rotXRef.current + velocityXRef.current))
-      redraw()
-      if (Math.abs(velocityYRef.current) < 0.001 && Math.abs(velocityXRef.current) < 0.001) {
-        velocityYRef.current = 0
-        velocityXRef.current = 0
-        rafRef.current       = null
-        startIdleRotate()
+  // ── Mount entry animation ──────────────────────────────────────────────────
+  useEffect(() => {
+    // Spin one full revolution over 1.2s
+    const startTime = Date.now()
+    const startAngle = rotYRef.current
+    const spinDuration = 1200
+    const spinInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime
+      if (elapsed >= spinDuration) {
+        rotYRef.current = startAngle + Math.PI * 2
+        clearInterval(spinInterval)
         return
       }
-      rafRef.current = requestAnimationFrame(step)
-    }
-    rafRef.current = requestAnimationFrame(step)
-  }, [redraw, startIdleRotate])
+      const t = elapsed / spinDuration
+      rotYRef.current = startAngle + Math.PI * 2 * t
+    }, 16)
 
+    // Fade + scale in over 600ms ease-out
+    Animated.parallel([
+      Animated.timing(entryOpacity, {
+        toValue: 1,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(entryScale, {
+        toValue: 1.0,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start()
+
+    return () => clearInterval(spinInterval)
+  }, [])
+
+  // ── Tier-up celebration ────────────────────────────────────────────────────
   useEffect(() => {
-    startIdleRotate()
-    return () => { stopAll() }
-  }, [startIdleRotate, stopAll])
+    if (outfitTier > prevTierRef.current) {
+      prevTierRef.current = outfitTier
 
+      // Spawn 8–12 particles
+      const count = 8 + Math.floor(Math.random() * 5)
+      const newParticles: Particle[] = Array.from({ length: count }, (_, i) => {
+        const angle    = (Math.PI * 2 * i) / count + Math.random() * 0.5
+        const distance = 40 + Math.random() * 60
+        const color    = PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)]
+        const animVal  = new Animated.Value(1)
+        const tx       = new Animated.Value(0)
+        const ty       = new Animated.Value(0)
+        return {
+          id: particleIdRef.current++,
+          angle,
+          distance,
+          color,
+          anim: animVal,
+          translateX: tx,
+          translateY: ty,
+        }
+      })
+
+      setParticles(newParticles)
+
+      // Animate all particles: fly out + fade over 1s
+      const animations = newParticles.map(p =>
+        Animated.parallel([
+          Animated.timing(p.anim, {
+            toValue: 0,
+            duration: 1000,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(p.translateX, {
+            toValue: Math.cos(p.angle) * p.distance,
+            duration: 1000,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(p.translateY, {
+            toValue: Math.sin(p.angle) * p.distance,
+            duration: 1000,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ])
+      )
+
+      Animated.parallel(animations).start(() => setParticles([]))
+
+      // 360° spin over 800ms
+      const startTime = Date.now()
+      const startAngle = rotYRef.current
+      const spinDuration = 800
+      const spinInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime
+        if (elapsed >= spinDuration) {
+          rotYRef.current = startAngle + Math.PI * 2
+          clearInterval(spinInterval)
+          return
+        }
+        const t = elapsed / spinDuration
+        rotYRef.current = startAngle + Math.PI * 2 * t
+      }, 16)
+
+      return () => clearInterval(spinInterval)
+    } else {
+      prevTierRef.current = outfitTier
+    }
+  }, [outfitTier])
+
+  // ── Master rAF loop ────────────────────────────────────────────────────────
+  useEffect(() => {
+    let lastTs = performance.now()
+
+    const step = (ts: number) => {
+      const dt = Math.min((ts - lastTs) / 1000, 0.05) // seconds, capped
+      lastTs = ts
+
+      const anim = animRef.current
+      anim.time += dt
+
+      // Breathing: ~5s cycle
+      anim.breathPhase += dt * (Math.PI * 2 / 5)
+
+      // Head yaw: ±3° (0.052 rad) slow look ~8s cycle
+      anim.headYaw = Math.sin(anim.time * (Math.PI * 2 / 8)) * 0.052
+
+      // Hip tilt: ±1.2° weight shift ~3s cycle
+      anim.hipTilt = Math.sin(anim.time * (Math.PI * 2 / 3)) * 0.021
+
+      // Arm swing: each arm on ~2.5s cycle, out of phase
+      anim.armSwingL += dt * (Math.PI * 2 / 2.5)
+      anim.armSwingR += dt * (Math.PI * 2 / 2.5)
+
+      // Spotlight pulse: 0.02–0.05 on 4s cycle
+      anim.spotlightOpacity = 0.035 + Math.sin(anim.time * (Math.PI * 2 / 4)) * 0.015
+      // Extra boost while dragging
+      const effectiveSpotlight = draggingRef.current
+        ? Math.min(0.07, anim.spotlightOpacity + 0.02)
+        : anim.spotlightOpacity
+
+      // Update Animated.Value for spotlight (bridge to SVG stop opacity)
+      spotlightAnim.setValue(effectiveSpotlight)
+
+      // Idle or inertia rotation
+      if (!draggingRef.current) {
+        if (inertiaActiveRef.current) {
+          velocityYRef.current *= 0.95
+          velocityXRef.current *= 0.95
+          rotYRef.current      += velocityYRef.current
+          rotXRef.current       = Math.max(-0.4, Math.min(0.3, rotXRef.current + velocityXRef.current))
+
+          if (Math.abs(velocityYRef.current) < 0.001 && Math.abs(velocityXRef.current) < 0.001) {
+            velocityYRef.current  = 0
+            velocityXRef.current  = 0
+            inertiaActiveRef.current = false
+            idleActiveRef.current    = true
+          }
+        } else if (idleActiveRef.current) {
+          const now = Date.now()
+          if (now < anim.idlePauseUntil) {
+            // Pausing — no rotation
+          } else {
+            const speed = idleSpeed(rotYRef.current)
+            rotYRef.current += speed
+
+            // Check if we just crossed a pause angle
+            const twoPi = Math.PI * 2
+            const a = ((rotYRef.current % twoPi) + twoPi) % twoPi
+            const d0   = Math.min(Math.abs(a),       Math.abs(a - twoPi))
+            const d90  = Math.abs(a - Math.PI / 2)
+            const d270 = Math.abs(a - 3 * Math.PI / 2)
+            const minD = Math.min(d0, d90, d270)
+
+            if (minD < speed * 1.5) {
+              // At a pause zone — determine pause duration
+              const pauseMs = d0 < 0.05 ? 1500 : 500
+              anim.idlePauseUntil = now + pauseMs
+            }
+          }
+        }
+      }
+
+      setTick(t => t + 1)
+      masterRafRef.current = requestAnimationFrame(step)
+    }
+
+    idleActiveRef.current = true
+    masterRafRef.current = requestAnimationFrame(step)
+
+    return () => {
+      if (masterRafRef.current !== null) {
+        cancelAnimationFrame(masterRafRef.current)
+        masterRafRef.current = null
+      }
+    }
+  }, [])
+
+  // ── Pan responder ──────────────────────────────────────────────────────────
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder:  () => true,
       onPanResponderGrant: () => {
-        draggingRef.current   = true
-        lastDxRef.current     = 0
-        lastDyRef.current     = 0
-        recentDxRef.current   = []
-        recentDyRef.current   = []
-        if (rafRef.current     !== null) { cancelAnimationFrame(rafRef.current);     rafRef.current     = null }
-        if (idleRafRef.current !== null) { cancelAnimationFrame(idleRafRef.current); idleRafRef.current = null }
-        velocityYRef.current  = 0
-        velocityXRef.current  = 0
+        draggingRef.current      = true
+        inertiaActiveRef.current = false
+        idleActiveRef.current    = false
+        lastDxRef.current        = 0
+        lastDyRef.current        = 0
+        recentDxRef.current      = []
+        recentDyRef.current      = []
+        velocityYRef.current     = 0
+        velocityXRef.current     = 0
+
+        // Scale pulse 1.0→1.02→1.0
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 1.02,
+            duration: 100,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 1.0,
+            duration: 200,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]).start()
       },
       onPanResponderMove: (_, gs) => {
         const dy = (gs.dx - lastDxRef.current) * 0.012
@@ -918,51 +1107,61 @@ export default function VoxelCharacter3D({
         if (recentDyRef.current.length > 3) recentDyRef.current.shift()
         rotYRef.current += dy
         rotXRef.current  = Math.max(-0.4, Math.min(0.3, rotXRef.current + dx))
-        setTick(t => t + 1)
       },
       onPanResponderRelease: () => {
-        draggingRef.current  = false
+        draggingRef.current = false
         const ry = recentDxRef.current
         const rx = recentDyRef.current
-        velocityYRef.current = ry.length > 0 ? ry.reduce((a, b) => a + b, 0) / ry.length : 0
-        velocityXRef.current = rx.length > 0 ? rx.reduce((a, b) => a + b, 0) / rx.length : 0
-        runInertiaRef.current?.()
+        velocityYRef.current     = ry.length > 0 ? ry.reduce((a, b) => a + b, 0) / ry.length : 0
+        velocityXRef.current     = rx.length > 0 ? rx.reduce((a, b) => a + b, 0) / rx.length : 0
+        inertiaActiveRef.current = true
+        idleActiveRef.current    = false
       },
       onPanResponderTerminate: () => {
-        draggingRef.current  = false
-        velocityYRef.current = 0
-        velocityXRef.current = 0
-        startIdleRef.current?.()
+        draggingRef.current      = false
+        velocityYRef.current     = 0
+        velocityXRef.current     = 0
+        inertiaActiveRef.current = false
+        idleActiveRef.current    = true
       },
     }),
   ).current
 
-  runInertiaRef.current = runInertia
-  startIdleRef.current  = startIdleRotate
-
-  const rendered = projectVoxels(voxelsRef.current, rotYRef.current, rotXRef.current, cx, cy)
+  // ── Render ─────────────────────────────────────────────────────────────────
+  const rendered = projectVoxels(
+    voxelsRef.current, rotYRef.current, rotXRef.current, cx, cy, animRef.current
+  )
   rendered.sort((a, b) => b.depth - a.depth)
 
-  // Background spotlight: chest height is roughly 38% down from top
   const spotlightCy = CH * 0.38
   const groundY = CH * 0.92
 
+  // Compute spotlight opacity for SVG (using current anim state)
+  const slOpacity = animRef.current.spotlightOpacity
+  const slDragBoost = draggingRef.current ? 0.02 : 0
+  const slFinal = Math.min(0.18, slOpacity + slDragBoost)
+
   return (
-    <View style={{ width: SW, height: CH }} {...panResponder.panHandlers}>
+    <Animated.View
+      style={{
+        width: SW,
+        height: CH,
+        opacity: entryOpacity,
+        transform: [{ scale: Animated.multiply(entryScale, scaleAnim) }],
+      }}
+      {...panResponder.panHandlers}
+    >
       <Svg width={SW} height={CH}>
         <Defs>
-          {/* Spotlight oval at chest height */}
           <RadialGradient id="spotlight" cx="50%" cy="50%" rx="50%" ry="50%" fx="50%" fy="50%">
-            <Stop offset="0%"   stopColor="#FFFFFF" stopOpacity="0.18" />
-            <Stop offset="60%"  stopColor="#D0E8FF" stopOpacity="0.07" />
+            <Stop offset="0%"   stopColor="#FFFFFF" stopOpacity={slFinal} />
+            <Stop offset="60%"  stopColor="#D0E8FF" stopOpacity={slFinal * 0.38} />
             <Stop offset="100%" stopColor="#000000" stopOpacity="0.00" />
           </RadialGradient>
-          {/* Ground reflection blur */}
           <RadialGradient id="groundReflect" cx="50%" cy="30%" rx="50%" ry="30%" fx="50%" fy="30%">
             <Stop offset="0%"   stopColor="#8899BB" stopOpacity="0.22" />
             <Stop offset="100%" stopColor="#000000" stopOpacity="0.00" />
           </RadialGradient>
-          {/* Right-edge rim light gradient */}
           <LinearGradient id="rimLight" x1="100%" y1="0%" x2="0%" y2="0%">
             <Stop offset="0%"   stopColor="#3366AA" stopOpacity="0.18" />
             <Stop offset="30%"  stopColor="#224488" stopOpacity="0.06" />
@@ -970,7 +1169,6 @@ export default function VoxelCharacter3D({
           </LinearGradient>
         </Defs>
 
-        {/* Background spotlight oval at chest height */}
         <Ellipse
           cx={cx}
           cy={spotlightCy}
@@ -979,7 +1177,6 @@ export default function VoxelCharacter3D({
           fill="url(#spotlight)"
         />
 
-        {/* Ground reflection ellipse */}
         <Ellipse
           cx={cx}
           cy={groundY}
@@ -988,7 +1185,6 @@ export default function VoxelCharacter3D({
           fill="url(#groundReflect)"
         />
 
-        {/* Right-edge rim light strip */}
         <Rect
           x={SW * 0.60}
           y={0}
@@ -997,7 +1193,6 @@ export default function VoxelCharacter3D({
           fill="url(#rimLight)"
         />
 
-        {/* Voxel character */}
         {rendered.map((v) => {
           const { sx, sy, s, topColor, frontColor, sideColor, sideRight } = v
           const half  = s / 2
@@ -1012,6 +1207,27 @@ export default function VoxelCharacter3D({
           )
         })}
       </Svg>
-    </View>
+
+      {/* Tier-up particles */}
+      {particles.map(p => (
+        <Animated.View
+          key={p.id}
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            width: 8,
+            height: 8,
+            left: cx - 4,
+            top: cy - 4,
+            backgroundColor: p.color,
+            opacity: p.anim,
+            transform: [
+              { translateX: p.translateX },
+              { translateY: p.translateY },
+            ],
+          }}
+        />
+      ))}
+    </Animated.View>
   )
 }
