@@ -19,7 +19,6 @@ import { useCharacterStatus, useUpdateCharacterAppearance } from "@/hooks/useApi
 import type { DimensionLevel, DimensionDetail, CharacterVisualState } from "@/lib/characterEngine";
 import { computeCharacterState } from "@/lib/characterEngine";
 import { CharacterRenderer } from "@/components/character";
-import VoxelCharacter from "../../components/character/VoxelCharacter3D";
 
 const PREMIUM_BG = "#07071A";
 
@@ -1188,20 +1187,9 @@ export default function CharacterStatusScreen() {
             {/* Character voxel — free rotation via drag */}
             <View style={styles.characterStageWrap}>
               <Animated.View style={[styles.characterWrap, characterAnimStyle]}>
-                {(() => {
-                  const financeDim = dims.find(d => d.id === "finance");
-                  const financeLevel = financeDim?.level ?? 0;
-                  const outfitTier = financeLevel >= 9 ? 4 :
-                                     financeLevel >= 7 ? 3 :
-                                     financeLevel >= 4 ? 2 : 1;
-                  return (
-                    <VoxelCharacter
-                      skinTone={currentSkinTone}
-                      hairColor={currentHairColor}
-                      outfitTier={outfitTier}
-                    />
-                  );
-                })()}
+                {characterVS && (
+                  <CharacterRenderer visualState={characterVS} size="full" />
+                )}
                 <Pressable
                   style={{
                     position: "absolute", bottom: 0, right: 0,
