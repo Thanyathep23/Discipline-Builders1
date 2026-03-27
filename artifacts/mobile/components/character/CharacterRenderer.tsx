@@ -93,33 +93,41 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
   const bodyType: BodyType = vs.bodyType ?? "male";
   const isMale = bodyType === "male";
 
-  const skin = SKIN[vs.skinTone] ?? SKIN["tone-3"];
-  const irisC = IRIS_COLORS[vs.skinTone] ?? IRIS_COLORS["tone-3"];
-  const outfit = OUTFITS[vs.outfitTier] ?? OUTFITS.starter;
-  const hairC = HAIR_COLORS[vs.hairColor] ?? HAIR_COLORS["black"];
-  const groomingLevel = GROOMING[vs.refinementStage] ?? 0;
-  const faceShape = vs.faceShape ?? "oval";
-  const eyeShape = vs.eyeShape ?? "almond";
+  const derived = useMemo(() => {
+    const skin = SKIN[vs.skinTone] ?? SKIN["tone-3"];
+    const irisC = IRIS_COLORS[vs.skinTone] ?? IRIS_COLORS["tone-3"];
+    const outfit = OUTFITS[vs.outfitTier] ?? OUTFITS.starter;
+    const hairC = HAIR_COLORS[vs.hairColor] ?? HAIR_COLORS["black"];
+    const groomingLevel = GROOMING[vs.refinementStage] ?? 0;
+    const faceShape = vs.faceShape ?? "oval";
+    const eyeShape = vs.eyeShape ?? "almond";
+    const po = POSTURE[vs.postureStage] ?? POSTURE.neutral;
+    const headCY = po.headCY;
+    const torsoTopY = po.torsoTopY;
+    const shoulderW = isMale ? po.shoulderW : po.shoulderW - 8;
+    const wf = po.widthFactor;
+    const fc = headCY;
+    const headRX = faceShape === "round" ? 21 : 20;
+    const headRY = faceShape === "round" ? 22 : 21;
+    const hipLX = isMale ? 28 : 25;
+    const hipRX = isMale ? 92 : 95;
+    const shirtS = outfit.shirt;
+    const pantsP = outfit.pants;
+    const dims = SIZE_MAP[size] ?? SIZE_MAP.large;
+    return {
+      skin, irisC, outfit, hairC, groomingLevel, faceShape, eyeShape,
+      headCY, torsoTopY, shoulderW, wf, fc, headRX, headRY,
+      hipLX, hipRX, shirtS, pantsP, w: dims.w, h: dims.h,
+    };
+  }, [vs.skinTone, vs.outfitTier, vs.hairColor, vs.refinementStage, vs.faceShape, vs.eyeShape, vs.postureStage, isMale, size]);
 
-  const po = POSTURE[vs.postureStage] ?? POSTURE.neutral;
-  const headCY = po.headCY;
-  const torsoTopY = po.torsoTopY;
-  const shoulderW = isMale ? po.shoulderW : po.shoulderW - 8;
-  const wf = po.widthFactor;
+  const {
+    skin, irisC, hairC, groomingLevel, faceShape, eyeShape,
+    headCY, torsoTopY, shoulderW, wf, fc, headRX, headRY,
+    hipLX, hipRX, shirtS, pantsP, w, h,
+  } = derived;
 
-  const fc = headCY;
-  const headRX = faceShape === "round" ? 21 : 20;
-  const headRY = faceShape === "round" ? 22 : 21;
-
-  const hipLX = isMale ? 28 : 25;
-  const hipRX = isMale ? 92 : 95;
-
-  const { w, h } = SIZE_MAP[size] ?? SIZE_MAP.large;
-
-  const shirtS = outfit.shirt;
-  const pantsP = outfit.pants;
-
-  const gid = (name: string) => `${uid}${name}`;
+  const gid = useMemo(() => (name: string) => `${uid}${name}`, [uid]);
 
   const defsEl = useMemo(() => (
     <Defs>
