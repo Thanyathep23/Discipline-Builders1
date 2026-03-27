@@ -34,7 +34,7 @@ interface OutfitPalette { shirt: ShirtPalette; pants: PantsPalette; }
 
 const OUTFITS: Record<OutfitTier, OutfitPalette> = {
   starter: {
-    shirt: { highlight: "#FAFAFA", mid: "#F0F0F0", base: "#E8E8E8", shadow: "#D0D0D0", deepShadow: "#B0B0B0", cuff: "#F4F4F4" },
+    shirt: { highlight: "#F8F6F0", mid: "#EEEAE0", base: "#E8E4D8", shadow: "#C4C0B4", deepShadow: "#A8A498", cuff: "#F4F0E8" },
     pants: { base: "#161628", mid: "#1E1E36", deep: "#0E0E1C" },
   },
   rising: {
@@ -146,16 +146,22 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         <Stop offset="0%" stopColor={skin.light} />
         <Stop offset="100%" stopColor={skin.base} />
       </RadialGradient>
-      <LinearGradient id={gid("shirtBody")} x1="0" y1="0" x2="1" y2="0">
-        <Stop offset="0%" stopColor={shirtS.shadow} />
-        <Stop offset="15%" stopColor={shirtS.mid} />
-        <Stop offset="50%" stopColor={shirtS.highlight} />
-        <Stop offset="85%" stopColor={shirtS.mid} />
-        <Stop offset="100%" stopColor={shirtS.shadow} />
+      <LinearGradient id={gid("shirtMain")} x1="20%" y1="0%" x2="80%" y2="100%">
+        <Stop offset="0%" stopColor={shirtS.highlight} />
+        <Stop offset="40%" stopColor={shirtS.base} />
+        <Stop offset="100%" stopColor={shirtS.deepShadow} />
       </LinearGradient>
-      <LinearGradient id={gid("shirtFold")} x1="0" y1="0" x2="0" y2="1">
-        <Stop offset="0%" stopColor="transparent" />
-        <Stop offset="100%" stopColor={shirtS.deepShadow} stopOpacity="0.4" />
+      <LinearGradient id={gid("sleeveShadL")} x1="0" y1="0" x2="1" y2="0">
+        <Stop offset="0%" stopColor="#000000" stopOpacity="0.18" />
+        <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
+      </LinearGradient>
+      <LinearGradient id={gid("sleeveShadR")} x1="1" y1="0" x2="0" y2="0">
+        <Stop offset="0%" stopColor="#000000" stopOpacity="0.18" />
+        <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
+      </LinearGradient>
+      <LinearGradient id={gid("foldShadow")} x1="0" y1="0" x2="0" y2="1">
+        <Stop offset="0%" stopColor="#000000" stopOpacity="0.05" />
+        <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
       </LinearGradient>
       <LinearGradient id={gid("pantsGrad")} x1="0" y1="0" x2="1" y2="0">
         <Stop offset="0%" stopColor={pantsP.deep} />
@@ -896,12 +902,12 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         {/* 3. Shoes */}
         {shoesEl}
 
-        {/* 4. Legs / pants with gradients */}
-        <Path d={`M${hipLX} 194 L52 194 L54 318 L${hipLX - 4} 318 Z`} fill={`url(#${gid("pantsGrad")})`} />
-        <Path d={`M68 194 L${hipRX} 194 L${hipRX + 4} 318 L66 318 Z`} fill={`url(#${gid("pantsGrad")})`} />
-        <Path d={`M36 194 Q60 208 84 194`} fill={`url(#${gid("pantsGrad")})`} />
-        <Line x1="39" y1="200" x2="37" y2="314" stroke={pantsP.deep} strokeWidth="1.2" opacity="0.6" />
-        <Line x1="81" y1="200" x2="83" y2="314" stroke={pantsP.deep} strokeWidth="1.2" opacity="0.6" />
+        {/* 4. Legs / slim premium trousers */}
+        <Path d="M36,196 Q36,200 34,316 L54,316 Q56,200 56,196 Z" fill={`url(#${gid("pantsGrad")})`} />
+        <Path d="M64,196 Q64,200 66,316 L86,316 Q84,200 84,196 Z" fill={`url(#${gid("pantsGrad")})`} />
+        <Path d="M36,196 Q60,208 84,196 L84,210 Q60,220 36,210 Z" fill={`url(#${gid("pantsGrad")})`} />
+        <Line x1="45" y1="206" x2="43" y2="312" stroke={pantsP.deep} strokeWidth="0.8" opacity="0.5" />
+        <Line x1="75" y1="206" x2="77" y2="312" stroke={pantsP.deep} strokeWidth="0.8" opacity="0.5" />
 
         {/* 5. Belt + buckle */}
         <Rect x="26" y="187" width="68" height="9" rx="2" fill="#3D2810" />
@@ -910,22 +916,20 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         <Rect x="53" y="188" width="14" height="7" rx="1.5" fill="none" stroke="#C8A030" strokeWidth="1.5" />
         <Line x1="60" y1="188" x2="60" y2="195" stroke="#C8A030" strokeWidth="1" />
 
-        {/* 6. Torso / shirt with gradient — tapered from shoulders to waist */}
-        <Path d={`M${armLX} ${torsoTopY} L${armRX} ${torsoTopY} L${armRX - 4} 188 L${armLX + 4} 188 Z`} fill={`url(#${gid("shirtBody")})`} />
-        <Path d={`M${armLX} ${torsoTopY} L${armRX} ${torsoTopY} L${armRX - 4} 188 L${armLX + 4} 188 Z`} fill={`url(#${gid("shirtFold")})`} />
+        {/* 6. Unified shirt silhouette — one path for torso + arms */}
+        <Path d="M52,78 Q48,80 38,86 Q24,90 16,96 L14,96 Q10,98 10,102 L10,174 Q10,180 16,182 L22,184 Q26,184 28,180 L30,172 L32,104 L36,100 L88,100 L90,104 L92,172 L94,180 Q96,184 100,184 L106,182 Q112,180 112,174 L112,102 Q112,98 108,96 L104,96 Q96,90 82,86 Q72,80 68,78 Q64,76 60,76 Q56,76 52,78 Z" fill={`url(#${gid("shirtMain")})`} />
 
-        {/* 7. Outerwear */}
+        {/* 7. Shirt shadow overlays (3D depth) */}
+        <Path d="M10,102 L32,104 L30,172 L10,174 Z" fill={`url(#${gid("sleeveShadL")})`} />
+        <Path d="M112,102 L90,104 L92,172 L112,174 Z" fill={`url(#${gid("sleeveShadR")})`} />
+        <Ellipse cx="32" cy="112" rx="8" ry="18" fill="#000000" opacity="0.12" />
+        <Ellipse cx="88" cy="112" rx="8" ry="18" fill="#000000" opacity="0.12" />
+        <Rect x="57" y="100" width="6" height="80" fill={`url(#${gid("foldShadow")})`} />
+
+        {/* 8. Outerwear */}
         {outerwearEl}
 
-        {/* 8. Left + right arms — connected at shoulder, no gap */}
-        <Path d={`M${armLX} ${torsoTopY} L${armLX - 18} ${torsoTopY + 4} L${armLX - 20} 172 L${armLX - 4} 176 L${armLX + 4} ${torsoTopY + 22} Z`} fill={`url(#${gid("shirtBody")})`} />
-        <Path d={`M${armRX} ${torsoTopY} L${armRX + 18} ${torsoTopY + 4} L${armRX + 20} 172 L${armRX + 4} 176 L${armRX - 4} ${torsoTopY + 22} Z`} fill={`url(#${gid("shirtBody")})`} />
-
-        {/* 9. Armpit fold shadows */}
-        <Ellipse cx={String(armLX + 2)} cy={String(torsoTopY + 12)} rx="6" ry="10" fill={shirtS.deepShadow} opacity="0.25" />
-        <Ellipse cx={String(armRX - 2)} cy={String(torsoTopY + 12)} rx="6" ry="10" fill={shirtS.deepShadow} opacity="0.25" />
-
-        {/* 10. Chain / necklace (under collar) */}
+        {/* 9. Chain / necklace (under collar) */}
         {vs.equippedAccessoryStyle === "chain" && (
           <G>
             <Path d="M51 88 Q48 100 50 112 Q54 122 60 126 Q66 122 70 112 Q72 100 69 88" stroke="#8A6010" strokeWidth="4" fill="none" opacity="0.3" />
@@ -937,31 +941,21 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
           </G>
         )}
 
-        {/* 11. Collar — bridges head and torso, wider than neck */}
-        <Path d={`M60 ${fc + headRY - 2} L${armRX - 6} ${torsoTopY - 2} L${armRX - 6} ${torsoTopY + 2} L60 ${torsoTopY} L${armLX + 6} ${torsoTopY + 2} L${armLX + 6} ${torsoTopY - 2} Z`} fill={shirtS.deepShadow} opacity="0.35" />
-        <Path d={`M60 ${fc + headRY - 2} L${armRX - 6} ${torsoTopY - 2} L${armRX - 4} ${torsoTopY + 4} L60 ${torsoTopY + 2} Z`} fill={shirtS.highlight} />
-        <Path d={`M60 ${fc + headRY - 2} L${armLX + 6} ${torsoTopY - 2} L${armLX + 4} ${torsoTopY + 4} L60 ${torsoTopY + 2} Z`} fill={shirtS.highlight} />
-        <Circle cx="60" cy={String(torsoTopY)} r="2.5" fill={shirtS.mid} stroke={shirtS.shadow} strokeWidth="0.5" />
+        {/* 10. Spread collar — two triangular blades */}
+        <Path d="M44,98 L60,102 L76,98 Q78,104 74,106 L60,104 L46,106 Q42,104 44,98 Z" fill="#00000025" />
+        <Path d="M60,78 L76,90 Q78,96 74,100 L60,96 Z" fill={shirtS.highlight} stroke={shirtS.shadow} strokeWidth="0.5" />
+        <Path d="M60,78 L44,90 Q42,96 46,100 L60,96 Z" fill={shirtS.highlight} stroke={shirtS.shadow} strokeWidth="0.5" />
 
-        {/* 12. Shirt construction details */}
-        <Rect x="58.5" y={String(torsoTopY + 4)} width="3" height="88" rx="0" fill={shirtS.shadow} opacity="0.15" />
-        <Circle cx="60" cy={String(torsoTopY + 18)} r="2.2" fill={shirtS.mid} stroke={shirtS.shadow} strokeWidth="0.4" />
-        <Circle cx="60" cy={String(torsoTopY + 36)} r="2.2" fill={shirtS.mid} stroke={shirtS.shadow} strokeWidth="0.4" />
-        <Circle cx="60" cy={String(torsoTopY + 54)} r="2.2" fill={shirtS.mid} stroke={shirtS.shadow} strokeWidth="0.4" />
-        <Path d={`M26 187 Q40 184 60 185 Q80 184 94 187`} stroke={shirtS.shadow} strokeWidth="1" fill="none" opacity="0.4" />
-        <Path d={`M${armLX} ${torsoTopY} Q${armLX + 6} ${torsoTopY + 2} ${armLX + 10} ${torsoTopY + 10}`} stroke={shirtS.shadow} strokeWidth="1" fill="none" opacity="0.5" />
-        <Path d={`M${armRX} ${torsoTopY} Q${armRX - 6} ${torsoTopY + 2} ${armRX - 10} ${torsoTopY + 10}`} stroke={shirtS.shadow} strokeWidth="1" fill="none" opacity="0.5" />
+        {/* 11. Shirt construction details */}
+        <Rect x="58.5" y="100" width="3" height="82" rx="0" fill={shirtS.shadow} opacity="0.15" />
+        <Circle cx="60" cy="114" r="2.2" fill={shirtS.mid} stroke={shirtS.shadow} strokeWidth="0.4" />
+        <Circle cx="60" cy="132" r="2.2" fill={shirtS.mid} stroke={shirtS.shadow} strokeWidth="0.4" />
+        <Circle cx="60" cy="150" r="2.2" fill={shirtS.mid} stroke={shirtS.shadow} strokeWidth="0.4" />
+        <Path d="M26,187 Q40,184 60,185 Q80,184 94,187" stroke={shirtS.shadow} strokeWidth="1" fill="none" opacity="0.4" />
 
-        {/* Sleeve cuffs */}
-        <Path d={`M${armLX - 20} 168 Q${armLX - 20} 176 ${armLX - 14} 178 L${armLX - 4} 178 Q${armLX} 176 ${armLX} 168`} fill={shirtS.cuff} stroke={shirtS.shadow} strokeWidth="0.5" />
-        <Path d={`M${armRX + 20} 168 Q${armRX + 20} 176 ${armRX + 14} 178 L${armRX + 4} 178 Q${armRX} 176 ${armRX} 168`} fill={shirtS.cuff} stroke={shirtS.shadow} strokeWidth="0.5" />
-        <Circle cx={String(armLX - 12)} cy="174" r="1.5" fill={shirtS.mid} />
-        <Circle cx={String(armRX + 12)} cy="174" r="1.5" fill={shirtS.mid} />
-
-        {/* 13. Neck — short connection between head and collar */}
-        <Rect x="54" y={String(fc + headRY - 6)} width="12" height="10" rx="3" fill={`url(#${gid("skinBody")})`} />
-        <Path d={`M54 ${fc + headRY - 2} Q54 ${fc + headRY + 2} 55 ${fc + headRY + 3}`} stroke={skin.deep} strokeWidth="0.6" fill="none" opacity="0.4" />
-        <Path d={`M66 ${fc + headRY - 2} Q66 ${fc + headRY + 2} 65 ${fc + headRY + 3}`} stroke={skin.deep} strokeWidth="0.6" fill="none" opacity="0.4" />
+        {/* 12. Neck — short natural connection between head and collar */}
+        <Path d={`M54,${fc + headRY} Q52,${fc + headRY + 6} 54,${fc + headRY + 10} L66,${fc + headRY + 10} Q68,${fc + headRY + 6} 66,${fc + headRY} Z`} fill={`url(#${gid("skinBody")})`} />
+        <Path d={`M62,${fc + headRY} Q64,${fc + headRY + 6} 64,${fc + headRY + 10}`} stroke={skin.deep} strokeWidth="0.6" fill="none" opacity="0.3" />
 
         {/* 14. Head base + ears — ears use skinBody gradient */}
         <Ellipse cx="60" cy={String(fc)} rx={String(headRX)} ry={String(headRY)} fill={`url(#${gid("skinFace")})`} />
@@ -998,18 +992,19 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         {/* 22. Hair front layer */}
         {hairEl.front}
 
-        {/* 23. Hands with finger hints */}
-        <Path d={`M${armLX - 20} 174 Q${armLX - 22} 178 ${armLX - 21} 184 Q${armLX - 18} 190 ${armLX - 10} 188 Q${armLX - 6} 186 ${armLX - 6} 182 L${armLX - 10} 176 Z`} fill={`url(#${gid("skinHand")})`} />
-        <Path d={`M${armLX - 19} 179 Q${armLX - 20} 175 ${armLX - 18} 174`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
-        <Path d={`M${armLX - 15} 181 Q${armLX - 16} 176 ${armLX - 14} 175`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
-        <Path d={`M${armLX - 11} 181 Q${armLX - 11} 176 ${armLX - 10} 176`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
-        <Ellipse cx={String(armLX - 21)} cy="182" rx="2.5" ry="4" fill={skin.base} />
+        {/* 23. Left hand — relaxed open with fingers */}
+        <Path d="M10,178 Q6,182 6,190 Q8,198 16,198 Q22,196 24,190 L24,180 Z" fill={`url(#${gid("skinHand")})`} />
+        <Path d="M6,186 Q2,184 2,180 Q4,176 8,178 Z" fill={skin.base} />
+        <Path d="M8,178 Q6,172 10,170 Q14,172 14,178" fill={skin.base} />
+        <Path d="M13,177 Q12,170 16,169 Q20,170 20,177" fill={skin.base} />
+        <Path d="M19,179 Q20,174 23,176 Q25,180 23,184" fill={skin.base} />
 
-        <Path d={`M${armRX + 20} 174 Q${armRX + 22} 178 ${armRX + 21} 184 Q${armRX + 18} 190 ${armRX + 10} 188 Q${armRX + 6} 186 ${armRX + 6} 182 L${armRX + 10} 176 Z`} fill={`url(#${gid("skinHand")})`} />
-        <Path d={`M${armRX + 19} 179 Q${armRX + 20} 175 ${armRX + 18} 174`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
-        <Path d={`M${armRX + 15} 181 Q${armRX + 16} 176 ${armRX + 14} 175`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
-        <Path d={`M${armRX + 11} 181 Q${armRX + 11} 176 ${armRX + 10} 176`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
-        <Ellipse cx={String(armRX + 21)} cy="182" rx="2.5" ry="4" fill={skin.base} />
+        {/* Right hand — relaxed open with fingers (mirrored) */}
+        <Path d="M110,178 Q114,182 114,190 Q112,198 104,198 Q98,196 96,190 L96,180 Z" fill={`url(#${gid("skinHand")})`} />
+        <Path d="M114,186 Q118,184 118,180 Q116,176 112,178 Z" fill={skin.base} />
+        <Path d="M112,178 Q114,172 110,170 Q106,172 106,178" fill={skin.base} />
+        <Path d="M107,177 Q108,170 104,169 Q100,170 100,177" fill={skin.base} />
+        <Path d="M101,179 Q100,174 97,176 Q95,180 97,184" fill={skin.base} />
 
         {/* 24. Watch */}
         {watchEl}
@@ -1055,7 +1050,7 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
             <Line x1="55.5" y1="106" x2="58.5" y2="106" stroke="#C0C0C8" strokeWidth="0.3" opacity="0.4" />
             <Line x1="55.5" y1="108" x2="58.5" y2="108" stroke="#C0C0C8" strokeWidth="0.3" opacity="0.3" />
             <Line x1="55.5" y1="110" x2="58.5" y2="110" stroke="#C0C0C8" strokeWidth="0.3" opacity="0.25" />
-            <Rect x={String(armLX - 18)} y="168" width="14" height="6" rx="2.5" fill="#6B4226" opacity="0.82" />
+            <Rect x="8" y="168" width="14" height="6" rx="2.5" fill="#6B4226" opacity="0.82" />
           </G>
         )}
       </Svg>
