@@ -84,10 +84,10 @@ interface Props {
   visualState: CharacterVisualState;
   size?: "small" | "medium" | "large" | "full";
   showShadow?: boolean;
-  view?: CharacterView;
+  view?: CharacterView; // Currently front-only rendering; reserved for future side/back views
 }
 
-function CharacterRendererInner({ visualState, size = "large", showShadow = true, view = "front" }: Props) {
+function CharacterRendererInner({ visualState, size = "large", showShadow = true, view: _view = "front" }: Props) {
   const vs = visualState;
   const bodyType: BodyType = vs.bodyType ?? "male";
   const isMale = bodyType === "male";
