@@ -1,0 +1,318 @@
+TASK: Complete rebuild of the character renderer in my Life RPG app.
+The current character looks extremely bad — disproportionate floating limbs, 
+no clothing detail visible, unprofessional.
+Replace it entirely with a premium flat illustration style character.
+
+FILE TO REPLACE: artifacts/mobile/components/character/CharacterRenderer.tsx
+Replace the ENTIRE file content.
+
+═══════════════════════════════════════════
+DESIGN SPECIFICATION — FLAT ILLUSTRATION PREMIUM
+═══════════════════════════════════════════
+
+Art style reference: Apple Memoji × Notion avatar × premium lifestyle app
+- Clean flat vector shapes with subtle shadows (no gradients except skin)
+- Realistic body proportions: head-to-body ratio 1:6.5
+- Crisp clothing silhouettes — collar, cuffs, hems clearly visible
+- Accessories render at a scale where you can clearly see what they are
+- Dark premium background compatibility (body has visible outline/shadow)
+
+SVG CANVAS:
+  ViewBox: "0 0 120 360"
+  Background: transparent
+
+═══════════════════════════════════════════
+EXACT BODY PROPORTIONS (use these coordinates)
+═══════════════════════════════════════════
+
+HEAD: Ellipse cx=60 cy=50, rx=24, ry=26
+EARS: Left ellipse cx=36 cy=50 rx=5 ry=7, Right ellipse cx=84 cy=50 rx=5 ry=7
+NECK: Rect x=52 y=74 width=16 height=18 rx=3
+SHOULDERS: Trapezoid from (22,92) across to (98,92), widening to shoulder width 76px
+
+TORSO (shirt body):
+  Top edge: y=92, width=76, centered at x=60
+  Waist edge: y=188, width=60
+  Shape: trapezoid (wider at shoulders, slight taper to waist)
+  Use Path: M 22,92 L 98,92 L 90,188 L 30,188 Z
+
+LEFT ARM: Path M 22,92 L 10,92 L 6,172 L 22,176 Z (tapers slightly)
+RIGHT ARM: Path M 98,92 L 110,92 L 114,172 L 98,176 Z
+
+LEFT HAND: Ellipse cx=14 cy=180 rx=9 ry=7
+RIGHT HAND: Ellipse cx=106 cy=180 rx=9 ry=7
+
+BELT: Rect x=30 y=186 width=60 height=10 rx=2
+BELT BUCKLE: Rect x=53 y=187 width=14 height=8 rx=1.5
+
+LEFT LEG: Rect x=32 y=194 width=24 height=112 rx=4
+RIGHT LEG: Rect x=64 y=194 width=24 height=112 rx=4
+CROTCH JOIN: Rect x=42 y=194 width=36 height=18 rx=0 (fills gap between legs at top)
+
+LEFT SHOE: Path M 24,304 Q 24,318 36,320 L 62,320 Q 66,320 66,314 L 66,305 Z
+RIGHT SHOE: Path M 56,304 L 56,314 Q 56,320 60,320 L 88,320 Q 96,320 96,314 L 96,304 Z
+
+═══════════════════════════════════════════
+FACE LAYER SYSTEM (renders on top of head)
+═══════════════════════════════════════════
+
+FACE SHADOW (bottom of head for depth):
+  Ellipse cx=60 cy=68 rx=20 ry=6, fill=skinShadow color, opacity 0.25
+
+EYEBROWS:
+  "oval" / "round" face: soft arched paths
+    Left: M 43,35 Q 50,31 57,35
+    Right: M 63,35 Q 70,31 77,35
+  "square" face: straighter brows
+    Left: M 43,35 Q 50,33 57,35
+    Right: M 63,35 Q 70,33 77,35
+  stroke: hairColor, strokeWidth 2.2, strokeLinecap "round", fill none
+
+EYES — based on eyeShape prop:
+  "round":
+    Left white: Ellipse cx=50 cy=48 rx=7 ry=7
+    Right white: Ellipse cx=70 cy=48 rx=7 ry=7
+    Left pupil: Circle cx=51 cy=48 r=4 fill="#1A1A2E"
+    Right pupil: Circle cx=71 cy=48 r=4 fill="#1A1A2E"
+    Left highlight: Circle cx=53 cy=46 r=1.5 fill="white"
+    Right highlight: Circle cx=73 cy=46 r=1.5 fill="white"
+  "almond":
+    Left: Path M 43,48 Q 50,43 57,48 Q 50,53 43,48 (almond shape, filled white then iris)
+    Right: Path M 63,48 Q 70,43 77,48 Q 70,53 63,48
+    Iris left: Ellipse cx=50 cy=48 rx=4 ry=3.5 fill="#1A1A2E"
+    Iris right: Ellipse cx=70 cy=48 rx=4 ry=3.5 fill="#1A1A2E"
+    Highlights as before
+  "wide":
+    Same as round but rx=8 ry=6 (wider, more awake look)
+
+NOSE: Path M 58,60 L 56,68 Q 60,71 64,68 L 62,60 (subtle, thin lines only)
+  stroke: skinShadow, strokeWidth 1.2, fill none
+
+MOUTH: Curved path based on confidenceFace (existing logic):
+  neutral: M 52,75 Q 60,78 68,75
+  slight:  M 51,75 Q 60,80 69,75
+  defined: M 50,74 Q 60,81 70,74
+  stroke: "#C07060", strokeWidth 1.8, fill none, strokeLinecap "round"
+
+═══════════════════════════════════════════
+CLOTHING DETAIL LAYER (renders on torso)
+═══════════════════════════════════════════
+
+COLLAR — renders at neck base (y=90 area):
+  Crew neck: Ellipse cx=60 cy=92 rx=12 ry=5, slightly darker than shirt
+  V-neck: Path M 48,92 L 60,110 L 72,92 (if premium tier)
+
+SHIRT DETAILS:
+  Button placket line: Line x1=60 y1=96 x2=60 y2=184 
+    stroke: shirtShadow (5% darker than shirt), strokeWidth 1.5
+
+  Shoulder seam lines:
+    Left: Line x1=22 y1=92 x2=32 y2=102 stroke=shirtShadow strokeWidth 1
+    Right: Line x1=98 y1=92 x2=88 y2=102 stroke=shirtShadow strokeWidth 1
+
+SLEEVE CUFFS (bottom of arm, above hand):
+  Left cuff: Rect x=6 y=166 width=16 height=9 rx=2, slightly different shade
+  Right cuff: Rect x=98 y=166 width=16 height=9 rx=2
+
+SHIRT HEM bottom edge:
+  Rect x=30 y=184 width=60 height=5 rx=0, slightly darker shade
+
+PANTS CREASE:
+  Left: Line x1=44 y1=200 x2=44 y2=304 stroke=pantsShadow strokeWidth 1
+  Right: Line x1=76 y1=200 x2=76 y2=304 stroke=pantsShadow strokeWidth 1
+
+═══════════════════════════════════════════
+WEARABLE ACCESSORIES LAYER
+═══════════════════════════════════════════
+
+WATCH (right wrist — equippedWatchStyle):
+  "basic":
+    Band: Rect x=98 y=163 width=16 height=14 rx=2, fill="#5A4020"
+    Face: Rect x=100 y=164 width=12 height=10 rx=2, fill="#C8A030"
+    Screen: Rect x=101 y=165 width=10 height=8 rx=1.5, fill="#0A0A18"
+    Hour hand: Line x1=106 y1=169 x2=106 y2=166, stroke="#C8A030" strokeWidth 1.2
+    Minute hand: Line x1=106 y1=169 x2=109 y2=169, stroke="#C8A030" strokeWidth 1
+  "refined":
+    Band: Rect x=97 y=161 width=18 height=18 rx=3, fill="#8A7040"
+    Case: Rect x=99 y=162 width=14 height=14 rx=3, fill="#D4A840"
+    Dial: Circle cx=106 cy=169 r=5, fill="#0A0A18"
+    Markers: 4 tiny circles at 12/3/6/9 positions on dial, fill="#D4A840" r=0.8
+    Hour/min hands as thin lines
+  "elite":
+    Band: Rect x=97 y=161 width=18 height=18 rx=3, fill="#303040"
+    Bezel: Rect x=98 y=162 width=16 height=14 rx=4, fill="#5050A0", opacity 0.8
+    Case: Rect x=100 y=163 width=12 height=12 rx=3, fill="#1A1A30"
+    Dial: Circle cx=106 cy=169 r=4.5, fill="#0A0A20"
+    Crown: Rect x=114 y=167 width=3 height=4 rx=1, fill="#4040A0"
+    Glow ring: Circle cx=106 cy=169 r=5.5, fill=none, stroke="#6060FF" strokeWidth=0.8 opacity=0.6
+
+CHAIN/NECKLACE (equippedAccessoryStyle === "chain"):
+  Path from neck base downward:
+  M 52,90 Q 60,106 60,116 Q 60,106 68,90
+  stroke="#C8A030", strokeWidth 2, fill=none, strokeLinecap "round"
+  Add pendant: Circle cx=60 cy=118 r=4, fill="#C8A030"
+  Inner pendant: Circle cx=60 cy=118 r=2, fill="#8A6010"
+
+LAPEL PIN (equippedAccessoryStyle === "pin"):
+  Left chest area: Circle cx=40 cy=108 r=5, fill="#C8A030"
+  Inner pin design: Circle cx=40 cy=108 r=3, fill="#0A0A18"
+  Tiny star/diamond: Path at pin center, fill="#C8A030"
+
+RING (equippedAccessoryStyle === "ring"):
+  Right hand ring: Ellipse cx=109 cy=184 rx=4 ry=2.5
+  stroke="#D4A840", strokeWidth 2, fill=none
+  Gem: Circle cx=109 cy=182 r=1.8, fill="#4488FF"
+
+EYEWEAR (NEW equippedEyewearStyle):
+  "thin-frame":
+    Left lens: Rect x=41 y=43 width=18 height=12 rx=4, fill=none, stroke="#D4A840" strokeWidth=1.5
+    Right lens: Rect x=61 y=43 width=18 height=12 rx=4, fill=none, stroke="#D4A840" strokeWidth=1.5
+    Bridge: Line x1=59 y1=49 x2=61 y2=49, stroke="#D4A840" strokeWidth=1.5
+    Left temple: Line x1=41 y1=49 x2=34 y2=51, stroke="#D4A840" strokeWidth=1.2
+    Right temple: Line x1=79 y1=49 x2=86 y2=51, stroke="#D4A840" strokeWidth=1.2
+  "bold-frame":
+    Same but strokeWidth=3, stroke="#1A1A1A", rx=5
+    Fill lens areas with very subtle tint: fill="#FFFFFF08"
+  "sunglasses":
+    Left lens: Rect x=40 y=43 width=20 height=13 rx=6, fill="#00000080", stroke="#1A1A2A" strokeWidth=2
+    Right lens: Rect x=60 y=43 width=20 height=13 rx=6, fill="#00000080", stroke="#1A1A2A" strokeWidth=2
+    Bridge: Rect x=59 y=48 width=2 height=3 rx=1, fill="#1A1A2A"
+    Reflection shine: Line x1=44 y1=46 x2=50 y2=46, stroke="white" strokeWidth=1 opacity=0.3
+
+SHOES (NEW equippedShoesStyle):
+  "casual":
+    Same shoe path as base but fill="#D0C8B8" (light beige/canvas)
+    Sole: slightly darker strip at bottom of shoe path
+    Lace suggestion: 3 tiny horizontal lines across toe area
+  "sneaker":
+    Fill="#F0F0F0" (white sneaker), stroke="#E0E0E0" strokeWidth=1
+    Sole: Rect slightly larger, fill="#E0E0E0"
+    Nike-style swoosh suggestion: curved Path on side, fill="#C0C0C0"
+    Toe cap: slightly rounded area, different shade
+  "formal":
+    Fill="#0A0A0A" (black oxford), stroke="#1A1A1A"
+    High gloss look: add subtle shine line Path across toe, stroke="white" opacity=0.15
+    Oxford toe cap: separate Path at toe area, stroke="#222222"
+  "boot":
+    Taller shoe path (extends up to y=295)
+    Fill="#1A1210" (dark leather brown)
+    Lacing details: short horizontal lines up the boot
+    Sole: thick bottom strip
+
+═══════════════════════════════════════════
+PRESTIGE AURA LAYER (renders behind character)
+═══════════════════════════════════════════
+
+For prestigeStage:
+  "subtle": 
+    Faint glow ring: Ellipse cx=60 cy=190 rx=50 ry=160, fill=none
+    stroke="#7C5CFC" strokeWidth=1 opacity=0.15
+  "visible":
+    Glow ring with opacity=0.3, strokeWidth=2
+    Add 6 tiny diamond particles positioned around character
+    Each particle: small rotated Rect, fill="#C8A030" opacity=0.6
+  "legendary":
+    Full aura: multiple concentric glow rings at opacity=0.12, 0.08, 0.05
+    Particle count: 12, some animated with slight pulse
+    Gold color: "#F5C842"
+
+═══════════════════════════════════════════
+COLOR SYSTEM
+═══════════════════════════════════════════
+
+SKIN TONES (same keys as existing):
+  "tone-1": { base: "#FDDCB5", shadow: "#E8C49A", deep: "#D4A882" }
+  "tone-2": { base: "#EDB98A", shadow: "#D49F70", deep: "#BC8858" }
+  "tone-3": { base: "#C8956C", shadow: "#B07E58", deep: "#966644" }
+  "tone-4": { base: "#8B5E3C", shadow: "#7A4E2E", deep: "#5E3820" }
+  "tone-5": { base: "#5C3317", shadow: "#4A2510", deep: "#3A1808" }
+
+OUTFIT TIERS (map from existing outfitTier prop):
+  "starter":
+    shirt: "#EEEEEE", shirtShadow: "#D8D8D8", collar: "#E0E0E0"
+    pants: "#1A1A2E", pantsShadow: "#0F0F1E"
+    belt: "#5A4020", buckle: "#C8A030"
+  "rising":
+    shirt: "#F0F0F8", shirtShadow: "#D8D8E8", collar: "#E4E4F0"
+    pants: "#181828", pantsShadow: "#0E0E1C"
+    belt: "#3A3048", buckle: "#8080C0"
+  "premium":
+    shirt: "#C8C8D8", shirtShadow: "#ACACBC", collar: "#D4D4E4"
+    pants: "#141422", pantsShadow: "#0A0A16"
+    belt: "#4A3858", buckle: "#A090D0"
+  "elite":
+    shirt: "#1E1E28", shirtShadow: "#141420", collar: "#28283A"
+    pants: "#0E0E16", pantsShadow: "#080810"
+    belt: "#3A2A42", buckle: "#C0A030"
+
+SHOE BASE COLORS (when no equippedShoesStyle — default from outfitTier):
+  starter: "#6B6B80"  (dark grey)
+  rising:  "#3A3A50"
+  premium: "#1A1A2A"
+  elite:   "#0A0A14"
+
+═══════════════════════════════════════════
+COMPONENT INTERFACE (keep compatible)
+═══════════════════════════════════════════
+
+interface Props {
+  visualState: CharacterVisualState;  // already extended with new fields
+  size?: "small" | "medium" | "large" | "full";
+  showShadow?: boolean;
+  view?: "front" | "side";  // keep prop but only implement front for now
+}
+
+SIZE MAP:
+  small:  { w: 80,  h: 240 }
+  medium: { w: 140, h: 420 }
+  large:  { w: 180, h: 540 }
+  full:   { w: 240, h: 720 }
+
+RENDER LAYER ORDER (back to front):
+  1. Drop shadow ellipse (ground)
+  2. Prestige aura glow (if applicable)
+  3. SHOES
+  4. LEGS / PANTS
+  5. BELT
+  6. TORSO / SHIRT body
+  7. ARMS (left and right)
+  8. COLLAR
+  9. SHIRT DETAILS (placket, seams, hem)
+  10. SLEEVE CUFFS
+  11. NECK
+  12. HEAD base (skin)
+  13. EARS
+  14. HAIR (back layer if long hair)
+  15. FACE SHADOW
+  16. EYEBROWS
+  17. EYES (whites, irises, pupils, highlights)
+  18. NOSE
+  19. MOUTH
+  20. HAIR (front layer / fringe)
+  21. CHAIN / NECKLACE
+  22. WATCH
+  23. RING
+  24. EYEWEAR / GLASSES
+  25. LAPEL PIN
+
+═══════════════════════════════════════════
+IMPLEMENTATION RULES
+═══════════════════════════════════════════
+
+1. Use react-native-svg components: Svg, G, Path, Rect, Ellipse, Circle, Line, Defs, LinearGradient, Stop
+2. All components must be memo() wrapped for performance
+3. Use useMemo() for any computed path strings or complex coordinate calculations
+4. Export as: export const CharacterRenderer = memo(CharacterRendererInner);
+5. The component must remain a drop-in replacement — same import path, same props interface
+6. Hair rendering: reuse logic from existing HairLayer component but with corrected head coordinates (cy=50 not 28-30)
+7. Posture changes: adjust neckY, torso, and head Y positions slightly based on postureStage
+   - neutral:  head cy=52, torso top y=94
+   - upright:  head cy=50, torso top y=92 (slight shift up, straighter)
+   - athletic: head cy=48, torso top y=90 (more erect posture)
+   - peak:     head cy=46, torso top y=88 (commanding, tall posture)
+8. Female body type: slightly narrower shoulders (torso width 68 vs 76), slightly shorter
+9. Do NOT use any external image assets — pure SVG only
+10. Do NOT use animations inside the renderer — animation is handled by the parent screen
+
+IMPORTANT: Write the complete file. Do not use placeholder comments like "// ... rest of implementation". 
+Every layer must be fully implemented with real SVG paths and coordinates.
