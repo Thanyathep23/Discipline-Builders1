@@ -60,6 +60,7 @@ function RootLayoutNav() {
         <Stack.Screen name="invite/index" />
         <Stack.Screen name="admin/growth" />
         <Stack.Screen name="world/index" />
+        <Stack.Screen name="game/index" options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="room/editor" options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="room/select" options={{ animation: "slide_from_right" }} />
       </Stack>

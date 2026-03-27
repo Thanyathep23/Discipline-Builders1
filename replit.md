@@ -355,6 +355,15 @@ artifacts-monorepo/
 └── package.json
 ```
 
+## 3D Character Integration
+
+- **Screen**: `artifacts/mobile/app/game/index.tsx` — Split-screen layout (60% 3D / 40% UI) with React Three Fiber Canvas, placeholder rotating box, task counter, and habit button
+- **Dependencies**: `expo-gl`, `three`, `@react-three/fiber`, `@react-three/drei`, `expo-three`
+- **Metro config**: `artifacts/mobile/metro.config.js` — Extended `assetExts` with `glb`, `gltf`, `obj`, `mtl`
+- **Asset folder**: `artifacts/mobile/assets/models/` — Place `character.glb` here, then follow comments in GameCharacter component to load it via `useGLTF`
+- **Platform**: Native-only 3D rendering (`@react-three/fiber/native`); web shows graceful fallback
+- **Route**: Navigate to `/game` from any screen (registered in root layout stack)
+
 ## Key Files
 
 - `lib/db/src/schema/skills.ts` — SKILL_IDS, RANK_LADDER, SKILL_META, CATEGORY_SKILL_MAP
