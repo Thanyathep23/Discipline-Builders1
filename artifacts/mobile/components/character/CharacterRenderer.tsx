@@ -2,7 +2,7 @@ import React, { memo, useMemo, useId } from "react";
 import { View, StyleSheet } from "react-native";
 import Svg, {
   G, Path, Rect, Ellipse, Circle, Line, Defs,
-  LinearGradient, RadialGradient, Stop,
+  LinearGradient, RadialGradient, Stop, ClipPath, Mask,
 } from "react-native-svg";
 import type {
   CharacterVisualState, BodyType, CharacterView,
@@ -62,6 +62,14 @@ const HAIR_COLORS: Record<string, { base: string; shadow: string; highlight: str
   "platinum":     { base: "#DCDCDC", shadow: "#B0B0B0", highlight: "#F0F0F0", strand: "#E8E8E8" },
 };
 
+const IRIS_COLORS: Record<string, { center: string; edge: string }> = {
+  "tone-1": { center: "#6688BB", edge: "#2A3050" },
+  "tone-2": { center: "#7A6844", edge: "#3A2A18" },
+  "tone-3": { center: "#6A5030", edge: "#2A1C10" },
+  "tone-4": { center: "#4A3020", edge: "#1A0E06" },
+  "tone-5": { center: "#3A2418", edge: "#140A04" },
+};
+
 const GROOMING: Record<RefinementStage, number> = { casual: 0, composed: 1, sharp: 2, commanding: 3 };
 const CONFIDENCE: Record<RefinementStage, number> = { casual: 0, composed: 1, sharp: 1, commanding: 2 };
 
@@ -87,10 +95,10 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
   const isMale = bodyType === "male";
 
   const skin = SKIN[vs.skinTone] ?? SKIN["tone-3"];
+  const irisC = IRIS_COLORS[vs.skinTone] ?? IRIS_COLORS["tone-3"];
   const outfit = OUTFITS[vs.outfitTier] ?? OUTFITS.starter;
   const hairC = HAIR_COLORS[vs.hairColor] ?? HAIR_COLORS["black"];
   const groomingLevel = GROOMING[vs.refinementStage] ?? 0;
-  const confidenceFace = CONFIDENCE[vs.refinementStage] ?? 0;
   const faceShape = vs.faceShape ?? "oval";
   const eyeShape = vs.eyeShape ?? "almond";
 
@@ -101,8 +109,8 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
   const wf = po.widthFactor;
 
   const fc = headCY;
-  const headRX = faceShape === "round" ? 22 : 21;
-  const headRY = faceShape === "round" ? 23 : 24;
+  const headRX = faceShape === "round" ? 21 : 20;
+  const headRY = faceShape === "round" ? 22 : 21;
 
   const hipLX = isMale ? 28 : 25;
   const hipRX = isMale ? 92 : 95;
@@ -153,12 +161,12 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         <Stop offset="100%" stopColor="transparent" />
       </LinearGradient>
       <RadialGradient id={gid("irisL")} cx="55%" cy="45%">
-        <Stop offset="0%" stopColor="#4466AA" />
-        <Stop offset="100%" stopColor="#1A1A36" />
+        <Stop offset="0%" stopColor={irisC.center} />
+        <Stop offset="100%" stopColor={irisC.edge} />
       </RadialGradient>
       <RadialGradient id={gid("irisR")} cx="55%" cy="45%">
-        <Stop offset="0%" stopColor="#4466AA" />
-        <Stop offset="100%" stopColor="#1A1A36" />
+        <Stop offset="0%" stopColor={irisC.center} />
+        <Stop offset="100%" stopColor={irisC.edge} />
       </RadialGradient>
       <LinearGradient id={gid("hairGrad")} x1="0.3" y1="0" x2="0.7" y2="1">
         <Stop offset="0%" stopColor={hairC.highlight} />
@@ -171,14 +179,14 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         <Stop offset="100%" stopColor="#000000" stopOpacity="0.37" />
       </LinearGradient>
     </Defs>
-  ), [uid, skin, shirtS, pantsP, hairC]);
+  ), [uid, skin, irisC, shirtS, pantsP, hairC]);
 
-  const shlL = 60 - shoulderW * wf / 2;
-  const shlR = 60 + shoulderW * wf / 2;
-  const torsoW = (shlR - shlL);
-
-  const armLX = shlL;
-  const armRX = shlR;
+  const layout = useMemo(() => {
+    const shlL = 60 - shoulderW * wf / 2;
+    const shlR = 60 + shoulderW * wf / 2;
+    return { shlL, shlR, armLX: shlL, armRX: shlR };
+  }, [shoulderW, wf]);
+  const { armLX, armRX } = layout;
 
   const eyesEl = useMemo(() => {
     const ey = fc - 2;
@@ -947,20 +955,20 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         <Circle cx={String(armLX - 5)} cy="177" r="1.5" fill={shirtS.mid} />
         <Circle cx={String(armRX + 5)} cy="177" r="1.5" fill={shirtS.mid} />
 
-        {/* 13. Neck */}
-        <Path d={`M53 ${fc + 22} Q53 ${fc + 36} 55 ${fc + 38} L65 ${fc + 38} Q67 ${fc + 36} 67 ${fc + 22}`} fill={skin.base} />
+        {/* 13. Neck — uses skinBody gradient for lit/shadow sides */}
+        <Path d={`M53 ${fc + 22} Q53 ${fc + 36} 55 ${fc + 38} L65 ${fc + 38} Q67 ${fc + 36} 67 ${fc + 22}`} fill={`url(#${gid("skinBody")})`} />
         <Path d={`M53 ${fc + 22} Q53 ${fc + 28} 54 ${fc + 30}`} stroke={skin.deep} strokeWidth="0.6" fill="none" opacity="0.4" />
         <Path d={`M67 ${fc + 22} Q67 ${fc + 28} 66 ${fc + 30}`} stroke={skin.deep} strokeWidth="0.6" fill="none" opacity="0.4" />
 
-        {/* 14. Head base + ears */}
+        {/* 14. Head base + ears — ears use skinBody gradient */}
         <Ellipse cx="60" cy={String(fc)} rx={String(headRX)} ry={String(headRY)} fill={`url(#${gid("skinFace")})`} />
         {faceShape === "square" && (
-          <Path d={`M39 ${fc + 8} Q39 ${fc + 22} 60 ${fc + 24} Q81 ${fc + 22} 81 ${fc + 8}`} fill={`url(#${gid("skinFace")})`} />
+          <Path d={`M${60 - headRX + 1} ${fc + 8} Q${60 - headRX + 1} ${fc + 20} 60 ${fc + 22} Q${60 + headRX - 1} ${fc + 20} ${60 + headRX - 1} ${fc + 8}`} fill={`url(#${gid("skinFace")})`} />
         )}
-        <Ellipse cx="39" cy={String(fc)} rx="4.5" ry="6.5" fill={skin.base} />
-        <Ellipse cx="39.5" cy={String(fc)} rx="2.5" ry="4" fill={skin.shadow} opacity="0.3" />
-        <Ellipse cx="81" cy={String(fc)} rx="4.5" ry="6.5" fill={skin.base} />
-        <Ellipse cx="80.5" cy={String(fc)} rx="2.5" ry="4" fill={skin.shadow} opacity="0.3" />
+        <Ellipse cx={String(60 - headRX)} cy={String(fc)} rx="4.5" ry="6.5" fill={`url(#${gid("skinBody")})`} />
+        <Ellipse cx={String(60 - headRX + 0.5)} cy={String(fc)} rx="2.5" ry="4" fill={skin.shadow} opacity="0.3" />
+        <Ellipse cx={String(60 + headRX)} cy={String(fc)} rx="4.5" ry="6.5" fill={`url(#${gid("skinBody")})`} />
+        <Ellipse cx={String(60 + headRX - 0.5)} cy={String(fc)} rx="2.5" ry="4" fill={skin.shadow} opacity="0.3" />
 
         {/* 15. Hair back layer */}
         {hairEl.back}
