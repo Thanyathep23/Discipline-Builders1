@@ -114,62 +114,74 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
   const neckW = 16;
   const neckY = headCY + 22;
 
+  const baseHeadRX = isMale ? 24 : 22;
+  const baseHeadRY = isMale ? 26 : 25;
+  const headRX = faceShape === "round" ? baseHeadRX + 1 : faceShape === "square" ? baseHeadRX + 2 : baseHeadRX;
+  const headRY = faceShape === "round" ? baseHeadRY - 1 : faceShape === "square" ? baseHeadRY - 2 : baseHeadRY;
+
+  const browY = headCY - 15;
+  const eyeY = headCY - 2;
+  const noseTopY = headCY + 8;
+  const noseBotY = headCY + 16;
+  const mouthY = headCY + 23;
+  const faceShadowY = headCY + 16;
+
   const { w, h } = SIZE_MAP[size] ?? SIZE_MAP.large;
 
   const hasFitnessGlow = vs.postureStage === "athletic" || vs.postureStage === "peak";
 
   const mouthD = useMemo(() => {
-    if (confidenceFace === 0) return `M52 75 Q60 78 68 75`;
-    if (confidenceFace === 1) return `M51 75 Q60 80 69 75`;
-    return `M50 74 Q60 81 70 74`;
-  }, [confidenceFace]);
+    const my = mouthY;
+    if (confidenceFace === 0) return `M52 ${my} Q60 ${my + 3} 68 ${my}`;
+    if (confidenceFace === 1) return `M51 ${my} Q60 ${my + 5} 69 ${my}`;
+    return `M50 ${my - 1} Q60 ${my + 7} 70 ${my - 1}`;
+  }, [confidenceFace, mouthY]);
 
   const browD = useMemo(() => {
+    const by = browY;
     if (faceShape === "square") {
-      return { l: `M43 35 Q50 33 57 35`, r: `M63 35 Q70 33 77 35` };
+      return { l: `M43 ${by} Q50 ${by - 2} 57 ${by}`, r: `M63 ${by} Q70 ${by - 2} 77 ${by}` };
     }
-    return { l: `M43 35 Q50 31 57 35`, r: `M63 35 Q70 31 77 35` };
-  }, [faceShape]);
+    return { l: `M43 ${by} Q50 ${by - 4} 57 ${by}`, r: `M63 ${by} Q70 ${by - 4} 77 ${by}` };
+  }, [faceShape, browY]);
 
   const eyesEl = useMemo(() => {
+    const ey = eyeY;
     if (eyeShape === "round") {
       return (
         <G>
-          <Ellipse cx="50" cy="48" rx="7" ry="7" fill="#FAFAFF" />
-          <Ellipse cx="70" cy="48" rx="7" ry="7" fill="#FAFAFF" />
-          <Circle cx="51" cy="48" r="4" fill="#1A1A2E" />
-          <Circle cx="71" cy="48" r="4" fill="#1A1A2E" />
-          <Circle cx="53" cy="46" r="1.5" fill="white" />
-          <Circle cx="73" cy="46" r="1.5" fill="white" />
+          <Ellipse cx="50" cy={String(ey)} rx="7" ry="7" fill="#FAFAFF" />
+          <Ellipse cx="70" cy={String(ey)} rx="7" ry="7" fill="#FAFAFF" />
+          <Circle cx="51" cy={String(ey)} r="4" fill="#1A1A2E" />
+          <Circle cx="71" cy={String(ey)} r="4" fill="#1A1A2E" />
+          <Circle cx="53" cy={String(ey - 2)} r="1.5" fill="white" />
+          <Circle cx="73" cy={String(ey - 2)} r="1.5" fill="white" />
         </G>
       );
     }
     if (eyeShape === "wide") {
       return (
         <G>
-          <Ellipse cx="50" cy="48" rx="8" ry="6" fill="#FAFAFF" />
-          <Ellipse cx="70" cy="48" rx="8" ry="6" fill="#FAFAFF" />
-          <Circle cx="51" cy="48" r="4" fill="#1A1A2E" />
-          <Circle cx="71" cy="48" r="4" fill="#1A1A2E" />
-          <Circle cx="53" cy="46" r="1.5" fill="white" />
-          <Circle cx="73" cy="46" r="1.5" fill="white" />
+          <Ellipse cx="50" cy={String(ey)} rx="8" ry="6" fill="#FAFAFF" />
+          <Ellipse cx="70" cy={String(ey)} rx="8" ry="6" fill="#FAFAFF" />
+          <Circle cx="51" cy={String(ey)} r="4" fill="#1A1A2E" />
+          <Circle cx="71" cy={String(ey)} r="4" fill="#1A1A2E" />
+          <Circle cx="53" cy={String(ey - 2)} r="1.5" fill="white" />
+          <Circle cx="73" cy={String(ey - 2)} r="1.5" fill="white" />
         </G>
       );
     }
     return (
       <G>
-        <Path d="M43 48 Q50 43 57 48 Q50 53 43 48" fill="#FAFAFF" />
-        <Path d="M63 48 Q70 43 77 48 Q70 53 63 48" fill="#FAFAFF" />
-        <Ellipse cx="50" cy="48" rx="4" ry="3.5" fill="#1A1A2E" />
-        <Ellipse cx="70" cy="48" rx="4" ry="3.5" fill="#1A1A2E" />
-        <Circle cx="52" cy="46.5" r="1.5" fill="white" />
-        <Circle cx="72" cy="46.5" r="1.5" fill="white" />
+        <Path d={`M43 ${ey} Q50 ${ey - 5} 57 ${ey} Q50 ${ey + 5} 43 ${ey}`} fill="#FAFAFF" />
+        <Path d={`M63 ${ey} Q70 ${ey - 5} 77 ${ey} Q70 ${ey + 5} 63 ${ey}`} fill="#FAFAFF" />
+        <Ellipse cx="50" cy={String(ey)} rx="4" ry="3.5" fill="#1A1A2E" />
+        <Ellipse cx="70" cy={String(ey)} rx="4" ry="3.5" fill="#1A1A2E" />
+        <Circle cx="52" cy={String(ey - 1.5)} r="1.5" fill="white" />
+        <Circle cx="72" cy={String(ey - 1.5)} r="1.5" fill="white" />
       </G>
     );
-  }, [eyeShape]);
-
-  const headRX = isMale ? 24 : 22;
-  const headRY = isMale ? 26 : 25;
+  }, [eyeShape, eyeY]);
 
   const hairEl = useMemo(() => {
     const hCY = headCY;
@@ -685,8 +697,15 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         {/* 11. Neck */}
         <Rect x={String(neckX)} y={String(neckY)} width={String(neckW)} height="18" rx="3" fill={skin.base} />
 
-        {/* 12. Head base (skin) */}
+        {/* 12. Head base (skin) — shape varies by faceShape */}
         <Ellipse cx="60" cy={String(headCY)} rx={String(headRX)} ry={String(headRY)} fill={skin.base} />
+        {faceShape === "square" && (
+          <Path
+            d={`M${60 - headRX + 3} ${headCY + 4} L${60 - headRX + 1} ${headCY + headRY - 4} L${60 - headRX + 6} ${headCY + headRY} L${60 + headRX - 6} ${headCY + headRY} L${60 + headRX - 1} ${headCY + headRY - 4} L${60 + headRX - 3} ${headCY + 4}`}
+            fill={skin.base}
+            stroke="none"
+          />
+        )}
 
         {/* 13. Ears */}
         <Ellipse cx="36" cy={String(headCY)} rx="5" ry="7" fill={skin.base} />
@@ -698,7 +717,7 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         {hairEl.back}
 
         {/* 15. Face shadow */}
-        <Ellipse cx="60" cy="68" rx="20" ry="6" fill={skin.shadow} opacity="0.25" />
+        <Ellipse cx="60" cy={String(faceShadowY)} rx="20" ry="6" fill={skin.shadow} opacity="0.25" />
 
         {/* 16. Eyebrows */}
         <Path d={browD.l} stroke={hairC.base} strokeWidth="2.2" fill="none" strokeLinecap="round" />
@@ -708,7 +727,7 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         {eyesEl}
 
         {/* 18. Nose */}
-        <Path d="M58 60 L56 68 Q60 71 64 68 L62 60" stroke={skin.shadow} strokeWidth="1.2" fill="none" />
+        <Path d={`M58 ${noseTopY} L56 ${noseBotY} Q60 ${noseBotY + 3} 64 ${noseBotY} L62 ${noseTopY}`} stroke={skin.shadow} strokeWidth="1.2" fill="none" />
 
         {/* 19. Mouth */}
         <Path d={mouthD} stroke="#C07060" strokeWidth="1.8" fill="none" strokeLinecap="round" />
@@ -776,31 +795,31 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         {/* 24. Eyewear */}
         {vs.equippedEyewearStyle === "thin-frame" && (
           <G>
-            <Rect x="41" y="43" width="18" height="12" rx="4" fill="none" stroke="#D4A840" strokeWidth="1.5" />
-            <Rect x="61" y="43" width="18" height="12" rx="4" fill="none" stroke="#D4A840" strokeWidth="1.5" />
-            <Line x1="59" y1="49" x2="61" y2="49" stroke="#D4A840" strokeWidth="1.5" />
-            <Line x1="41" y1="49" x2="34" y2="51" stroke="#D4A840" strokeWidth="1.2" />
-            <Line x1="79" y1="49" x2="86" y2="51" stroke="#D4A840" strokeWidth="1.2" />
+            <Rect x="41" y={String(eyeY - 5)} width="18" height="12" rx="4" fill="none" stroke="#D4A840" strokeWidth="1.5" />
+            <Rect x="61" y={String(eyeY - 5)} width="18" height="12" rx="4" fill="none" stroke="#D4A840" strokeWidth="1.5" />
+            <Line x1="59" y1={String(eyeY + 1)} x2="61" y2={String(eyeY + 1)} stroke="#D4A840" strokeWidth="1.5" />
+            <Line x1="41" y1={String(eyeY + 1)} x2="34" y2={String(eyeY + 3)} stroke="#D4A840" strokeWidth="1.2" />
+            <Line x1="79" y1={String(eyeY + 1)} x2="86" y2={String(eyeY + 3)} stroke="#D4A840" strokeWidth="1.2" />
           </G>
         )}
         {vs.equippedEyewearStyle === "bold-frame" && (
           <G>
-            <Rect x="41" y="43" width="18" height="12" rx="5" fill="#FFFFFF08" stroke="#1A1A1A" strokeWidth="3" />
-            <Rect x="61" y="43" width="18" height="12" rx="5" fill="#FFFFFF08" stroke="#1A1A1A" strokeWidth="3" />
-            <Line x1="59" y1="49" x2="61" y2="49" stroke="#1A1A1A" strokeWidth="3" />
-            <Line x1="41" y1="49" x2="34" y2="51" stroke="#1A1A1A" strokeWidth="2" />
-            <Line x1="79" y1="49" x2="86" y2="51" stroke="#1A1A1A" strokeWidth="2" />
+            <Rect x="41" y={String(eyeY - 5)} width="18" height="12" rx="5" fill="#FFFFFF08" stroke="#1A1A1A" strokeWidth="3" />
+            <Rect x="61" y={String(eyeY - 5)} width="18" height="12" rx="5" fill="#FFFFFF08" stroke="#1A1A1A" strokeWidth="3" />
+            <Line x1="59" y1={String(eyeY + 1)} x2="61" y2={String(eyeY + 1)} stroke="#1A1A1A" strokeWidth="3" />
+            <Line x1="41" y1={String(eyeY + 1)} x2="34" y2={String(eyeY + 3)} stroke="#1A1A1A" strokeWidth="2" />
+            <Line x1="79" y1={String(eyeY + 1)} x2="86" y2={String(eyeY + 3)} stroke="#1A1A1A" strokeWidth="2" />
           </G>
         )}
         {vs.equippedEyewearStyle === "sunglasses" && (
           <G>
-            <Rect x="40" y="43" width="20" height="13" rx="6" fill="#00000080" stroke="#1A1A2A" strokeWidth="2" />
-            <Rect x="60" y="43" width="20" height="13" rx="6" fill="#00000080" stroke="#1A1A2A" strokeWidth="2" />
-            <Rect x="59" y="48" width="2" height="3" rx="1" fill="#1A1A2A" />
-            <Line x1="40" y1="49" x2="34" y2="51" stroke="#1A1A2A" strokeWidth="1.5" />
-            <Line x1="80" y1="49" x2="86" y2="51" stroke="#1A1A2A" strokeWidth="1.5" />
-            <Line x1="44" y1="46" x2="50" y2="46" stroke="white" strokeWidth="1" opacity="0.3" />
-            <Line x1="64" y1="46" x2="70" y2="46" stroke="white" strokeWidth="1" opacity="0.3" />
+            <Rect x="40" y={String(eyeY - 5)} width="20" height="13" rx="6" fill="#00000080" stroke="#1A1A2A" strokeWidth="2" />
+            <Rect x="60" y={String(eyeY - 5)} width="20" height="13" rx="6" fill="#00000080" stroke="#1A1A2A" strokeWidth="2" />
+            <Rect x="59" y={String(eyeY)} width="2" height="3" rx="1" fill="#1A1A2A" />
+            <Line x1="40" y1={String(eyeY + 1)} x2="34" y2={String(eyeY + 3)} stroke="#1A1A2A" strokeWidth="1.5" />
+            <Line x1="80" y1={String(eyeY + 1)} x2="86" y2={String(eyeY + 3)} stroke="#1A1A2A" strokeWidth="1.5" />
+            <Line x1="44" y1={String(eyeY - 2)} x2="50" y2={String(eyeY - 2)} stroke="white" strokeWidth="1" opacity="0.3" />
+            <Line x1="64" y1={String(eyeY - 2)} x2="70" y2={String(eyeY - 2)} stroke="white" strokeWidth="1" opacity="0.3" />
           </G>
         )}
 
