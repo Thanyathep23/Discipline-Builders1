@@ -1043,9 +1043,12 @@ Maps 4 dimension scores to 6 visual axes: bodyTone (0-4), posture (0-3, 4-stage)
 - **CharacterRenderer** (`components/character/CharacterRenderer.tsx`): 10-layer composited stack, bodyType/view props, fitness glow RadialGradient, size variants (small/medium/large/full), memoized
 - **CharacterVisualState** (`lib/characterEngine.ts`): Includes `bodyType: BodyType` field, computed from `appearance.bodyType`
   - Stage thresholds: posture neutral(<4)/upright(4-6)/athletic(7-8)/peak(9+); outfit starter(<4)/rising(4-6)/premium(7-8)/elite(9+); prestige none(<4)/subtle(4-6)/visible(7-8)/legendary(9+); refinement casual(<4)/composed(4-6)/sharp(7-8)/commanding(9+)
-- **Customization UI**: Body type selector (male/female icons), skin tone, gender-specific hair styles, hair color — saves via `PATCH /api/character/appearance` with bodyType field
+  - New fields: `equippedShoesStyle` (casual/sneaker/formal/boot | null), `equippedEyewearStyle` (none/thin-frame/bold-frame/sunglasses | null), `faceShape` (oval/round/square), `eyeShape` (round/almond/wide)
+- **Customization UI**: Body type selector (male/female icons), skin tone, gender-specific hair styles, hair color, face shape (oval/round/square), eye shape (round/almond/wide) — saves via `PATCH /api/character/appearance` with all fields
+- **Wearable slots**: top, watch, accessory, outerwear, bottom, shoes, eyewear — API maps slugs to style enums via WEARABLE_*_STYLE constants
 - **Integration**: `CharacterViewer3D` is the primary hero display in the character status hub (replaces SVG cross-fade); falls back to `CharacterRenderer` (SVG) on web. `EvolvedCharacter` legacy fallback in room editor + car photo mode both accept bodyType prop.
-- Default appearance: bodyType=male, hairStyle=clean_cut, hairColor=black
+- Default appearance: bodyType=male, hairStyle=clean_cut, hairColor=black, faceShape=oval, eyeShape=almond
+- **DB columns**: character_appearance table: user_id, skin_tone, body_type, hair_style, hair_color, face_shape (default "oval"), eye_shape (default "almond"), updated_at
 - "WHY YOUR CHARACTER LOOKS LIKE THIS" explanation section
 
 ### Voxel Art Character System (360° Rotation)

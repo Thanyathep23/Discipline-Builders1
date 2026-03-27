@@ -60,12 +60,20 @@ export type BodyType  = typeof BODY_TYPES[number];
 export type HairStyle = typeof HAIR_STYLES[number];
 export type HairColor = typeof HAIR_COLORS[number];
 
+export const FACE_SHAPES = ["oval", "round", "square"] as const;
+export const EYE_SHAPES = ["round", "almond", "wide"] as const;
+
+export type FaceShape = typeof FACE_SHAPES[number];
+export type EyeShape = typeof EYE_SHAPES[number];
+
 export const characterAppearanceTable = pgTable("character_appearance", {
   userId:    text("user_id").primaryKey(),
   skinTone:  text("skin_tone").notNull().default("tone-3"),
   bodyType:  text("body_type").notNull().default("male"),
   hairStyle: text("hair_style").notNull().default("clean_cut"),
   hairColor: text("hair_color").notNull().default("black"),
+  faceShape: text("face_shape").notNull().default("oval"),
+  eyeShape:  text("eye_shape").notNull().default("almond"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
@@ -79,4 +87,6 @@ export const DEFAULT_APPEARANCE = {
   bodyType:  "male" as BodyType,
   hairStyle: "clean_cut" as HairStyle,
   hairColor: "black" as HairColor,
+  faceShape: "oval" as FaceShape,
+  eyeShape:  "almond" as EyeShape,
 } as const;

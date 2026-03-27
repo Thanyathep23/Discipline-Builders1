@@ -113,6 +113,18 @@ const HAIR_COLOR_DISPLAY: { key: string; label: string }[] = [
   { key: "platinum",      label: "Silver"    },
 ];
 
+const FACE_SHAPE_DISPLAY: { key: string; label: string }[] = [
+  { key: "oval",   label: "Oval"   },
+  { key: "round",  label: "Round"  },
+  { key: "square", label: "Square" },
+];
+
+const EYE_SHAPE_DISPLAY: { key: string; label: string }[] = [
+  { key: "round",  label: "Round"  },
+  { key: "almond", label: "Almond" },
+  { key: "wide",   label: "Wide"   },
+];
+
 // Outfit per tier
 const OC = [
   { s: "#EEEEEE", ss: "#E4E4E4", p: "#1A1A2E", ps: "#20203A", seam: "#1C1C30", cr: "#151528", belt: "#3A3A52", bk: "#52526A", bk2: "#6A6A80", btn: true,  col: false },
@@ -262,6 +274,62 @@ function HairStylePreview({ style, color, size = 44 }: { style: string; color: s
       )}
       {style === "bald" && (
         <Ellipse cx={cx} cy={hTop + 1} rx="11.5" ry="5" fill={headFill} opacity="0.25" />
+      )}
+    </Svg>
+  );
+}
+
+// ─── Face Shape Mini Preview SVG ──────────────────────────────────────────────
+
+function FaceShapePreview({ shape, size = 32 }: { shape: string; size?: number }) {
+  const fill = "#C8956C";
+  const stroke = "#00000030";
+  return (
+    <Svg width={size} height={size} viewBox="0 0 40 40">
+      {shape === "oval" && (
+        <Ellipse cx="20" cy="21" rx="12" ry="15" fill={fill} stroke={stroke} strokeWidth="0.8" />
+      )}
+      {shape === "round" && (
+        <Ellipse cx="20" cy="20" rx="14" ry="14" fill={fill} stroke={stroke} strokeWidth="0.8" />
+      )}
+      {shape === "square" && (
+        <Rect x="7" y="6" width="26" height="28" rx="5" fill={fill} stroke={stroke} strokeWidth="0.8" />
+      )}
+    </Svg>
+  );
+}
+
+// ─── Eye Shape Mini Preview SVG ──────────────────────────────────────────────
+
+function EyeShapePreview({ shape, size = 32 }: { shape: string; size?: number }) {
+  const white = "#F0F0F0";
+  const iris = "#2A2A3A";
+  const pupil = "#1A1A28";
+  return (
+    <Svg width={size} height={size} viewBox="0 0 40 40">
+      {shape === "round" && (
+        <G>
+          <Ellipse cx="20" cy="20" rx="10" ry="9" fill={white} stroke="#00000030" strokeWidth="0.8" />
+          <Ellipse cx="20" cy="20" rx="5" ry="5" fill={iris} />
+          <Ellipse cx="20" cy="20" rx="2.5" ry="2.5" fill={pupil} />
+          <Circle cx="22" cy="18" r="1.2" fill="#FFFFFF" />
+        </G>
+      )}
+      {shape === "almond" && (
+        <G>
+          <Path d="M6 20 Q20 10 34 20 Q20 30 6 20 Z" fill={white} stroke="#00000030" strokeWidth="0.8" />
+          <Ellipse cx="20" cy="20" rx="5" ry="5.5" fill={iris} />
+          <Ellipse cx="20" cy="20" rx="2.5" ry="2.8" fill={pupil} />
+          <Circle cx="22" cy="18" r="1.2" fill="#FFFFFF" />
+        </G>
+      )}
+      {shape === "wide" && (
+        <G>
+          <Ellipse cx="20" cy="20" rx="14" ry="7" fill={white} stroke="#00000030" strokeWidth="0.8" />
+          <Ellipse cx="20" cy="20" rx="5.5" ry="5.5" fill={iris} />
+          <Ellipse cx="20" cy="20" rx="2.8" ry="2.8" fill={pupil} />
+          <Circle cx="22.5" cy="18" r="1.2" fill="#FFFFFF" />
+        </G>
       )}
     </Svg>
   );
@@ -610,6 +678,8 @@ function CharacterCustomizeSheet({
   currentBodyType,
   currentHairStyle,
   currentHairColor,
+  currentFaceShape,
+  currentEyeShape,
   visualState,
   equippedWearables,
   characterVisualState,
@@ -622,10 +692,12 @@ function CharacterCustomizeSheet({
   currentBodyType: string;
   currentHairStyle: string;
   currentHairColor: string;
+  currentFaceShape: string;
+  currentEyeShape: string;
   visualState: VisualState | null;
   equippedWearables: EquippedWearableState;
   characterVisualState: CharacterVisualState | null;
-  onSave: (skinTone: string, bodyType: string, hairStyle: string, hairColor: string) => void;
+  onSave: (skinTone: string, bodyType: string, hairStyle: string, hairColor: string, faceShape: string, eyeShape: string) => void;
   isSaving: boolean;
 }) {
   const insets = useSafeAreaInsets();
@@ -633,6 +705,8 @@ function CharacterCustomizeSheet({
   const [bodyType,  setBodyType]  = useState(currentBodyType);
   const [hairStyle, setHairStyle] = useState(currentHairStyle);
   const [hairColor, setHairColor] = useState(currentHairColor);
+  const [faceShape, setFaceShape] = useState(currentFaceShape);
+  const [eyeShape,  setEyeShape]  = useState(currentEyeShape);
 
   React.useEffect(() => {
     if (visible) {
@@ -640,8 +714,10 @@ function CharacterCustomizeSheet({
       setBodyType(currentBodyType);
       setHairStyle(currentHairStyle);
       setHairColor(currentHairColor);
+      setFaceShape(currentFaceShape);
+      setEyeShape(currentEyeShape);
     }
-  }, [visible, currentSkinTone, currentBodyType, currentHairStyle, currentHairColor]);
+  }, [visible, currentSkinTone, currentBodyType, currentHairStyle, currentHairColor, currentFaceShape, currentEyeShape]);
 
   const activeHairStyles = bodyType === "female" ? HAIR_STYLE_FEMALE_DISPLAY : HAIR_STYLE_MALE_DISPLAY;
 
@@ -649,7 +725,9 @@ function CharacterCustomizeSheet({
     skinTone !== currentSkinTone ||
     bodyType !== currentBodyType ||
     hairStyle !== currentHairStyle ||
-    hairColor !== currentHairColor;
+    hairColor !== currentHairColor ||
+    faceShape !== currentFaceShape ||
+    eyeShape !== currentEyeShape;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -808,6 +886,60 @@ function CharacterCustomizeSheet({
             })}
           </View>
 
+          <View style={sheetStyles.sectionRow}>
+            <View style={sheetStyles.sectionAccent} />
+            <Text style={sheetStyles.sectionLabel}>FACE SHAPE</Text>
+          </View>
+          <View style={sheetStyles.swatchRow}>
+            {FACE_SHAPE_DISPLAY.map((fs) => {
+              const active = faceShape === fs.key;
+              return (
+                <Pressable
+                  key={fs.key}
+                  style={[sheetStyles.swatchItem, active && { opacity: 1 }]}
+                  onPress={() => { Haptics.selectionAsync().catch(() => {}); setFaceShape(fs.key); }}
+                >
+                  <View style={[
+                    sheetStyles.swatchCircle,
+                    { backgroundColor: Colors.bgElevated, alignItems: "center" as const, justifyContent: "center" as const },
+                    active && { borderColor: Colors.accent, borderWidth: 2.5 },
+                  ]}>
+                    <FaceShapePreview shape={fs.key} size={32} />
+                  </View>
+                  <Text style={[sheetStyles.swatchLabel, active && { color: Colors.textPrimary }]}>{fs.label}</Text>
+                  {active && <View style={sheetStyles.swatchCheck}><Ionicons name="checkmark" size={10} color={Colors.textOnAccent} /></View>}
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={sheetStyles.sectionRow}>
+            <View style={sheetStyles.sectionAccent} />
+            <Text style={sheetStyles.sectionLabel}>EYE SHAPE</Text>
+          </View>
+          <View style={sheetStyles.swatchRow}>
+            {EYE_SHAPE_DISPLAY.map((es) => {
+              const active = eyeShape === es.key;
+              return (
+                <Pressable
+                  key={es.key}
+                  style={[sheetStyles.swatchItem, active && { opacity: 1 }]}
+                  onPress={() => { Haptics.selectionAsync().catch(() => {}); setEyeShape(es.key); }}
+                >
+                  <View style={[
+                    sheetStyles.swatchCircle,
+                    { backgroundColor: Colors.bgElevated, alignItems: "center" as const, justifyContent: "center" as const },
+                    active && { borderColor: Colors.accent, borderWidth: 2.5 },
+                  ]}>
+                    <EyeShapePreview shape={es.key} size={32} />
+                  </View>
+                  <Text style={[sheetStyles.swatchLabel, active && { color: Colors.textPrimary }]}>{es.label}</Text>
+                  {active && <View style={sheetStyles.swatchCheck}><Ionicons name="checkmark" size={10} color={Colors.textOnAccent} /></View>}
+                </Pressable>
+              );
+            })}
+          </View>
+
         </ScrollView>
 
         <View style={sheetStyles.saveRow}>
@@ -816,7 +948,7 @@ function CharacterCustomizeSheet({
             onPress={() => {
               if (!hasChanges || isSaving) return;
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-              onSave(skinTone, bodyType, hairStyle, hairColor);
+              onSave(skinTone, bodyType, hairStyle, hairColor, faceShape, eyeShape);
             }}
             variant="primary"
             fullWidth
@@ -1114,9 +1246,11 @@ export default function CharacterStatusScreen() {
   const currentBodyType  = appearance?.bodyType  ?? "male";
   const currentHairStyle = appearance?.hairStyle ?? "clean_cut";
   const currentHairColor = appearance?.hairColor ?? "black";
+  const currentFaceShape = appearance?.faceShape ?? "oval";
+  const currentEyeShape  = appearance?.eyeShape  ?? "almond";
 
-  function handleSaveAppearance(skinTone: string, bodyType: string, hairStyle: string, hairColor: string) {
-    updateAppearance.mutate({ skinTone, bodyType, hairStyle, hairColor }, {
+  function handleSaveAppearance(skinTone: string, bodyType: string, hairStyle: string, hairColor: string, faceShape: string, eyeShape: string) {
+    updateAppearance.mutate({ skinTone, bodyType, hairStyle, hairColor, faceShape, eyeShape }, {
       onSuccess: () => {
         setShowCustomize(false);
         refetch();
@@ -1524,6 +1658,8 @@ export default function CharacterStatusScreen() {
         currentBodyType={currentBodyType}
         currentHairStyle={currentHairStyle}
         currentHairColor={currentHairColor}
+        currentFaceShape={currentFaceShape}
+        currentEyeShape={currentEyeShape}
         visualState={data?.visualState as VisualState | null ?? null}
         equippedWearables={(data as any)?.equippedWearables ?? null}
         characterVisualState={characterVS}

@@ -4,9 +4,9 @@ import {
   db, usersTable, userBadgesTable, focusSessionsTable,
   userInventoryTable, shopItemsTable,
   characterAppearanceTable,
-  SKIN_TONES, BODY_TYPES, HAIR_STYLES, HAIR_COLORS, DEFAULT_APPEARANCE,
+  SKIN_TONES, BODY_TYPES, HAIR_STYLES, HAIR_COLORS, FACE_SHAPES, EYE_SHAPES, DEFAULT_APPEARANCE,
 } from "@workspace/db";
-import type { SkinTone, BodyType, HairStyle, HairColor } from "@workspace/db";
+import type { SkinTone, BodyType, HairStyle, HairColor, FaceShape, EyeShape } from "@workspace/db";
 import { eq, and, count, inArray, isNotNull } from "drizzle-orm";
 import { z } from "zod/v4";
 import { getUserSkills } from "../lib/skill-engine.js";
@@ -106,6 +106,19 @@ const WEARABLE_ACCESSORY_STYLE: Record<string, "chain" | "pin" | "ring"> = {
   "titanium-ring-zero": "ring",
 };
 
+const WEARABLE_SHOES_STYLE: Record<string, string> = {
+  "white-sneakers":  "sneaker",
+  "clean-casuals":   "casual",
+  "oxford-black":    "formal",
+  "chelsea-boots":   "boot",
+};
+
+const WEARABLE_EYEWEAR_STYLE: Record<string, string> = {
+  "thin-gold-frames":  "thin-frame",
+  "bold-black-frames": "bold-frame",
+  "matte-sunglasses":  "sunglasses",
+};
+
 function getSelectedVariantHex(item: any, invRecords?: any[]): string | undefined {
   try {
     const variants = JSON.parse(item.colorVariants ?? "[]");
@@ -125,6 +138,8 @@ function computeEquippedWearableState(equippedWearableItems: any[], equippedInvR
   const accessory = equippedWearableItems.find((i) => i.wearableSlot === "accessory") ?? null;
   const outerwear = equippedWearableItems.find((i) => i.wearableSlot === "outerwear") ?? null;
   const bottom    = equippedWearableItems.find((i) => i.wearableSlot === "bottom")    ?? null;
+  const shoes     = equippedWearableItems.find((i) => i.wearableSlot === "shoes")     ?? null;
+  const eyewear   = equippedWearableItems.find((i) => i.wearableSlot === "eyewear")   ?? null;
   return {
     top: top ? {
       id:               top.id,
@@ -166,6 +181,20 @@ function computeEquippedWearableState(equippedWearableItems: any[], equippedInvR
       name:         bottom.name,
       rarity:       bottom.rarity,
       colorVariant: getSelectedVariantHex(bottom, equippedInvRecords),
+    } : null,
+    shoes: shoes ? {
+      id:         shoes.id,
+      slug:       shoes.slug,
+      name:       shoes.name,
+      rarity:     shoes.rarity,
+      shoesStyle: WEARABLE_SHOES_STYLE[shoes.slug ?? ""] ?? "casual",
+    } : null,
+    eyewear: eyewear ? {
+      id:           eyewear.id,
+      slug:         eyewear.slug,
+      name:         eyewear.name,
+      rarity:       eyewear.rarity,
+      eyewearStyle: WEARABLE_EYEWEAR_STYLE[eyewear.slug ?? ""] ?? "thin-frame",
     } : null,
   };
 }
@@ -236,6 +265,8 @@ const patchAppearanceSchema = z.object({
   bodyType:  z.enum([...BODY_TYPES]  as [BodyType,  ...BodyType[] ]).optional(),
   hairStyle: z.enum([...HAIR_STYLES] as [HairStyle, ...HairStyle[]]).optional(),
   hairColor: z.enum([...HAIR_COLORS] as [HairColor, ...HairColor[]]).optional(),
+  faceShape: z.enum([...FACE_SHAPES] as [FaceShape, ...FaceShape[]]).optional(),
+  eyeShape:  z.enum([...EYE_SHAPES]  as [EyeShape,  ...EyeShape[] ]).optional(),
 });
 
 async function getOrDefaultAppearance(userId: string) {
@@ -244,7 +275,7 @@ async function getOrDefaultAppearance(userId: string) {
     .from(characterAppearanceTable)
     .where(eq(characterAppearanceTable.userId, userId))
     .limit(1);
-  if (row) return { skinTone: row.skinTone, bodyType: row.bodyType, hairStyle: row.hairStyle, hairColor: row.hairColor };
+  if (row) return { skinTone: row.skinTone, bodyType: row.bodyType, hairStyle: row.hairStyle, hairColor: row.hairColor, faceShape: row.faceShape ?? "oval", eyeShape: row.eyeShape ?? "almond" };
   return { ...DEFAULT_APPEARANCE };
 }
 
@@ -277,7 +308,7 @@ router.patch("/appearance", requireAuth, async (req: any, res) => {
 
     await db
       .insert(characterAppearanceTable)
-      .values({ userId, skinTone: merged.skinTone, bodyType: merged.bodyType, hairStyle: merged.hairStyle, hairColor: merged.hairColor })
+      .values({ userId, skinTone: merged.skinTone, bodyType: merged.bodyType, hairStyle: merged.hairStyle, hairColor: merged.hairColor, faceShape: merged.faceShape, eyeShape: merged.eyeShape })
       .onConflictDoUpdate({
         target: characterAppearanceTable.userId,
         set: { ...updates, updatedAt: new Date() },

@@ -26,6 +26,10 @@ export interface CharacterVisualState {
   equippedOuterwearStyle: string | null;
   outerwearColor: string | null;
   bottomColor: string | null;
+  equippedShoesStyle: "casual" | "sneaker" | "formal" | "boot" | null;
+  equippedEyewearStyle: "none" | "thin-frame" | "bold-frame" | "sunglasses" | null;
+  faceShape: "oval" | "round" | "square";
+  eyeShape: "round" | "almond" | "wide";
 }
 
 export interface DimensionLevel {
@@ -260,6 +264,10 @@ export function computeCharacterState(
     equippedOuterwearStyle: wearables.outerwear?.slug ?? null,
     outerwearColor: wearables.outerwear?.colorVariant ?? null,
     bottomColor: wearables.bottom?.colorVariant ?? null,
+    equippedShoesStyle: wearables.shoes?.shoesStyle ?? null,
+    equippedEyewearStyle: wearables.eyewear?.eyewearStyle ?? null,
+    faceShape: (appearance.faceShape ?? "oval") as "oval" | "round" | "square",
+    eyeShape: (appearance.eyeShape ?? "almond") as "round" | "almond" | "wide",
   };
 
   const equipped = equippedItems ?? [];
