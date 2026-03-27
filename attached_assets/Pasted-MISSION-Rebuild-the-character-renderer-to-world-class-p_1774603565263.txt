@@ -1,0 +1,636 @@
+MISSION: Rebuild the character renderer to world-class premium quality.
+This must look like a GQ editorial illustration meets Apple Memoji Pro —
+the kind of character that makes entrepreneurs say "I want to BE that person."
+
+FILE TO REPLACE: artifacts/mobile/components/character/CharacterRenderer.tsx
+REPLACE THE ENTIRE FILE. Do not keep any existing code.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ART DIRECTION: PREMIUM EDITORIAL ILLUSTRATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Target aesthetic: GQ magazine fashion illustration × Apple Memoji premium
+× Monument Valley elegance × luxury fintech app avatar
+
+The character must feel like:
+✓ A Forbes 30 Under 30 profile, illustrated
+✓ A luxury lifestyle brand digital ambassador
+✓ Someone a 30-year-old entrepreneur genuinely wants to BE
+
+NOT like:
+✗ A children's educational app character
+✗ A mobile game cartoon
+✗ A flat icon set avatar
+
+Core visual principles:
+- Form shadows on ALL surfaces (clothing, skin, hair) — nothing is flat
+- Lighting comes from top-left at 30 degrees
+- Muted, sophisticated color palette (not saturated cartoon colors)
+- Every clothing piece has fabric weight and fold hints
+- Accessories look like real luxury items at small scale
+- Slim, tall, confident proportions (fashion model ratio, not cartoon)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SVG SETUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ViewBox: "0 0 120 380"
+Canvas: transparent background
+All imports: Svg, G, Path, Rect, Ellipse, Circle, Line, Defs,
+             LinearGradient, RadialGradient, Stop, ClipPath, Mask
+             — all from react-native-svg
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GRADIENT DEFINITIONS (add to <Defs>)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For each skin tone, define 3 gradients:
+skinFaceGrad: RadialGradient cx="40%" cy="35%"
+  stop 0%: skinLight (brightest - lit side of face)
+  stop 60%: skinBase
+  stop 100%: skinDeep (shadow side)
+
+skinBodyGrad: LinearGradient x1="0" y1="0" x2="1" y2="0" (left to right)
+  stop 0%: skinDeep (shadow on left arm)
+  stop 30%: skinBase
+  stop 70%: skinBase
+  stop 100%: skinDeep (shadow on right arm)
+
+skinHandGrad: RadialGradient cx="50%" cy="40%"
+  stop 0%: skinLight
+  stop 100%: skinBase
+
+Skin tone values:
+  tone-1: light={#FFF0D8}, base={#FDDCB5}, deep={#E8C090}, shadow={#D4A870}
+  tone-2: light={#F5C898}, base={#EDB98A}, deep={#D4986A}, shadow={#BC7840}
+  tone-3: light={#DCA878}, base={#C8956C}, deep={#A87248}, shadow={#8A5828}
+  tone-4: light={#9A7050}, base={#8B5E3C}, deep={#6A4020}, shadow={#501E08}
+  tone-5: light={#703820}, base={#5C3317}, deep={#3E1E0A}, shadow={#280C00}
+
+Shirt gradient (shirtBodyGrad): LinearGradient x1="0" y1="0" x2="1" y2="0"
+  stop 0%: shirtShadow (left edge shadow)
+  stop 15%: shirtMid
+  stop 50%: shirtHighlight (lit center)
+  stop 85%: shirtMid
+  stop 100%: shirtShadow
+
+Shirt fold shadow (shirtFoldGrad): LinearGradient y1="0" y2="1"
+  stop 0%: transparent
+  stop 100%: shirtDeepShadow at 40% opacity
+
+Pants gradient: LinearGradient x1="0" y1="0" x2="1" y2="0"
+  stop 0%: pantsDeep
+  stop 25%: pantsMid
+  stop 75%: pantsMid
+  stop 100%: pantsDeep
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BODY PROPORTIONS (fashion model ratio 1:8)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Total height: 340px in viewbox
+Head height: ~42px (ratio 1:8)
+Neck: 14px
+Torso: 96px
+Legs: 146px
+Feet: 22px
+
+HEAD: Ellipse cx=60 cy=44, rx=21, ry=24
+  Fill: url(#skinFaceGrad)
+  Jaw enhancement for "square" faceShape:
+    Add Path M 39,52 Q 39,66 60,68 Q 81,66 81,52
+    fill: url(#skinFaceGrad)
+
+EARS:
+  Left: Ellipse cx=39 cy=44 rx=4.5 ry=6.5, fill=skinBase
+    Inner: Ellipse cx=39.5 cy=44 rx=2.5 ry=4, fill=skinShadow opacity=0.3
+  Right: same mirrored
+
+NECK: Path M 53,66 Q 53,80 55,82 L 65,82 Q 67,80 67,66
+  Fill: skinBase with slight shadow on sides
+
+SHOULDERS (trapezoid, slightly wider than cartoon):
+  Path: M 18,88 Q 14,90 12,96 L 108,96 Q 106,90 102,88 Z
+  This creates the natural shoulder slope
+
+TORSO:
+  Outer shape: M 20,94 L 100,94 L 94,190 L 26,190 Z
+  Fill: url(#shirtBodyGrad)
+
+LEFT ARM:
+  Path: M 20,94 Q 10,96 8,100 L 8,178 Q 10,182 18,182 L 22,182 L 26,100 Z
+  Fill: url(#shirtBodyGrad)
+  This creates natural arm taper and shoulder connection
+
+RIGHT ARM:
+  Path: M 100,94 Q 110,96 112,100 L 112,178 Q 110,182 102,182 L 98,182 L 94,100 Z
+  Fill: url(#shirtBodyGrad)
+
+LEFT HAND:
+  Palm: Path M 8,178 Q 6,182 7,188 Q 10,194 18,192 Q 22,190 22,186 L 18,180 Z
+  Fill: url(#skinHandGrad)
+  Finger hints: 3 tiny curved lines at top of palm
+    Line 1: M 9,183 Q 8,179 10,178 stroke=skinDeep strokeWidth=0.8
+    Line 2: M 13,185 Q 12,180 14,179 stroke=skinDeep strokeWidth=0.8
+    Line 3: M 17,185 Q 17,180 18,180 stroke=skinDeep strokeWidth=0.8
+  Thumb: Small ellipse cx=7 cy=186 rx=2.5 ry=4 fill=skinBase
+
+RIGHT HAND: Mirror of left hand
+
+BELT:
+  Main belt: Rect x=26 y=187 width=68 height=9 rx=2
+    Fill: #3D2810 (rich leather brown)
+    Texture gradient overlay: LinearGradient y
+      stop 0%: white opacity=0.12
+      stop 100%: transparent
+  Buckle housing: Rect x=51 y=186 width=18 height=11 rx=2, fill=#5A3C18
+  Buckle frame: Rect x=53 y=188 width=14 height=7 rx=1.5
+    fill=none stroke=#C8A030 strokeWidth=1.5
+  Buckle pin: Line x1=60 y1=188 x2=60 y2=195 stroke=#C8A030 strokeWidth=1
+
+LEGS:
+  Left leg: Path M 28,194 L 52,194 L 54,318 L 24,318 Z
+    Fill: url(#pantsGrad)
+  Right leg: Path M 68,194 L 92,194 L 96,318 L 66,318 Z
+    Fill: url(#pantsGrad)
+  Crotch area: Path M 36,194 Q 60,208 84,194
+    Fill: url(#pantsGrad) (fills the gap naturally)
+  
+  Pants crease (trouser break):
+    Left crease: Line x1=39 y1=200 x2=37 y2=314
+      stroke=pantsDeep strokeWidth=1.2 opacity=0.6
+    Right crease: Line x1=81 y1=200 x2=83 y2=314
+      stroke=pantsDeep strokeWidth=1.2 opacity=0.6
+
+SHOES (base — no wearable equipped):
+  Left shoe:
+    Sole: Path M 20,316 Q 18,322 24,326 L 56,326 Q 62,326 62,320 L 62,314 Z
+      fill=#1A1A24
+    Upper: Path M 24,316 Q 24,322 30,324 L 56,324 Q 60,322 60,316 Z
+      fill=#252530
+    Toe cap shine: Path M 26,318 Q 32,316 40,318
+      stroke=#FFFFFF strokeWidth=0.8 opacity=0.15 fill=none
+  Right shoe: Mirror of left
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FACE — PREMIUM DETAIL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+All face feature Y positions are RELATIVE to headCY (default 44).
+Let: faceCenter = headCY
+
+FACE DEPTH SHADOW:
+  Ellipse cx=60 cy={faceCenter+18} rx=18 ry=5
+  fill=skinDeep opacity=0.2
+
+CHEEKBONE HIGHLIGHTS (subtle, premium look):
+  Left: Ellipse cx=44 cy={faceCenter+4} rx=7 ry=4
+    fill=skinLight opacity=0.25
+  Right: Ellipse cx=76 cy={faceCenter+4} rx=7 ry=4
+    fill=skinLight opacity=0.25
+
+EYEBROWS — thicker, more defined than before:
+  Based on faceShape:
+  "oval"/"round":
+    Left brow: Path M 42,{faceCenter-10} Q 49,{faceCenter-14} 57,{faceCenter-11}
+    Right brow: Path M 63,{faceCenter-11} Q 71,{faceCenter-14} 78,{faceCenter-10}
+    strokeWidth=2.5 stroke=hairColor fill=none strokeLinecap="round"
+    
+    Brow fill (thickness): Path M 42,{faceCenter-10} Q 49,{faceCenter-14} 57,{faceCenter-11}
+    Q 57,{faceCenter-9} 49,{faceCenter-12} Q 42,{faceCenter-9} 42,{faceCenter-10} Z
+    fill=hairColor opacity=0.7
+
+  "square":
+    Straighter, heavier brows for strong jaw:
+    Left brow: Path M 41,{faceCenter-11} Q 49,{faceCenter-14} 57,{faceCenter-12}
+    strokeWidth=3 — thicker, more dominant
+
+EYES — premium almond cut:
+  "almond" (default):
+    Left eye white: Path M 41,{faceCenter-2} Q 49,{faceCenter-8} 57,{faceCenter-2}
+      Q 49,{faceCenter+4} 41,{faceCenter-2} Z fill=#F8F8F8
+    Left iris: Ellipse cx=49 cy={faceCenter-2} rx=5 ry=5.5
+      Fill: RadialGradient - center #4466AA, edge #1A1A36
+      (adjust iris color: brown for warm tones, grey-blue for cool)
+    Left pupil: Circle cx=49.5 cy={faceCenter-2} r=3 fill=#0A0A14
+    Left catch light: Circle cx=51 cy={faceCenter-4} r=1.8 fill=#FFFFFF
+    Left secondary light: Circle cx=47.5 cy={faceCenter} r=0.8 fill=#FFFFFF opacity=0.5
+    Left upper eyelid: Path M 41,{faceCenter-2} Q 49,{faceCenter-9} 57,{faceCenter-2}
+      stroke=skinDeep strokeWidth=1.2 fill=none opacity=0.6
+    Left lower eyelid: Path M 41,{faceCenter-2} Q 49,{faceCenter+3} 57,{faceCenter-2}
+      stroke=skinShadow strokeWidth=0.6 fill=none opacity=0.4
+    
+    Right eye: Mirror at cx=71
+  
+  "round":
+    Wider eye opening — rx=6 ry=6 for iris, more circular whites
+  
+  "wide":
+    Path opens wider at corners M 39,{faceCenter-1} Q 49,{faceCenter-9} 59,{faceCenter-1}
+
+NOSE — refined, barely-there but present:
+  Nose bridge: Path M 57,{faceCenter+2} Q 57.5,{faceCenter+8} 56,{faceCenter+12}
+    stroke=skinDeep strokeWidth=0.8 opacity=0.5 fill=none
+  Right bridge: Path M 63,{faceCenter+2} Q 62.5,{faceCenter+8} 64,{faceCenter+12}
+    stroke=skinDeep strokeWidth=0.8 opacity=0.5 fill=none
+  Nostrils: Path M 55,{faceCenter+12} Q 53,{faceCenter+14} 54,{faceCenter+15}
+    M 65,{faceCenter+12} Q 67,{faceCenter+14} 66,{faceCenter+15}
+    stroke=skinDeep strokeWidth=1 fill=none strokeLinecap="round"
+
+MOUTH:
+  Upper lip: Path M 52,{faceCenter+18}
+    Q 56,{faceCenter+15} 60,{faceCenter+17}
+    Q 64,{faceCenter+15} 68,{faceCenter+18}
+    fill=#C07860 opacity=0.85
+  Lower lip:
+    Path M 52,{faceCenter+18} Q 60,{faceCenter+24} 68,{faceCenter+18}
+    Q 60,{faceCenter+22} 52,{faceCenter+18} Z
+    fill=#B56852 opacity=0.7
+  Lip line: Path M 52,{faceCenter+18} Q 60,{faceCenter+19.5} 68,{faceCenter+18}
+    stroke=#903040 strokeWidth=0.7 fill=none opacity=0.6
+  Lower lip highlight: Path M 55,{faceCenter+21} Q 60,{faceCenter+23} 65,{faceCenter+21}
+    stroke=#FFFFFF strokeWidth=0.8 opacity=0.2 fill=none
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CLOTHING PREMIUM DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SHIRT COLLAR (premium spread collar):
+  Right collar blade:
+    Path M 60,82 L 72,90 L 74,100 L 60,98 Z
+    fill=shirtHighlight (slightly brighter than shirt)
+  Left collar blade:
+    Path M 60,82 L 48,90 L 46,100 L 60,98 Z
+    fill=shirtHighlight
+  Collar shadow underside:
+    Path M 60,82 L 72,90 L 72,94 L 60,92 L 48,94 L 48,90 Z
+    fill=shirtDeepShadow opacity=0.35
+  Button at collar: Circle cx=60 cy=96 r=2.5
+    fill=shirtMid stroke=shirtShadow strokeWidth=0.5
+
+SHIRT CONSTRUCTION DETAILS:
+  Button placket:
+    Rect x=58.5 y=100 width=3 height=88 rx=0 fill=shirtShadow opacity=0.15
+  Buttons (3 visible):
+    Circle cx=60 cy=114 r=2.2, cx=60 cy=132 r=2.2, cx=60 cy=150 r=2.2
+    fill=shirtMid, stroke=shirtShadow strokeWidth=0.4
+  Shirt hem tuck detail:
+    Path M 26,187 Q 40,184 60,185 Q 80,184 94,187
+    stroke=shirtShadow strokeWidth=1 fill=none opacity=0.4
+  
+  Shoulder seam lines:
+    Left: Path M 20,94 Q 26,96 30,104 stroke=shirtShadow strokeWidth=1 fill=none opacity=0.5
+    Right: Path M 100,94 Q 94,96 90,104 stroke=shirtShadow strokeWidth=1 fill=none opacity=0.5
+  
+  Armpit fold shadow:
+    Left: Ellipse cx=22 cy=106 rx=6 ry=10 fill=shirtDeepShadow opacity=0.25
+    Right: Ellipse cx=98 cy=106 rx=6 ry=10 fill=shirtDeepShadow opacity=0.25
+  
+  Sleeve cuffs:
+    Left cuff: Path M 8,170 Q 8,180 14,182 L 22,182 Q 26,180 26,170
+      fill=shirtCuff (slightly different shade, like folded fabric)
+      stroke=shirtShadow strokeWidth=0.5
+    Right cuff: Mirror
+    Cuff button: Circle cx=15 cy=177 r=1.5 fill=shirtMid
+    Right cuff button: Circle cx=105 cy=177 r=1.5 fill=shirtMid
+
+SHIRT COLOR VALUES per tier:
+  "starter":
+    shirtHighlight=#FAFAFA, shirtMid=#F0F0F0, shirtBase=#E8E8E8
+    shirtShadow=#D0D0D0, shirtDeepShadow=#B0B0B0, shirtCuff=#F4F4F4
+    pantsBase=#161628, pantsMid=#1E1E36, pantsDeep=#0E0E1C
+  "rising":
+    shirtHighlight=#EEEEF8, shirtMid=#E4E4F0, shirtBase=#D8D8E8
+    shirtShadow=#C0C0D0, shirtDeepShadow=#9898B0, shirtCuff=#E8E8F4
+    pantsBase=#141422, pantsMid=#1C1C30, pantsDeep=#0A0A14
+  "premium":
+    shirtHighlight=#D8D8E8, shirtMid=#C4C4D4, shirtBase=#B0B0C4
+    shirtShadow=#9090A8, shirtDeepShadow=#606078, shirtCuff=#CCCCDC
+    pantsBase=#101018, pantsMid=#181826, pantsDeep=#080810
+  "elite":
+    shirtHighlight=#303042, shirtMid=#242436, shirtBase=#1A1A2A
+    shirtShadow=#10101E, shirtDeepShadow=#070710, shirtCuff=#2A2A3E
+    pantsBase=#0A0A12, pantsMid=#121220, pantsDeep=#05050A
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ACCESSORIES — LUXURY LEVEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WATCH — must look like a luxury timepiece:
+
+"basic" (entry-level but clean):
+  Strap upper: Rect x=98 y=160 width=14 height=6 rx=1 fill=#4A3010
+  Strap lower: Rect x=98 y=174 width=14 height=6 rx=1 fill=#4A3010
+  Case: Rect x=96 y=163 width=18 height=14 rx=3
+    fill=#8A7030 stroke=#C8A030 strokeWidth=0.8
+  Crystal: Rect x=98 y=165 width=14 height=10 rx=2 fill=#D4B840
+  Dial: Rect x=99 y=166 width=12 height=8 rx=1.5 fill=#0C0C1C
+  Hour markers: 4 tiny rects at 12/3/6/9 inside dial, fill=#C8A030 size=1x2
+  Hour hand: Line from center at angle, stroke=#C8A030 strokeWidth=1.2
+  Crown: Rect x=114 y=168 width=2.5 height=4 rx=0.8 fill=#7A6020
+
+"refined" (dress watch — thin and elegant):
+  Strap: Rect x=99 y=158 width=12 height=22 rx=1 fill=#2A1808
+  Strap texture: 3 thin lines across strap for leather grain effect
+  Case (ultra thin): Rect x=97 y=162 width=16 height=14 rx=4
+    fill=#C8A030 stroke=#E8C050 strokeWidth=0.5
+  Crystal: Rect x=99 y=163 width=12 height=11 rx=3 fill=#D4B840 opacity=0.9
+  Dial: Rect x=100 y=164 width=10 height=9 rx=2.5 fill=#F0EEE4
+    (cream/champagne dial — luxury reference)
+  Indices: 12 tiny dots arranged in circle pattern inside dial
+    each: Circle r=0.5 fill=#8A7020
+  Hands (skeleton style — thinner):
+    Hour: thin Path pointing from center
+    Minute: even thinner Path
+  Case reflection: Path across top-left of case
+    stroke=#FFFFFF strokeWidth=0.8 opacity=0.3 fill=none
+
+"elite" (sports chronograph — Rolex-inspired):
+  Bezel: Circle cx=105 cy=170 r=10 fill=#303040 stroke=#5050A0 strokeWidth=1
+  Bezel markings: 12 tiny lines around bezel edge, stroke=#8080C0 strokeWidth=0.6
+  Case: Circle cx=105 cy=170 r=8 fill=#1A1A30
+  Crystal (domed): Ellipse cx=105 cy=169 rx=7 ry=6.5 fill=#0A0A20
+  Dial details: Subdial circles at 3/6/9 positions (tiny circles)
+  Hands luminous: stroke=#00FF88 strokeWidth=1.2 (luminous green tips)
+  Crown + pushers: Small rects on right side
+  Bracelet: Alternating link pattern on strap (rectangles suggesting H-link bracelet)
+  Glow: Circle cx=105 cy=170 r=11 fill=none stroke=#4040CC strokeWidth=0.5 opacity=0.5
+
+CHAIN NECKLACE ("chain" accessory):
+  Main chain V:
+    Path M 51,88 Q 48,100 50,112 Q 54,122 60,126 Q 66,122 70,112 Q 72,100 69,88
+    stroke=#C8A030 strokeWidth=2.5 fill=none strokeLinecap="round"
+    strokeDasharray="1,2" (creates chain link visual effect)
+  Shadow chain behind:
+    Same path with strokeWidth=4 stroke=#8A6010 opacity=0.3 (depth shadow)
+  Pendant:
+    Outer: Circle cx=60 cy=128 r=5.5 fill=#C8A030 stroke=#E8C050 strokeWidth=0.5
+    Inner: Circle cx=60 cy=128 r=3.5 fill=#0A0A14
+    Center gem: Circle cx=60 cy=128 r=1.5 fill=#4488FF
+    Highlight on pendant: Circle cx=58 cy=126 r=1 fill=white opacity=0.4
+
+LAPEL PIN ("pin" accessory):
+  Base: Circle cx=38 cy=110 r=6 fill=#C8A030
+  Detail ring: Circle cx=38 cy=110 r=4.5 fill=none stroke=#8A6010 strokeWidth=0.8
+  Center diamond: Path M 38,106 L 42,110 L 38,114 L 34,110 Z fill=#0A0A14
+  Diamond facets: 2 lines across diamond suggesting cut
+  Shine: Circle cx=36 cy=108 r=1.2 fill=#FFFFFF opacity=0.5
+
+RING ("ring" accessory):
+  Band: Ellipse cx=109 cy=187 rx=5 ry=3 fill=none stroke=#D4A840 strokeWidth=2.5
+  Band shading: same ellipse stroke=#8A5820 strokeWidth=1 opacity=0.5
+  Setting: Ellipse cx=109 cy=184 rx=3.5 ry=2 fill=#1A1A2A stroke=#D4A840 strokeWidth=1
+  Stone: Ellipse cx=109 cy=184 rx=2.5 ry=1.5 fill=#3366CC
+  Stone facets: 2 thin lines across stone, stroke=#6699FF strokeWidth=0.5
+  Stone shine: small white highlight on stone
+
+EYEWEAR SLOTS:
+"thin-frame" (gold/titanium — premium):
+  Left lens: Rect x=40 y={faceCenter-6} width=19 height=13 rx=4.5
+    fill=none stroke=#C8A030 strokeWidth=1.8
+  Right lens: Rect x=61 y={faceCenter-6} width=19 height=13 rx=4.5
+    fill=none stroke=#C8A030 strokeWidth=1.8
+  Bridge: Path M 59,{faceCenter+1} Q 60,{faceCenter-1} 61,{faceCenter+1}
+    stroke=#C8A030 strokeWidth=1.5 fill=none
+  Temples: Line x1=40 y1={faceCenter+1} x2=32 y2={faceCenter+4}
+    stroke=#C8A030 strokeWidth=1.5
+    Line x1=80 y1={faceCenter+1} x2=88 y2={faceCenter+4}
+    stroke=#C8A030 strokeWidth=1.5
+  Lens reflection: Path across top-left of each lens
+    stroke=#FFFFFF strokeWidth=0.6 opacity=0.25 fill=none
+
+"bold-frame" (designer — black):
+  strokeWidth=3 stroke=#101018
+  Fill each lens with: fill=#10101410 (very subtle dark tint)
+  Add nose pads: two tiny ellipses on bridge
+
+"sunglasses" (luxury):
+  Lenses: Rect with rx=7, fill filled with LinearGradient
+    Gradient: top=#00000095 to bottom=#00000060 (gradient tint)
+  Mirror shine: bright diagonal strip across lens
+    Path across top portion of lens, stroke=#FFFFFF, strokeWidth=1.5, opacity=0.2
+  Frame: solid dark border strokeWidth=2.5
+  Arm joints: tiny circles where temples attach
+
+SHOES (wearable slots):
+
+"casual" (clean canvas/leather):
+  Shoe upper: Path (same coordinates as base shoe)
+    fill=#D8CFC0 (warm light canvas)
+  Sole: Path M 20,322 Q 18,328 24,330 L 56,330 Q 62,330 62,324
+    fill=#E8E0D0 (lighter rubber sole)
+  Sole edge: stroke=#B0A890 strokeWidth=0.8
+  Laces: 4 horizontal stitch lines across toe box
+    stroke=#A09880 strokeWidth=0.8 opacity=0.7
+  Toe box shadow: subtle darker area at very tip
+
+"sneaker" (white premium):
+  Upper: fill=#F4F4F4 stroke=#E0E0E0 strokeWidth=0.5
+  Sole: Path slightly larger/thicker, fill=#E8E8E8
+  Sole accent line: contrasting stripe on side of sole
+    Path along side, stroke=#C0A030 strokeWidth=1.5 (gold accent)
+  Toe cap: separate path at toe, fill=#EEEEEE stroke=#D8D8D8
+  Swoosh/brand mark suggestion: curved Path on side of shoe
+    stroke=#D0D0D0 strokeWidth=1.5 fill=none opacity=0.8
+  Lace holes: 3 pairs of tiny circles
+  Clean shadow under shoe: subtle ellipse
+
+"formal" (black oxford):
+  Upper: fill=#0A0A0A stroke=#1A1A1A strokeWidth=0.5
+  High gloss effect: add multiple highlight reflections
+    Toe highlight: curved bright line Path stroke=#FFFFFF strokeWidth=1 opacity=0.18
+    Main body highlight: longer softer line stroke=#FFFFFF strokeWidth=1.5 opacity=0.08
+  Oxford brogue:
+    Toe cap seam: Path across toe M 24,320 Q 39,318 55,319
+      stroke=#1E1E1E strokeWidth=1 fill=none
+    Optional punch holes: tiny dots along seam
+  Sole: Path with fill=#1A1208 (dark leather sole)
+  Sole welt: thin contrasting line stroke=#3A2A10 strokeWidth=1
+
+"boot" (chelsea/dress boot):
+  Shaft (taller — extends to y=290):
+    Path M 22,288 L 22,320 Q 22,326 28,328 L 54,328 Q 60,326 60,320 L 60,288
+    fill=#1A1210 (dark rich leather)
+  Shaft highlight: subtle vertical shine line
+  Pull tab at back: small rectangle suggesting chelsea elastic or loop
+  Sole: Chunky path fill=#0E0E0A
+  Boot toe: rounded but defined shape
+  Stitching line at shaft-sole junction:
+    stroke=#4A3020 strokeWidth=0.8 strokeDasharray="1.5,1.5"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HAIR SYSTEM (premium rendering)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hair must have DEPTH — at minimum 2 tone values:
+  hairBase = hairColor (the flat color)
+  hairHighlight = hairColor at 60% lightness (catches top light)
+  hairShadow = hairColor at 160% darkness (undercuts, shadows)
+
+For every hairstyle:
+  1. Render base fill in hairBase
+  2. Add highlight Path on top-center (lit by top-left light)
+  3. Add shadow Path on undercuts and edges
+  4. Add subtle strand lines for texture: 
+     thin Paths stroke=hairHighlight opacity=0.3
+
+"clean_cut" / "buzz_cut": Short tapered cut
+  Base: Rect x=40 y=20 width=40 height=20 rx=10 fill=hairBase
+    + curved top matching head shape
+  Hairline at sides: precise curved path showing fade
+  Top highlight: Ellipse cx=55 cy=22 rx=15 ry=5 fill=hairHighlight opacity=0.4
+
+"side_part": Classic executive side part
+  Main mass: Covers top of head
+  Part line: thin precise line slightly left of center
+  Left side flows slightly over forehead
+  Highlight follows the parted volume
+
+"textured_crop": Modern textured top
+  Base volume on top of head
+  Texture lines: multiple short curved strokes suggesting texture
+  Undercut fade at sides matching clean cut base
+
+"slicked_back": Power move — all pulled back
+  Smooth flow from forehead back
+  Strong highlight shows slicked-down shine
+  hairShadow at temples and sides
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRESTIGE AURA SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"subtle":
+  Background radial glow:
+    RadialGradient id="subtleAura" cx=50% cy=45% r=50%
+    stop 0%: #7C5CFC opacity=0.06
+    stop 100%: transparent
+  Ellipse cx=60 cy=190 rx=55 ry=170 fill=url(#subtleAura)
+
+"visible":
+  Larger glow + 6 particle diamonds:
+    Aura opacity=0.15
+    Particles: 6 rotated small rects (diamonds) at strategic positions
+    around the character silhouette, fill=#C8A030 opacity=0.7 size=3x3
+    Transform: rotate(45deg) at each particle
+
+"legendary":
+  Full aura system:
+    3 concentric RadialGradient rings (large, medium, small)
+    at opacities 0.18, 0.10, 0.06
+    12 gold diamond particles
+    Subtle golden tint overlay on entire character
+    Fine border glow around full character silhouette
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+POSTURE SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Posture affects headCY AND torso position AND shoulder breadth:
+
+"neutral":  headCY=46, torsoTopY=96, shoulderWidth=80, torsoWidthFactor=1.0
+"upright":  headCY=44, torsoTopY=94, shoulderWidth=82, torsoWidthFactor=1.01
+"athletic": headCY=42, torsoTopY=92, shoulderWidth=86, torsoWidthFactor=1.03
+  — slightly wider shoulders for athletic build
+"peak":     headCY=40, torsoTopY=90, shoulderWidth=90, torsoWidthFactor=1.05
+  — commanding wide shoulders, tallest stance
+
+Use these as variables to scale all coordinate calculations.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTERWEAR LAYER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If equippedOuterwearStyle is not null, render OVER the shirt:
+
+"bomber" / default outerwear:
+  Body: same torso trapezoid as shirt but slightly larger (2px bigger each side)
+  Color from outerwearColor or default #1A1A2A
+  Ribbed hem: Pattern of thin horizontal lines at bottom edge
+  Ribbed cuffs: Pattern at sleeve ends
+  Zipper: Path down center front stroke=#808080 strokeWidth=1.5
+  Collar: Different from shirt — band collar or bomber collar shape
+
+"blazer" / formal outerwear:
+  Body: torso shape
+  Lapels: Left and right triangular lapel shapes, slightly lighter shade
+  Pocket: Rectangle suggestion on left chest
+  Buttons: 2 large buttons on front
+  Structure: visible shoulder pad hint at shoulder curves
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RENDER LAYER ORDER (back to front)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1.  Ground drop shadow ellipse
+2.  Prestige aura / glow (behind character)
+3.  SHOES
+4.  LEGS / PANTS with gradients
+5.  BELT + BUCKLE
+6.  TORSO shirt (with gradients)
+7.  OUTERWEAR (if equipped, over shirt)
+8.  LEFT ARM + RIGHT ARM
+9.  ARMPIT SHADOW
+10. CHAIN/NECKLACE (under collar)
+11. COLLAR (over shirt, under head)
+12. SHIRT DETAILS (placket, seams, cuffs)
+13. NECK
+14. HEAD base + ears
+15. HAIR (back portion)
+16. FACE gradient/shading
+17. CHEEKBONE highlights
+18. EYEBROWS
+19. EYES (whites → iris gradient → pupil → highlights)
+20. NOSE
+21. MOUTH (lips with gradient)
+22. HAIR (front/fringe)
+23. HANDS with finger hints
+24. WATCH (right wrist)
+25. RING (right hand)
+26. LAPEL PIN (left chest)
+27. EYEWEAR (over face)
+28. PRESTIGE PARTICLES (in front of everything)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Every gradient ID must be unique per instance using a prefix + character ID
+   or use separate Defs sections. If multiple characters render simultaneously,
+   gradient IDs must not collide. Use uid prefix approach.
+
+2. useMemo() for ALL computed paths, coordinates, and color calculations.
+   The renderer must be fast — zero unnecessary re-renders.
+
+3. memo() wrap the final export.
+
+4. Size map:
+   small:  svgW=90,  svgH=285
+   medium: svgW=150, svgH=475
+   large:  svgW=192, svgH=608
+   full:   svgW=240, svgH=760
+
+5. Female bodyType: 
+   Adjust torso: slightly narrower shoulders (-4px each side)
+   Slightly wider hip area (+3px each side below waist)
+   Hair styles use HAIR_STYLE_FEMALE_DISPLAY keys
+
+6. Drop shadow:
+   Ellipse cx=60 cy=372 rx=32 ry=5 fill=#000000 opacity=0.35
+
+7. IMPORTANT: Every single layer listed above must be implemented.
+   Do NOT use placeholder comments. Write every Path, every gradient, every detail.
+   This will be the hero UI of a world-class productivity app.
+
+8. The final character must look premium enough to be featured in a:
+   - App Store feature banner
+   - Product Hunt launch
+   - TechCrunch article screenshot
+
+Keep the exact same Props interface for drop-in replacement:
+  visualState: CharacterVisualState (extended with shoes, eyewear, faceShape, eyeShape)
+  size?: "small" | "medium" | "large" | "full"
+  showShadow?: boolean
+  view?: CharacterView
+
+Export: export const CharacterRenderer = memo(CharacterRendererInner);
