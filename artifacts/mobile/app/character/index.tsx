@@ -1211,6 +1211,13 @@ export default function CharacterStatusScreen() {
 
             {/* Identity */}
             <Text style={styles.characterName}>{user?.username ?? "Character"}</Text>
+            {charState?.arcLabel && (
+              <View style={styles.arcPill}>
+                <Text style={styles.arcPillText}>
+                  {charState.arcLabel.toUpperCase()}{charState.arcStageLabel ? " · " + charState.arcStageLabel.toUpperCase() : ""}
+                </Text>
+              </View>
+            )}
             <Text style={styles.outfitLabel}>{data?.character?.outfitLabel ?? "Starter Kit"}</Text>
 
             {/* Score — large editorial number */}
@@ -1236,6 +1243,11 @@ export default function CharacterStatusScreen() {
                 <View style={styles.miniStat}>
                   <Text style={styles.miniStatNum}>{data?.badgeCount ?? 0}</Text>
                   <Text style={styles.miniStatLabel}>Badges</Text>
+                </View>
+                <View style={styles.miniStatDivider} />
+                <View style={styles.miniStat}>
+                  <Text style={styles.miniStatNum}>{data?.totalSkillXp ? (data.totalSkillXp >= 1000 ? Math.floor(data.totalSkillXp / 1000) + "k" : String(data.totalSkillXp)) : "0"}</Text>
+                  <Text style={styles.miniStatLabel}>XP</Text>
                 </View>
               </View>
             </View>
@@ -1369,27 +1381,81 @@ export default function CharacterStatusScreen() {
           </Animated.View>
 
           {/* ── 6. EVOLUTION LOG ── */}
-          {data?.visualState?.evolutionExplanations && data.visualState.evolutionExplanations.length > 0 && (
-            <Animated.View entering={FadeInDown.delay(250).duration(350)}>
-              <SectionLabel label="EVOLUTION LOG" />
-              <View style={logStyles.card}>
-                {(data.visualState.evolutionExplanations as { source: string; text: string }[]).map((ex, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      logStyles.row,
-                      i > 0 && logStyles.rowBorder,
-                    ]}
-                  >
-                    <View style={logStyles.sourcePill}>
-                      <Text style={logStyles.sourceText}>
-                        {ex.source.toUpperCase()}
-                      </Text>
+          {(() => {
+            let evoExplanations: { source: string; text: string }[] = [];
+            const vs = charState?.visualState;
+            if (vs) {
+              if (vs.postureStage === "upright") evoExplanations.push({ source: "Fitness", text: "Consistent training is improving your posture and physical confidence." });
+              if (vs.postureStage === "athletic") evoExplanations.push({ source: "Fitness", text: "Athletic posture and peak energy. Strong physique signal." });
+              if (vs.postureStage === "peak") evoExplanations.push({ source: "Fitness", text: "Elite conditioning. Commanding physical presence unlocked." });
+              if (vs.refinementStage === "composed") evoExplanations.push({ source: "Discipline", text: "Self-discipline is adding composure and control to your presence." });
+              if (vs.refinementStage === "sharp") evoExplanations.push({ source: "Discipline", text: "High discipline. Sharp, composed presence defining your character." });
+              if (vs.refinementStage === "commanding") evoExplanations.push({ source: "Discipline", text: "Mastery-level self-control. Commanding presence achieved." });
+              if (vs.outfitTier === "rising") evoExplanations.push({ source: "Finance", text: "Your lifestyle progress is visibly upgrading your style quality." });
+              if (vs.outfitTier === "premium") evoExplanations.push({ source: "Finance", text: "Premium lifestyle tier. Elevated outfit class unlocked." });
+              if (vs.outfitTier === "elite") evoExplanations.push({ source: "Finance", text: "Elite presence. Resources and ambition fully aligned." });
+              if (vs.prestigeStage === "subtle") evoExplanations.push({ source: "Prestige", text: "Earned milestones showing subtle identity accents." });
+              if (vs.prestigeStage === "visible") evoExplanations.push({ source: "Prestige", text: "Visible prestige markers unlocked. Elite signals present." });
+              if (vs.prestigeStage === "legendary") evoExplanations.push({ source: "Prestige", text: "Legendary prestige aura. A legacy is being written." });
+              if (vs.equippedWatchStyle != null) evoExplanations.push({ source: "Wardrobe", text: "Equipped watch is boosting your style signal." });
+              if (vs.equippedOuterwearStyle != null) evoExplanations.push({ source: "Wardrobe", text: "Outerwear is elevating your overall look and tier presence." });
+            }
+            if (evoExplanations.length === 0) {
+              evoExplanations = data?.visualState?.evolutionExplanations ?? [];
+            }
+            if (evoExplanations.length === 0) return null;
+            return (
+              <Animated.View entering={FadeInDown.delay(250).duration(350)}>
+                <SectionLabel label="EVOLUTION LOG" />
+                <View style={logStyles.card}>
+                  {evoExplanations.map((ex, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        logStyles.row,
+                        i > 0 && logStyles.rowBorder,
+                      ]}
+                    >
+                      <View style={logStyles.sourcePill}>
+                        <Text style={logStyles.sourceText}>
+                          {ex.source.toUpperCase()}
+                        </Text>
+                      </View>
+                      <Text style={logStyles.text}>{ex.text}</Text>
                     </View>
-                    <Text style={logStyles.text}>{ex.text}</Text>
+                  ))}
+                </View>
+              </Animated.View>
+            );
+          })()}
+
+          {/* ── 6b. FEATURED CAR ── */}
+          {data?.featuredCar && (
+            <Animated.View entering={FadeInDown.delay(270).duration(350)}>
+              <SectionLabel label="FEATURED CAR" />
+              <Pressable
+                style={({ pressed }) => [
+                  featuredCarStyles.card,
+                  { borderColor: featuredCarStyles.rarityColors[data.featuredCar.rarity as keyof typeof featuredCarStyles.rarityColors] ?? Colors.border },
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/cars" as any); }}
+              >
+                <View style={featuredCarStyles.iconWrap}>
+                  <Ionicons name="car-sport" size={22} color={featuredCarStyles.rarityColors[data.featuredCar.rarity as keyof typeof featuredCarStyles.rarityColors] ?? Colors.textSecondary} />
+                </View>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={featuredCarStyles.name}>{data.featuredCar.name}</Text>
+                  <Text style={featuredCarStyles.classLabel}>{data.featuredCar.carClass}</Text>
+                </View>
+                {data.carPrestigeBonus > 0 && (
+                  <View style={featuredCarStyles.prestigeBadge}>
+                    <Ionicons name="sparkles" size={10} color={Colors.accent} />
+                    <Text style={featuredCarStyles.prestigeText}>+{data.carPrestigeBonus} Prestige</Text>
                   </View>
-                ))}
-              </View>
+                )}
+                <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
+              </Pressable>
             </Animated.View>
           )}
 
@@ -1535,6 +1601,15 @@ const styles = StyleSheet.create({
   outfitLabel: {
     fontFamily: "Inter_500Medium", fontSize: 12,
     color: Colors.textMuted, letterSpacing: 0.5,
+  },
+  arcPill: {
+    backgroundColor: Colors.bgElevated,
+    borderRadius: 8, borderWidth: 1, borderColor: Colors.border,
+    paddingHorizontal: 10, paddingVertical: 4,
+  },
+  arcPillText: {
+    fontFamily: "Inter_700Bold", fontSize: 10,
+    color: Colors.textSecondary, letterSpacing: 0.8,
   },
 
   // ── Status Tier Card ──
@@ -1687,6 +1762,35 @@ const logStyles = StyleSheet.create({
   sourceText: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.2, color: Colors.textMuted },
   text: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, flex: 1, lineHeight: 19 },
 });
+
+const featuredCarStyles = {
+  card: {
+    flexDirection: "row" as const, alignItems: "center" as const, gap: 13,
+    backgroundColor: Colors.bgCard, borderRadius: 16, padding: 14,
+    borderWidth: 1.5,
+  },
+  iconWrap: {
+    width: 44, height: 44, borderRadius: 13,
+    backgroundColor: Colors.bgElevated,
+    alignItems: "center" as const, justifyContent: "center" as const,
+  },
+  name: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.textPrimary },
+  classLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, letterSpacing: 0.3 },
+  prestigeBadge: {
+    flexDirection: "row" as const, alignItems: "center" as const, gap: 4,
+    backgroundColor: Colors.bgElevated, borderRadius: 8,
+    paddingHorizontal: 8, paddingVertical: 4,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  prestigeText: { fontFamily: "Inter_700Bold", fontSize: 10, color: Colors.accent, letterSpacing: 0.4 },
+  rarityColors: {
+    common: "#8888AA",
+    uncommon: "#00E676",
+    rare: "#2196F3",
+    epic: "#9C27B0",
+    legendary: "#F5C842",
+  } as Record<string, string>,
+};
 
 // ─── Customize Sheet Styles ────────────────────────────────────────────────────
 

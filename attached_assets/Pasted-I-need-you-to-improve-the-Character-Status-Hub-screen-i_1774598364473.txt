@@ -1,0 +1,62 @@
+I need you to improve the Character Status Hub screen in my Life RPG app.
+
+PRIMARY FILE: artifacts/mobile/app/character/index.tsx
+
+CONTEXT ABOUT THE APP:
+- React Native + Expo app
+- Dark premium design (PREMIUM_BG = "#07071A")
+- Already uses: Ionicons, react-native-reanimated, expo-router, Colors constants, SectionLabel component, FadeInDown animations
+- Character data comes from useCharacterStatus() hook which calls /character/status API
+- computeCharacterState(data) is already called at the top and stored in charState
+
+PROBLEMS TO FIX (in order):
+
+--- FIX 1: Featured Car Section ---
+The API already returns data.featuredCar and data.carPrestigeBonus but they are never displayed.
+Add a FeaturedCarCard component and render it between EVOLUTION LOG and YOUR SPACE sections.
+- Show car name, rarity colored border, car class, prestige bonus badge
+- Rarity colors: common=#8888AA, uncommon=#00E676, rare=#2196F3, epic=#9C27B0, legendary=#F5C842
+- Tap navigates to /cars
+- Only show if data.featuredCar is not null
+
+--- FIX 2: Evolution Log is always empty ---
+Section 6 reads data?.visualState?.evolutionExplanations which is always empty.
+Fix it to generate explanations from charState.visualState instead:
+- postureStage "upright" → { source: "Fitness", text: "Consistent training is improving your posture and physical confidence." }
+- postureStage "athletic" → { source: "Fitness", text: "Athletic posture and peak energy. Strong physique signal." }
+- postureStage "peak" → { source: "Fitness", text: "Elite conditioning. Commanding physical presence unlocked." }
+- refinementStage "composed" → { source: "Discipline", text: "Self-discipline is adding composure and control to your presence." }
+- refinementStage "sharp" → { source: "Discipline", text: "High discipline. Sharp, composed presence defining your character." }
+- refinementStage "commanding" → { source: "Discipline", text: "Mastery-level self-control. Commanding presence achieved." }
+- outfitTier "rising" → { source: "Finance", text: "Your lifestyle progress is visibly upgrading your style quality." }
+- outfitTier "premium" → { source: "Finance", text: "Premium lifestyle tier. Elevated outfit class unlocked." }
+- outfitTier "elite" → { source: "Finance", text: "Elite presence. Resources and ambition fully aligned." }
+- prestigeStage "subtle" → { source: "Prestige", text: "Earned milestones showing subtle identity accents." }
+- prestigeStage "visible" → { source: "Prestige", text: "Visible prestige markers unlocked. Elite signals present." }
+- prestigeStage "legendary" → { source: "Prestige", text: "Legendary prestige aura. A legacy is being written." }
+- equippedWatchStyle not null → { source: "Wardrobe", text: "Equipped watch is boosting your style signal." }
+- equippedOuterwearStyle not null → { source: "Wardrobe", text: "Outerwear is elevating your overall look and tier presence." }
+If charState.visualState is null, fall back to data?.visualState?.evolutionExplanations ?? [].
+If final array is empty, render nothing for the section.
+
+--- FIX 3: Arc label missing ---
+charState.arcLabel and charState.arcStageLabel exist but are never shown.
+After the line <Text style={styles.characterName}>, add a small pill badge:
+- Background: Colors.bgElevated, borderRadius: 8, borderWidth: 1, borderColor: Colors.border
+- Text: Inter_700Bold, fontSize: 10, color: Colors.textSecondary, letterSpacing: 0.8, uppercase
+- Show arcLabel + " · " + arcStageLabel if arcStageLabel exists
+- Only show if charState.arcLabel is not null
+
+--- FIX 4: Stats row missing Total XP ---
+The stats row shows Sessions and Badges only.
+Add Total XP as third stat after the second miniStatDivider:
+- Value: data.totalSkillXp formatted as "Xk" (e.g. 2500 → "2k"), or "0" if missing
+- Label: "XP"
+- Use same miniStat and miniStatLabel styles as the other stats
+
+DESIGN RULES:
+- Match the existing dark premium style exactly
+- Use Inter_700Bold for labels, Inter_400Regular for body text
+- All new sections use FadeInDown animation with appropriate delay
+- Do NOT remove or change any existing sections
+- Show me the changed sections only, not the entire file
