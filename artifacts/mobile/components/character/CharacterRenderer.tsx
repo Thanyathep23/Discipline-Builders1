@@ -34,7 +34,7 @@ interface OutfitPalette { shirt: ShirtPalette; pants: PantsPalette; }
 
 const OUTFITS: Record<OutfitTier, OutfitPalette> = {
   starter: {
-    shirt: { highlight: "#F8F6F0", mid: "#EEEAE0", base: "#E8E4D8", shadow: "#C4C0B4", deepShadow: "#A8A498", cuff: "#F4F0E8" },
+    shirt: { highlight: "#F8F6F0", mid: "#EEEAE0", base: "#EEEAE0", shadow: "#C4C0B4", deepShadow: "#D8D4C8", cuff: "#F4F0E8" },
     pants: { base: "#161628", mid: "#1E1E36", deep: "#0E0E1C" },
   },
   rising: {
@@ -163,6 +163,14 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         <Stop offset="0%" stopColor="#000000" stopOpacity="0.05" />
         <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
       </LinearGradient>
+      <RadialGradient id={gid("armpitL")} cx="50%" cy="50%">
+        <Stop offset="0%" stopColor="#000000" stopOpacity="0.2" />
+        <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
+      </RadialGradient>
+      <RadialGradient id={gid("armpitR")} cx="50%" cy="50%">
+        <Stop offset="0%" stopColor="#000000" stopOpacity="0.2" />
+        <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
+      </RadialGradient>
       <LinearGradient id={gid("pantsGrad")} x1="0" y1="0" x2="1" y2="0">
         <Stop offset="0%" stopColor={pantsP.deep} />
         <Stop offset="25%" stopColor={pantsP.mid} />
@@ -922,8 +930,8 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         {/* 7. Shirt shadow overlays (3D depth) */}
         <Path d="M10,102 L32,104 L30,172 L10,174 Z" fill={`url(#${gid("sleeveShadL")})`} />
         <Path d="M112,102 L90,104 L92,172 L112,174 Z" fill={`url(#${gid("sleeveShadR")})`} />
-        <Ellipse cx="32" cy="112" rx="8" ry="18" fill="#000000" opacity="0.12" />
-        <Ellipse cx="88" cy="112" rx="8" ry="18" fill="#000000" opacity="0.12" />
+        <Ellipse cx="32" cy="112" rx="8" ry="18" fill={`url(#${gid("armpitL")})`} />
+        <Ellipse cx="88" cy="112" rx="8" ry="18" fill={`url(#${gid("armpitR")})`} />
         <Rect x="57" y="100" width="6" height="80" fill={`url(#${gid("foldShadow")})`} />
 
         {/* 8. Outerwear */}
@@ -945,6 +953,12 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         <Path d="M44,98 L60,102 L76,98 Q78,104 74,106 L60,104 L46,106 Q42,104 44,98 Z" fill="#00000025" />
         <Path d="M60,78 L76,90 Q78,96 74,100 L60,96 Z" fill={shirtS.highlight} stroke={shirtS.shadow} strokeWidth="0.5" />
         <Path d="M60,78 L44,90 Q42,96 46,100 L60,96 Z" fill={shirtS.highlight} stroke={shirtS.shadow} strokeWidth="0.5" />
+
+        {/* Sleeve cuffs — adapted to unified silhouette */}
+        <Path d="M10,170 Q10,178 16,180 L28,180 Q30,178 30,170" fill={shirtS.cuff} stroke={shirtS.shadow} strokeWidth="0.5" />
+        <Path d="M112,170 Q112,178 106,180 L94,180 Q92,178 92,170" fill={shirtS.cuff} stroke={shirtS.shadow} strokeWidth="0.5" />
+        <Circle cx="20" cy="176" r="1.5" fill={shirtS.mid} />
+        <Circle cx="102" cy="176" r="1.5" fill={shirtS.mid} />
 
         {/* 11. Shirt construction details */}
         <Rect x="58.5" y="100" width="3" height="82" rx="0" fill={shirtS.shadow} opacity="0.15" />
