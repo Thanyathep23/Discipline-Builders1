@@ -74,10 +74,10 @@ const GROOMING: Record<RefinementStage, number> = { casual: 0, composed: 1, shar
 
 interface PostureParams { headCY: number; torsoTopY: number; shoulderW: number; widthFactor: number; }
 const POSTURE: Record<PostureStage, PostureParams> = {
-  neutral:  { headCY: 46, torsoTopY: 96, shoulderW: 80, widthFactor: 1.0 },
-  upright:  { headCY: 44, torsoTopY: 94, shoulderW: 82, widthFactor: 1.01 },
-  athletic: { headCY: 42, torsoTopY: 92, shoulderW: 86, widthFactor: 1.03 },
-  peak:     { headCY: 40, torsoTopY: 90, shoulderW: 90, widthFactor: 1.05 },
+  neutral:  { headCY: 50, torsoTopY: 88, shoulderW: 60, widthFactor: 1.0 },
+  upright:  { headCY: 48, torsoTopY: 88, shoulderW: 62, widthFactor: 1.01 },
+  athletic: { headCY: 46, torsoTopY: 88, shoulderW: 64, widthFactor: 1.03 },
+  peak:     { headCY: 44, torsoTopY: 88, shoulderW: 66, widthFactor: 1.05 },
 };
 
 interface Props {
@@ -107,8 +107,8 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
     const shoulderW = isMale ? po.shoulderW : po.shoulderW - 8;
     const wf = po.widthFactor;
     const fc = headCY;
-    const headRX = faceShape === "round" ? 21 : 20;
-    const headRY = faceShape === "round" ? 22 : 21;
+    const headRX = faceShape === "round" ? 22 : 21;
+    const headRY = faceShape === "round" ? 25 : 24;
     const hipLX = isMale ? 28 : 25;
     const hipRX = isMale ? 92 : 95;
     const shirtS = outfit.shirt;
@@ -910,16 +910,16 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         <Rect x="53" y="188" width="14" height="7" rx="1.5" fill="none" stroke="#C8A030" strokeWidth="1.5" />
         <Line x1="60" y1="188" x2="60" y2="195" stroke="#C8A030" strokeWidth="1" />
 
-        {/* 6. Torso / shirt with gradient */}
-        <Path d={`M${armLX} ${torsoTopY} L${armRX} ${torsoTopY} L${hipRX} 190 L${hipLX} 190 Z`} fill={`url(#${gid("shirtBody")})`} />
-        <Path d={`M${armLX} ${torsoTopY} L${armRX} ${torsoTopY} L${hipRX} 190 L${hipLX} 190 Z`} fill={`url(#${gid("shirtFold")})`} />
+        {/* 6. Torso / shirt with gradient — tapered from shoulders to waist */}
+        <Path d={`M${armLX} ${torsoTopY} L${armRX} ${torsoTopY} L${armRX - 4} 188 L${armLX + 4} 188 Z`} fill={`url(#${gid("shirtBody")})`} />
+        <Path d={`M${armLX} ${torsoTopY} L${armRX} ${torsoTopY} L${armRX - 4} 188 L${armLX + 4} 188 Z`} fill={`url(#${gid("shirtFold")})`} />
 
         {/* 7. Outerwear */}
         {outerwearEl}
 
-        {/* 8. Left + right arms */}
-        <Path d={`M${armLX} ${torsoTopY} Q${armLX - 10} ${torsoTopY + 2} ${armLX - 12} ${torsoTopY + 6} L${armLX - 12} 178 Q${armLX - 10} 182 ${armLX - 2} 182 L${armLX + 2} 182 L${hipLX} ${torsoTopY + 6} Z`} fill={`url(#${gid("shirtBody")})`} />
-        <Path d={`M${armRX} ${torsoTopY} Q${armRX + 10} ${torsoTopY + 2} ${armRX + 12} ${torsoTopY + 6} L${armRX + 12} 178 Q${armRX + 10} 182 ${armRX + 2} 182 L${armRX - 2} 182 L${hipRX} ${torsoTopY + 6} Z`} fill={`url(#${gid("shirtBody")})`} />
+        {/* 8. Left + right arms — connected at shoulder, no gap */}
+        <Path d={`M${armLX} ${torsoTopY} L${armLX - 18} ${torsoTopY + 4} L${armLX - 20} 172 L${armLX - 4} 176 L${armLX + 4} ${torsoTopY + 22} Z`} fill={`url(#${gid("shirtBody")})`} />
+        <Path d={`M${armRX} ${torsoTopY} L${armRX + 18} ${torsoTopY + 4} L${armRX + 20} 172 L${armRX + 4} 176 L${armRX - 4} ${torsoTopY + 22} Z`} fill={`url(#${gid("shirtBody")})`} />
 
         {/* 9. Armpit fold shadows */}
         <Ellipse cx={String(armLX + 2)} cy={String(torsoTopY + 12)} rx="6" ry="10" fill={shirtS.deepShadow} opacity="0.25" />
@@ -937,10 +937,10 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
           </G>
         )}
 
-        {/* 11. Collar */}
-        <Path d={`M60 82 L72 90 L72 94 L60 92 L48 94 L48 90 Z`} fill={shirtS.deepShadow} opacity="0.35" />
-        <Path d={`M60 82 L72 90 L74 ${torsoTopY + 4} L60 ${torsoTopY + 2} Z`} fill={shirtS.highlight} />
-        <Path d={`M60 82 L48 90 L46 ${torsoTopY + 4} L60 ${torsoTopY + 2} Z`} fill={shirtS.highlight} />
+        {/* 11. Collar — bridges head and torso, wider than neck */}
+        <Path d={`M60 ${fc + headRY - 2} L${armRX - 6} ${torsoTopY - 2} L${armRX - 6} ${torsoTopY + 2} L60 ${torsoTopY} L${armLX + 6} ${torsoTopY + 2} L${armLX + 6} ${torsoTopY - 2} Z`} fill={shirtS.deepShadow} opacity="0.35" />
+        <Path d={`M60 ${fc + headRY - 2} L${armRX - 6} ${torsoTopY - 2} L${armRX - 4} ${torsoTopY + 4} L60 ${torsoTopY + 2} Z`} fill={shirtS.highlight} />
+        <Path d={`M60 ${fc + headRY - 2} L${armLX + 6} ${torsoTopY - 2} L${armLX + 4} ${torsoTopY + 4} L60 ${torsoTopY + 2} Z`} fill={shirtS.highlight} />
         <Circle cx="60" cy={String(torsoTopY)} r="2.5" fill={shirtS.mid} stroke={shirtS.shadow} strokeWidth="0.5" />
 
         {/* 12. Shirt construction details */}
@@ -953,15 +953,15 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         <Path d={`M${armRX} ${torsoTopY} Q${armRX - 6} ${torsoTopY + 2} ${armRX - 10} ${torsoTopY + 10}`} stroke={shirtS.shadow} strokeWidth="1" fill="none" opacity="0.5" />
 
         {/* Sleeve cuffs */}
-        <Path d={`M${armLX - 12} 170 Q${armLX - 12} 180 ${armLX - 6} 182 L${armLX + 2} 182 Q${armLX + 6} 180 ${armLX + 6} 170`} fill={shirtS.cuff} stroke={shirtS.shadow} strokeWidth="0.5" />
-        <Path d={`M${armRX + 12} 170 Q${armRX + 12} 180 ${armRX + 6} 182 L${armRX - 2} 182 Q${armRX - 6} 180 ${armRX - 6} 170`} fill={shirtS.cuff} stroke={shirtS.shadow} strokeWidth="0.5" />
-        <Circle cx={String(armLX - 5)} cy="177" r="1.5" fill={shirtS.mid} />
-        <Circle cx={String(armRX + 5)} cy="177" r="1.5" fill={shirtS.mid} />
+        <Path d={`M${armLX - 20} 168 Q${armLX - 20} 176 ${armLX - 14} 178 L${armLX - 4} 178 Q${armLX} 176 ${armLX} 168`} fill={shirtS.cuff} stroke={shirtS.shadow} strokeWidth="0.5" />
+        <Path d={`M${armRX + 20} 168 Q${armRX + 20} 176 ${armRX + 14} 178 L${armRX + 4} 178 Q${armRX} 176 ${armRX} 168`} fill={shirtS.cuff} stroke={shirtS.shadow} strokeWidth="0.5" />
+        <Circle cx={String(armLX - 12)} cy="174" r="1.5" fill={shirtS.mid} />
+        <Circle cx={String(armRX + 12)} cy="174" r="1.5" fill={shirtS.mid} />
 
-        {/* 13. Neck — uses skinBody gradient for lit/shadow sides */}
-        <Path d={`M53 ${fc + 22} Q53 ${fc + 36} 55 ${fc + 38} L65 ${fc + 38} Q67 ${fc + 36} 67 ${fc + 22}`} fill={`url(#${gid("skinBody")})`} />
-        <Path d={`M53 ${fc + 22} Q53 ${fc + 28} 54 ${fc + 30}`} stroke={skin.deep} strokeWidth="0.6" fill="none" opacity="0.4" />
-        <Path d={`M67 ${fc + 22} Q67 ${fc + 28} 66 ${fc + 30}`} stroke={skin.deep} strokeWidth="0.6" fill="none" opacity="0.4" />
+        {/* 13. Neck — short connection between head and collar */}
+        <Rect x="54" y={String(fc + headRY - 6)} width="12" height="10" rx="3" fill={`url(#${gid("skinBody")})`} />
+        <Path d={`M54 ${fc + headRY - 2} Q54 ${fc + headRY + 2} 55 ${fc + headRY + 3}`} stroke={skin.deep} strokeWidth="0.6" fill="none" opacity="0.4" />
+        <Path d={`M66 ${fc + headRY - 2} Q66 ${fc + headRY + 2} 65 ${fc + headRY + 3}`} stroke={skin.deep} strokeWidth="0.6" fill="none" opacity="0.4" />
 
         {/* 14. Head base + ears — ears use skinBody gradient */}
         <Ellipse cx="60" cy={String(fc)} rx={String(headRX)} ry={String(headRY)} fill={`url(#${gid("skinFace")})`} />
@@ -999,17 +999,17 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         {hairEl.front}
 
         {/* 23. Hands with finger hints */}
-        <Path d={`M${armLX - 12} 178 Q${armLX - 14} 182 ${armLX - 13} 188 Q${armLX - 10} 194 ${armLX - 2} 192 Q${armLX + 2} 190 ${armLX + 2} 186 L${armLX - 2} 180 Z`} fill={`url(#${gid("skinHand")})`} />
-        <Path d={`M${armLX - 11} 183 Q${armLX - 12} 179 ${armLX - 10} 178`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
-        <Path d={`M${armLX - 7} 185 Q${armLX - 8} 180 ${armLX - 6} 179`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
-        <Path d={`M${armLX - 3} 185 Q${armLX - 3} 180 ${armLX - 2} 180`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
-        <Ellipse cx={String(armLX - 13)} cy="186" rx="2.5" ry="4" fill={skin.base} />
+        <Path d={`M${armLX - 20} 174 Q${armLX - 22} 178 ${armLX - 21} 184 Q${armLX - 18} 190 ${armLX - 10} 188 Q${armLX - 6} 186 ${armLX - 6} 182 L${armLX - 10} 176 Z`} fill={`url(#${gid("skinHand")})`} />
+        <Path d={`M${armLX - 19} 179 Q${armLX - 20} 175 ${armLX - 18} 174`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
+        <Path d={`M${armLX - 15} 181 Q${armLX - 16} 176 ${armLX - 14} 175`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
+        <Path d={`M${armLX - 11} 181 Q${armLX - 11} 176 ${armLX - 10} 176`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
+        <Ellipse cx={String(armLX - 21)} cy="182" rx="2.5" ry="4" fill={skin.base} />
 
-        <Path d={`M${armRX + 12} 178 Q${armRX + 14} 182 ${armRX + 13} 188 Q${armRX + 10} 194 ${armRX + 2} 192 Q${armRX - 2} 190 ${armRX - 2} 186 L${armRX + 2} 180 Z`} fill={`url(#${gid("skinHand")})`} />
-        <Path d={`M${armRX + 11} 183 Q${armRX + 12} 179 ${armRX + 10} 178`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
-        <Path d={`M${armRX + 7} 185 Q${armRX + 8} 180 ${armRX + 6} 179`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
-        <Path d={`M${armRX + 3} 185 Q${armRX + 3} 180 ${armRX + 2} 180`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
-        <Ellipse cx={String(armRX + 13)} cy="186" rx="2.5" ry="4" fill={skin.base} />
+        <Path d={`M${armRX + 20} 174 Q${armRX + 22} 178 ${armRX + 21} 184 Q${armRX + 18} 190 ${armRX + 10} 188 Q${armRX + 6} 186 ${armRX + 6} 182 L${armRX + 10} 176 Z`} fill={`url(#${gid("skinHand")})`} />
+        <Path d={`M${armRX + 19} 179 Q${armRX + 20} 175 ${armRX + 18} 174`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
+        <Path d={`M${armRX + 15} 181 Q${armRX + 16} 176 ${armRX + 14} 175`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
+        <Path d={`M${armRX + 11} 181 Q${armRX + 11} 176 ${armRX + 10} 176`} stroke={skin.deep} strokeWidth="0.8" fill="none" />
+        <Ellipse cx={String(armRX + 21)} cy="182" rx="2.5" ry="4" fill={skin.base} />
 
         {/* 24. Watch */}
         {watchEl}
@@ -1055,7 +1055,7 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
             <Line x1="55.5" y1="106" x2="58.5" y2="106" stroke="#C0C0C8" strokeWidth="0.3" opacity="0.4" />
             <Line x1="55.5" y1="108" x2="58.5" y2="108" stroke="#C0C0C8" strokeWidth="0.3" opacity="0.3" />
             <Line x1="55.5" y1="110" x2="58.5" y2="110" stroke="#C0C0C8" strokeWidth="0.3" opacity="0.25" />
-            <Rect x={String(armLX - 10)} y="170" width="14" height="6" rx="2.5" fill="#6B4226" opacity="0.82" />
+            <Rect x={String(armLX - 18)} y="168" width="14" height="6" rx="2.5" fill="#6B4226" opacity="0.82" />
           </G>
         )}
       </Svg>
