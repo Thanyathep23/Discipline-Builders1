@@ -29,7 +29,9 @@ export type WearableWatch = { id: string; slug: string; name: string; watchStyle
 export type WearableAccessory = { id: string; slug: string; name: string; accessoryStyle: "chain" | "pin" | "ring"; styleEffect: string | null; colorVariant?: string } | null;
 export type WearableOuterwear = { id: string; slug: string; name: string; rarity?: string; colorVariant?: string } | null;
 export type WearableBottom = { id: string; slug: string; name: string; colorVariant?: string } | null;
-export type EquippedWearableState = { top: WearableTop; watch: WearableWatch; accessory: WearableAccessory; outerwear?: WearableOuterwear; bottom?: WearableBottom } | null;
+export type WearableShoes = { id: string; slug: string; name: string; rarity?: string; shoesStyle: "casual" | "sneaker" | "formal" | "boot" } | null;
+export type WearableEyewear = { id: string; slug: string; name: string; rarity?: string; eyewearStyle: "thin-frame" | "bold-frame" | "sunglasses" } | null;
+export type EquippedWearableState = { top: WearableTop; watch: WearableWatch; accessory: WearableAccessory; outerwear?: WearableOuterwear; bottom?: WearableBottom; shoes?: WearableShoes; eyewear?: WearableEyewear } | null;
 
 // ─── Phase 28 — Visual State Types ────────────────────────────────────────────
 

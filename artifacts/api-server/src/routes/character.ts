@@ -106,14 +106,14 @@ const WEARABLE_ACCESSORY_STYLE: Record<string, "chain" | "pin" | "ring"> = {
   "titanium-ring-zero": "ring",
 };
 
-const WEARABLE_SHOES_STYLE: Record<string, string> = {
+const WEARABLE_SHOES_STYLE: Record<string, "casual" | "sneaker" | "formal" | "boot"> = {
   "white-sneakers":  "sneaker",
   "clean-casuals":   "casual",
   "oxford-black":    "formal",
   "chelsea-boots":   "boot",
 };
 
-const WEARABLE_EYEWEAR_STYLE: Record<string, string> = {
+const WEARABLE_EYEWEAR_STYLE: Record<string, "thin-frame" | "bold-frame" | "sunglasses"> = {
   "thin-gold-frames":  "thin-frame",
   "bold-black-frames": "bold-frame",
   "matte-sunglasses":  "sunglasses",

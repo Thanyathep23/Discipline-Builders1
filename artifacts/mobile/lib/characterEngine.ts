@@ -27,7 +27,7 @@ export interface CharacterVisualState {
   outerwearColor: string | null;
   bottomColor: string | null;
   equippedShoesStyle: "casual" | "sneaker" | "formal" | "boot" | null;
-  equippedEyewearStyle: "none" | "thin-frame" | "bold-frame" | "sunglasses" | null;
+  equippedEyewearStyle: "thin-frame" | "bold-frame" | "sunglasses" | null;
   faceShape: "oval" | "round" | "square";
   eyeShape: "round" | "almond" | "wide";
 }
