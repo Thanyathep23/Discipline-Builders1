@@ -2,11 +2,11 @@ import React, { memo, useMemo, useId } from "react";
 import { View, StyleSheet } from "react-native";
 import Svg, {
   G, Path, Rect, Ellipse, Circle, Line, Defs,
-  LinearGradient, RadialGradient, Stop, ClipPath, Mask,
+  LinearGradient, RadialGradient, Stop,
 } from "react-native-svg";
 import type {
   CharacterVisualState, BodyType, CharacterView,
-  PostureStage, OutfitTier, PrestigeStage, RefinementStage,
+  PostureStage, OutfitTier, RefinementStage,
 } from "@/lib/characterEngine";
 
 const SIZE_MAP = {
@@ -71,7 +71,6 @@ const IRIS_COLORS: Record<string, { center: string; edge: string }> = {
 };
 
 const GROOMING: Record<RefinementStage, number> = { casual: 0, composed: 1, sharp: 2, commanding: 3 };
-const CONFIDENCE: Record<RefinementStage, number> = { casual: 0, composed: 1, sharp: 1, commanding: 2 };
 
 interface PostureParams { headCY: number; torsoTopY: number; shoulderW: number; widthFactor: number; }
 const POSTURE: Record<PostureStage, PostureParams> = {
@@ -173,10 +172,6 @@ function CharacterRendererInner({ visualState, size = "large", showShadow = true
         <Stop offset="35%" stopColor={hairC.base} />
         <Stop offset="70%" stopColor={hairC.base} />
         <Stop offset="100%" stopColor={hairC.shadow} />
-      </LinearGradient>
-      <LinearGradient id={gid("sungradL")} x1="0" y1="0" x2="0" y2="1">
-        <Stop offset="0%" stopColor="#000000" stopOpacity="0.58" />
-        <Stop offset="100%" stopColor="#000000" stopOpacity="0.37" />
       </LinearGradient>
     </Defs>
   ), [uid, skin, irisC, shirtS, pantsP, hairC]);
