@@ -30,16 +30,17 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const segments = useSegments();
+  const hasLanded = React.useRef(false);
 
   useEffect(() => {
     if (isLoading) return;
     const inAuthGroup = segments[0] === "(auth)";
-    const inCars = segments[0] === "cars";
     if (!user && !inAuthGroup) {
       router.replace("/(auth)/welcome");
     } else if (user && inAuthGroup) {
       router.replace("/cars");
-    } else if (user && !inCars && segments[0] === "(tabs)") {
+    } else if (user && !hasLanded.current) {
+      hasLanded.current = true;
       router.replace("/cars");
     }
   }, [user, isLoading, segments]);
