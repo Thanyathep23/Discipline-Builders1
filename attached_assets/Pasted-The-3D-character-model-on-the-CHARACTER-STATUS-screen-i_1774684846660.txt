@@ -1,0 +1,166 @@
+The 3D character model on the CHARACTER STATUS screen is displaying in T-pose
+(arms spread straight out to the sides). I need the arms to hang naturally at the sides
+like a normal standing human.
+
+The model file is: Superhero_Male_FullBody.gltf (loaded via Three.js or model-viewer)
+
+## Find the character viewer component first
+Search for: `CharacterViewer`, `Character3DViewer`, `CharacterRenderer`, or wherever
+`Superhero_Male_FullBody.gltf` is loaded.
+
+---
+
+## FIX A — If using Three.js (GLTFLoader)
+
+After the model loads, add this bone rotation code INSIDE the `loader.load()` or
+`loader.parse()` callback, right after `scene.add(model)`:
+```javascript
+// Step 1: Log all bone names to console (helps debug)
+console.log('=== BONES ===');
+model.traverse(function(child) {
+  if (child.isBone || child.type === 'Bone') {
+    console.log(child.name);
+  }
+});
+
+// Step 2: Rotate arms down from T-pose to natural standing pose
+const THREE = window.THREE || require('three');
+
+// Common arm bone name variants — try all of them
+const LEFT_ARM_NAMES  = ['upperarm_l','UpperArm_L','upper_arm_l','LeftUpperArm',
+                          'mixamorig:LeftArm','Bip001_L_UpperArm','arm_l','lUpperArm'];
+const RIGHT_ARM_NAMES = ['upperarm_r','UpperArm_R','upper_arm_r','RightUpperArm',
+                          'mixamorig:RightArm','Bip001_R_UpperArm','arm_r','rUpperArm'];
+
+model.traverse(function(child) {
+  if (!child.isBone && child.type !== 'Bone') return;
+
+  const name = child.name.toLowerCase();
+
+  // Left upper arm — rotate DOWN (negative Z)
+  if (LEFT_ARM_NAMES.some(n => child.name === n) ||
+      (name.includes('upper') && name.includes('arm') && (name.includes('_l') || name.endsWith('left')))) {
+    child.rotation.z = -1.2;   // ~70 degrees down
+    child.rotation.x = 0.1;    // slight forward lean
+    console.log('✅ Left arm rotated:', child.name);
+  }
+
+  // Right upper arm — rotate DOWN (positive Z)
+  if (RIGHT_ARM_NAMES.some(n => child.name === n) ||
+      (name.includes('upper') && name.includes('arm') && (name.includes('_r') || name.endsWith('right')))) {
+    child.rotation.z = 1.2;    // ~70 degrees down
+    child.rotation.x = 0.1;    // slight forward lean
+    console.log('✅ Right arm rotated:', child.name);
+  }
+
+  // Lower arm / forearm — straighten
+  if ((name.includes('forearm') || name.includes('lower') && name.includes('arm')) && name.includes('_l')) {
+    child.rotation.z = 0.1;
+  }
+  if ((name.includes('forearm') || name.includes('lower') && name.includes('arm')) && name.includes('_r')) {
+    child.rotation.z = -0.1;
+  }
+});
+
+// After rotating bones, force skeleton update
+model.traverse(function(child) {
+  if (child.isSkinnedMesh) {
+    child.skeleton.bones.forEach(b => b.updateMatrixWorld(true));
+  }
+});
+```
+
+Then OPEN THE BROWSER CONSOLE and look for the `=== BONES ===` log.
+Copy the actual bone names printed there and use EXACTLY those names in the rotation code above.
+The rotation values `1.2` (radians ≈ 70°) bring arms from horizontal T-pose to natural sides.
+
+---
+
+## FIX B — If using model-viewer web component
+
+model-viewer doesn't expose bones directly, but we can access the internal Three.js
+scene after the model loads:
+```javascript
+const mv = document.querySelector('model-viewer');
+
+mv.addEventListener('load', function() {
+  // Get the internal Three.js scene
+  const scene = mv.model;  // or mv[Symbol.for('model-viewer/scene')]
+
+  if (!scene) {
+    // Alternative: access via the renderer
+    const renderer = mv[Object.getOwnPropertySymbols(mv)
+      .find(s => s.toString().includes('scene'))];
+  }
+
+  // Traverse and rotate bones
+  if (mv.model) {
+    mv.model.traverse(function(child) {
+      const name = (child.name || '').toLowerCase();
+
+      if (name.includes('upperarm') && (name.includes('_l') || name.includes('left'))) {
+        child.rotation.z = -1.2;
+        child.rotation.x = 0.1;
+        console.log('Left arm fixed:', child.name);
+      }
+      if (name.includes('upperarm') && (name.includes('_r') || name.includes('right'))) {
+        child.rotation.z = 1.2;
+        child.rotation.x = 0.1;
+        console.log('Right arm fixed:', child.name);
+      }
+    });
+  }
+});
+```
+
+---
+
+## FIX C — If bone names are unknown (safe fallback)
+
+If you can't find the correct bone names, use this approach that searches by position:
+```javascript
+// Find arm bones by their world position relative to the body
+model.traverse(function(child) {
+  if (!child.isBone) return;
+
+  const worldPos = new THREE.Vector3();
+  child.getWorldPosition(worldPos);
+
+  const bodyCenter = 0; // x=0 is center
+
+  // Bones far from center horizontally are likely arm bones
+  const distFromCenter = Math.abs(worldPos.x);
+  const isAtArmHeight = worldPos.y > 0.8 && worldPos.y < 1.6; // rough arm height range
+
+  if (distFromCenter > 0.2 && isAtArmHeight) {
+    console.log(`Potential arm bone: ${child.name} at x=${worldPos.x.toFixed(2)}, y=${worldPos.y.toFixed(2)}`);
+
+    if (worldPos.x < 0) {
+      // Left side arm bone
+      child.rotation.z = -1.2;
+    } else {
+      // Right side arm bone
+      child.rotation.z = 1.2;
+    }
+  }
+});
+```
+
+---
+
+## Expected result
+- Arms hang naturally at the character's sides (like a relaxed standing pose)
+- Not a T-pose (arms horizontal)
+- Not an A-pose (arms at 45° — only slightly better)
+- A natural relaxed pose: arms roughly vertical, slight bend at elbow
+
+## Rotation reference
+T-pose (current):   arm rotation.z = 0      (horizontal, 0°)
+A-pose:             arm rotation.z = ±0.6   (45° down)
+Natural pose:       arm rotation.z = ±1.2   (70° down) ← USE THIS
+Full down:          arm rotation.z = ±1.57  (90° = straight down)
+
+Try `±1.2` first. If arms are still too high, increase to `±1.4`.
+If arms go past the body (crossing), decrease to `±1.0`.
+
+Make the change, then show me the console log of bone names that were found.
