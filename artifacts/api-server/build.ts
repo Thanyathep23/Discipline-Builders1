@@ -1,7 +1,7 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import { build as esbuild } from "esbuild";
-import { rm, readFile } from "fs/promises";
+import { rm, readFile, cp, access } from "fs/promises";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,6 +67,16 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
   });
+
+  const publicModelsDir = path.resolve(__dirname, "public", "models");
+  try {
+    await access(publicModelsDir);
+    const destModelsDir = path.resolve(distDir, "..", "public", "models");
+    await cp(publicModelsDir, destModelsDir, { recursive: true });
+    console.log("copied public/models to dist/../public/models");
+  } catch {
+    console.log("no public/models directory to copy, skipping");
+  }
 }
 
 buildAll().catch((err) => {

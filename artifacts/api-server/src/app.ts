@@ -1,5 +1,7 @@
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import router from "./routes";
 
 const app: Express = express();
@@ -7,6 +9,16 @@ const app: Express = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+const currentDir = typeof __dirname !== "undefined"
+  ? __dirname
+  : path.dirname(fileURLToPath(import.meta.url));
+const modelsDir = path.resolve(currentDir, "..", "public", "models");
+
+app.use("/api/models", express.static(modelsDir, {
+  maxAge: "7d",
+  immutable: true,
+}));
 
 app.use("/api", router);
 
