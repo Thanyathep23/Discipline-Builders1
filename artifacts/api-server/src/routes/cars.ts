@@ -223,7 +223,7 @@ router.get("/", requireAuth, async (req: any, res) => {
     const catalog = allCars.map((car) => {
       const invRow = ownedMap.get(car.id);
       const owned = !!invRow;
-      const locked = userLevel < (car.minLevel ?? 0);
+      const locked = false; // TODO: restore lock check before launch — was: userLevel < (car.minLevel ?? 0)
       const affordable = coinBalance >= car.cost;
       const tags: string[] = (() => {
         try { return JSON.parse(car.tags ?? "[]"); } catch { return []; }
@@ -301,12 +301,8 @@ router.post("/:id/purchase", requireAuth, async (req: any, res) => {
       .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    if (user.level < (car.minLevel ?? 0)) {
-      trackEvent(Events.ITEM_PURCHASE_FAILED, userId, { itemId: id, reason: "level_locked", minLevel: car.minLevel, userLevel: user.level, store: "cars" }).catch(() => {});
-      return res.status(403).json({
-        error: `You need to reach level ${car.minLevel} to purchase this vehicle.`,
-      });
-    }
+    // TODO: restore lock check before launch — was: if (user.level < (car.minLevel ?? 0)) { ... return 403 }
+    // Level lock bypassed for testing
 
     if (user.coinBalance < car.cost) {
       trackEvent(Events.ITEM_PURCHASE_FAILED, userId, { itemId: id, reason: "insufficient_coins", cost: car.cost, balance: user.coinBalance, store: "cars" }).catch(() => {});
@@ -467,8 +463,8 @@ router.patch("/:id/wheel", requireAuth, async (req: any, res) => {
         .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      if (user.level < style.minLevel)
-        return res.status(403).json({ error: `Reach level ${style.minLevel} to unlock ${style.label} wheels.` });
+      // TODO: restore lock check before launch — was: if (user.level < style.minLevel) return 403
+      // Wheel level lock bypassed for testing
 
       const alreadyOwned = await db.select({ id: userInventoryTable.id }).from(userInventoryTable)
         .where(and(
