@@ -332,10 +332,24 @@ function CardModelViewer({ glbFile, dimmed }: { glbFile: string; dimmed: boolean
     return null;
   }
 
+  const wrapperStyle: React.CSSProperties = {
+    width: "100%",
+    height: "100%",
+    borderRadius: 8,
+    overflow: "hidden",
+  };
+
+  const viewerStyle: Record<string, string> = {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "transparent",
+    outline: "none",
+    "--poster-color": "transparent",
+  };
+
   return (
     <View style={{ width: CARD_W * 0.82, height: cardH, opacity: dimmed ? 0.35 : 1 }}>
-      {/* @ts-ignore */}
-      <div style={{ width: "100%", height: "100%", borderRadius: 8, overflow: "hidden" }}>
+      <div style={wrapperStyle}>
         <model-viewer
           src={modelUrl}
           auto-rotate
@@ -347,14 +361,7 @@ function CardModelViewer({ glbFile, dimmed }: { glbFile: string; dimmed: boolean
           field-of-view="30deg"
           exposure="1.2"
           shadow-intensity="0"
-          style={{
-            width: "100%",
-            height: "100%",
-            backgroundColor: "transparent",
-            outline: "none",
-            // @ts-ignore
-            "--poster-color": "transparent",
-          } as any}
+          style={viewerStyle}
         />
       </div>
     </View>
