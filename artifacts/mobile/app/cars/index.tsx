@@ -368,6 +368,58 @@ function CardModelViewer({ glbFile, dimmed }: { glbFile: string; dimmed: boolean
   );
 }
 
+function DetailModelViewer({
+  glbFile, height, interactive,
+}: {
+  glbFile: string; height: number; interactive?: boolean;
+}) {
+  useEffect(() => {
+    ensureModelViewerScript();
+  }, []);
+
+  const modelUrl = `${API_BASE}/models/${glbFile}`;
+
+  if (Platform.OS !== "web") {
+    return null;
+  }
+
+  const wrapperStyle: React.CSSProperties = {
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
+    overflow: "hidden",
+  };
+
+  const viewerStyle: Record<string, string> = {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "transparent",
+    outline: "none",
+    "--poster-color": "transparent",
+  };
+
+  return (
+    <View style={{ width: "100%" as unknown as number, height, alignItems: "center" }}>
+      <div style={wrapperStyle}>
+        <model-viewer
+          src={modelUrl}
+          auto-rotate
+          auto-rotate-delay="1000"
+          rotation-per-second="12deg"
+          camera-orbit="30deg 72deg 3.5m"
+          field-of-view="28deg"
+          environment-image="neutral"
+          shadow-intensity="1"
+          shadow-softness="0.8"
+          exposure="1.1"
+          {...(interactive ? { "camera-controls": true } : {})}
+          style={viewerStyle}
+        />
+      </div>
+    </View>
+  );
+}
+
 function CarGridCard({
   car, state, userLevel, onPress,
 }: {
@@ -526,7 +578,11 @@ function FeaturedCarHero({
           </View>
         </View>
         <View style={[fh.vizBox, { borderColor: rarityColor + "20" }]}>
-          <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={130} />
+          {CAR_GLB_MAP[car.name] && Platform.OS === "web" ? (
+            <DetailModelViewer glbFile={CAR_GLB_MAP[car.name]} height={100} />
+          ) : (
+            <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={130} />
+          )}
         </View>
       </View>
     </Pressable>
@@ -551,7 +607,7 @@ const fh = StyleSheet.create({
   btnRow: { flexDirection: "row", gap: 6, marginTop: 4, flexWrap: "wrap" },
   actionBtn: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.bgElevated, borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5, borderWidth: 1, borderColor: Colors.border },
   actionBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.textSecondary },
-  vizBox: { borderRadius: 14, borderWidth: 1, padding: 6, backgroundColor: Colors.bg + "50" },
+  vizBox: { borderRadius: 14, borderWidth: 1, padding: 6, backgroundColor: Colors.bg + "50", minWidth: 130, minHeight: 100 },
 });
 
 function ColorSwatchSelector({
@@ -676,7 +732,7 @@ function CarDetailSheet({
       <ScrollView style={[ds.sheet, { paddingBottom: insets.bottom + 28 }]} bounces={false} showsVerticalScrollIndicator={false}>
         <View style={ds.handle} />
 
-        <View style={[ds.hero, { backgroundColor: rarityColor + "08", borderColor: rarityColor + "30" }]}>
+        <View style={[ds.hero, { backgroundColor: rarityColor + "10", borderColor: rarityColor + "30" }]}>
           <View style={ds.chipRow}>
             <View style={[ds.chip, { backgroundColor: rarityColor + "18" }]}>
               <Text style={[ds.chipText, { color: rarityColor }]}>{classLabel.toUpperCase()}</Text>
@@ -697,7 +753,11 @@ function CarDetailSheet({
             )}
           </View>
           <View style={ds.heroViz}>
-            <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={200} dimmed={dimmed} wheelStyle={currentWheel} />
+            {CAR_GLB_MAP[car.name] && Platform.OS === "web" ? (
+              <DetailModelViewer glbFile={CAR_GLB_MAP[car.name]} height={180} interactive />
+            ) : (
+              <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={200} dimmed={dimmed} wheelStyle={currentWheel} />
+            )}
           </View>
           <Text style={[ds.heroName, { color: rarityColor }]}>{car.name}</Text>
         </View>
@@ -891,7 +951,7 @@ const ds = StyleSheet.create({
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   chip: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   chipText: { fontFamily: "Inter_700Bold", fontSize: 8, letterSpacing: 0.8 },
-  heroViz: { alignItems: "center", paddingVertical: 6 },
+  heroViz: { alignItems: "center", justifyContent: "center", paddingVertical: 6, minHeight: 120 },
   heroName: { fontFamily: "Inter_700Bold", fontSize: 22, textAlign: "center", lineHeight: 26 },
   desc: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 19, textAlign: "center", marginBottom: 14 },
   statsRow: { flexDirection: "row", backgroundColor: Colors.bgElevated, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.border, marginBottom: 12 },
