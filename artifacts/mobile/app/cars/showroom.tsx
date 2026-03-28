@@ -17,9 +17,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
-  FadeIn,
   FadeInDown,
-  FadeInUp,
   ZoomIn,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
@@ -593,16 +591,23 @@ export default function ShowroomScreen() {
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          {ownedList.length > 0 && (
-            <Animated.View entering={FadeIn.duration(400)} style={st.garageSection}>
-              <View style={st.garageTitleRow}>
-                <Ionicons name="car-sport" size={18} color="#F5C842" />
-                <Text style={st.garageTitle}>MY GARAGE</Text>
-                <View style={st.garageBadge}>
-                  <Text style={st.garageBadgeText}>{ownedList.length}</Text>
-                </View>
+          <View style={st.garageSection}>
+            <View style={st.garageTitleRow}>
+              <Ionicons name="car-sport" size={18} color="#F5C842" />
+              <Text style={st.garageTitle}>MY GARAGE</Text>
+              <View style={st.garageBadge}>
+                <Text style={st.garageBadgeText}>{ownedList.length}</Text>
               </View>
-              {ownedList.map((c) => {
+            </View>
+            {ownedList.length === 0 ? (
+              <View style={st.garageEmpty}>
+                <Ionicons name="car-outline" size={24} color="#4A4A6A" />
+                <Text style={st.garageEmptyText}>
+                  No vehicles yet — browse below to acquire your first ride
+                </Text>
+              </View>
+            ) : (
+              ownedList.map((c) => {
                 const rc = RARITY_COLORS[c.rarity] ?? "#9E9E9E";
                 return (
                   <Pressable
@@ -643,9 +648,9 @@ export default function ShowroomScreen() {
                     </View>
                   </Pressable>
                 );
-              })}
-            </Animated.View>
-          )}
+              })
+            )}
+          </View>
 
           <View style={st.swiperSection}>
             <ScrollView
@@ -938,6 +943,23 @@ const st = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     color: "#8888AA",
     marginTop: 2,
+  },
+  garageEmpty: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#080A0E",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#1A1D28",
+  },
+  garageEmptyText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    color: "#4A4A6A",
+    lineHeight: 17,
   },
   ownedBadge: {
     flexDirection: "row",
