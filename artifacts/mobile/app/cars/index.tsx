@@ -1217,7 +1217,7 @@ export default function GarageScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />}
       >
         <Animated.View entering={FadeIn.duration(300)} style={s.header}>
-          <Pressable onPress={() => router.back()} style={s.backBtn}>
+          <Pressable onPress={() => { if (router.canGoBack()) { router.back(); } else { router.replace("/(tabs)"); } }} style={s.backBtn}>
             <Ionicons name="chevron-back" size={20} color={Colors.textSecondary} />
           </Pressable>
           <View style={{ flex: 1 }}>
