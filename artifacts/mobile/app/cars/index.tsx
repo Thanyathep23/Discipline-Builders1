@@ -369,18 +369,24 @@ function CardModelViewer({ glbFile, dimmed }: { glbFile: string; dimmed: boolean
 }
 
 function DetailModelViewer({
-  glbFile, height, interactive,
+  glbFile, height, interactive, fallback,
 }: {
-  glbFile: string; height: number; interactive?: boolean;
+  glbFile: string; height: number; interactive?: boolean; fallback?: React.ReactNode;
 }) {
+  const [loadFailed, setLoadFailed] = useState(false);
+
   useEffect(() => {
     ensureModelViewerScript();
   }, []);
 
+  useEffect(() => {
+    setLoadFailed(false);
+  }, [glbFile]);
+
   const modelUrl = `${API_BASE}/models/${glbFile}`;
 
-  if (Platform.OS !== "web") {
-    return null;
+  if (Platform.OS !== "web" || loadFailed) {
+    return <>{fallback}</> ?? null;
   }
 
   const wrapperStyle: React.CSSProperties = {
@@ -388,6 +394,7 @@ function DetailModelViewer({
     height: "100%",
     borderRadius: 12,
     overflow: "hidden",
+    position: "relative",
   };
 
   const viewerStyle: Record<string, string> = {
@@ -413,6 +420,7 @@ function DetailModelViewer({
           shadow-softness="0.8"
           exposure="1.1"
           {...(interactive ? { "camera-controls": true } : {})}
+          onError={() => setLoadFailed(true)}
           style={viewerStyle}
         />
       </div>
@@ -579,7 +587,11 @@ function FeaturedCarHero({
         </View>
         <View style={[fh.vizBox, { borderColor: rarityColor + "20" }]}>
           {CAR_GLB_MAP[car.name] && Platform.OS === "web" ? (
-            <DetailModelViewer glbFile={CAR_GLB_MAP[car.name]} height={100} />
+            <DetailModelViewer
+              glbFile={CAR_GLB_MAP[car.name]}
+              height={100}
+              fallback={<CarVisual carClass={car.carClass} bodyColor={bodyColor} size={130} />}
+            />
           ) : (
             <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={130} />
           )}
@@ -754,7 +766,12 @@ function CarDetailSheet({
           </View>
           <View style={ds.heroViz}>
             {CAR_GLB_MAP[car.name] && Platform.OS === "web" ? (
-              <DetailModelViewer glbFile={CAR_GLB_MAP[car.name]} height={180} interactive />
+              <DetailModelViewer
+                glbFile={CAR_GLB_MAP[car.name]}
+                height={180}
+                interactive
+                fallback={<CarVisual carClass={car.carClass} bodyColor={bodyColor} size={200} dimmed={dimmed} wheelStyle={currentWheel} />}
+              />
             ) : (
               <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={200} dimmed={dimmed} wheelStyle={currentWheel} />
             )}
