@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useState, useCallback } from "react";
-import { View, StyleSheet, Platform, Text } from "react-native";
+import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import { View, StyleSheet, Platform, PanResponder } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 let Canvas: any;
@@ -162,9 +162,11 @@ function NativeHairModel({
 function SuperheroModel({
   skinTexture,
   bodyRef,
+  dragRotRef,
 }: {
   skinTexture: string;
   bodyRef: React.MutableRefObject<any>;
+  dragRotRef: React.MutableRefObject<{ y: number; dragging: boolean; lastInteract: number }>;
 }) {
   const groupRef = useRef<any>(null);
   const gltf = useLoader(GLTFLoader, `${MODELS_BASE}/${BODY_MODEL}`);
@@ -217,9 +219,13 @@ function SuperheroModel({
   }, [gltf, texUrl]);
 
   useFrame((_state: any, delta: number) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y += delta * 0.1;
+    if (!groupRef.current) return;
+    const rot = dragRotRef.current;
+    const idleTime = Date.now() - rot.lastInteract;
+    if (!rot.dragging && idleTime > 2000) {
+      rot.y += delta * 0.1;
     }
+    groupRef.current.rotation.y = rot.y;
   });
 
   return (
@@ -444,9 +450,39 @@ function NativeCharacterViewer({
   skinTexture: string;
 }) {
   const bodyRef = useRef<any>(null);
+  const dragRotRef = useRef({ y: 0, dragging: false, lastInteract: 0 });
+  const prevDxRef = useRef(0);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: () => {
+          dragRotRef.current.dragging = true;
+          dragRotRef.current.lastInteract = Date.now();
+          prevDxRef.current = 0;
+        },
+        onPanResponderMove: (_evt, gestureState) => {
+          const deltaDx = gestureState.dx - prevDxRef.current;
+          prevDxRef.current = gestureState.dx;
+          dragRotRef.current.y += deltaDx * 0.008;
+          dragRotRef.current.lastInteract = Date.now();
+        },
+        onPanResponderRelease: () => {
+          dragRotRef.current.dragging = false;
+          dragRotRef.current.lastInteract = Date.now();
+        },
+        onPanResponderTerminate: () => {
+          dragRotRef.current.dragging = false;
+          dragRotRef.current.lastInteract = Date.now();
+        },
+      }),
+    []
+  );
 
   return (
-    <View style={[viewerStyles.container, { height }]}>
+    <View style={[viewerStyles.container, { height }]} {...panResponder.panHandlers}>
       <Canvas
         style={viewerStyles.canvas}
         gl={{ alpha: true }}
@@ -454,7 +490,7 @@ function NativeCharacterViewer({
       >
         <CameraRig />
         <CinematicLights />
-        <SuperheroModel skinTexture={skinTexture} bodyRef={bodyRef} />
+        <SuperheroModel skinTexture={skinTexture} bodyRef={bodyRef} dragRotRef={dragRotRef} />
         <NativeHairModel
           key={hairModel + hairTexture}
           hairModel={hairModel}
