@@ -26,31 +26,6 @@ const MODEL_URL = `${API_BASE}/models/Superhero_Male_FullBody.gltf`;
 
 const VIGNETTE_BG = "#07071A";
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      "model-viewer": React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & {
-          src?: string;
-          alt?: string;
-          "camera-controls"?: boolean | string;
-          "auto-rotate"?: boolean | string;
-          "auto-rotate-delay"?: string;
-          "rotation-per-second"?: string;
-          "camera-orbit"?: string;
-          "min-camera-orbit"?: string;
-          "max-camera-orbit"?: string;
-          "field-of-view"?: string;
-          "environment-image"?: string;
-          "shadow-intensity"?: string;
-          "shadow-softness"?: string;
-          exposure?: string;
-        },
-        HTMLElement
-      >;
-    }
-  }
-}
 
 function fixTPose(scene: any) {
   scene.traverse((child: any) => {
@@ -192,7 +167,7 @@ function VignetteOverlay() {
   );
 }
 
-function webFixTPose(model: any, T: any) {
+function webFixTPose(model: any) {
   model.traverse((child: any) => {
     if (!child.isBone && child.type !== "Bone") return;
     const name = child.name;
@@ -212,14 +187,14 @@ function loadScript(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
     if (existing) {
-      if ((existing as any).__loaded) { resolve(); return; }
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => reject(new Error(`Failed to load: ${src}`)));
+      if ((existing as any).__loaded || existing.dataset.loaded === "1") { resolve(); return; }
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error(`Failed to load: ${src}`)), { once: true });
       return;
     }
     const s = document.createElement("script");
     s.src = src;
-    s.onload = () => { (s as any).__loaded = true; resolve(); };
+    s.onload = () => { (s as any).__loaded = true; s.dataset.loaded = "1"; resolve(); };
     s.onerror = () => reject(new Error(`Failed to load: ${src}`));
     document.head.appendChild(s);
   });
@@ -322,7 +297,7 @@ function WebModelViewer({ height }: { height: number }) {
           if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
         });
 
-        webFixTPose(model, T);
+        webFixTPose(model);
         scene.add(model);
         loadedModel = model;
 
