@@ -1,0 +1,143 @@
+I need you to build a premium CAR SHOWROOM screen for my Life RPG app "Discipline-Builders".
+This is a reward/purchase screen where users can buy luxury cars using in-game currency they've earned through completing real-life discipline challenges.
+
+## Car Models I've Uploaded
+I have 2 GLB (3D car) files uploaded to my project. Find them — search for .glb files in the project:
+- bmw_m4_widebody.glb       (BMW M4 with widebody kit — ultra rare, most premium)
+- 2025_bmw_m4_competition.glb (2025 BMW M4 Competition — standard premium)
+
+Find their exact paths first, then proceed.
+
+## Screen Requirements
+
+### Layout (mobile, dark theme)
+┌─────────────────────────────────────┐
+│ ← GARAGE / SHOWROOM        [Filter] │
+├─────────────────────────────────────┤
+│  💰 Balance: 125,000 GP             │  ← user's in-game Gold Points
+├─────────────────────────────────────┤
+│ ┌───────────────────────────────┐   │
+│ │                               │   │
+│ │   [3D CAR VIEWER — rotates]   │   │  ← model-viewer, full width
+│ │                               │   │
+│ └───────────────────────────────┘   │
+│ ● ○  (dot indicators for 2 cars)    │
+├─────────────────────────────────────┤
+│  BMW M4 Competition X               │  ← car name
+│  ★★★★★  Prestige Vehicle            │  ← rating + category
+│                                     │
+│  [SPECS]  [PERKS]  [REVIEWS]        │  ← tabs
+│                                     │
+│  ┌──────────┐  ┌──────────────────┐ │
+│  │ 0-100    │  │ Top Speed        │ │
+│  │ 3.9s     │  │ 290 km/h         │ │
+│  └──────────┘  └──────────────────┘ │
+│  ┌──────────┐  ┌──────────────────┐ │
+│  │ HP       │  │ Prestige Bonus   │ │
+│  │ 510 HP   │  │ +15% XP Boost    │ │
+│  └──────────┘  └──────────────────┘ │
+├─────────────────────────────────────┤
+│  PRICE: 85,000 GP  [BUY NOW →]      │
+└─────────────────────────────────────┘
+
+### Car Data (use exactly these values)
+
+**Car 1: 2025 BMW M4 Competition**
+- GLB file: 2025_bmw_m4_competition.glb
+- Price: 85,000 GP (Gold Points)
+- Category: Prestige Vehicle
+- Stars: 4/5
+- 0-100 km/h: 3.9 seconds
+- Top Speed: 290 km/h
+- Horsepower: 510 HP
+- In-game Bonus: +15% XP Boost for all Discipline tasks
+- Description: "The pinnacle of performance. Drive it. Earn it. Own your edge."
+- Color accent: Blue (#4A9EFF)
+- Rarity: RARE
+
+**Car 2: BMW M4 Widebody Edition**
+- GLB file: bmw_m4_widebody.glb
+- Price: 145,000 GP (Gold Points)
+- Category: Ultra Premium · Limited
+- Stars: 5/5
+- 0-100 km/h: 3.5 seconds
+- Top Speed: 305 km/h
+- Horsepower: 650 HP
+- In-game Bonus: +25% XP Boost + Exclusive "Widebody" title + Prestige Aura effect
+- Description: "Not for the faint-hearted. Reserved for the elite who've earned it all."
+- Color accent: Gold (#C9A84C)
+- Rarity: LEGENDARY
+
+### 3D Viewer Setup (model-viewer)
+
+Add to HTML head:
+```html
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+```
+
+For each car use:
+```html
+<model-viewer
+  id="car-viewer"
+  src="[PATH_TO_GLB_FILE]"
+  camera-controls
+  auto-rotate
+  auto-rotate-delay="2000"
+  rotation-per-second="12deg"
+  camera-orbit="30deg 75deg 4m"
+  min-camera-orbit="auto auto 2m"
+  max-camera-orbit="auto auto 8m"
+  field-of-view="30deg"
+  environment-image="neutral"
+  shadow-intensity="1.5"
+  shadow-softness="0.7"
+  exposure="1.2"
+  tone-mapping="commerce"
+  style="width:100%; height:280px; background:transparent; --poster-color:transparent;"
+  alt="BMW M4">
+</model-viewer>
+```
+
+Camera tip: `camera-orbit="30deg 75deg 4m"` gives a nice 3/4 front angle showing the car beautifully.
+
+### Swipe between cars
+- Swipe left/right (or tap dots) to switch between the 2 cars
+- When switching, fade out old car, swap the src attribute on model-viewer, fade in new car
+- Update all the price, specs, name info below when switching
+
+### Design System (match the rest of the app)
+- Background: #080A0E (near black)
+- Card background: rgba(255,255,255,0.04) with border rgba(255,255,255,0.08)
+- Gold accent: #C9A84C / #F5D88A
+- Blue accent: #4A9EFF
+- Font heading: Bebas Neue (Google Fonts)
+- Font body: Inter
+- All cards have border-radius: 12px
+- Rarity badge for LEGENDARY: gold gradient border + glow
+- Rarity badge for RARE: blue border
+
+### Buy Button Logic
+- If user has enough GP → show gold "BUY NOW →" button
+- If not enough GP → show red "INSUFFICIENT GP" button (disabled)
+- On buy: show confirmation modal "Are you sure? This will deduct X GP from your balance"
+- After confirm: show success animation + "Added to your Garage!"
+
+### Garage Tab
+After buying, car appears in a "MY GARAGE" section at the top of the screen with a small thumbnail and "OWNED" badge.
+
+## TypeScript / React Notes
+If using React/TypeScript:
+1. Create file: `src/components/CarShowroom.tsx`
+2. Add model-viewer TypeScript declaration (same as before)
+3. Use useState to track: selectedCarIndex, userBalance, ownedCars
+4. The component should be a full-screen page with its own route
+
+## Make sure:
+1. Both GLB files load correctly — test by logging to console when loaded
+2. model-viewer has explicit height (280px minimum)
+3. Swipe between cars works on mobile touch
+4. The 3D car auto-rotates to show all angles
+5. Prices and specs update when switching cars
+6. The screen looks PREMIUM — dark, cinematic, like a real luxury car app
+
+Build the complete screen. Show me the code.
