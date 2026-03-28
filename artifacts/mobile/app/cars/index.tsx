@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet,
   ActivityIndicator, Modal, Platform, RefreshControl,
@@ -13,6 +13,27 @@ import Svg, { Path, Circle, Rect, Ellipse, G, Line } from "react-native-svg";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useCars, usePurchaseCar, useFeatureCar, useSelectCarVariant, useSelectWheelStyle } from "@/hooks/useApi";
 import { LoadingScreen, EmptyState } from "@/design-system";
+
+const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api`;
+
+const CAR_GLB_MAP: Record<string, string> = {
+  "Series M Black": "2025_bmw_m4_competition.glb",
+  "Alpine GT": "bmw_m4_widebody.glb",
+};
+
+function ensureModelViewerScript() {
+  if (
+    typeof window !== "undefined" &&
+    !document.querySelector("[data-model-viewer-script]")
+  ) {
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src =
+      "https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js";
+    script.setAttribute("data-model-viewer-script", "true");
+    document.head.appendChild(script);
+  }
+}
 
 const SCREEN_W = Dimensions.get("window").width;
 const CARD_GAP = 10;
@@ -86,16 +107,16 @@ function WheelSVG({ cx: x, cy: y, r, color, style }: { cx: number; cy: number; r
   if (style === "sport") {
     return (
       <G>
-        <Circle cx={x} cy={y} r={r} fill={color + "12"} stroke={color + "90"} strokeWidth={1.5} />
-        <Circle cx={x} cy={y} r={r * 0.7} fill="none" stroke={color + "40"} strokeWidth={0.6} />
-        <Circle cx={x} cy={y} r={r * 0.3} fill={color + "70"} />
+        <Circle cx={x} cy={y} r={r} fill={color + "30"} stroke={color + "BB"} strokeWidth={1.5} />
+        <Circle cx={x} cy={y} r={r * 0.7} fill="none" stroke={color + "70"} strokeWidth={0.6} />
+        <Circle cx={x} cy={y} r={r * 0.3} fill={color + "AA"} />
         {[0, 60, 120, 180, 240, 300].map((deg) => {
           const rad = (deg * Math.PI) / 180;
           return (
             <Line key={deg}
               x1={x + Math.cos(rad) * r * 0.3} y1={y + Math.sin(rad) * r * 0.3}
               x2={x + Math.cos(rad) * r * 0.85} y2={y + Math.sin(rad) * r * 0.85}
-              stroke={color + "60"} strokeWidth={0.8} />
+              stroke={color + "90"} strokeWidth={0.8} />
           );
         })}
       </G>
@@ -104,15 +125,15 @@ function WheelSVG({ cx: x, cy: y, r, color, style }: { cx: number; cy: number; r
   if (style === "turbine") {
     return (
       <G>
-        <Circle cx={x} cy={y} r={r} fill={color + "10"} stroke={color + "95"} strokeWidth={1.8} />
-        <Circle cx={x} cy={y} r={r * 0.25} fill={color + "80"} />
+        <Circle cx={x} cy={y} r={r} fill={color + "28"} stroke={color + "CC"} strokeWidth={1.8} />
+        <Circle cx={x} cy={y} r={r * 0.25} fill={color + "BB"} />
         {[0, 72, 144, 216, 288].map((deg) => {
           const rad1 = (deg * Math.PI) / 180;
           const rad2 = ((deg + 40) * Math.PI) / 180;
           return (
             <Path key={deg}
               d={`M${x + Math.cos(rad1) * r * 0.25},${y + Math.sin(rad1) * r * 0.25} Q${x + Math.cos((rad1 + rad2) / 2) * r * 0.7},${y + Math.sin((rad1 + rad2) / 2) * r * 0.7} ${x + Math.cos(rad2) * r * 0.85},${y + Math.sin(rad2) * r * 0.85}`}
-              fill="none" stroke={color + "55"} strokeWidth={0.9} />
+              fill="none" stroke={color + "88"} strokeWidth={0.9} />
           );
         })}
       </G>
@@ -120,8 +141,8 @@ function WheelSVG({ cx: x, cy: y, r, color, style }: { cx: number; cy: number; r
   }
   return (
     <G>
-      <Circle cx={x} cy={y} r={r} fill={color + "18"} stroke={color + "80"} strokeWidth={1.3} />
-      <Circle cx={x} cy={y} r={r * 0.45} fill={color + "50"} />
+      <Circle cx={x} cy={y} r={r} fill={color + "38"} stroke={color + "BB"} strokeWidth={1.3} />
+      <Circle cx={x} cy={y} r={r * 0.45} fill={color + "80"} />
     </G>
   );
 }
@@ -144,7 +165,7 @@ export function CarVisual({
   const cls = carClass ?? "entry";
 
   const shadowEl = (
-    <Ellipse cx={w / 2} cy={h + 8} rx={w * 0.38} ry={3.5} fill={c + "14"} />
+    <Ellipse cx={w / 2} cy={h + 8} rx={w * 0.38} ry={3.5} fill={c + "30"} />
   );
 
   const wheelEls = (
@@ -159,85 +180,85 @@ export function CarVisual({
   if (cls === "entry") {
     bodyEl = (
       <>
-        <Rect x={w * 0.08} y={h * 0.42} width={w * 0.84} height={h * 0.42} rx={6} fill={c + "22"} stroke={c + "70"} strokeWidth={1.2} />
-        <Path d={`M${w * 0.28},${h * 0.42} L${w * 0.35},${h * 0.12} L${w * 0.65},${h * 0.12} L${w * 0.72},${h * 0.42} Z`} fill={c + "15"} stroke={c + "60"} strokeWidth={1} />
-        <Path d={`M${w * 0.31},${h * 0.40} L${w * 0.37},${h * 0.16} L${w * 0.49},${h * 0.16} L${w * 0.49},${h * 0.40} Z`} fill={c + "25"} stroke={c + "40"} strokeWidth={0.7} />
-        <Path d={`M${w * 0.51},${h * 0.40} L${w * 0.51},${h * 0.16} L${w * 0.63},${h * 0.16} L${w * 0.69},${h * 0.40} Z`} fill={c + "25"} stroke={c + "40"} strokeWidth={0.7} />
-        <Rect x={w * 0.88} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "80"} />
-        <Rect x={w * 0.08} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "50"} />
+        <Rect x={w * 0.08} y={h * 0.42} width={w * 0.84} height={h * 0.42} rx={6} fill={c + "55"} stroke={c + "AA"} strokeWidth={1.2} />
+        <Path d={`M${w * 0.28},${h * 0.42} L${w * 0.35},${h * 0.12} L${w * 0.65},${h * 0.12} L${w * 0.72},${h * 0.42} Z`} fill={c + "40"} stroke={c + "90"} strokeWidth={1} />
+        <Path d={`M${w * 0.31},${h * 0.40} L${w * 0.37},${h * 0.16} L${w * 0.49},${h * 0.16} L${w * 0.49},${h * 0.40} Z`} fill={c + "50"} stroke={c + "70"} strokeWidth={0.7} />
+        <Path d={`M${w * 0.51},${h * 0.40} L${w * 0.51},${h * 0.16} L${w * 0.63},${h * 0.16} L${w * 0.69},${h * 0.40} Z`} fill={c + "50"} stroke={c + "70"} strokeWidth={0.7} />
+        <Rect x={w * 0.88} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "BB"} />
+        <Rect x={w * 0.08} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "80"} />
       </>
     );
   } else if (cls === "sport") {
     bodyEl = (
       <>
-        <Rect x={w * 0.06} y={h * 0.40} width={w * 0.88} height={h * 0.44} rx={5} fill={c + "25"} stroke={c + "80"} strokeWidth={1.3} />
-        <Path d={`M${w * 0.26},${h * 0.40} L${w * 0.34},${h * 0.08} L${w * 0.62},${h * 0.08} L${w * 0.74},${h * 0.40} Z`} fill={c + "18"} stroke={c + "70"} strokeWidth={1.1} />
-        <Path d={`M${w * 0.29},${h * 0.38} L${w * 0.36},${h * 0.12} L${w * 0.48},${h * 0.12} L${w * 0.48},${h * 0.38} Z`} fill={c + "30"} stroke={c + "45"} strokeWidth={0.7} />
-        <Path d={`M${w * 0.52},${h * 0.38} L${w * 0.52},${h * 0.12} L${w * 0.60},${h * 0.12} L${w * 0.71},${h * 0.38} Z`} fill={c + "30"} stroke={c + "45"} strokeWidth={0.7} />
-        <Rect x={w * 0.90} y={h * 0.48} width={5} height={h * 0.14} rx={2} fill={c + "90"} />
-        <Rect x={w * 0.05} y={h * 0.48} width={5} height={h * 0.14} rx={2} fill={c + "55"} />
-        <Line x1={w * 0.12} y1={h * 0.83} x2={w * 0.18} y2={h * 0.83} stroke={c + "40"} strokeWidth={1} />
+        <Rect x={w * 0.06} y={h * 0.40} width={w * 0.88} height={h * 0.44} rx={5} fill={c + "55"} stroke={c + "BB"} strokeWidth={1.3} />
+        <Path d={`M${w * 0.26},${h * 0.40} L${w * 0.34},${h * 0.08} L${w * 0.62},${h * 0.08} L${w * 0.74},${h * 0.40} Z`} fill={c + "45"} stroke={c + "AA"} strokeWidth={1.1} />
+        <Path d={`M${w * 0.29},${h * 0.38} L${w * 0.36},${h * 0.12} L${w * 0.48},${h * 0.12} L${w * 0.48},${h * 0.38} Z`} fill={c + "58"} stroke={c + "75"} strokeWidth={0.7} />
+        <Path d={`M${w * 0.52},${h * 0.38} L${w * 0.52},${h * 0.12} L${w * 0.60},${h * 0.12} L${w * 0.71},${h * 0.38} Z`} fill={c + "58"} stroke={c + "75"} strokeWidth={0.7} />
+        <Rect x={w * 0.90} y={h * 0.48} width={5} height={h * 0.14} rx={2} fill={c + "CC"} />
+        <Rect x={w * 0.05} y={h * 0.48} width={5} height={h * 0.14} rx={2} fill={c + "88"} />
+        <Line x1={w * 0.12} y1={h * 0.83} x2={w * 0.18} y2={h * 0.83} stroke={c + "70"} strokeWidth={1} />
       </>
     );
   } else if (cls === "performance") {
     bodyEl = (
       <>
-        <Path d={`M${w * 0.06},${h * 0.82} L${w * 0.06},${h * 0.42} Q${w * 0.06},${h * 0.36} ${w * 0.12},${h * 0.36} L${w * 0.88},${h * 0.36} Q${w * 0.94},${h * 0.36} ${w * 0.94},${h * 0.42} L${w * 0.94},${h * 0.82} Z`} fill={c + "25"} stroke={c + "80"} strokeWidth={1.3} />
-        <Path d={`M${w * 0.20},${h * 0.36} L${w * 0.30},${h * 0.06} L${w * 0.58},${h * 0.06} L${w * 0.78},${h * 0.36} Z`} fill={c + "18"} stroke={c + "70"} strokeWidth={1.1} />
-        <Path d={`M${w * 0.24},${h * 0.34} L${w * 0.32},${h * 0.10} L${w * 0.47},${h * 0.10} L${w * 0.47},${h * 0.34} Z`} fill={c + "32"} stroke={c + "50"} strokeWidth={0.7} />
-        <Path d={`M${w * 0.53},${h * 0.34} L${w * 0.53},${h * 0.10} L${w * 0.56},${h * 0.10} L${w * 0.74},${h * 0.34} Z`} fill={c + "32"} stroke={c + "50"} strokeWidth={0.7} />
-        <Rect x={w * 0.91} y={h * 0.44} width={5} height={h * 0.16} rx={2} fill={c + "90"} />
-        <Rect x={w * 0.04} y={h * 0.44} width={5} height={h * 0.16} rx={2} fill={c + "55"} />
-        <Path d={`M${w * 0.06},${h * 0.80} L${w * 0.02},${h * 0.70} L${w * 0.06},${h * 0.70}`} fill={c + "30"} />
-        <Path d={`M${w * 0.94},${h * 0.80} L${w * 0.98},${h * 0.70} L${w * 0.94},${h * 0.70}`} fill={c + "30"} />
+        <Path d={`M${w * 0.06},${h * 0.82} L${w * 0.06},${h * 0.42} Q${w * 0.06},${h * 0.36} ${w * 0.12},${h * 0.36} L${w * 0.88},${h * 0.36} Q${w * 0.94},${h * 0.36} ${w * 0.94},${h * 0.42} L${w * 0.94},${h * 0.82} Z`} fill={c + "55"} stroke={c + "BB"} strokeWidth={1.3} />
+        <Path d={`M${w * 0.20},${h * 0.36} L${w * 0.30},${h * 0.06} L${w * 0.58},${h * 0.06} L${w * 0.78},${h * 0.36} Z`} fill={c + "45"} stroke={c + "AA"} strokeWidth={1.1} />
+        <Path d={`M${w * 0.24},${h * 0.34} L${w * 0.32},${h * 0.10} L${w * 0.47},${h * 0.10} L${w * 0.47},${h * 0.34} Z`} fill={c + "5A"} stroke={c + "80"} strokeWidth={0.7} />
+        <Path d={`M${w * 0.53},${h * 0.34} L${w * 0.53},${h * 0.10} L${w * 0.56},${h * 0.10} L${w * 0.74},${h * 0.34} Z`} fill={c + "5A"} stroke={c + "80"} strokeWidth={0.7} />
+        <Rect x={w * 0.91} y={h * 0.44} width={5} height={h * 0.16} rx={2} fill={c + "CC"} />
+        <Rect x={w * 0.04} y={h * 0.44} width={5} height={h * 0.16} rx={2} fill={c + "88"} />
+        <Path d={`M${w * 0.06},${h * 0.80} L${w * 0.02},${h * 0.70} L${w * 0.06},${h * 0.70}`} fill={c + "60"} />
+        <Path d={`M${w * 0.94},${h * 0.80} L${w * 0.98},${h * 0.70} L${w * 0.94},${h * 0.70}`} fill={c + "60"} />
       </>
     );
   } else if (cls === "grandtouring") {
     bodyEl = (
       <>
-        <Path d={`M${w * 0.04},${h * 0.82} L${w * 0.04},${h * 0.40} Q${w * 0.04},${h * 0.34} ${w * 0.10},${h * 0.34} L${w * 0.90},${h * 0.34} Q${w * 0.96},${h * 0.34} ${w * 0.96},${h * 0.40} L${w * 0.96},${h * 0.82} Z`} fill={c + "22"} stroke={c + "75"} strokeWidth={1.3} />
-        <Path d={`M${w * 0.22},${h * 0.34} L${w * 0.32},${h * 0.06} Q${w * 0.34},${h * 0.02} ${w * 0.38},${h * 0.02} L${w * 0.68},${h * 0.02} Q${w * 0.72},${h * 0.02} ${w * 0.73},${h * 0.06} L${w * 0.80},${h * 0.34} Z`} fill={c + "18"} stroke={c + "65"} strokeWidth={1.1} />
-        <Path d={`M${w * 0.25},${h * 0.32} L${w * 0.34},${h * 0.08} L${w * 0.49},${h * 0.08} L${w * 0.49},${h * 0.32} Z`} fill={c + "28"} stroke={c + "42"} strokeWidth={0.7} />
-        <Path d={`M${w * 0.51},${h * 0.32} L${w * 0.51},${h * 0.08} L${w * 0.72},${h * 0.08} L${w * 0.77},${h * 0.32} Z`} fill={c + "28"} stroke={c + "42"} strokeWidth={0.7} />
-        <Rect x={w * 0.93} y={h * 0.42} width={5} height={h * 0.18} rx={2.5} fill={c + "85"} />
-        <Rect x={w * 0.02} y={h * 0.42} width={5} height={h * 0.18} rx={2.5} fill={c + "55"} />
-        <Line x1={w * 0.10} y1={h * 0.83} x2={w * 0.17} y2={h * 0.83} stroke={c + "35"} strokeWidth={0.8} />
-        <Line x1={w * 0.83} y1={h * 0.83} x2={w * 0.90} y2={h * 0.83} stroke={c + "35"} strokeWidth={0.8} />
+        <Path d={`M${w * 0.04},${h * 0.82} L${w * 0.04},${h * 0.40} Q${w * 0.04},${h * 0.34} ${w * 0.10},${h * 0.34} L${w * 0.90},${h * 0.34} Q${w * 0.96},${h * 0.34} ${w * 0.96},${h * 0.40} L${w * 0.96},${h * 0.82} Z`} fill={c + "55"} stroke={c + "AA"} strokeWidth={1.3} />
+        <Path d={`M${w * 0.22},${h * 0.34} L${w * 0.32},${h * 0.06} Q${w * 0.34},${h * 0.02} ${w * 0.38},${h * 0.02} L${w * 0.68},${h * 0.02} Q${w * 0.72},${h * 0.02} ${w * 0.73},${h * 0.06} L${w * 0.80},${h * 0.34} Z`} fill={c + "45"} stroke={c + "95"} strokeWidth={1.1} />
+        <Path d={`M${w * 0.25},${h * 0.32} L${w * 0.34},${h * 0.08} L${w * 0.49},${h * 0.08} L${w * 0.49},${h * 0.32} Z`} fill={c + "55"} stroke={c + "72"} strokeWidth={0.7} />
+        <Path d={`M${w * 0.51},${h * 0.32} L${w * 0.51},${h * 0.08} L${w * 0.72},${h * 0.08} L${w * 0.77},${h * 0.32} Z`} fill={c + "55"} stroke={c + "72"} strokeWidth={0.7} />
+        <Rect x={w * 0.93} y={h * 0.42} width={5} height={h * 0.18} rx={2.5} fill={c + "BB"} />
+        <Rect x={w * 0.02} y={h * 0.42} width={5} height={h * 0.18} rx={2.5} fill={c + "88"} />
+        <Line x1={w * 0.10} y1={h * 0.83} x2={w * 0.17} y2={h * 0.83} stroke={c + "65"} strokeWidth={0.8} />
+        <Line x1={w * 0.83} y1={h * 0.83} x2={w * 0.90} y2={h * 0.83} stroke={c + "65"} strokeWidth={0.8} />
       </>
     );
   } else if (cls === "flagship") {
     bodyEl = (
       <>
-        <Path d={`M${w * 0.02},${h * 0.82} L${w * 0.02},${h * 0.38} Q${w * 0.02},${h * 0.32} ${w * 0.08},${h * 0.32} L${w * 0.92},${h * 0.32} Q${w * 0.98},${h * 0.32} ${w * 0.98},${h * 0.38} L${w * 0.98},${h * 0.82} Z`} fill={c + "25"} stroke={c + "80"} strokeWidth={1.4} />
-        <Path d={`M${w * 0.18},${h * 0.32} L${w * 0.28},${h * 0.04} Q${w * 0.30},${h * 0.00} ${w * 0.34},${h * 0.00} L${w * 0.72},${h * 0.00} Q${w * 0.76},${h * 0.00} ${w * 0.78},${h * 0.04} L${w * 0.84},${h * 0.32} Z`} fill={c + "18"} stroke={c + "70"} strokeWidth={1.2} />
-        <Path d={`M${w * 0.22},${h * 0.30} L${w * 0.30},${h * 0.06} L${w * 0.48},${h * 0.06} L${w * 0.48},${h * 0.30} Z`} fill={c + "30"} stroke={c + "48"} strokeWidth={0.7} />
-        <Path d={`M${w * 0.52},${h * 0.30} L${w * 0.52},${h * 0.06} L${w * 0.76},${h * 0.06} L${w * 0.82},${h * 0.30} Z`} fill={c + "30"} stroke={c + "48"} strokeWidth={0.7} />
-        <Rect x={w * 0.95} y={h * 0.40} width={5} height={h * 0.20} rx={2.5} fill={c + "90"} />
-        <Rect x={w * 0.00} y={h * 0.40} width={5} height={h * 0.20} rx={2.5} fill={c + "60"} />
-        <Line x1={w * 0.38} y1={h * 0.83} x2={w * 0.62} y2={h * 0.83} stroke={c + "20"} strokeWidth={0.6} />
+        <Path d={`M${w * 0.02},${h * 0.82} L${w * 0.02},${h * 0.38} Q${w * 0.02},${h * 0.32} ${w * 0.08},${h * 0.32} L${w * 0.92},${h * 0.32} Q${w * 0.98},${h * 0.32} ${w * 0.98},${h * 0.38} L${w * 0.98},${h * 0.82} Z`} fill={c + "55"} stroke={c + "BB"} strokeWidth={1.4} />
+        <Path d={`M${w * 0.18},${h * 0.32} L${w * 0.28},${h * 0.04} Q${w * 0.30},${h * 0.00} ${w * 0.34},${h * 0.00} L${w * 0.72},${h * 0.00} Q${w * 0.76},${h * 0.00} ${w * 0.78},${h * 0.04} L${w * 0.84},${h * 0.32} Z`} fill={c + "45"} stroke={c + "AA"} strokeWidth={1.2} />
+        <Path d={`M${w * 0.22},${h * 0.30} L${w * 0.30},${h * 0.06} L${w * 0.48},${h * 0.06} L${w * 0.48},${h * 0.30} Z`} fill={c + "58"} stroke={c + "78"} strokeWidth={0.7} />
+        <Path d={`M${w * 0.52},${h * 0.30} L${w * 0.52},${h * 0.06} L${w * 0.76},${h * 0.06} L${w * 0.82},${h * 0.30} Z`} fill={c + "58"} stroke={c + "78"} strokeWidth={0.7} />
+        <Rect x={w * 0.95} y={h * 0.40} width={5} height={h * 0.20} rx={2.5} fill={c + "CC"} />
+        <Rect x={w * 0.00} y={h * 0.40} width={5} height={h * 0.20} rx={2.5} fill={c + "90"} />
+        <Line x1={w * 0.38} y1={h * 0.83} x2={w * 0.62} y2={h * 0.83} stroke={c + "50"} strokeWidth={0.6} />
       </>
     );
   } else if (cls === "hypercar") {
     bodyEl = (
       <>
-        <Path d={`M${w * 0.04},${h * 0.82} L${w * 0.04},${h * 0.36} Q${w * 0.04},${h * 0.28} ${w * 0.12},${h * 0.28} L${w * 0.88},${h * 0.28} Q${w * 0.96},${h * 0.28} ${w * 0.96},${h * 0.36} L${w * 0.96},${h * 0.82} Z`} fill={c + "28"} stroke={c + "85"} strokeWidth={1.5} />
-        <Path d={`M${w * 0.16},${h * 0.28} L${w * 0.28},${h * 0.02} Q${w * 0.30},${h * -0.02} ${w * 0.34},${h * -0.02} L${w * 0.60},${h * -0.02} Q${w * 0.64},${h * -0.02} ${w * 0.66},${h * 0.02} L${w * 0.84},${h * 0.28} Z`} fill={c + "20"} stroke={c + "75"} strokeWidth={1.2} />
-        <Path d={`M${w * 0.20},${h * 0.26} L${w * 0.30},${h * 0.04} L${w * 0.46},${h * 0.04} L${w * 0.46},${h * 0.26} Z`} fill={c + "35"} stroke={c + "50"} strokeWidth={0.8} />
-        <Path d={`M${w * 0.54},${h * 0.26} L${w * 0.54},${h * 0.04} L${w * 0.64},${h * 0.04} L${w * 0.80},${h * 0.26} Z`} fill={c + "35"} stroke={c + "50"} strokeWidth={0.8} />
-        <Rect x={w * 0.93} y={h * 0.36} width={5} height={h * 0.22} rx={2.5} fill={c + "95"} />
-        <Rect x={w * 0.02} y={h * 0.36} width={5} height={h * 0.22} rx={2.5} fill={c + "65"} />
-        <Path d={`M${w * 0.04},${h * 0.80} L${w * -0.01},${h * 0.66} L${w * 0.04},${h * 0.66}`} fill={c + "35"} />
-        <Path d={`M${w * 0.96},${h * 0.80} L${w * 1.01},${h * 0.66} L${w * 0.96},${h * 0.66}`} fill={c + "35"} />
-        <Path d={`M${w * 0.42},${h * 0.78} L${w * 0.58},${h * 0.78}`} stroke={c + "30"} strokeWidth={0.8} />
+        <Path d={`M${w * 0.04},${h * 0.82} L${w * 0.04},${h * 0.36} Q${w * 0.04},${h * 0.28} ${w * 0.12},${h * 0.28} L${w * 0.88},${h * 0.28} Q${w * 0.96},${h * 0.28} ${w * 0.96},${h * 0.36} L${w * 0.96},${h * 0.82} Z`} fill={c + "58"} stroke={c + "CC"} strokeWidth={1.5} />
+        <Path d={`M${w * 0.16},${h * 0.28} L${w * 0.28},${h * 0.02} Q${w * 0.30},${h * -0.02} ${w * 0.34},${h * -0.02} L${w * 0.60},${h * -0.02} Q${w * 0.64},${h * -0.02} ${w * 0.66},${h * 0.02} L${w * 0.84},${h * 0.28} Z`} fill={c + "48"} stroke={c + "AA"} strokeWidth={1.2} />
+        <Path d={`M${w * 0.20},${h * 0.26} L${w * 0.30},${h * 0.04} L${w * 0.46},${h * 0.04} L${w * 0.46},${h * 0.26} Z`} fill={c + "60"} stroke={c + "80"} strokeWidth={0.8} />
+        <Path d={`M${w * 0.54},${h * 0.26} L${w * 0.54},${h * 0.04} L${w * 0.64},${h * 0.04} L${w * 0.80},${h * 0.26} Z`} fill={c + "60"} stroke={c + "80"} strokeWidth={0.8} />
+        <Rect x={w * 0.93} y={h * 0.36} width={5} height={h * 0.22} rx={2.5} fill={c + "DD"} />
+        <Rect x={w * 0.02} y={h * 0.36} width={5} height={h * 0.22} rx={2.5} fill={c + "95"} />
+        <Path d={`M${w * 0.04},${h * 0.80} L${w * -0.01},${h * 0.66} L${w * 0.04},${h * 0.66}`} fill={c + "60"} />
+        <Path d={`M${w * 0.96},${h * 0.80} L${w * 1.01},${h * 0.66} L${w * 0.96},${h * 0.66}`} fill={c + "60"} />
+        <Path d={`M${w * 0.42},${h * 0.78} L${w * 0.58},${h * 0.78}`} stroke={c + "60"} strokeWidth={0.8} />
       </>
     );
   } else {
     bodyEl = (
       <>
-        <Rect x={w * 0.08} y={h * 0.42} width={w * 0.84} height={h * 0.42} rx={6} fill={c + "22"} stroke={c + "70"} strokeWidth={1.2} />
-        <Path d={`M${w * 0.28},${h * 0.42} L${w * 0.35},${h * 0.12} L${w * 0.65},${h * 0.12} L${w * 0.72},${h * 0.42} Z`} fill={c + "15"} stroke={c + "60"} strokeWidth={1} />
-        <Rect x={w * 0.88} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "80"} />
-        <Rect x={w * 0.08} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "50"} />
+        <Rect x={w * 0.08} y={h * 0.42} width={w * 0.84} height={h * 0.42} rx={6} fill={c + "55"} stroke={c + "AA"} strokeWidth={1.2} />
+        <Path d={`M${w * 0.28},${h * 0.42} L${w * 0.35},${h * 0.12} L${w * 0.65},${h * 0.12} L${w * 0.72},${h * 0.42} Z`} fill={c + "40"} stroke={c + "90"} strokeWidth={1} />
+        <Rect x={w * 0.88} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "BB"} />
+        <Rect x={w * 0.08} y={h * 0.50} width={4} height={h * 0.12} rx={2} fill={c + "80"} />
       </>
     );
   }
@@ -299,6 +320,47 @@ const bdg = StyleSheet.create({
   text: { fontFamily: "Inter_700Bold", fontSize: 7, letterSpacing: 0.6 },
 });
 
+function CardModelViewer({ glbFile, dimmed }: { glbFile: string; dimmed: boolean }) {
+  useEffect(() => {
+    ensureModelViewerScript();
+  }, []);
+
+  const modelUrl = `${API_BASE}/models/${glbFile}`;
+  const cardH = CARD_W * 0.55;
+
+  if (Platform.OS !== "web") {
+    return null;
+  }
+
+  return (
+    <View style={{ width: CARD_W * 0.82, height: cardH, opacity: dimmed ? 0.35 : 1 }}>
+      {/* @ts-ignore */}
+      <div style={{ width: "100%", height: "100%", borderRadius: 8, overflow: "hidden" }}>
+        <model-viewer
+          src={modelUrl}
+          auto-rotate
+          auto-rotate-delay="0"
+          rotation-per-second="18deg"
+          camera-orbit="45deg 65deg 3.5m"
+          min-camera-orbit="auto auto auto"
+          max-camera-orbit="auto auto auto"
+          field-of-view="30deg"
+          exposure="1.2"
+          shadow-intensity="0"
+          style={{
+            width: "100%",
+            height: "100%",
+            backgroundColor: "transparent",
+            outline: "none",
+            // @ts-ignore
+            "--poster-color": "transparent",
+          } as any}
+        />
+      </div>
+    </View>
+  );
+}
+
 function CarGridCard({
   car, state, userLevel, onPress,
 }: {
@@ -310,6 +372,8 @@ function CarGridCard({
   const levelsAway = car.isLocked ? car.minLevel - userLevel : 0;
   const coinsAway = !car.isOwned && !car.isLocked && !car.isAffordable ? car.cost : 0;
   const bodyColor = getVariantHex(car);
+  const glbFile = CAR_GLB_MAP[car.name];
+  const showGlb = !!glbFile && Platform.OS === "web";
 
   const borderTopColor =
     state === "featured" ? Colors.gold :
@@ -326,7 +390,11 @@ function CarGridCard({
       onPress={() => { Haptics.selectionAsync().catch(() => {}); onPress(car); }}
     >
       <View style={gc.visual}>
-        <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={CARD_W * 0.82} dimmed={dimmed} />
+        {showGlb ? (
+          <CardModelViewer glbFile={glbFile} dimmed={dimmed} />
+        ) : (
+          <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={CARD_W * 0.82} dimmed={dimmed} />
+        )}
         {state === "locked" && (
           <View style={gc.lockOverlay}>
             <View style={gc.lockBox}>
