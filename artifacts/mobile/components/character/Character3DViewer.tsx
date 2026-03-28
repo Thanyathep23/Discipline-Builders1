@@ -209,11 +209,18 @@ function webFixTPose(model: any, T: any) {
 }
 
 function loadScript(src: string): Promise<void> {
-  return new Promise((resolve) => {
-    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
+    if (existing) {
+      if ((existing as any).__loaded) { resolve(); return; }
+      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("error", () => reject(new Error(`Failed to load: ${src}`)));
+      return;
+    }
     const s = document.createElement("script");
     s.src = src;
-    s.onload = () => resolve();
+    s.onload = () => { (s as any).__loaded = true; resolve(); };
+    s.onerror = () => reject(new Error(`Failed to load: ${src}`));
     document.head.appendChild(s);
   });
 }
@@ -235,13 +242,24 @@ function WebModelViewer({ height }: { height: number }) {
     let onResize: (() => void) | null = null;
     let resumeTimer: ReturnType<typeof setTimeout> | null = null;
 
+    let loadedModel: any = null;
+
     const init = async () => {
-      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js");
-      await loadScript("https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js");
+      try {
+        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js");
+        await loadScript("https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js");
+      } catch (e) {
+        console.warn("Character3DViewer: failed to load Three.js scripts", e);
+        return;
+      }
 
       if (disposed) return;
 
       const T = (window as any).THREE;
+      if (!T || !T.GLTFLoader) {
+        console.warn("Character3DViewer: THREE or GLTFLoader not available");
+        return;
+      }
       const w = container.clientWidth;
       const h = container.clientHeight;
 
@@ -306,6 +324,7 @@ function WebModelViewer({ height }: { height: number }) {
 
         webFixTPose(model, T);
         scene.add(model);
+        loadedModel = model;
 
         camera.position.set(0, 1.45, 2.1);
         camera.lookAt(0, 1.15, 0);
@@ -355,6 +374,23 @@ function WebModelViewer({ height }: { height: number }) {
       if (onUp) window.removeEventListener("pointerup", onUp);
       if (onResize) window.removeEventListener("resize", onResize);
       if (resumeTimer) clearTimeout(resumeTimer);
+      if (loadedModel) {
+        loadedModel.traverse((child: any) => {
+          if (child.isMesh) {
+            child.geometry?.dispose();
+            if (child.material) {
+              const mats = Array.isArray(child.material) ? child.material : [child.material];
+              mats.forEach((m: any) => {
+                m.map?.dispose();
+                m.normalMap?.dispose();
+                m.roughnessMap?.dispose();
+                m.metalnessMap?.dispose();
+                m.dispose();
+              });
+            }
+          }
+        });
+      }
     };
   }, []);
 
