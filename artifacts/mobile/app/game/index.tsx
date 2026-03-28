@@ -61,6 +61,31 @@ const STATS = [
   { label: "Prestige", icon: "👑", value: 84, max: 100, color: C.blue },
 ];
 
+function fixTPose(scene: any) {
+  scene.traverse((child: any) => {
+    if (!child.isBone && child.type !== "Bone") return;
+    const name = child.name;
+
+    if (name === "upperarm_l") {
+      child.rotation.z = -1.2;
+      child.rotation.x = 0.1;
+    } else if (name === "upperarm_r") {
+      child.rotation.z = 1.2;
+      child.rotation.x = 0.1;
+    } else if (name === "lowerarm_l") {
+      child.rotation.z = 0.15;
+    } else if (name === "lowerarm_r") {
+      child.rotation.z = -0.15;
+    }
+  });
+
+  scene.traverse((child: any) => {
+    if (child.isSkinnedMesh && child.skeleton) {
+      child.skeleton.bones.forEach((b: any) => b.updateMatrixWorld(true));
+    }
+  });
+}
+
 function SuperheroModel() {
   const groupRef = useRef<any>(null);
   const gltf = useLoader(GLTFLoader, MODEL_URL);
@@ -87,6 +112,8 @@ function SuperheroModel() {
           child.receiveShadow = true;
         }
       });
+
+      fixTPose(gltf.scene);
     }
   }, [gltf]);
 

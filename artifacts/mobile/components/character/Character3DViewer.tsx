@@ -52,6 +52,31 @@ declare global {
   }
 }
 
+function fixTPose(scene: any) {
+  scene.traverse((child: any) => {
+    if (!child.isBone && child.type !== "Bone") return;
+    const name = child.name;
+
+    if (name === "upperarm_l") {
+      child.rotation.z = -1.2;
+      child.rotation.x = 0.1;
+    } else if (name === "upperarm_r") {
+      child.rotation.z = 1.2;
+      child.rotation.x = 0.1;
+    } else if (name === "lowerarm_l") {
+      child.rotation.z = 0.15;
+    } else if (name === "lowerarm_r") {
+      child.rotation.z = -0.15;
+    }
+  });
+
+  scene.traverse((child: any) => {
+    if (child.isSkinnedMesh && child.skeleton) {
+      child.skeleton.bones.forEach((b: any) => b.updateMatrixWorld(true));
+    }
+  });
+}
+
 function SuperheroModel() {
   const groupRef = useRef<any>(null);
   const gltf = useLoader(GLTFLoader, MODEL_URL);
@@ -78,6 +103,8 @@ function SuperheroModel() {
           child.receiveShadow = true;
         }
       });
+
+      fixTPose(gltf.scene);
     }
   }, [gltf]);
 
@@ -165,7 +192,39 @@ function VignetteOverlay() {
   );
 }
 
+function fixTPoseOnModelViewer(mv: any) {
+  const scene = mv?.model;
+  if (!scene) return;
+
+  scene.traverse((child: any) => {
+    if (!child.isBone && child.type !== "Bone") return;
+    const name = child.name;
+
+    if (name === "upperarm_l") {
+      child.rotation.z = -1.2;
+      child.rotation.x = 0.1;
+    } else if (name === "upperarm_r") {
+      child.rotation.z = 1.2;
+      child.rotation.x = 0.1;
+    } else if (name === "lowerarm_l") {
+      child.rotation.z = 0.15;
+    } else if (name === "lowerarm_r") {
+      child.rotation.z = -0.15;
+    }
+  });
+
+  scene.traverse((child: any) => {
+    if (child.isSkinnedMesh && child.skeleton) {
+      child.skeleton.bones.forEach((b: any) => b.updateMatrixWorld(true));
+    }
+  });
+
+  mv.requestUpdate?.();
+}
+
 function WebModelViewer({ height }: { height: number }) {
+  const mvRef = useRef<any>(null);
+
   useEffect(() => {
     if (
       typeof window !== "undefined" &&
@@ -180,6 +239,24 @@ function WebModelViewer({ height }: { height: number }) {
     }
   }, []);
 
+  useEffect(() => {
+    let cleanup: (() => void) | null = null;
+    const checkRef = () => {
+      const el = mvRef.current;
+      if (!el) {
+        const tid = setTimeout(checkRef, 100);
+        cleanup = () => clearTimeout(tid);
+        return;
+      }
+      const onLoad = () => fixTPoseOnModelViewer(el);
+      el.addEventListener("load", onLoad);
+      if (el.model) onLoad();
+      cleanup = () => el.removeEventListener("load", onLoad);
+    };
+    checkRef();
+    return () => { cleanup?.(); };
+  }, []);
+
   return (
     <View style={[viewerStyles.container, { height }]}>
       <div
@@ -192,6 +269,7 @@ function WebModelViewer({ height }: { height: number }) {
         }}
       >
         <model-viewer
+          ref={mvRef}
           src={MODEL_URL}
           auto-rotate
           auto-rotate-delay="3000"
