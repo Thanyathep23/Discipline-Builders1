@@ -361,7 +361,8 @@ artifacts-monorepo/
 - **Character status screen**: `artifacts/mobile/app/character/index.tsx` — Hero card now uses 3D GLTF model via `Character3DViewer` component (replaced flat SVG `CharacterRenderer`)
 - **Reusable 3D viewer**: `artifacts/mobile/components/character/Character3DViewer.tsx` — Drop-in 3D model viewer with cinematic lighting, auto-rotate, vignette overlay, web fallback
 - **3D Model**: Superhero Male FullBody GLTF (man in suit), served via API server at `/api/models/`
-- **Model files**: `artifacts/api-server/public/models/` — GLTF + .bin + 5 texture PNGs + 2 placeholder normal maps
+- **Car Showroom**: `artifacts/mobile/app/cars/showroom.tsx` — Premium 3D car viewer with swipe navigation, specs grid, purchase flow, MY GARAGE section; uses BMW M4 Competition (11MB GLB) and BMW M4 Widebody (22MB GLB); route registered at `cars/showroom` with slide_from_bottom animation
+- **Model files**: `artifacts/api-server/public/models/` — GLTF + .bin + 5 texture PNGs + 2 placeholder normal maps + 2 BMW GLB files (`2025_bmw_m4_competition.glb`, `bmw_m4_widebody.glb`)
 - **Static serving**: `artifacts/api-server/src/app.ts` — `express.static` at `/api/models` with 7-day cache. Build copies to dist via `build.ts`.
 - **Lighting**: Cinematic 5-light setup: warm key (#FFF2D0), blue rim (#6AADFF), gold fill (#C9A84C), ambient, bounce point light
 - **Vignette**: 3-layer LinearGradient overlay (vertical + horizontal + bottom fade) for premium look
