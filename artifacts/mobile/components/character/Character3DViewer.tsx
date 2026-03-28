@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from "react";
 import { View, StyleSheet, Platform, Text } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
 
 let Canvas: any;
 let useFrame: any;
@@ -26,6 +25,32 @@ const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api`;
 const MODEL_URL = `${API_BASE}/models/Superhero_Male_FullBody.gltf`;
 
 const VIGNETTE_BG = "#07071A";
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      "model-viewer": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          src?: string;
+          alt?: string;
+          "camera-controls"?: boolean | string;
+          "auto-rotate"?: boolean | string;
+          "auto-rotate-delay"?: string;
+          "rotation-per-second"?: string;
+          "camera-orbit"?: string;
+          "min-camera-orbit"?: string;
+          "max-camera-orbit"?: string;
+          "field-of-view"?: string;
+          "environment-image"?: string;
+          "shadow-intensity"?: string;
+          "shadow-softness"?: string;
+          exposure?: string;
+        },
+        HTMLElement
+      >;
+    }
+  }
+}
 
 function SuperheroModel() {
   const groupRef = useRef<any>(null);
@@ -140,16 +165,57 @@ function VignetteOverlay() {
   );
 }
 
-function WebFallback() {
+function WebModelViewer({ height }: { height: number }) {
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      !document.querySelector("[data-model-viewer-script]")
+    ) {
+      const script = document.createElement("script");
+      script.type = "module";
+      script.src =
+        "https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js";
+      script.setAttribute("data-model-viewer-script", "true");
+      document.head.appendChild(script);
+    }
+  }, []);
+
   return (
-    <View style={viewerStyles.webFallback}>
-      <View style={viewerStyles.webFallbackIcon}>
-        <Ionicons name="cube-outline" size={48} color="#C9A84C" />
-      </View>
-      <Text style={viewerStyles.webFallbackTitle}>3D Character</Text>
-      <Text style={viewerStyles.webFallbackText}>
-        Open on a native device for the full 3D experience
-      </Text>
+    <View style={[viewerStyles.container, { height }]}>
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          position: "relative" as const,
+          borderRadius: 16,
+          overflow: "hidden" as const,
+        }}
+      >
+        <model-viewer
+          src={MODEL_URL}
+          camera-controls
+          auto-rotate
+          auto-rotate-delay="3000"
+          rotation-per-second="6deg"
+          camera-orbit="0deg 82deg auto"
+          min-camera-orbit="auto 50deg auto"
+          max-camera-orbit="auto 120deg auto"
+          field-of-view="36deg"
+          environment-image="neutral"
+          shadow-intensity="1.2"
+          shadow-softness="0.8"
+          exposure="1.1"
+          style={
+            {
+              width: "100%",
+              height: "100%",
+              background: "transparent",
+              "--poster-color": "transparent",
+            } as React.CSSProperties
+          }
+          alt="3D Character"
+        />
+      </div>
     </View>
   );
 }
@@ -160,11 +226,7 @@ interface Character3DViewerProps {
 
 export function Character3DViewer({ height = 380 }: Character3DViewerProps) {
   if (Platform.OS === "web") {
-    return (
-      <View style={[viewerStyles.container, { height }]}>
-        <WebFallback />
-      </View>
-    );
+    return <WebModelViewer height={height} />;
   }
 
   return (
@@ -193,31 +255,5 @@ const viewerStyles = StyleSheet.create({
   canvas: {
     flex: 1,
     backgroundColor: "transparent",
-  },
-  webFallback: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  webFallbackIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(201,168,76,0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
-  },
-  webFallbackTitle: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 16,
-    color: "#FFFFFF",
-  },
-  webFallbackText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    color: "#555B6E",
-    textAlign: "center",
   },
 });
