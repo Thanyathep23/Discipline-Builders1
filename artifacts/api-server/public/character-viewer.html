@@ -247,6 +247,7 @@ await loadBody(initSkin);
 await loadHair(initHair, initHairTex);
 
 window.addEventListener('message', async (event) => {
+  if (event.source !== window.parent) return;
   const data = event.data;
   if (!data || !data.type) return;
 

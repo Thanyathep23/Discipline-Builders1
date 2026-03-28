@@ -306,32 +306,6 @@ function VignetteOverlay() {
   );
 }
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      "model-viewer": React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & {
-          src?: string;
-          alt?: string;
-          "camera-controls"?: boolean | string;
-          "auto-rotate"?: boolean | string;
-          "auto-rotate-delay"?: string;
-          "rotation-per-second"?: string;
-          "camera-orbit"?: string;
-          "min-camera-orbit"?: string;
-          "max-camera-orbit"?: string;
-          "field-of-view"?: string;
-          "environment-image"?: string;
-          "shadow-intensity"?: string;
-          "shadow-softness"?: string;
-          exposure?: string;
-        },
-        HTMLElement
-      >;
-    }
-  }
-}
-
 function WebModelViewer({
   height,
   hairStyle,
@@ -367,6 +341,7 @@ function WebModelViewer({
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
       if (event.data?.type === "viewerReady") {
         readyRef.current = true;
         if (pendingRef.current) {
