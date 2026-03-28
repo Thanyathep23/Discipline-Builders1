@@ -399,7 +399,7 @@ function DetailModelViewer({
   };
 
   return (
-    <View style={{ width: "100%" as unknown as number, height, alignItems: "center" }}>
+    <View style={{ width: "100%", height, alignItems: "center" }}>
       <div style={wrapperStyle}>
         <model-viewer
           src={modelUrl}
