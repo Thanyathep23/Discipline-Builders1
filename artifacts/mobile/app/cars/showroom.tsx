@@ -8,15 +8,19 @@ import {
   ScrollView,
   Dimensions,
   ActivityIndicator,
-  Alert,
+  Modal,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
+  FadeIn,
   FadeInDown,
   FadeInUp,
+  ZoomIn,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 
@@ -53,7 +57,10 @@ type CarData = {
   stars: number;
   rarity: string;
   accentColor: string;
-  specs: { label: string; value: string }[];
+  speed0to100: number;
+  topSpeed: string;
+  horsepower: string;
+  prestigeBonus: number;
   description: string;
 };
 
@@ -67,14 +74,10 @@ const SHOWROOM_CARS: CarData[] = [
     stars: 4,
     rarity: "rare",
     accentColor: "#4A9EFF",
-    specs: [
-      { label: "Power", value: "503 HP" },
-      { label: "0-60", value: "3.8s" },
-      { label: "Top Speed", value: "180 mph" },
-      { label: "Drive", value: "RWD" },
-      { label: "Weight", value: "3,640 lbs" },
-      { label: "Torque", value: "479 lb-ft" },
-    ],
+    speed0to100: 78,
+    topSpeed: "180 mph",
+    horsepower: "503 HP",
+    prestigeBonus: 15,
     description:
       "The M4 Competition delivers raw driving emotion with its twin-turbo S58 engine, aggressive aero, and track-ready suspension.",
   },
@@ -87,14 +90,10 @@ const SHOWROOM_CARS: CarData[] = [
     stars: 5,
     rarity: "legendary",
     accentColor: "#C9A84C",
-    specs: [
-      { label: "Power", value: "550+ HP" },
-      { label: "0-60", value: "3.4s" },
-      { label: "Top Speed", value: "200 mph" },
-      { label: "Drive", value: "AWD" },
-      { label: "Weight", value: "3,800 lbs" },
-      { label: "Torque", value: "520 lb-ft" },
-    ],
+    speed0to100: 92,
+    topSpeed: "200 mph",
+    horsepower: "550+ HP",
+    prestigeBonus: 30,
     description:
       "An extreme widebody kit transforms the M4 into a road-legal weapon. Flared fenders, massive tires, and a tuned powertrain for maximum attack.",
   },
@@ -239,9 +238,9 @@ function Car3DViewer({
   }
 
   return (
-    <View style={[s.viewerWrap, { height }]}>
+    <View style={[st.viewerWrap, { height }]}>
       <Canvas
-        style={s.canvas}
+        style={st.canvas}
         gl={{
           alpha: true,
           antialias: true,
@@ -287,7 +286,7 @@ function WebCarViewer({
   }, []);
 
   return (
-    <View style={[s.viewerWrap, { height }]}>
+    <View style={[st.viewerWrap, { height }]}>
       <div
         style={{
           width: "100%",
@@ -339,7 +338,7 @@ function WebCarViewer({
 
 function StarRating({ count, color }: { count: number; color: string }) {
   return (
-    <View style={s.starsRow}>
+    <View style={st.starsRow}>
       {Array.from({ length: 5 }).map((_, i) => (
         <Ionicons
           key={i}
@@ -352,20 +351,161 @@ function StarRating({ count, color }: { count: number; color: string }) {
   );
 }
 
-function SpecsGrid({ specs, accent }: { specs: CarData["specs"]; accent: string }) {
+function SpecsGrid({ car }: { car: CarData }) {
+  const accent = car.accentColor;
+  const specs = [
+    { label: "0–100", value: `${car.speed0to100}`, isBar: true },
+    { label: "Top Speed", value: car.topSpeed, isBar: false },
+    { label: "Horsepower", value: car.horsepower, isBar: false },
+    { label: "Prestige Bonus", value: `+${car.prestigeBonus}`, isBar: false },
+  ];
+
   return (
-    <View style={s.specsGrid}>
+    <View style={st.specsGrid}>
       {specs.map((spec, i) => (
         <Animated.View
           key={spec.label}
-          entering={FadeInDown.delay(100 + i * 60).duration(400)}
-          style={s.specCell}
+          entering={FadeInDown.delay(100 + i * 80).duration(400)}
+          style={st.specCell}
         >
-          <Text style={s.specValue}>{spec.value}</Text>
-          <Text style={[s.specLabel, { color: accent + "AA" }]}>{spec.label}</Text>
+          <Text style={[st.specLabel, { color: accent + "AA" }]}>
+            {spec.label}
+          </Text>
+          {spec.isBar ? (
+            <View style={st.specBarWrap}>
+              <Text style={st.specValue}>{spec.value}</Text>
+              <View style={st.specBarBg}>
+                <View
+                  style={[
+                    st.specBarFill,
+                    {
+                      width: `${Math.min(Number(spec.value), 100)}%`,
+                      backgroundColor: accent,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+          ) : (
+            <Text style={st.specValue}>{spec.value}</Text>
+          )}
         </Animated.View>
       ))}
     </View>
+  );
+}
+
+function PurchaseConfirmModal({
+  visible,
+  car,
+  onConfirm,
+  onCancel,
+}: {
+  visible: boolean;
+  car: CarData;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const rc = RARITY_COLORS[car.rarity] ?? "#9E9E9E";
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+    >
+      <View style={st.modalOverlay}>
+        <Animated.View entering={ZoomIn.duration(300)} style={st.modalCard}>
+          <View
+            style={[st.modalAccent, { backgroundColor: rc + "20" }]}
+          >
+            <Ionicons name="car-sport" size={32} color={rc} />
+          </View>
+          <Text style={st.modalTitle}>Confirm Purchase</Text>
+          <Text style={[st.modalCarName, { color: car.accentColor }]}>
+            {car.name}
+          </Text>
+          <Text style={st.modalRarity}>
+            {car.rarity.toUpperCase()} · {car.stars}★
+          </Text>
+          <View style={st.modalDivider} />
+          <View style={st.modalPriceRow}>
+            <Text style={st.modalPriceLabel}>Total Cost</Text>
+            <Text style={[st.modalPriceValue, { color: car.accentColor }]}>
+              {car.cost.toLocaleString()} GP
+            </Text>
+          </View>
+          <View style={st.modalBtnRow}>
+            <Pressable
+              style={st.modalCancelBtn}
+              onPress={onCancel}
+            >
+              <Text style={st.modalCancelText}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              style={[
+                st.modalConfirmBtn,
+                { backgroundColor: car.accentColor + "25", borderColor: car.accentColor + "60" },
+              ]}
+              onPress={onConfirm}
+            >
+              <Ionicons name="cart" size={16} color={car.accentColor} />
+              <Text style={[st.modalConfirmText, { color: car.accentColor }]}>
+                BUY NOW
+              </Text>
+            </Pressable>
+          </View>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+function PurchaseSuccessModal({
+  visible,
+  car,
+  onClose,
+}: {
+  visible: boolean;
+  car: CarData;
+  onClose: () => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+    >
+      <View style={st.modalOverlay}>
+        <Animated.View entering={ZoomIn.duration(400)} style={st.modalCard}>
+          <Animated.View
+            entering={ZoomIn.delay(200).duration(500)}
+            style={st.successIconWrap}
+          >
+            <Ionicons name="checkmark-circle" size={56} color="#00E676" />
+          </Animated.View>
+          <Text style={st.successTitle}>ACQUIRED!</Text>
+          <Text style={[st.modalCarName, { color: car.accentColor }]}>
+            {car.name}
+          </Text>
+          <Text style={st.successSub}>
+            has been added to your garage
+          </Text>
+          <Pressable
+            style={[
+              st.successBtn,
+              { backgroundColor: "#00E67620", borderColor: "#00E67650" },
+            ]}
+            onPress={onClose}
+          >
+            <Text style={[st.successBtnText, { color: "#00E676" }]}>
+              VIEW IN GARAGE
+            </Text>
+          </Pressable>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
@@ -373,8 +513,11 @@ export default function ShowroomScreen() {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [purchasing, setPurchasing] = useState(false);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [ownedCars, setOwnedCars] = useState<Set<string>>(new Set());
   const [balance, setBalance] = useState(USER_BALANCE);
+  const swiperRef = useRef<ScrollView>(null);
 
   const car = SHOWROOM_CARS[currentIndex];
   const modelUrl = `${API_BASE}/models/${car.modelFile}`;
@@ -382,22 +525,31 @@ export default function ShowroomScreen() {
   const isOwned = ownedCars.has(car.id);
   const canAfford = balance >= car.cost;
 
-  const goNext = useCallback(() => {
-    if (currentIndex < SHOWROOM_CARS.length - 1) {
-      Haptics.selectionAsync().catch(() => {});
-      setCurrentIndex((i) => i + 1);
-    }
-  }, [currentIndex]);
+  const handleSwipeEnd = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const x = e.nativeEvent.contentOffset.x;
+      const page = Math.round(x / SCREEN_W);
+      if (page !== currentIndex && page >= 0 && page < SHOWROOM_CARS.length) {
+        Haptics.selectionAsync().catch(() => {});
+        setCurrentIndex(page);
+      }
+    },
+    [currentIndex],
+  );
 
-  const goPrev = useCallback(() => {
-    if (currentIndex > 0) {
-      Haptics.selectionAsync().catch(() => {});
-      setCurrentIndex((i) => i - 1);
-    }
-  }, [currentIndex]);
+  const scrollToIndex = useCallback((idx: number) => {
+    swiperRef.current?.scrollTo({ x: idx * SCREEN_W, animated: true });
+    setCurrentIndex(idx);
+    Haptics.selectionAsync().catch(() => {});
+  }, []);
 
-  const handlePurchase = useCallback(() => {
+  const handleBuyPress = useCallback(() => {
     if (isOwned || !canAfford || purchasing) return;
+    setConfirmModalVisible(true);
+  }, [isOwned, canAfford, purchasing]);
+
+  const handleConfirmPurchase = useCallback(() => {
+    setConfirmModalVisible(false);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
       () => {},
     );
@@ -406,67 +558,124 @@ export default function ShowroomScreen() {
       setOwnedCars((prev) => new Set(prev).add(car.id));
       setBalance((b) => b - car.cost);
       setPurchasing(false);
-      if (Platform.OS === "web") {
-        alert(`${car.name} acquired!`);
-      } else {
-        Alert.alert("Acquired!", `${car.name} has been added to your garage.`);
-      }
+      setSuccessModalVisible(true);
     }, 1200);
-  }, [car, isOwned, canAfford, purchasing]);
+  }, [car]);
+
+  const ownedList = SHOWROOM_CARS.filter((c) => ownedCars.has(c.id));
 
   return (
-    <View style={s.root}>
-      <SafeAreaView style={s.safe} edges={["top"]}>
-        <View style={s.header}>
+    <View style={st.root}>
+      <SafeAreaView style={st.safe} edges={["top"]}>
+        <View style={st.header}>
           <Pressable
             onPress={() => router.back()}
-            style={s.backBtn}
+            style={st.backBtn}
             hitSlop={12}
           >
             <Ionicons name="arrow-back" size={20} color="#FFF" />
           </Pressable>
-          <View style={s.headerCenter}>
-            <Text style={s.headerTitle}>SHOWROOM</Text>
-            <Text style={s.headerSub}>Premium Collection</Text>
+          <View style={st.headerCenter}>
+            <Text style={st.headerTitle}>GARAGE</Text>
+            <Text style={st.headerSub}>SHOWROOM</Text>
           </View>
-          <View style={s.balancePill}>
+          <View style={st.balancePill}>
             <Ionicons name="wallet-outline" size={12} color="#F5C842" />
-            <Text style={s.balanceText}>
+            <Text style={st.balanceText}>
               {balance.toLocaleString()} GP
             </Text>
           </View>
         </View>
 
         <ScrollView
-          style={s.scroll}
-          contentContainerStyle={s.scrollContent}
+          style={st.scroll}
+          contentContainerStyle={st.scrollContent}
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          <View style={s.viewerSection}>
-            <Car3DViewer
-              modelUrl={modelUrl}
-              accent={car.accentColor}
-              height={320}
-            />
+          {ownedList.length > 0 && (
+            <Animated.View entering={FadeIn.duration(400)} style={st.garageSection}>
+              <View style={st.garageTitleRow}>
+                <Ionicons name="car-sport" size={18} color="#F5C842" />
+                <Text style={st.garageTitle}>MY GARAGE</Text>
+                <View style={st.garageBadge}>
+                  <Text style={st.garageBadgeText}>{ownedList.length}</Text>
+                </View>
+              </View>
+              {ownedList.map((c) => {
+                const rc = RARITY_COLORS[c.rarity] ?? "#9E9E9E";
+                return (
+                  <Pressable
+                    key={c.id}
+                    style={[st.garageCard, { borderColor: rc + "30" }]}
+                    onPress={() => {
+                      const idx = SHOWROOM_CARS.findIndex(
+                        (sc) => sc.id === c.id,
+                      );
+                      if (idx >= 0) scrollToIndex(idx);
+                    }}
+                  >
+                    <View
+                      style={[st.garageIcon, { backgroundColor: rc + "18" }]}
+                    >
+                      <Ionicons name="car-sport" size={20} color={rc} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[st.garageCarName, { color: rc }]}>
+                        {c.name}
+                      </Text>
+                      <Text style={st.garageCarRarity}>
+                        {c.rarity.toUpperCase()} · {c.stars}★
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        st.ownedBadge,
+                        { backgroundColor: "#00E67618", borderColor: "#00E67640" },
+                      ]}
+                    >
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={10}
+                        color="#00E676"
+                      />
+                      <Text style={st.ownedBadgeText}>OWNED</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </Animated.View>
+          )}
 
-            {currentIndex > 0 && (
-              <Pressable style={[s.navArrow, s.navLeft]} onPress={goPrev}>
-                <Ionicons name="chevron-back" size={22} color="#FFF" />
-              </Pressable>
-            )}
-            {currentIndex < SHOWROOM_CARS.length - 1 && (
-              <Pressable style={[s.navArrow, s.navRight]} onPress={goNext}>
-                <Ionicons name="chevron-forward" size={22} color="#FFF" />
-              </Pressable>
-            )}
+          <View style={st.swiperSection}>
+            <ScrollView
+              ref={swiperRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={handleSwipeEnd}
+              scrollEventThrottle={16}
+            >
+              {SHOWROOM_CARS.map((c) => {
+                const mu = `${API_BASE}/models/${c.modelFile}`;
+                return (
+                  <View key={c.id} style={{ width: SCREEN_W }}>
+                    <Car3DViewer
+                      modelUrl={mu}
+                      accent={c.accentColor}
+                      height={320}
+                    />
+                  </View>
+                );
+              })}
+            </ScrollView>
 
-            <View style={s.dotsRow}>
+            <View style={st.dotsRow}>
               {SHOWROOM_CARS.map((_, i) => (
-                <Pressable key={i} onPress={() => { Haptics.selectionAsync().catch(() => {}); setCurrentIndex(i); }}>
+                <Pressable key={i} onPress={() => scrollToIndex(i)}>
                   <View
                     style={[
-                      s.dot,
+                      st.dot,
                       i === currentIndex && {
                         backgroundColor: car.accentColor,
                         width: 20,
@@ -477,47 +686,77 @@ export default function ShowroomScreen() {
               ))}
             </View>
 
-            <View style={[s.rarityTag, { backgroundColor: rarityColor + "20", borderColor: rarityColor + "50" }]}>
-              <Text style={[s.rarityText, { color: rarityColor }]}>
+            <View
+              style={[
+                st.rarityTag,
+                {
+                  backgroundColor: rarityColor + "20",
+                  borderColor: rarityColor + "50",
+                },
+              ]}
+            >
+              <Text style={[st.rarityText, { color: rarityColor }]}>
                 {car.rarity.toUpperCase()}
               </Text>
             </View>
+
+            {isOwned && (
+              <View style={st.ownedOverlayBadge}>
+                <Ionicons name="checkmark-circle" size={12} color="#00E676" />
+                <Text style={st.ownedOverlayText}>OWNED</Text>
+              </View>
+            )}
           </View>
 
-          <Animated.View entering={FadeInDown.duration(500)} style={s.infoSection}>
-            <View style={s.nameRow}>
+          <Animated.View
+            entering={FadeInDown.duration(500)}
+            style={st.infoSection}
+          >
+            <View style={st.nameRow}>
               <View style={{ flex: 1 }}>
-                <Text style={[s.carName, { color: car.accentColor }]}>
+                <Text style={[st.carName, { color: car.accentColor }]}>
                   {car.name}
                 </Text>
-                <Text style={s.carSubtitle}>{car.subtitle}</Text>
+                <Text style={st.carSubtitle}>{car.subtitle}</Text>
               </View>
               <StarRating count={car.stars} color={car.accentColor} />
             </View>
 
-            <Text style={s.description}>{car.description}</Text>
+            <Text style={st.description}>{car.description}</Text>
 
-            <SpecsGrid specs={car.specs} accent={car.accentColor} />
+            <SpecsGrid car={car} />
 
-            <View style={s.priceSection}>
-              <View style={s.priceRow}>
-                <Text style={s.priceLabel}>Price</Text>
-                <Text style={[s.priceValue, { color: car.accentColor }]}>
+            <View style={st.priceSection}>
+              <View style={st.priceRow}>
+                <Text style={st.priceLabel}>Price</Text>
+                <Text style={[st.priceValue, { color: car.accentColor }]}>
                   {car.cost.toLocaleString()} GP
                 </Text>
               </View>
 
               {isOwned ? (
-                <View style={[s.purchaseBtn, { backgroundColor: "#00E67620", borderColor: "#00E67650" }]}>
-                  <Ionicons name="checkmark-circle" size={18} color="#00E676" />
-                  <Text style={[s.purchaseBtnText, { color: "#00E676" }]}>
+                <View
+                  style={[
+                    st.purchaseBtn,
+                    {
+                      backgroundColor: "#00E67620",
+                      borderColor: "#00E67650",
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={18}
+                    color="#00E676"
+                  />
+                  <Text style={[st.purchaseBtnText, { color: "#00E676" }]}>
                     IN YOUR GARAGE
                   </Text>
                 </View>
               ) : (
                 <Pressable
                   style={({ pressed }) => [
-                    s.purchaseBtn,
+                    st.purchaseBtn,
                     {
                       backgroundColor: canAfford
                         ? car.accentColor + "20"
@@ -528,7 +767,7 @@ export default function ShowroomScreen() {
                     },
                     pressed && canAfford && { opacity: 0.8 },
                   ]}
-                  onPress={handlePurchase}
+                  onPress={handleBuyPress}
                   disabled={!canAfford || purchasing}
                 >
                   {purchasing ? (
@@ -542,15 +781,13 @@ export default function ShowroomScreen() {
                       />
                       <Text
                         style={[
-                          s.purchaseBtnText,
+                          st.purchaseBtnText,
                           {
                             color: canAfford ? car.accentColor : "#FF3D71",
                           },
                         ]}
                       >
-                        {canAfford
-                          ? `ACQUIRE — ${car.cost.toLocaleString()} GP`
-                          : `NEED ${(car.cost - balance).toLocaleString()} MORE GP`}
+                        {canAfford ? "BUY NOW" : "INSUFFICIENT GP"}
                       </Text>
                     </>
                   )}
@@ -559,55 +796,28 @@ export default function ShowroomScreen() {
             </View>
           </Animated.View>
 
-          {ownedCars.size > 0 && (
-            <Animated.View entering={FadeInUp.delay(200).duration(500)} style={s.garageSection}>
-              <View style={s.garageTitleRow}>
-                <Ionicons name="car-sport" size={18} color="#F5C842" />
-                <Text style={s.garageTitle}>MY GARAGE</Text>
-                <View style={s.garageBadge}>
-                  <Text style={s.garageBadgeText}>{ownedCars.size}</Text>
-                </View>
-              </View>
-              {SHOWROOM_CARS.filter((c) => ownedCars.has(c.id)).map((c) => {
-                const rc = RARITY_COLORS[c.rarity] ?? "#9E9E9E";
-                return (
-                  <Pressable
-                    key={c.id}
-                    style={[s.garageCard, { borderColor: rc + "30" }]}
-                    onPress={() => {
-                      const idx = SHOWROOM_CARS.findIndex((sc) => sc.id === c.id);
-                      if (idx >= 0) {
-                        Haptics.selectionAsync().catch(() => {});
-                        setCurrentIndex(idx);
-                      }
-                    }}
-                  >
-                    <View style={[s.garageIcon, { backgroundColor: rc + "18" }]}>
-                      <Ionicons name="car-sport" size={20} color={rc} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[s.garageCarName, { color: rc }]}>
-                        {c.name}
-                      </Text>
-                      <Text style={s.garageCarRarity}>
-                        {c.rarity.toUpperCase()} · {c.stars}★
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} color="#555" />
-                  </Pressable>
-                );
-              })}
-            </Animated.View>
-          )}
-
           <View style={{ height: 40 }} />
         </ScrollView>
       </SafeAreaView>
+
+      <PurchaseConfirmModal
+        visible={confirmModalVisible}
+        car={car}
+        onConfirm={handleConfirmPurchase}
+        onCancel={() => setConfirmModalVisible(false)}
+      />
+      <PurchaseSuccessModal
+        visible={successModalVisible}
+        car={car}
+        onClose={() => setSuccessModalVisible(false)}
+      />
     </View>
   );
 }
 
-const s = StyleSheet.create({
+const SPEC_CELL_W = (SCREEN_W - 32 - 10) / 2;
+
+const st = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: "#080A0E",
@@ -642,9 +852,9 @@ const s = StyleSheet.create({
   },
   headerSub: {
     fontSize: 10,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
     color: "#8888AA",
-    letterSpacing: 1,
+    letterSpacing: 2,
     marginTop: 1,
   },
   balancePill: {
@@ -669,162 +879,16 @@ const s = StyleSheet.create({
   scrollContent: {
     paddingBottom: 20,
   },
-  viewerSection: {
-    position: "relative",
-  },
-  viewerWrap: {
-    width: "100%",
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: VIGNETTE_BG,
-  },
-  canvas: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
-  navArrow: {
-    position: "absolute",
-    top: "45%",
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-  },
-  navLeft: {
-    left: 12,
-  },
-  navRight: {
-    right: 12,
-  },
-  dotsRow: {
-    position: "absolute",
-    bottom: 12,
-    alignSelf: "center",
-    flexDirection: "row",
-    gap: 6,
-    alignItems: "center",
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#333",
-  },
-  rarityTag: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  rarityText: {
-    fontSize: 9,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 1.5,
-  },
-  infoSection: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    gap: 16,
-  },
-  nameRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-  },
-  carName: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.5,
-  },
-  carSubtitle: {
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-    color: "#8888AA",
-    marginTop: 3,
-  },
-  starsRow: {
-    flexDirection: "row",
-    gap: 2,
-    marginTop: 4,
-  },
-  description: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "#8888AA",
-    lineHeight: 20,
-  },
-  specsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  specCell: {
-    width: (SCREEN_W - 32 - 20) / 3,
-    backgroundColor: "#0F1118",
-    borderRadius: 12,
-    padding: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#1A1D28",
-  },
-  specValue: {
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-    color: "#F0F0FF",
-    marginBottom: 3,
-  },
-  specLabel: {
-    fontSize: 9,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 0.8,
-  },
-  priceSection: {
-    gap: 12,
-  },
-  priceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  priceLabel: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-    color: "#8888AA",
-  },
-  priceValue: {
-    fontSize: 20,
-    fontFamily: "Inter_700Bold",
-  },
-  purchaseBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  purchaseBtnText: {
-    fontSize: 13,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 1,
-  },
+
   garageSection: {
-    marginTop: 28,
     marginHorizontal: 16,
+    marginBottom: 12,
     backgroundColor: "#0F1118",
     borderRadius: 16,
-    padding: 16,
+    padding: 14,
     borderWidth: 1,
     borderColor: "#1A1D28",
-    gap: 12,
+    gap: 10,
   },
   garageTitleRow: {
     flexDirection: "row",
@@ -874,5 +938,312 @@ const s = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     color: "#8888AA",
     marginTop: 2,
+  },
+  ownedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderWidth: 1,
+  },
+  ownedBadgeText: {
+    fontSize: 8,
+    fontFamily: "Inter_700Bold",
+    color: "#00E676",
+    letterSpacing: 0.5,
+  },
+
+  swiperSection: {
+    position: "relative",
+  },
+  viewerWrap: {
+    width: "100%",
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: VIGNETTE_BG,
+  },
+  canvas: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  dotsRow: {
+    position: "absolute",
+    bottom: 12,
+    alignSelf: "center",
+    flexDirection: "row",
+    gap: 6,
+    alignItems: "center",
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#333",
+  },
+  rarityTag: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  rarityText: {
+    fontSize: 9,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 1.5,
+  },
+  ownedOverlayBadge: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(0,230,118,0.12)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(0,230,118,0.35)",
+  },
+  ownedOverlayText: {
+    fontSize: 9,
+    fontFamily: "Inter_700Bold",
+    color: "#00E676",
+    letterSpacing: 1,
+  },
+  infoSection: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    gap: 16,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  carName: {
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.5,
+  },
+  carSubtitle: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    color: "#8888AA",
+    marginTop: 3,
+  },
+  starsRow: {
+    flexDirection: "row",
+    gap: 2,
+    marginTop: 4,
+  },
+  description: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: "#8888AA",
+    lineHeight: 20,
+  },
+  specsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  specCell: {
+    width: SPEC_CELL_W,
+    backgroundColor: "#0F1118",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#1A1D28",
+    gap: 6,
+  },
+  specLabel: {
+    fontSize: 9,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  specValue: {
+    fontSize: 17,
+    fontFamily: "Inter_700Bold",
+    color: "#F0F0FF",
+  },
+  specBarWrap: {
+    gap: 6,
+  },
+  specBarBg: {
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    overflow: "hidden",
+  },
+  specBarFill: {
+    height: "100%",
+    borderRadius: 3,
+  },
+  priceSection: {
+    gap: 12,
+  },
+  priceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  priceLabel: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    color: "#8888AA",
+  },
+  priceValue: {
+    fontSize: 20,
+    fontFamily: "Inter_700Bold",
+  },
+  purchaseBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  purchaseBtnText: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 1,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: "#12121A",
+    borderRadius: 24,
+    padding: 24,
+    width: "100%",
+    maxWidth: 340,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#1E1E2E",
+    gap: 10,
+  },
+  modalAccent: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+    color: "#F0F0FF",
+  },
+  modalCarName: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+  },
+  modalRarity: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    color: "#8888AA",
+    letterSpacing: 1,
+  },
+  modalDivider: {
+    width: "80%",
+    height: 1,
+    backgroundColor: "#1E1E2E",
+    marginVertical: 6,
+  },
+  modalPriceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
+    paddingHorizontal: 8,
+  },
+  modalPriceLabel: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    color: "#8888AA",
+  },
+  modalPriceValue: {
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+  },
+  modalBtnRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+    width: "100%",
+  },
+  modalCancelBtn: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "#1E1E2E",
+  },
+  modalCancelText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    color: "#8888AA",
+  },
+  modalConfirmBtn: {
+    flex: 1.5,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  modalConfirmText: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.5,
+  },
+  successIconWrap: {
+    marginBottom: 4,
+  },
+  successTitle: {
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    color: "#00E676",
+    letterSpacing: 2,
+  },
+  successSub: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    color: "#8888AA",
+    marginTop: -4,
+  },
+  successBtn: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 13,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  successBtnText: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 1,
   },
 });
