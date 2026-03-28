@@ -748,23 +748,7 @@ function CharacterCustomizeSheet({
         </View>
 
         <View style={sheetStyles.previewWrap}>
-          {characterVisualState ? (
-            <CharacterRenderer
-              visualState={{ ...characterVisualState, skinTone, bodyType: bodyType as any, hairStyle, hairColor }}
-              size="medium"
-              showShadow={false}
-            />
-          ) : (
-            <EvolvedCharacter
-              visualState={visualState}
-              equippedWearables={equippedWearables}
-              skinTone={skinTone}
-              bodyType={bodyType}
-              hairStyle={hairStyle}
-              hairColor={hairColor}
-              size={160}
-            />
-          )}
+          <Character3DViewer height={280} />
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }}>

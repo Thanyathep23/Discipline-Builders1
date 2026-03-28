@@ -1,0 +1,141 @@
+The CHARACTER STATUS screen now shows the correct 3D model (Superhero_Male_FullBody.gltf).
+However, when tapping into the "Customize" / Appearance screen, it still shows the OLD
+cartoon SVG character. I need the Customize screen to show the SAME 3D model.
+
+## Step 1 — Find the Customize screen component
+
+Search for files containing:
+- "Customize" + "APPEARANCE" text
+- "CharacterCustomize", "CustomizeScreen", "AppearanceScreen"
+- "BODY TYPE" text (visible in the Customize screen)
+- "No Changes" button text
+
+This is the screen that opens when the user taps the customize/edit button on CHARACTER STATUS.
+
+## Step 2 — Find the cartoon character in that screen
+
+Inside the Customize screen component, find what renders the cartoon character.
+It will be something like:
+- `<CharacterRenderer ... />`
+- `<CharacterVisual ... />`
+- `<SVGCharacter ... />`
+- `<CharacterPreview ... />`
+- An `<Image>` or `<Canvas>` showing the cartoon
+
+## Step 3 — Replace cartoon with the same 3D viewer
+
+Replace whatever is rendering the cartoon character with the EXACT SAME 3D viewer
+that is already working on the CHARACTER STATUS screen.
+
+Find the existing working 3D viewer component (Character3DViewer, CharacterViewer, or
+wherever model-viewer is used on the CHARACTER STATUS screen) and use it here too.
+
+### If using WebView approach (React Native):
+```tsx
+// Use the same characterHtml and WebView that works on CHARACTER STATUS
+// Just copy the same WebView component into the Customize screen's character preview area
+
+import { WebView } from 'react-native-webview'
+
+const characterHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: transparent; width: 100vw; height: 100vh; overflow: hidden; }
+  model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
+</style>
+</head>
+<body>
+<model-viewer
+  src="/api/models/Superhero_Male_FullBody.gltf"
+  camera-controls
+  auto-rotate
+  auto-rotate-delay="3000"
+  rotation-per-second="8deg"
+  camera-orbit="0deg 82deg auto"
+  field-of-view="36deg"
+  environment-image="neutral"
+  shadow-intensity="1.2"
+  exposure="1.1"
+></model-viewer>
+</body>
+</html>
+`
+
+// Replace the cartoon with:
+<View style={{
+  width: '100%',
+  height: 340,   // adjust to match original cartoon height
+  borderRadius: 16,
+  overflow: 'hidden',
+  backgroundColor: '#0D0F1A'
+}}>
+  <WebView
+    source={{ html: characterHtml, baseUrl: 'http://localhost:5000' }}
+    style={{ flex: 1, backgroundColor: 'transparent' }}
+    scrollEnabled={false}
+    allowsInlineMediaPlayback
+    mediaPlaybackRequiresUserAction={false}
+  />
+</View>
+```
+
+### If the Customize screen is web-based (not React Native):
+```tsx
+// In the Customize screen JSX, replace the cartoon with:
+<div style={{
+  width: '100%',
+  height: 340,
+  borderRadius: 16,
+  overflow: 'hidden',
+  backgroundColor: '#0D0F1A'
+}}>
+  <model-viewer
+    src="/api/models/Superhero_Male_FullBody.gltf"
+    camera-controls
+    auto-rotate
+    auto-rotate-delay="3000"
+    rotation-per-second="8deg"
+    camera-orbit="0deg 82deg auto"
+    field-of-view="36deg"
+    environment-image="neutral"
+    shadow-intensity="1.2"
+    exposure="1.1"
+    style={{
+      width: '100%',
+      height: '100%',
+      background: 'transparent',
+      '--poster-color': 'transparent'
+    } as React.CSSProperties}
+  />
+</div>
+```
+
+## Step 4 — Keep all Customize controls exactly as-is
+
+DO NOT change any of these existing elements:
+- "APPEARANCE" label and "Customize" title
+- "×" close button
+- "BODY TYPE" section with the circle selectors
+- "No Changes" button at the bottom
+- Any other customization options (skin color, outfit, etc.)
+
+ONLY replace the character preview area (where cartoon used to show).
+
+## Step 5 — Make sure both screens use the same model path
+
+The model path must be the same one that's already working on CHARACTER STATUS.
+Check what path is being used there (e.g., `/api/models/Superhero_Male_FullBody.gltf`)
+and use the exact same path in the Customize screen.
+
+## Expected result
+- Customize screen shows the SAME 3D muscular character model
+- User can drag to rotate the 3D character while on the Customize screen
+- The BODY TYPE, outfit selectors, and "No Changes" button remain unchanged
+- The 3D model responds to customization changes if the app supports it
+
+Show me which file you changed and confirm the cartoon is replaced.
