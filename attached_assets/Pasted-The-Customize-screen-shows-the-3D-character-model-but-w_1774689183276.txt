@@ -1,0 +1,335 @@
+The Customize screen shows the 3D character model but when the user selects different
+hair styles or hair colors, nothing changes. I need the customization to actually work
+with the 3D model.
+
+I have uploaded these new files to /api/models/ (or find where the existing model files are):
+- Hair_Buzzed.gltf + Hair_Buzzed.bin         (Buzz hairstyle)
+- Hair_SimpleParted.gltf + Hair_SimpleParted.bin (Clean Cut / Side Part)
+- Hair_Long.gltf + Hair_Long.bin             (Long hair)
+- Hair_Buns.gltf + Hair_Buns.bin             (Buns)
+- Hair_Beard.gltf + Hair_Beard.bin           (Beard addon)
+- T_Hair_1_BaseColor.png                     (dark hair texture)
+- T_Hair_2_BaseColor.png                     (light hair texture)
+- T_Superhero_Male_Light.png                 (light skin texture)
+(T_Superhero_Male_Dark.png already exists = dark skin)
+
+## Architecture: How the 3D Customization Works
+
+The character is built from LAYERS stacked on the same skeleton:
+1. BASE BODY — Superhero_Male_FullBody.gltf (always shown)
+2. HAIR MESH — separate GLTF file overlaid on top (swappable)
+3. SKIN TEXTURE — swapped on the body material
+4. HAIR TEXTURE — swapped on the hair material
+
+Since model-viewer cannot handle layered GLTFs, the Customize screen
+MUST use Three.js directly (not model-viewer).
+
+## Step 1 — Find the Customize screen component
+
+Search for the file that contains "Customize", "BODY TYPE", "HAIR COLOR",
+"Save Look" button. This is the screen to modify.
+
+## Step 2 — Replace the viewer in Customize with a Three.js WebView
+
+The Customize screen viewer needs to be a WebView that runs Three.js,
+NOT model-viewer. Replace the current character display with this WebView:
+```tsx
+import { WebView } from 'react-native-webview'
+import { useRef } from 'react'
+
+// In the component, track selected options:
+const [selectedHair, setSelectedHair] = useState('Hair_SimpleParted')
+const [selectedHairColor, setSelectedHairColor] = useState(1) // 1=dark, 2=light
+const [selectedSkin, setSelectedSkin] = useState('Dark') // 'Dark' or 'Light'
+const webViewRef = useRef<WebView>(null)
+
+// Function to send updates to the 3D viewer:
+const update3D = (changes: object) => {
+  webViewRef.current?.injectJavaScript(
+    `window.updateCharacter(${JSON.stringify(changes)}); true;`
+  )
+}
+
+// When user picks a hair style:
+const onHairStyleSelect = (styleName: string) => {
+  setSelectedHair(styleName)
+  update3D({ hairStyle: styleName })
+}
+
+// When user picks hair color:
+const onHairColorSelect = (colorNum: number) => {
+  setSelectedHairColor(colorNum)
+  update3D({ hairColor: colorNum })
+}
+
+// When user picks skin tone:
+const onSkinSelect = (tone: 'Dark' | 'Light') => {
+  setSelectedSkin(tone)
+  update3D({ skinTone: tone })
+}
+```
+
+## Step 3 — The Three.js WebView HTML (the actual 3D engine)
+
+Create a file `characterCustomizeViewer.html` (or inline as a string) with this content:
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background: #0D0F1A; width:100vw; height:100vh; overflow:hidden; }
+  canvas { width:100%; height:100%; }
+  #loading { position:absolute; inset:0; display:flex; align-items:center;
+    justify-content:center; color:rgba(255,255,255,0.4); font-family:sans-serif;
+    font-size:13px; letter-spacing:1px; }
+</style>
+</head>
+<body>
+<div id="loading">Loading character…</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+const BASE_URL = '/api/models'  // adjust if needed
+
+const THREE = window.THREE
+const scene = new THREE.Scene()
+const camera = new THREE.PerspectiveCamera(36, innerWidth/innerHeight, 0.01, 100)
+camera.position.set(0, 1.4, 2.2)
+camera.lookAt(0, 1.1, 0)
+
+const renderer = new THREE.WebGLRenderer({ antialias: true })
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+renderer.setSize(innerWidth, innerHeight)
+renderer.outputEncoding = THREE.sRGBEncoding
+renderer.toneMapping = THREE.ACESFilmicToneMapping
+renderer.toneMappingExposure = 1.1
+renderer.shadowMap.enabled = true
+document.body.appendChild(renderer.domElement)
+
+// Lights
+const key = new THREE.DirectionalLight(0xFFF2D0, 3.0)
+key.position.set(-1.8, 2.8, 2.0); key.castShadow = true; scene.add(key)
+scene.add(Object.assign(new THREE.DirectionalLight(0x6AADFF, 2.5), {position: {x:2.5,y:2,-z:1.5}}))
+scene.add(new THREE.AmbientLight(0x101520, 1.5))
+const rim = new THREE.DirectionalLight(0x6AADFF, 2.5)
+rim.position.set(2.5, 2.0, -1.5); scene.add(rim)
+
+// Texture loader
+const texLoader = new THREE.TextureLoader()
+const loader = new THREE.GLTFLoader()
+
+// State
+let bodyModel = null
+let hairModel = null
+let currentHairStyle = 'Hair_SimpleParted'
+let currentHairTex = 1  // 1 or 2
+let currentSkin = 'Dark'
+
+function loadTexture(url) {
+  return new Promise(resolve => {
+    texLoader.load(url, tex => {
+      tex.encoding = THREE.sRGBEncoding
+      tex.flipY = false
+      resolve(tex)
+    })
+  })
+}
+
+function loadGLTF(url) {
+  return new Promise((resolve, reject) => loader.load(url, resolve, null, reject))
+}
+
+function centerAndScale(model) {
+  const box = new THREE.Box3().setFromObject(model)
+  const size = new THREE.Vector3(); box.getSize(size)
+  const scale = 1.8 / size.y
+  model.scale.setScalar(scale)
+  box.setFromObject(model)
+  model.position.y = -box.min.y
+  const ctr = new THREE.Vector3(); box.getCenter(ctr)
+  model.position.x = -ctr.x
+  model.position.z = 0
+}
+
+async function loadBody() {
+  const skinTex = await loadTexture(`${BASE_URL}/T_Superhero_Male_${currentSkin}.png`)
+  const normalTex = await loadTexture(`${BASE_URL}/T_Superhero_Male_Normal.png`)
+  const roughTex  = await loadTexture(`${BASE_URL}/T_Superhero_Male_Roughness.png`)
+
+  const gltf = await loadGLTF(`${BASE_URL}/Superhero_Male_FullBody.gltf`)
+  bodyModel = gltf.scene
+  centerAndScale(bodyModel)
+
+  bodyModel.traverse(child => {
+    if (child.isMesh) {
+      child.castShadow = true
+      child.receiveShadow = true
+      if (child.material && child.material.name === 'MI_Superhero_Male') {
+        child.material.map = skinTex
+        child.material.normalMap = normalTex
+        child.material.roughnessMap = roughTex
+        child.material.needsUpdate = true
+      }
+    }
+  })
+  scene.add(bodyModel)
+}
+
+async function loadHair(styleName) {
+  // Remove old hair
+  if (hairModel) { scene.remove(hairModel); hairModel = null }
+
+  const hairTex = await loadTexture(
+    `${BASE_URL}/T_Hair_${currentHairTex}_BaseColor.png`
+  )
+
+  const gltf = await loadGLTF(`${BASE_URL}/${styleName}.gltf`)
+  hairModel = gltf.scene
+
+  // Position hair at same scale as body
+  const bodyBox = new THREE.Box3().setFromObject(bodyModel)
+  const bodySize = new THREE.Vector3(); bodyBox.getSize(bodySize)
+  const scale = 1.8 / bodySize.y * bodyModel.scale.x
+  hairModel.scale.setScalar(scale)
+  hairModel.position.copy(bodyModel.position)
+
+  hairModel.traverse(child => {
+    if (child.isMesh) {
+      child.castShadow = true
+      if (child.material) {
+        child.material.map = hairTex
+        child.material.needsUpdate = true
+      }
+    }
+  })
+  scene.add(hairModel)
+}
+
+// Called from React Native via injectJavaScript
+window.updateCharacter = async function({ hairStyle, hairColor, skinTone }) {
+  let needsHairReload = false
+
+  if (hairStyle && hairStyle !== currentHairStyle) {
+    currentHairStyle = hairStyle; needsHairReload = true
+  }
+  if (hairColor && hairColor !== currentHairTex) {
+    currentHairTex = hairColor; needsHairReload = true
+  }
+  if (skinTone && skinTone !== currentSkin) {
+    currentSkin = skinTone
+    // Swap skin texture on body
+    const skinTex = await loadTexture(`${BASE_URL}/T_Superhero_Male_${currentSkin}.png`)
+    bodyModel?.traverse(child => {
+      if (child.isMesh && child.material?.map) {
+        child.material.map = skinTex
+        child.material.needsUpdate = true
+      }
+    })
+  }
+  if (needsHairReload) await loadHair(currentHairStyle)
+}
+
+// Init + auto-rotate
+async function init() {
+  await loadBody()
+  await loadHair(currentHairStyle)
+  document.getElementById('loading').style.display = 'none'
+
+  let autoRot = true, lastX = null
+  renderer.domElement.addEventListener('pointerdown', e => { lastX = e.clientX; autoRot = false })
+  window.addEventListener('pointermove', e => {
+    if (lastX !== null) {
+      bodyModel && (bodyModel.rotation.y += (e.clientX - lastX) * 0.009)
+      hairModel && (hairModel.rotation.y = bodyModel.rotation.y)
+      lastX = e.clientX
+    }
+  })
+  window.addEventListener('pointerup', () => { lastX = null; setTimeout(() => autoRot = true, 3000) })
+
+  ;(function animate() {
+    requestAnimationFrame(animate)
+    if (autoRot) {
+      const dy = 0.008
+      bodyModel && (bodyModel.rotation.y += dy)
+      hairModel && (hairModel.rotation.y += dy)
+    }
+    renderer.render(scene, camera)
+  })()
+}
+
+init().catch(console.error)
+</script>
+</body>
+</html>
+```
+
+## Step 4 — Map existing hair options to GLTF files
+
+In the Customize screen, the hair style buttons map to these files:
+```ts
+const HAIR_STYLE_MAP: Record<string, string> = {
+  'Clean Cut':  'Hair_SimpleParted',
+  'Side Part':  'Hair_SimpleParted',
+  'Textured':   'Hair_Long',
+  'Buzz':       'Hair_Buzzed',
+  'Natural':    'Hair_Buns',
+  'Slicked':    'Hair_SimpleParted',
+}
+```
+
+Hair color circles map to:
+```ts
+// Circle 1 (dark purple/black) → T_Hair_1_BaseColor.png → hairColor: 1
+// Circle 2 (brown)             → T_Hair_2_BaseColor.png → hairColor: 2
+// Circle 3 (black)             → T_Hair_1_BaseColor.png → hairColor: 1
+```
+
+Skin tone circles in BODY TYPE map to:
+```ts
+// Dark skin circle  → skinTone: 'Dark'   → T_Superhero_Male_Dark.png
+// Light skin circle → skinTone: 'Light'  → T_Superhero_Male_Light.png
+```
+
+## Step 5 — Wire up the buttons
+
+Find each hair style button's onPress handler. Instead of just updating local state,
+also call `update3D()`:
+```tsx
+// Hair style button:
+onPress={() => {
+  const gltfName = HAIR_STYLE_MAP[style.name] || 'Hair_SimpleParted'
+  onHairStyleSelect(gltfName)
+}}
+
+// Hair color button:
+onPress={() => {
+  onHairColorSelect(colorIndex === 0 ? 1 : colorIndex === 1 ? 2 : 1)
+}}
+```
+
+## Step 6 — Save Look button
+
+When user taps "Save Look", save the selections to the user's profile:
+```ts
+const savedLook = {
+  hairStyle: selectedHair,
+  hairColor: selectedHairColor,
+  skinTone: selectedSkin,
+}
+// Save to backend/storage
+// Also update the CHARACTER STATUS screen to reflect saved look
+```
+
+## Summary of what should work after this:
+1. ✅ Open Customize → see 3D character with current hair
+2. ✅ Tap "Buzz" → character's hair changes to buzz cut instantly
+3. ✅ Tap "Side Part" → hair changes to side part
+4. ✅ Tap hair color circle 2 → hair color changes to lighter shade
+5. ✅ Tap skin tone → character skin gets lighter/darker
+6. ✅ Drag to rotate the 3D character while customizing
+7. ✅ Tap "Save Look" → saves selection and updates CHARACTER STATUS
+
+Make all these changes. Show me the files you modified.
