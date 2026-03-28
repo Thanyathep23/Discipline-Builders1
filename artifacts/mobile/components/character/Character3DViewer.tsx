@@ -193,7 +193,6 @@ function WebModelViewer({ height }: { height: number }) {
       >
         <model-viewer
           src={MODEL_URL}
-          camera-controls
           auto-rotate
           auto-rotate-delay="3000"
           rotation-per-second="6deg"
@@ -214,6 +213,17 @@ function WebModelViewer({ height }: { height: number }) {
             } as React.CSSProperties
           }
           alt="3D Character"
+        />
+        <div
+          style={{
+            position: "absolute" as const,
+            inset: 0,
+            pointerEvents: "none" as const,
+            background: `
+              linear-gradient(to bottom, ${VIGNETTE_BG}F2 0%, ${VIGNETTE_BG}00 20%, ${VIGNETTE_BG}00 80%, ${VIGNETTE_BG}F2 100%),
+              linear-gradient(to right, ${VIGNETTE_BG}F2 0%, ${VIGNETTE_BG}00 15%, ${VIGNETTE_BG}00 85%, ${VIGNETTE_BG}F2 100%)
+            `,
+          }}
         />
       </div>
     </View>
