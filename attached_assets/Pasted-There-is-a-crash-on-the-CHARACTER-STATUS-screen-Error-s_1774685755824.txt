@@ -1,0 +1,232 @@
+There is a crash on the CHARACTER STATUS screen:
+  Error: "scene.traverse is not a function"
+  Location: fixTPoseOnModelViewer → r.onLoad
+
+This crash happens because the code tries to call `.traverse()` on the model-viewer
+internal object, which is NOT a Three.js Object3D — it's model-viewer's own Model class.
+
+## Step 1 — Find and DELETE the broken function
+
+Find the `fixTPoseOnModelViewer` function (or wherever `scene.traverse` is called
+inside a model-viewer load handler) and DELETE IT ENTIRELY.
+
+## Step 2 — Replace with the CORRECT approach
+
+model-viewer does NOT expose the Three.js bone skeleton for external manipulation.
+To fix the T-pose (arms spread horizontally), we must switch the character viewer
+to use Three.js GLTFLoader directly instead of model-viewer.
+
+Find the Character3DViewer component (or wherever the character GLTF is loaded)
+and replace the entire implementation with this working code:
+
+### If it's a React Native / Expo component (using WebView or similar):
+Skip to the WebView approach below.
+
+### If it's a web/HTML component using model-viewer, replace with Three.js:
+```tsx
+// Character3DViewer.tsx — full replacement
+
+import { useEffect, useRef } from 'react'
+
+export default function Character3DViewer({ style }: { style?: React.CSSProperties }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const container = containerRef.current
+    if (!container) return
+
+    // Load Three.js from CDN
+    const loadThree = () => new Promise<void>(resolve => {
+      if ((window as any).THREE) { resolve(); return }
+      const s = document.createElement('script')
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'
+      s.onload = () => resolve()
+      document.head.appendChild(s)
+    })
+
+    const loadGLTFLoader = () => new Promise<void>(resolve => {
+      if ((window as any).THREE?.GLTFLoader) { resolve(); return }
+      const s = document.createElement('script')
+      s.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js'
+      s.onload = () => resolve()
+      document.head.appendChild(s)
+    })
+
+    let animFrameId: number
+    let renderer: any
+
+    const init = async () => {
+      await loadThree()
+      await loadGLTFLoader()
+
+      const THREE = (window as any).THREE
+      const w = container.clientWidth
+      const h = container.clientHeight
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      renderer.setSize(w, h)
+      renderer.outputEncoding = THREE.sRGBEncoding
+      renderer.toneMapping = THREE.ACESFilmicToneMapping
+      renderer.toneMappingExposure = 1.1
+      renderer.shadowMap.enabled = true
+      renderer.setClearColor(0x000000, 0)
+      container.appendChild(renderer.domElement)
+
+      // Scene & Camera
+      const scene = new THREE.Scene()
+      const camera = new THREE.PerspectiveCamera(36, w / h, 0.01, 100)
+
+      // Cinematic lights
+      const key = new THREE.DirectionalLight(0xFFF2D0, 3.0)
+      key.position.set(-1.8, 2.8, 2.0)
+      key.castShadow = true
+      scene.add(key)
+      const rim = new THREE.DirectionalLight(0x6AADFF, 2.5)
+      rim.position.set(2.5, 2.0, -1.5)
+      scene.add(rim)
+      const fill = new THREE.DirectionalLight(0xC9A84C, 0.8)
+      fill.position.set(0, 0.5, 3.0)
+      scene.add(fill)
+      scene.add(new THREE.AmbientLight(0x101520, 1.5))
+
+      // Load GLTF
+      const loader = new THREE.GLTFLoader()
+      loader.load('/api/models/Superhero_Male_FullBody.gltf', (gltf: any) => {
+        const model = gltf.scene
+
+        // Scale model to 1.8m height
+        const box = new THREE.Box3().setFromObject(model)
+        const size = new THREE.Vector3()
+        box.getSize(size)
+        const scale = 1.8 / size.y
+        model.scale.setScalar(scale)
+        box.setFromObject(model)
+        model.position.y = -box.min.y
+        const ctr = new THREE.Vector3()
+        box.getCenter(ctr)
+        model.position.x = -ctr.x
+
+        // ── FIX T-POSE: rotate arm bones DOWN ──────────────
+        // Print all bone names to console first
+        const boneNames: string[] = []
+        model.traverse((child: any) => {
+          if (child.isBone) boneNames.push(child.name)
+        })
+        console.log('All bones:', boneNames)
+
+        // Rotate arms down from T-pose
+        model.traverse((child: any) => {
+          if (!child.isBone) return
+          const n = child.name.toLowerCase()
+
+          const isLeftUpperArm =
+            (n.includes('upperarm') || n.includes('upper_arm') || n.includes('arm')) &&
+            (n.endsWith('_l') || n.includes('left') || n.includes('_l_'))
+
+          const isRightUpperArm =
+            (n.includes('upperarm') || n.includes('upper_arm') || n.includes('arm')) &&
+            (n.endsWith('_r') || n.includes('right') || n.includes('_r_'))
+
+          if (isLeftUpperArm) {
+            child.rotation.z = -1.2   // bring left arm down
+            child.rotation.x = 0.1
+            console.log('✅ Left arm bone rotated:', child.name)
+          }
+          if (isRightUpperArm) {
+            child.rotation.z = 1.2    // bring right arm down
+            child.rotation.x = 0.1
+            console.log('✅ Right arm bone rotated:', child.name)
+          }
+        })
+
+        // Shadows
+        model.traverse((child: any) => {
+          if (child.isMesh) {
+            child.castShadow = true
+            child.receiveShadow = true
+          }
+        })
+
+        scene.add(model)
+
+        // Frame upper body in camera
+        const scaledH = size.y * scale
+        const focusY = scaledH * 0.70
+        camera.position.set(0, focusY + 0.22, 2.1)
+        camera.lookAt(0, focusY - 0.10, 0)
+
+        // Auto-rotate + drag
+        let autoRot = true
+        let lastX: number | null = null
+        const canvas = renderer.domElement
+        canvas.addEventListener('pointerdown', (e: PointerEvent) => { lastX = e.clientX; autoRot = false })
+        window.addEventListener('pointermove', (e: PointerEvent) => {
+          if (lastX !== null) { model.rotation.y += (e.clientX - lastX) * 0.009; lastX = e.clientX }
+        })
+        window.addEventListener('pointerup', () => {
+          lastX = null
+          setTimeout(() => { autoRot = true }, 3500)
+        })
+
+        const animate = () => {
+          animFrameId = requestAnimationFrame(animate)
+          if (autoRot) model.rotation.y += 0.0013
+          renderer.render(scene, camera)
+        }
+        animate()
+      })
+
+      window.addEventListener('resize', () => {
+        const w = container.clientWidth, h = container.clientHeight
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        renderer.setSize(w, h)
+      })
+    }
+
+    init()
+
+    return () => {
+      cancelAnimationFrame(animFrameId)
+      renderer?.dispose()
+      if (container.contains(renderer?.domElement)) {
+        container.removeChild(renderer.domElement)
+      }
+    }
+  }, [])
+
+  return <div ref={containerRef} style={{ width: '100%', height: '100%', ...style }} />
+}
+```
+
+## Step 3 — Fix the GLTF model path
+
+The model is served at one of these paths — check which one works:
+- `/api/models/Superhero_Male_FullBody.gltf`
+- `/models/Superhero_Male_FullBody.gltf`
+- `/attached_assets/Superhero_Male_FullBody.gltf`
+
+Also make sure ALL 7 model files are in the same folder:
+- Superhero_Male_FullBody.gltf
+- Superhero_Male_FullBody.bin
+- T_Superhero_Male_Dark.png
+- T_Superhero_Male_Normal.png
+- T_Superhero_Male_Roughness.png
+- T_Hair_1_BaseColor.png
+- T_Eye_Brown.png
+
+## Step 4 — Check the console for bone names
+
+After this fix, open browser console and look for:
+  "All bones: [...]"
+
+Copy those names and tell me — I'll give the exact rotation values for the correct bones.
+
+## Summary
+1. DELETE the broken `fixTPoseOnModelViewer` function completely
+2. REPLACE model-viewer with direct Three.js GLTFLoader
+3. Rotate arm bones INSIDE the loader.load() callback (where model is a real Three.js Object3D)
+4. This eliminates the crash AND fixes the T-pose in one step
