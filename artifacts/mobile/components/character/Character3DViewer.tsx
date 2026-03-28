@@ -192,69 +192,170 @@ function VignetteOverlay() {
   );
 }
 
-function fixTPoseOnModelViewer(mv: any) {
-  const scene = mv?.model;
-  if (!scene) return;
-
-  scene.traverse((child: any) => {
+function webFixTPose(model: any, T: any) {
+  model.traverse((child: any) => {
     if (!child.isBone && child.type !== "Bone") return;
     const name = child.name;
-
-    if (name === "upperarm_l") {
-      child.rotation.z = -1.2;
-      child.rotation.x = 0.1;
-    } else if (name === "upperarm_r") {
-      child.rotation.z = 1.2;
-      child.rotation.x = 0.1;
-    } else if (name === "lowerarm_l") {
-      child.rotation.z = 0.15;
-    } else if (name === "lowerarm_r") {
-      child.rotation.z = -0.15;
-    }
+    if (name === "upperarm_l") { child.rotation.z = -1.2; child.rotation.x = 0.1; }
+    else if (name === "upperarm_r") { child.rotation.z = 1.2; child.rotation.x = 0.1; }
+    else if (name === "lowerarm_l") { child.rotation.z = 0.15; }
+    else if (name === "lowerarm_r") { child.rotation.z = -0.15; }
   });
-
-  scene.traverse((child: any) => {
+  model.traverse((child: any) => {
     if (child.isSkinnedMesh && child.skeleton) {
       child.skeleton.bones.forEach((b: any) => b.updateMatrixWorld(true));
     }
   });
+}
 
-  mv.requestUpdate?.();
+function loadScript(src: string): Promise<void> {
+  return new Promise((resolve) => {
+    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = () => resolve();
+    document.head.appendChild(s);
+  });
 }
 
 function WebModelViewer({ height }: { height: number }) {
-  const mvRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      !document.querySelector("[data-model-viewer-script]")
-    ) {
-      const script = document.createElement("script");
-      script.type = "module";
-      script.src =
-        "https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js";
-      script.setAttribute("data-model-viewer-script", "true");
-      document.head.appendChild(script);
-    }
-  }, []);
+    if (typeof window === "undefined") return;
+    const container = containerRef.current;
+    if (!container) return;
 
-  useEffect(() => {
-    let cleanup: (() => void) | null = null;
-    const checkRef = () => {
-      const el = mvRef.current;
-      if (!el) {
-        const tid = setTimeout(checkRef, 100);
-        cleanup = () => clearTimeout(tid);
-        return;
-      }
-      const onLoad = () => fixTPoseOnModelViewer(el);
-      el.addEventListener("load", onLoad);
-      if (el.model) onLoad();
-      cleanup = () => el.removeEventListener("load", onLoad);
+    let animFrameId: number;
+    let renderer: any;
+    let disposed = false;
+    let onDown: ((e: PointerEvent) => void) | null = null;
+    let onMove: ((e: PointerEvent) => void) | null = null;
+    let onUp: (() => void) | null = null;
+    let onResize: (() => void) | null = null;
+    let resumeTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const init = async () => {
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js");
+      await loadScript("https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js");
+
+      if (disposed) return;
+
+      const T = (window as any).THREE;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+
+      renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(w, h);
+      renderer.outputEncoding = T.sRGBEncoding;
+      renderer.toneMapping = T.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.1;
+      renderer.shadowMap.enabled = true;
+      renderer.setClearColor(0x000000, 0);
+      container.appendChild(renderer.domElement);
+
+      const scene = new T.Scene();
+      const camera = new T.PerspectiveCamera(36, w / h, 0.01, 100);
+
+      scene.add(new T.AmbientLight(0x101520, 1.5));
+      const key = new T.DirectionalLight(0xFFF2D0, 3.0);
+      key.position.set(-1.8, 2.8, 2.0);
+      key.castShadow = true;
+      scene.add(key);
+      const rim = new T.DirectionalLight(0x6AADFF, 2.5);
+      rim.position.set(2.5, 2.0, -1.5);
+      scene.add(rim);
+      const fill = new T.DirectionalLight(0xC9A84C, 0.8);
+      fill.position.set(0, 0.5, 3.0);
+      scene.add(fill);
+      const pt = new T.PointLight(0x9B7030, 1.0);
+      pt.position.set(0, -0.2, 1.2);
+      scene.add(pt);
+
+      onResize = () => {
+        const cw = container.clientWidth;
+        const ch = container.clientHeight;
+        camera.aspect = cw / ch;
+        camera.updateProjectionMatrix();
+        renderer.setSize(cw, ch);
+      };
+      window.addEventListener("resize", onResize);
+
+      const loader = new T.GLTFLoader();
+      loader.load(MODEL_URL, (gltf: any) => {
+        if (disposed) return;
+        const model = gltf.scene;
+
+        const box = new T.Box3().setFromObject(model);
+        const size = new T.Vector3();
+        box.getSize(size);
+        const scale = 1.8 / size.y;
+        model.scale.setScalar(scale);
+
+        const scaledBox = new T.Box3().setFromObject(model);
+        const center = new T.Vector3();
+        scaledBox.getCenter(center);
+        model.position.y = -scaledBox.min.y;
+        model.position.x = -center.x;
+        model.position.z = -center.z;
+
+        model.traverse((child: any) => {
+          if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
+        });
+
+        webFixTPose(model, T);
+        scene.add(model);
+
+        camera.position.set(0, 1.45, 2.1);
+        camera.lookAt(0, 1.15, 0);
+
+        let autoRotate = true;
+        let lastX: number | null = null;
+
+        onDown = (e: PointerEvent) => { lastX = e.clientX; autoRotate = false; };
+        onMove = (e: PointerEvent) => {
+          if (lastX !== null) {
+            model.rotation.y += (e.clientX - lastX) * 0.009;
+            lastX = e.clientX;
+          }
+        };
+        onUp = () => {
+          lastX = null;
+          if (resumeTimer) clearTimeout(resumeTimer);
+          resumeTimer = setTimeout(() => { autoRotate = true; }, 3500);
+        };
+
+        renderer.domElement.addEventListener("pointerdown", onDown);
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+
+        const animate = () => {
+          animFrameId = requestAnimationFrame(animate);
+          if (autoRotate) model.rotation.y += 0.0013;
+          renderer.render(scene, camera);
+        };
+        animate();
+      });
     };
-    checkRef();
-    return () => { cleanup?.(); };
+
+    init();
+
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(animFrameId);
+      if (renderer) {
+        if (onDown) renderer.domElement.removeEventListener("pointerdown", onDown);
+        renderer.dispose();
+        if (container.contains(renderer.domElement)) {
+          container.removeChild(renderer.domElement);
+        }
+      }
+      if (onMove) window.removeEventListener("pointermove", onMove);
+      if (onUp) window.removeEventListener("pointerup", onUp);
+      if (onResize) window.removeEventListener("resize", onResize);
+      if (resumeTimer) clearTimeout(resumeTimer);
+    };
   }, []);
 
   return (
@@ -268,30 +369,7 @@ function WebModelViewer({ height }: { height: number }) {
           overflow: "hidden" as const,
         }}
       >
-        <model-viewer
-          ref={mvRef}
-          src={MODEL_URL}
-          auto-rotate
-          auto-rotate-delay="3000"
-          rotation-per-second="6deg"
-          camera-orbit="0deg 82deg auto"
-          min-camera-orbit="auto 50deg auto"
-          max-camera-orbit="auto 120deg auto"
-          field-of-view="36deg"
-          environment-image="neutral"
-          shadow-intensity="1.2"
-          shadow-softness="0.8"
-          exposure="1.1"
-          style={
-            {
-              width: "100%",
-              height: "100%",
-              background: "transparent",
-              "--poster-color": "transparent",
-            } as React.CSSProperties
-          }
-          alt="3D Character"
-        />
+        <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
         <div
           style={{
             position: "absolute" as const,
