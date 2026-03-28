@@ -20,6 +20,11 @@ app.use("/api/models", express.static(modelsDir, {
   immutable: true,
 }));
 
+const publicDir = path.resolve(currentDir, "..", "public");
+app.get("/api/character-viewer.html", (_req, res) => {
+  res.sendFile(path.join(publicDir, "character-viewer.html"));
+});
+
 app.use("/api", router);
 
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

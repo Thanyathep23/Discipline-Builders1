@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { View, StyleSheet, Platform, Text } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -22,16 +22,49 @@ if (Platform.OS !== "web") {
 }
 
 const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api`;
-const MODEL_URL = `${API_BASE}/models/Superhero_Male_FullBody.gltf`;
+const MODELS_BASE = `${API_BASE}/models`;
+const BODY_MODEL = "Superhero_Male_FullBody.gltf";
 
 const VIGNETTE_BG = "#07071A";
 
+export const HAIR_STYLE_TO_MODEL: Record<string, string> = {
+  clean_cut: "Hair_SimpleParted.gltf",
+  side_part: "Hair_SimpleParted.gltf",
+  textured_crop: "Hair_Long.gltf",
+  buzz_cut: "Hair_Buzzed.gltf",
+  medium_natural: "Hair_Buns.gltf",
+  slicked_back: "Hair_Beard.gltf",
+  short_bob: "Hair_SimpleParted.gltf",
+  side_part_long: "Hair_Long.gltf",
+  textured_pixie: "Hair_Buzzed.gltf",
+  ponytail_sleek: "Hair_Buns.gltf",
+  natural_medium: "Hair_Buns.gltf",
+  bun_top: "Hair_Buns.gltf",
+};
+
+export const SKIN_TONE_TO_TEXTURE: Record<string, string> = {
+  "tone-1": "T_Superhero_Male_Light.png",
+  "tone-2": "T_Superhero_Male_Light.png",
+  "tone-3": "T_Superhero_Male_Dark.png",
+  "tone-4": "T_Superhero_Male_Dark.png",
+  "tone-5": "T_Superhero_Male_Dark.png",
+};
+
+export const HAIR_COLOR_TO_TEXTURE: Record<string, string> = {
+  black: "T_Hair_1_BaseColor.png",
+  "dark-brown": "T_Hair_1_BaseColor.png",
+  "medium-brown": "T_Hair_1_BaseColor.png",
+  "light-brown": "T_Hair_2_BaseColor.png",
+  "dirty-blonde": "T_Hair_2_BaseColor.png",
+  blonde: "T_Hair_2_BaseColor.png",
+  auburn: "T_Hair_1_BaseColor.png",
+  platinum: "T_Hair_2_BaseColor.png",
+};
 
 function fixTPose(scene: any) {
   scene.traverse((child: any) => {
     if (!child.isBone && child.type !== "Bone") return;
     const name = child.name;
-
     if (name === "upperarm_l") {
       child.rotation.z = -1.2;
       child.rotation.x = 0.1;
@@ -44,7 +77,6 @@ function fixTPose(scene: any) {
       child.rotation.z = -0.15;
     }
   });
-
   scene.traverse((child: any) => {
     if (child.isSkinnedMesh && child.skeleton) {
       child.skeleton.bones.forEach((b: any) => b.updateMatrixWorld(true));
@@ -52,36 +84,137 @@ function fixTPose(scene: any) {
   });
 }
 
-function SuperheroModel() {
+function NativeHairModel({
+  hairModel,
+  hairTexture,
+  bodyRef,
+}: {
+  hairModel: string;
+  hairTexture: string;
+  bodyRef: React.MutableRefObject<any>;
+}) {
   const groupRef = useRef<any>(null);
-  const gltf = useLoader(GLTFLoader, MODEL_URL);
+  const alignedRef = useRef(false);
+  const url = `${MODELS_BASE}/${hairModel}`;
+  const gltf = useLoader(GLTFLoader, url);
+  const texUrl = `${MODELS_BASE}/${hairTexture}`;
 
   useEffect(() => {
-    if (gltf?.scene) {
-      const box = new THREE.Box3().setFromObject(gltf.scene);
+    if (!gltf?.scene) return;
+    const s = gltf.scene;
+    alignedRef.current = false;
+
+    if (bodyRef.current) {
+      s.scale.copy(bodyRef.current.scale);
+      s.position.copy(bodyRef.current.position);
+      alignedRef.current = true;
+    } else {
+      const box = new THREE.Box3().setFromObject(s);
       const size = new THREE.Vector3();
       box.getSize(size);
-      const targetHeight = 1.8;
-      const scale = targetHeight / size.y;
-      gltf.scene.scale.setScalar(scale);
+      const scale = 1.8 / size.y;
+      s.scale.setScalar(scale);
+    }
 
-      const scaledBox = new THREE.Box3().setFromObject(gltf.scene);
-      const center = new THREE.Vector3();
-      scaledBox.getCenter(center);
-      gltf.scene.position.y = -scaledBox.min.y;
-      gltf.scene.position.x = -center.x;
-      gltf.scene.position.z = -center.z;
+    s.traverse((child: any) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
 
+    fixTPose(s);
+  }, [gltf]);
+
+  useFrame(() => {
+    if (!alignedRef.current && gltf?.scene && bodyRef.current) {
+      gltf.scene.scale.copy(bodyRef.current.scale);
+      gltf.scene.position.copy(bodyRef.current.position);
+      alignedRef.current = true;
+    }
+  });
+
+  useEffect(() => {
+    if (!gltf?.scene) return;
+    const loader = new THREE.TextureLoader();
+    loader.load(texUrl, (tex: any) => {
+      tex.flipY = false;
+      tex.colorSpace = THREE.SRGBColorSpace;
       gltf.scene.traverse((child: any) => {
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
+        if (child.isMesh && child.material) {
+          const mat = child.material;
+          if (mat.name === "MI_Hair_1" || mat.name.includes("Hair")) {
+            mat.map = tex;
+            mat.needsUpdate = true;
+          }
         }
       });
+    });
+  }, [gltf, texUrl]);
 
-      fixTPose(gltf.scene);
-    }
+  return (
+    <group ref={groupRef}>
+      {gltf?.scene && <primitive object={gltf.scene} />}
+    </group>
+  );
+}
+
+function SuperheroModel({
+  skinTexture,
+  bodyRef,
+}: {
+  skinTexture: string;
+  bodyRef: React.MutableRefObject<any>;
+}) {
+  const groupRef = useRef<any>(null);
+  const gltf = useLoader(GLTFLoader, `${MODELS_BASE}/${BODY_MODEL}`);
+  const texUrl = `${MODELS_BASE}/${skinTexture}`;
+
+  useEffect(() => {
+    if (!gltf?.scene) return;
+    const s = gltf.scene;
+    const box = new THREE.Box3().setFromObject(s);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const targetHeight = 1.8;
+    const scale = targetHeight / size.y;
+    s.scale.setScalar(scale);
+
+    const scaledBox = new THREE.Box3().setFromObject(s);
+    const center = new THREE.Vector3();
+    scaledBox.getCenter(center);
+    s.position.y = -scaledBox.min.y;
+    s.position.x = -center.x;
+    s.position.z = -center.z;
+
+    s.traverse((child: any) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
+    fixTPose(s);
+    bodyRef.current = s;
   }, [gltf]);
+
+  useEffect(() => {
+    if (!gltf?.scene) return;
+    const loader = new THREE.TextureLoader();
+    loader.load(texUrl, (tex: any) => {
+      tex.flipY = false;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      gltf.scene.traverse((child: any) => {
+        if (child.isMesh && child.material) {
+          const mat = child.material;
+          if (mat.name === "MI_Superhero_Male") {
+            mat.map = tex;
+            mat.needsUpdate = true;
+          }
+        }
+      });
+    });
+  }, [gltf, texUrl]);
 
   useFrame((_state: any, delta: number) => {
     if (groupRef.current) {
@@ -193,20 +326,66 @@ declare global {
   }
 }
 
-function WebModelViewer({ height }: { height: number }) {
+function WebModelViewer({
+  height,
+  hairStyle,
+  hairColor,
+  skinTone,
+}: {
+  height: number;
+  hairStyle?: string;
+  hairColor?: string;
+  skinTone?: string;
+}) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const readyRef = useRef(false);
+  const pendingRef = useRef<any>(null);
+
+  const hairModel = HAIR_STYLE_TO_MODEL[hairStyle ?? "clean_cut"] ?? "Hair_SimpleParted.gltf";
+  const skinTexture = SKIN_TONE_TO_TEXTURE[skinTone ?? "tone-3"] ?? "T_Superhero_Male_Dark.png";
+  const hairTexture = HAIR_COLOR_TO_TEXTURE[hairColor ?? "black"] ?? "T_Hair_1_BaseColor.png";
+
+  const [stableUrl] = useState(
+    () =>
+      `${API_BASE}/character-viewer.html?skin=${encodeURIComponent(skinTexture)}&hair=${encodeURIComponent(hairModel)}&hairTex=${encodeURIComponent(hairTexture)}`
+  );
+
+  const sendMessage = useCallback(
+    (msg: any) => {
+      if (iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage(msg, "*");
+      }
+    },
+    []
+  );
+
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      !document.querySelector("[data-model-viewer-script]")
-    ) {
-      const script = document.createElement("script");
-      script.type = "module";
-      script.src =
-        "https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js";
-      script.setAttribute("data-model-viewer-script", "true");
-      document.head.appendChild(script);
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === "viewerReady") {
+        readyRef.current = true;
+        if (pendingRef.current) {
+          sendMessage(pendingRef.current);
+          pendingRef.current = null;
+        }
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [sendMessage]);
+
+  useEffect(() => {
+    const msg = {
+      type: "setAll",
+      hairModel,
+      skinTexture,
+      hairTexture,
+    };
+    if (readyRef.current) {
+      sendMessage(msg);
+    } else {
+      pendingRef.current = msg;
     }
-  }, []);
+  }, [hairModel, skinTexture, hairTexture, sendMessage]);
 
   return (
     <View style={[viewerStyles.container, { height }]}>
@@ -219,29 +398,16 @@ function WebModelViewer({ height }: { height: number }) {
           overflow: "hidden" as const,
         }}
       >
-        <model-viewer
-          src={MODEL_URL}
-          camera-controls
-          auto-rotate
-          auto-rotate-delay="3000"
-          rotation-per-second="8deg"
-          camera-orbit="0deg 82deg auto"
-          min-camera-orbit="auto 50deg auto"
-          max-camera-orbit="auto 120deg auto"
-          field-of-view="36deg"
-          environment-image="neutral"
-          shadow-intensity="1.2"
-          shadow-softness="0.8"
-          exposure="1.1"
-          style={
-            {
-              width: "100%",
-              height: "100%",
-              background: "transparent",
-              "--poster-color": "transparent",
-            } as React.CSSProperties
-          }
-          alt="3D Character"
+        <iframe
+          ref={iframeRef as any}
+          src={stableUrl}
+          style={{
+            width: "100%",
+            height: "100%",
+            border: "none",
+            background: "transparent",
+          }}
+          allow="autoplay"
         />
         <div
           style={{
@@ -259,14 +425,25 @@ function WebModelViewer({ height }: { height: number }) {
   );
 }
 
-interface Character3DViewerProps {
+export interface Character3DViewerProps {
   height?: number;
+  hairStyle?: string;
+  hairColor?: string;
+  skinTone?: string;
 }
 
-export function Character3DViewer({ height = 380 }: Character3DViewerProps) {
-  if (Platform.OS === "web") {
-    return <WebModelViewer height={height} />;
-  }
+function NativeCharacterViewer({
+  height,
+  hairModel,
+  hairTexture,
+  skinTexture,
+}: {
+  height: number;
+  hairModel: string;
+  hairTexture: string;
+  skinTexture: string;
+}) {
+  const bodyRef = useRef<any>(null);
 
   return (
     <View style={[viewerStyles.container, { height }]}>
@@ -277,10 +454,47 @@ export function Character3DViewer({ height = 380 }: Character3DViewerProps) {
       >
         <CameraRig />
         <CinematicLights />
-        <SuperheroModel />
+        <SuperheroModel skinTexture={skinTexture} bodyRef={bodyRef} />
+        <NativeHairModel
+          key={hairModel + hairTexture}
+          hairModel={hairModel}
+          hairTexture={hairTexture}
+          bodyRef={bodyRef}
+        />
       </Canvas>
       <VignetteOverlay />
     </View>
+  );
+}
+
+export function Character3DViewer({
+  height = 380,
+  hairStyle,
+  hairColor,
+  skinTone,
+}: Character3DViewerProps) {
+  const resolvedHairModel = HAIR_STYLE_TO_MODEL[hairStyle ?? "clean_cut"] ?? "Hair_SimpleParted.gltf";
+  const resolvedSkinTex = SKIN_TONE_TO_TEXTURE[skinTone ?? "tone-3"] ?? "T_Superhero_Male_Dark.png";
+  const resolvedHairTex = HAIR_COLOR_TO_TEXTURE[hairColor ?? "black"] ?? "T_Hair_1_BaseColor.png";
+
+  if (Platform.OS === "web") {
+    return (
+      <WebModelViewer
+        height={height}
+        hairStyle={hairStyle}
+        hairColor={hairColor}
+        skinTone={skinTone}
+      />
+    );
+  }
+
+  return (
+    <NativeCharacterViewer
+      height={height}
+      hairModel={resolvedHairModel}
+      hairTexture={resolvedHairTex}
+      skinTexture={resolvedSkinTex}
+    />
   );
 }
 

@@ -359,17 +359,28 @@ artifacts-monorepo/
 
 - **Game screen**: `artifacts/mobile/app/game/index.tsx` — Premium split-screen: 60% cinematic 3D character viewer + 40% stat UI panel
 - **Character status screen**: `artifacts/mobile/app/character/index.tsx` — Hero card now uses 3D GLTF model via `Character3DViewer` component (replaced flat SVG `CharacterRenderer`)
-- **Reusable 3D viewer**: `artifacts/mobile/components/character/Character3DViewer.tsx` — Drop-in 3D model viewer with cinematic lighting, auto-rotate, vignette overlay, web fallback
+- **Reusable 3D viewer**: `artifacts/mobile/components/character/Character3DViewer.tsx` — Drop-in 3D model viewer with cinematic lighting, auto-rotate, vignette overlay
 - **3D Model**: Superhero Male FullBody GLTF (man in suit), served via API server at `/api/models/`
+- **Hair models**: 5 separate GLTF hair meshes: `Hair_SimpleParted`, `Hair_Buzzed`, `Hair_Long`, `Hair_Buns`, `Hair_Beard`
+- **Skin textures**: `T_Superhero_Male_Light.png` (light tones 1-2), `T_Superhero_Male_Dark.png` (dark tones 3-5)
+- **Hair textures**: `T_Hair_1_BaseColor.png` (dark colors), `T_Hair_2_BaseColor.png` (light/blonde colors)
+- **Customization mappings** (exported from Character3DViewer.tsx):
+  - `HAIR_STYLE_TO_MODEL`: clean_cut→SimpleParted, buzz_cut→Buzzed, textured_crop→Long, medium_natural→Buns, slicked_back→Beard
+  - `SKIN_TONE_TO_TEXTURE`: tone-1/2→Light, tone-3/4/5→Dark
+  - `HAIR_COLOR_TO_TEXTURE`: black/dark-brown/medium-brown/auburn→Hair_1, light-brown/dirty-blonde/blonde/platinum→Hair_2
+- **Web viewer**: Standalone Three.js HTML page at `/api/character-viewer.html` embedded via iframe; supports postMessage for real-time hair/skin/texture swapping with OrbitControls
+- **Native viewer**: React Three Fiber with separate body + hair GLTF loading, texture swapping via TextureLoader
+- **Customize sheet**: `CharacterCustomizeSheet` passes `hairStyle`, `hairColor`, `skinTone` props to `Character3DViewer` for real-time preview
+- **Character status screen**: `Character3DViewer` receives saved appearance props (`currentHairStyle`, `currentHairColor`, `currentSkinTone`) to reflect user's look
 - **Car Showroom**: `artifacts/mobile/app/cars/showroom.tsx` — Premium 3D car viewer with swipe navigation, specs grid, purchase flow, MY GARAGE section; uses BMW M4 Competition (11MB GLB) and BMW M4 Widebody (22MB GLB); route registered at `cars/showroom` with slide_from_bottom animation
-- **Model files**: `artifacts/api-server/public/models/` — GLTF + .bin + 5 texture PNGs + 2 placeholder normal maps + 2 BMW GLB files (`2025_bmw_m4_competition.glb`, `bmw_m4_widebody.glb`)
-- **Static serving**: `artifacts/api-server/src/app.ts` — `express.static` at `/api/models` with 7-day cache. Build copies to dist via `build.ts`.
+- **Model files**: `artifacts/api-server/public/models/` — 6 GLTF + .bin pairs, 5 texture PNGs, 2 normal maps, 2 BMW GLB files
+- **Static serving**: `artifacts/api-server/src/app.ts` — `express.static` at `/api/models` with 7-day cache + character-viewer.html route
 - **Lighting**: Cinematic 5-light setup: warm key (#FFF2D0), blue rim (#6AADFF), gold fill (#C9A84C), ambient, bounce point light
 - **Vignette**: 3-layer LinearGradient overlay (vertical + horizontal + bottom fade) for premium look
 - **Color scheme**: #080A0E bg, #C9A84C gold, #4A9EFF blue, premium dark theme
 - **Dependencies**: `expo-gl`, `three`, `@react-three/fiber`, `@react-three/drei`, `expo-three`, `expo-linear-gradient`
 - **Metro config**: `artifacts/mobile/metro.config.js` — Extended `assetExts` with `glb`, `gltf`, `obj`, `mtl`
-- **Platform**: Native-only 3D rendering (`@react-three/fiber/native`); web shows graceful fallback with icon
+- **Platform**: Web uses iframe + Three.js CDN; native uses `@react-three/fiber/native`
 - **Route**: Navigate to `/game` from any screen (registered in root layout stack)
 
 ## Key Files

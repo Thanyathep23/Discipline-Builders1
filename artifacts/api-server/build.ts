@@ -68,14 +68,14 @@ async function buildAll() {
     logLevel: "info",
   });
 
-  const publicModelsDir = path.resolve(__dirname, "public", "models");
+  const publicDir = path.resolve(__dirname, "public");
   try {
-    await access(publicModelsDir);
-    const destModelsDir = path.resolve(distDir, "public", "models");
-    await cp(publicModelsDir, destModelsDir, { recursive: true });
-    console.log("copied public/models into dist/public/models");
+    await access(publicDir);
+    const destPublicDir = path.resolve(distDir, "public");
+    await cp(publicDir, destPublicDir, { recursive: true });
+    console.log("copied public/ into dist/public/");
   } catch {
-    console.log("no public/models directory to copy, skipping");
+    console.log("no public/ directory to copy, skipping");
   }
 }
 

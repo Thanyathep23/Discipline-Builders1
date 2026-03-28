@@ -748,7 +748,12 @@ function CharacterCustomizeSheet({
         </View>
 
         <View style={sheetStyles.previewWrap}>
-          <Character3DViewer height={280} />
+          <Character3DViewer
+            height={280}
+            hairStyle={hairStyle}
+            hairColor={hairColor}
+            skinTone={skinTone}
+          />
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }}>
@@ -1274,7 +1279,12 @@ export default function CharacterStatusScreen() {
             {/* 3D Character Model */}
             <View style={styles.characterStageWrap}>
               <View style={styles.characterWrap}>
-                <Character3DViewer height={380} />
+                <Character3DViewer
+                  height={380}
+                  hairStyle={currentHairStyle}
+                  hairColor={currentHairColor}
+                  skinTone={currentSkinTone}
+                />
                 <Pressable
                   style={styles.wardrobeBtn}
                   onPress={() => {
