@@ -1,5 +1,6 @@
 export { CharacterRenderer } from "./CharacterRenderer";
 export { CharacterViewer3D } from "./CharacterViewer3D";
+export { Character3DViewer } from "./Character3DViewer";
 export { BodyBaseLayer } from "./layers/BodyBaseLayer";
 export { PostureLayer, getPostureMetrics, getGroomingLevel, getConfidenceLevel } from "./layers/PostureLayer";
 export { OutfitLayer, OuterwearLayer } from "./layers/OutfitLayer";

@@ -9,7 +9,6 @@ import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Animated, {
   FadeIn, FadeInDown, FadeOut, SlideInDown, FadeInUp,
-  useSharedValue, useAnimatedStyle, withTiming, Easing,
 } from "react-native-reanimated";
 import Svg, { Circle, Ellipse, Rect, Path, G, Line } from "react-native-svg";
 import { Colors } from "@/constants/colors";
@@ -18,7 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useCharacterStatus, useUpdateCharacterAppearance } from "@/hooks/useApi";
 import type { DimensionLevel, DimensionDetail, CharacterVisualState } from "@/lib/characterEngine";
 import { computeCharacterState } from "@/lib/characterEngine";
-import { CharacterRenderer } from "@/components/character";
+import { CharacterRenderer, Character3DViewer } from "@/components/character";
 
 const PREMIUM_BG = "#07071A";
 
@@ -1167,11 +1166,6 @@ export default function CharacterStatusScreen() {
   const [showTierCelebration, setShowTierCelebration] = useState(false);
   const prevTierRef = useRef<string | null>(null);
 
-  const characterOpacity = useSharedValue(1);
-  const prevCharOpacity = useSharedValue(0);
-  const prevVisualStateRef = useRef<string | null>(null);
-  const prevCharacterVS = useRef<CharacterVisualState | null>(null);
-
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
   const botPad = insets.bottom + (Platform.OS === "web" ? 34 : 100);
 
@@ -1215,33 +1209,6 @@ export default function CharacterStatusScreen() {
     prevTierRef.current = tierName;
     return () => { if (tierTimer) clearTimeout(tierTimer); };
   }, [tierName]);
-
-  const vsKeyForFade = characterVS
-    ? `${characterVS.postureStage}-${characterVS.outfitTier}-${characterVS.prestigeStage}-${characterVS.refinementStage}-${characterVS.skinTone}-${characterVS.hairStyle}-${characterVS.hairColor}-${characterVS.equippedTopStyle}-${characterVS.equippedWatchStyle}-${characterVS.equippedAccessoryStyle}-${characterVS.equippedOuterwearStyle}-${characterVS.outerwearColor}-${characterVS.bottomColor}-${characterVS.equippedBottomStyle}`
-    : JSON.stringify(data?.visualState);
-  const [fadingOutVS, setFadingOutVS] = useState<CharacterVisualState | null>(null);
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    if (prevVisualStateRef.current && prevVisualStateRef.current !== vsKeyForFade && prevCharacterVS.current) {
-      setFadingOutVS(prevCharacterVS.current);
-      prevCharOpacity.value = 1;
-      prevCharOpacity.value = withTiming(0, { duration: 800, easing: Easing.out(Easing.cubic) });
-      characterOpacity.value = 0;
-      characterOpacity.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) });
-      timer = setTimeout(() => setFadingOutVS(null), 850);
-    }
-    prevVisualStateRef.current = vsKeyForFade;
-    if (characterVS) prevCharacterVS.current = characterVS;
-    return () => { if (timer) clearTimeout(timer); };
-  }, [vsKeyForFade]);
-
-  const characterAnimStyle = useAnimatedStyle(() => ({
-    opacity: characterOpacity.value,
-  }));
-  const prevCharAnimStyle = useAnimatedStyle(() => ({
-    opacity: prevCharOpacity.value,
-    position: "absolute" as const,
-  }));
 
   const appearance = (data as any)?.appearance;
   const currentSkinTone  = appearance?.skinTone  ?? "tone-3";
@@ -1320,20 +1287,12 @@ export default function CharacterStatusScreen() {
               <Ionicons name="color-palette-outline" size={16} color={Colors.textSecondary} />
             </Pressable>
 
-            {/* Character voxel — free rotation via drag */}
+            {/* 3D Character Model */}
             <View style={styles.characterStageWrap}>
-              <Animated.View style={[styles.characterWrap, characterAnimStyle]}>
-                {characterVS && (
-                  <CharacterRenderer visualState={characterVS} size="full" />
-                )}
+              <View style={styles.characterWrap}>
+                <Character3DViewer height={380} />
                 <Pressable
-                  style={{
-                    position: "absolute", bottom: 0, right: 0,
-                    width: 34, height: 34, borderRadius: 10,
-                    backgroundColor: Colors.bgElevated + "CC",
-                    borderWidth: 1, borderColor: Colors.border,
-                    alignItems: "center", justifyContent: "center",
-                  }}
+                  style={styles.wardrobeBtn}
                   onPress={() => {
                     Haptics.selectionAsync().catch(() => {});
                     router.push("/wardrobe?tab=equipped" as any);
@@ -1341,8 +1300,7 @@ export default function CharacterStatusScreen() {
                 >
                   <Ionicons name="shirt-outline" size={16} color={Colors.accent} />
                 </Pressable>
-              </Animated.View>
-
+              </View>
             </View>
 
             {/* Identity */}
@@ -1718,7 +1676,7 @@ const styles = StyleSheet.create({
     borderRadius: 24, borderWidth: 1, borderColor: Colors.border,
     paddingTop: 52, paddingBottom: 28, paddingHorizontal: 20,
     alignItems: "center", gap: 10, position: "relative",
-    overflow: "hidden",
+    overflow: "hidden" as const,
   },
   customizeBtn: {
     position: "absolute", top: 14, right: 14,
@@ -1729,9 +1687,17 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   characterStageWrap: {
-    flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "stretch",
+    alignItems: "center", alignSelf: "stretch",
   },
-  characterWrap: { flex: 1, alignItems: "center" },
+  characterWrap: { width: "100%", alignItems: "center", position: "relative" as const },
+  wardrobeBtn: {
+    position: "absolute" as const, bottom: 12, right: 12,
+    width: 34, height: 34, borderRadius: 10,
+    backgroundColor: Colors.bgElevated + "CC",
+    borderWidth: 1, borderColor: Colors.border,
+    alignItems: "center" as const, justifyContent: "center" as const,
+    zIndex: 10,
+  },
   characterName: {
     fontFamily: "Inter_700Bold", fontSize: 26,
     color: Colors.textPrimary, letterSpacing: 0.5,

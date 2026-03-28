@@ -357,13 +357,14 @@ artifacts-monorepo/
 
 ## 3D Character Integration
 
-- **Screen**: `artifacts/mobile/app/game/index.tsx` — Premium split-screen: 60% cinematic 3D character viewer + 40% stat UI panel
+- **Game screen**: `artifacts/mobile/app/game/index.tsx` — Premium split-screen: 60% cinematic 3D character viewer + 40% stat UI panel
+- **Character status screen**: `artifacts/mobile/app/character/index.tsx` — Hero card now uses 3D GLTF model via `Character3DViewer` component (replaced flat SVG `CharacterRenderer`)
+- **Reusable 3D viewer**: `artifacts/mobile/components/character/Character3DViewer.tsx` — Drop-in 3D model viewer with cinematic lighting, auto-rotate, vignette overlay, web fallback
 - **3D Model**: Superhero Male FullBody GLTF (man in suit), served via API server at `/api/models/`
 - **Model files**: `artifacts/api-server/public/models/` — GLTF + .bin + 5 texture PNGs + 2 placeholder normal maps
 - **Static serving**: `artifacts/api-server/src/app.ts` — `express.static` at `/api/models` with 7-day cache. Build copies to dist via `build.ts`.
 - **Lighting**: Cinematic 5-light setup: warm key (#FFF2D0), blue rim (#6AADFF), gold fill (#C9A84C), ambient, bounce point light
 - **Vignette**: 3-layer LinearGradient overlay (vertical + horizontal + bottom fade) for premium look
-- **UI**: Character name/title header, LVL badge, gold gradient XP bar, 2×2 stat grid (Fitness/Discipline/Finance/Prestige), habit button
 - **Color scheme**: #080A0E bg, #C9A84C gold, #4A9EFF blue, premium dark theme
 - **Dependencies**: `expo-gl`, `three`, `@react-three/fiber`, `@react-three/drei`, `expo-three`, `expo-linear-gradient`
 - **Metro config**: `artifacts/mobile/metro.config.js` — Extended `assetExts` with `glb`, `gltf`, `obj`, `mtl`
