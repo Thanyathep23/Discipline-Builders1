@@ -27,13 +27,13 @@ interface WardrobeItemDef {
 const WARDROBE_ITEMS: WardrobeItemDef[] = [
   // ── WATCHES (sorted by minLevel ascending) ──
   {
-    id: "wardrobe-watch-apple-ultra", slug: "apple-watch-ultra", name: "Apple Watch Ultra",
+    id: "wardrobe-watch-apple-ultra", slug: "apple-watch-ultra", name: "Apple Watch Ultra 2",
     description: "Track every metric. Every discipline session logged. Every goal measured.",
     cost: 3500, category: "fashion", icon: "watch-outline", rarity: "common", itemType: "cosmetic",
     wearableSlot: "watch", minLevel: 1,
     styleEffect: "Prestige +2",
     series: "Smart Watch",
-    glbFile: "apple_watch.glb",
+    glbFile: "apple_watch_ultra_2.glb",
     colorVariants: JSON.stringify([
       { key: "black", label: "Black", hex: "#1A1A1A" },
       { key: "white", label: "White", hex: "#F5F5F5" },
