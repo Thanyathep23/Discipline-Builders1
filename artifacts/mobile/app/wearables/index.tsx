@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet, ActivityIndicator, Modal,
 } from "react-native";
@@ -12,6 +12,7 @@ import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useWearables, useEquipItem, useUnequipItem, useBuyItem } from "@/hooks/useApi";
 import { useDevMode } from "@/context/DevModeContext";
 import { LoadingScreen, ErrorState, Button } from "@/design-system";
+import { saveEquippedWatch, clearEquippedWatch } from "@/utils/watchStore";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,7 @@ type WearableItem = {
   isEquipped: boolean;
   isLocked: boolean;
   canAfford: boolean;
+  glbFile?: string;
 };
 
 type WearableSlotGroup = {
@@ -124,7 +126,13 @@ function WearableCard({ item, delay = 0 }: { item: WearableItem; delay?: number 
   function handleEquip() {
     setErrorMsg(null);
     equipMut.mutate(item.id, {
-      onSuccess: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); invalidate(); },
+      onSuccess: async () => {
+        if (item.wearableSlot === "watch" && item.glbFile) {
+          await saveEquippedWatch(item.id, item.glbFile, item.name);
+        }
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        invalidate();
+      },
       onError: (e: any) => setErrorMsg(e?.message ?? "Failed to equip."),
     });
     setConfirmAction(null);
@@ -133,7 +141,13 @@ function WearableCard({ item, delay = 0 }: { item: WearableItem; delay?: number 
   function handleUnequip() {
     setErrorMsg(null);
     unequipMut.mutate(item.id, {
-      onSuccess: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); invalidate(); },
+      onSuccess: async () => {
+        if (item.wearableSlot === "watch") {
+          await clearEquippedWatch();
+        }
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        invalidate();
+      },
       onError: (e: any) => setErrorMsg(e?.message ?? "Failed to unequip."),
     });
     setConfirmAction(null);

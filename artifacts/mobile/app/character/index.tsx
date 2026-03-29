@@ -15,6 +15,7 @@ import { Colors } from "@/constants/colors";
 import { LoadingScreen, Button } from "@/design-system";
 import { useAuth } from "@/context/AuthContext";
 import { useCharacterStatus, useUpdateCharacterAppearance } from "@/hooks/useApi";
+import { getEquippedWatch } from "@/utils/watchStore";
 import type { DimensionLevel, DimensionDetail, CharacterVisualState } from "@/lib/characterEngine";
 import { computeCharacterState } from "@/lib/characterEngine";
 import { CharacterRenderer, Character3DViewer } from "@/components/character";
@@ -682,6 +683,7 @@ function CharacterCustomizeSheet({
   currentEyeShape,
   visualState,
   equippedWearables,
+  equippedWatchGlb,
   characterVisualState,
   onSave,
   isSaving,
@@ -696,6 +698,7 @@ function CharacterCustomizeSheet({
   currentEyeShape: string;
   visualState: VisualState | null;
   equippedWearables: EquippedWearableState;
+  equippedWatchGlb: string | null;
   characterVisualState: CharacterVisualState | null;
   onSave: (skinTone: string, bodyType: string, hairStyle: string, hairColor: string, faceShape: string, eyeShape: string) => void;
   isSaving: boolean;
@@ -754,6 +757,7 @@ function CharacterCustomizeSheet({
             skinTone={skinTone}
             gender={bodyType}
             outfitGlb={equippedWearables?.outerwear?.glbFile ?? equippedWearables?.top?.glbFile ?? null}
+            watchGlb={equippedWatchGlb}
           />
         </View>
 
@@ -1154,6 +1158,7 @@ export default function CharacterStatusScreen() {
   const [selectedDim, setSelectedDim] = useState<DimensionLevel | null>(null);
   const [showDimDetail, setShowDimDetail] = useState(false);
   const [showTierCelebration, setShowTierCelebration] = useState(false);
+  const [equippedWatchGlb, setEquippedWatchGlb] = useState<string | null>(null);
   const prevTierRef = useRef<string | null>(null);
 
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
@@ -1199,6 +1204,12 @@ export default function CharacterStatusScreen() {
     prevTierRef.current = tierName;
     return () => { if (tierTimer) clearTimeout(tierTimer); };
   }, [tierName]);
+
+  useEffect(() => {
+    getEquippedWatch().then(w => {
+      if (w) setEquippedWatchGlb(w.glbFile);
+    });
+  }, []);
 
   const appearance = (data as any)?.appearance;
   const equippedW = (data as any)?.equippedWearables as EquippedWearableState;
@@ -1289,6 +1300,7 @@ export default function CharacterStatusScreen() {
                   skinTone={currentSkinTone}
                   gender={currentBodyType}
                   outfitGlb={equippedOutfitGlb}
+                  watchGlb={equippedWatchGlb}
                 />
                 <Pressable
                   style={styles.wardrobeBtn}
@@ -1621,6 +1633,7 @@ export default function CharacterStatusScreen() {
         currentEyeShape={currentEyeShape}
         visualState={data?.visualState as VisualState | null ?? null}
         equippedWearables={(data as any)?.equippedWearables ?? null}
+        equippedWatchGlb={equippedWatchGlb}
         characterVisualState={characterVS}
         onSave={handleSaveAppearance}
         isSaving={updateAppearance.isPending}

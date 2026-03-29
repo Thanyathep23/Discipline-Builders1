@@ -248,6 +248,48 @@ function NativeOutfitModel(props: { outfitGlb: string; bodyRef: React.MutableRef
   );
 }
 
+function NativeWatchModelInner({
+  watchGlb,
+  bodyRef,
+}: {
+  watchGlb: string;
+  bodyRef: React.MutableRefObject<any>;
+}) {
+  const groupRef = useRef<any>(null);
+  const url = `${MODELS_BASE}/${watchGlb}`;
+  const gltf = useLoader(GLTFLoader, url);
+
+  useEffect(() => {
+    if (!gltf?.scene || !bodyRef.current) return;
+    const watch = gltf.scene;
+
+    watch.scale.setScalar(0.08);
+    watch.position.set(-0.18, 0.85, 0);
+    watch.rotation.z = Math.PI / 2;
+
+    watch.traverse((child: any) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+  }, [gltf, bodyRef]);
+
+  return (
+    <group ref={groupRef}>
+      {gltf?.scene && <primitive object={gltf.scene} />}
+    </group>
+  );
+}
+
+function NativeWatchModel(props: { watchGlb: string; bodyRef: React.MutableRefObject<any> }) {
+  return (
+    <React.Suspense fallback={null}>
+      <NativeWatchModelInner {...props} />
+    </React.Suspense>
+  );
+}
+
 function SuperheroModel({
   skinTexture,
   bodyRef,
@@ -520,6 +562,7 @@ export interface Character3DViewerProps {
   skinTone?: string;
   gender?: string;
   outfitGlb?: string | null;
+  watchGlb?: string | null;
 }
 
 function NativeCharacterViewer({
@@ -529,6 +572,7 @@ function NativeCharacterViewer({
   skinTexture,
   gender = "male",
   outfitGlb,
+  watchGlb,
 }: {
   height: number;
   hairModel: string;
@@ -536,6 +580,7 @@ function NativeCharacterViewer({
   skinTexture: string;
   gender?: string;
   outfitGlb?: string | null;
+  watchGlb?: string | null;
 }) {
   const bodyRef = useRef<any>(null);
   const dragRotRef = useRef({ y: 0, dragging: false, lastInteract: 0 });
@@ -592,6 +637,13 @@ function NativeCharacterViewer({
             bodyRef={bodyRef}
           />
         ) : null}
+        {watchGlb ? (
+          <NativeWatchModel
+            key={gender + watchGlb}
+            watchGlb={watchGlb}
+            bodyRef={bodyRef}
+          />
+        ) : null}
       </Canvas>
       <VignetteOverlay />
     </View>
@@ -605,6 +657,7 @@ export function Character3DViewer({
   skinTone,
   gender = "male",
   outfitGlb,
+  watchGlb,
 }: Character3DViewerProps) {
   const resolvedHairModel = HAIR_STYLE_TO_MODEL[hairStyle ?? "clean_cut"] ?? "Hair_SimpleParted.gltf";
   const resolvedSkinTex = resolveSkinTexture(gender, skinTone ?? "tone-3");
@@ -631,6 +684,7 @@ export function Character3DViewer({
       skinTexture={resolvedSkinTex}
       gender={gender}
       outfitGlb={outfitGlb}
+      watchGlb={watchGlb}
     />
   );
 }
