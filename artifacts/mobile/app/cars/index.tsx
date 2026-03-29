@@ -13,6 +13,7 @@ import Svg, { Path, Circle, Rect, Ellipse, G, Line } from "react-native-svg";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useCars, usePurchaseCar, useFeatureCar, useSelectWheelStyle } from "@/hooks/useApi";
 import { LoadingScreen, EmptyState } from "@/design-system";
+import { useDevMode } from "@/context/DevModeContext";
 
 const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api`;
 
@@ -98,12 +99,14 @@ const RARITY_ORDER: Record<string, number> = {
   common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4,
 };
 
-function getCarState(car: Car, userLevel: number): CarState {
+function getCarState(car: Car, userLevel: number, devMode = false): CarState {
   if (car.isOwned && car.isFeatured) return "featured";
   if (car.isOwned) return "owned";
-  if (!car.isLocked && car.isAffordable) return "available";
-  if (!car.isLocked && !car.isAffordable) return "near_reach";
-  if (car.isLocked && car.minLevel - userLevel <= 5) return "locked_soon";
+  const locked = devMode ? false : car.isLocked;
+  const affordable = devMode ? true : car.isAffordable;
+  if (!locked && affordable) return "available";
+  if (!locked && !affordable) return "near_reach";
+  if (locked && car.minLevel - userLevel <= 5) return "locked_soon";
   return "locked";
 }
 
@@ -695,6 +698,7 @@ function CarDetailSheet({
   userLevel: number; coinBalance: number;
 }) {
   const insets = useSafeAreaInsets();
+  const { isDevMode } = useDevMode();
   const [confirmPurchase, setConfirmPurchase] = useState(false);
   const [previewWheel, setPreviewWheel] = useState<string | null>(null);
 
@@ -705,11 +709,14 @@ function CarDetailSheet({
 
   if (!car) return null;
 
+  const carLocked = isDevMode ? false : car.isLocked;
+  const carAffordable = isDevMode ? true : car.isAffordable;
+
   const rarityColor = RARITY_COLORS[car.rarity] ?? Colors.textMuted;
   const classLabel = CLASS_LABELS[car.carClass ?? "entry"] ?? "VEHICLE";
   const currentWheel = previewWheel ?? car.selectedWheelStyle ?? "classic";
   const bodyColor = getBodyColor(car);
-  const dimmed = car.isLocked;
+  const dimmed = carLocked;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={() => { resetState(); onClose(); }}>
@@ -772,7 +779,7 @@ function CarDetailSheet({
         <View style={ds.statsRow}>
           <View style={ds.stat}>
             <Text style={ds.statLabel}>LEVEL REQ</Text>
-            <Text style={[ds.statVal, { color: car.isLocked ? Colors.crimson : Colors.green }]}>
+            <Text style={[ds.statVal, { color: carLocked ? Colors.crimson : Colors.green }]}>
               {car.minLevel === 0 ? "None" : `Lv ${car.minLevel}`}
             </Text>
           </View>
@@ -788,30 +795,30 @@ function CarDetailSheet({
           </View>
         </View>
 
-        {!car.isOwned && car.minLevel > 0 && (() => {
-          const levelPct = car.isLocked
+        {!car.isOwned && car.minLevel > 0 && !isDevMode && (() => {
+          const levelPct = carLocked
             ? Math.min(95, Math.max(5, Math.round((userLevel / car.minLevel) * 100)))
             : 100;
           const levelsRemaining = Math.max(0, car.minLevel - userLevel);
           const coinsNeeded = Math.max(0, car.cost - coinBalance);
-          const progressColor = car.isLocked ? Colors.crimson : Colors.green;
+          const progressColor = carLocked ? Colors.crimson : Colors.green;
           return (
             <View style={ds.progressSection}>
               <View style={ds.progressHeader}>
-                <Ionicons name={car.isLocked ? "lock-closed-outline" : "lock-open-outline"} size={11} color={car.isLocked ? Colors.crimson : Colors.amber} />
-                <Text style={[ds.progressLabel, { color: car.isLocked ? Colors.crimson : Colors.amber }]}>
-                  {car.isLocked ? "UNLOCK PROGRESS" : "PURCHASE READY"}
+                <Ionicons name={carLocked ? "lock-closed-outline" : "lock-open-outline"} size={11} color={carLocked ? Colors.crimson : Colors.amber} />
+                <Text style={[ds.progressLabel, { color: carLocked ? Colors.crimson : Colors.amber }]}>
+                  {carLocked ? "UNLOCK PROGRESS" : "PURCHASE READY"}
                 </Text>
               </View>
               <View style={ds.progressBarBg}>
                 <View style={[ds.progressBarFill, { width: `${levelPct}%`, backgroundColor: progressColor }]} />
               </View>
-              {car.isLocked && (
+              {carLocked && (
                 <Text style={ds.progressHint}>
                   {levelsRemaining} level{levelsRemaining !== 1 ? "s" : ""} away — reach Level {car.minLevel} to unlock
                 </Text>
               )}
-              {!car.isLocked && !car.isAffordable && (
+              {!carLocked && !carAffordable && (
                 <Text style={[ds.progressHint, { color: Colors.amber }]}>
                   {coinsNeeded.toLocaleString()} more coins needed
                 </Text>
@@ -881,29 +888,31 @@ function CarDetailSheet({
               <Pressable
                 style={[
                   ds.ctaBtn, { flex: 1 },
-                  !car.isLocked && car.isAffordable
-                    ? { backgroundColor: Colors.accent, borderColor: Colors.accent }
+                  !carLocked && carAffordable
+                    ? { backgroundColor: isDevMode ? "#FF6B00" : Colors.accent, borderColor: isDevMode ? "#FF6B00" : Colors.accent }
                     : { backgroundColor: Colors.bgElevated, borderColor: Colors.border },
                 ]}
                 onPress={() => {
-                  if (car.isLocked || !car.isAffordable) return;
+                  if (carLocked || !carAffordable) return;
                   Haptics.selectionAsync().catch(() => {});
                   setConfirmPurchase(true);
                 }}
-                disabled={car.isLocked || !car.isAffordable}
+                disabled={carLocked || !carAffordable}
               >
                 <Ionicons
-                  name={car.isLocked ? "lock-closed-outline" : "cart-outline"}
+                  name={carLocked ? "lock-closed-outline" : isDevMode ? "flash" : "cart-outline"}
                   size={15}
-                  color={!car.isLocked && car.isAffordable ? Colors.bg : Colors.textMuted}
+                  color={!carLocked && carAffordable ? Colors.bg : Colors.textMuted}
                 />
                 <Text style={[
                   ds.ctaBtnText,
-                  { color: !car.isLocked && car.isAffordable ? Colors.bg : Colors.textMuted },
+                  { color: !carLocked && carAffordable ? Colors.bg : Colors.textMuted },
                 ]}>
-                  {car.isLocked
+                  {isDevMode
+                    ? "UNLOCK (DEV)"
+                    : carLocked
                     ? `Locked — Level ${car.minLevel}`
-                    : !car.isAffordable
+                    : !carAffordable
                     ? `Need ${car.cost.toLocaleString()}c`
                     : car.cost === 0 ? "Claim Free" : `Buy — ${car.cost.toLocaleString()}c`}
                 </Text>
@@ -1065,6 +1074,7 @@ const ph = StyleSheet.create({
 export default function GarageScreen() {
   const insets = useSafeAreaInsets();
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
+  const { isDevMode } = useDevMode();
 
   const { data, isLoading, refetch } = useCars();
   const purchaseCar = usePurchaseCar();
@@ -1081,13 +1091,13 @@ export default function GarageScreen() {
   const catalog: Car[] = (data?.catalog ?? []).filter((c: Car) => !BANNED_CARS.includes(c.name));
   const featuredCar: Car | undefined = data?.featuredCar;
   const userLevel: number = data?.userLevel ?? 1;
-  const coinBalance: number = data?.coinBalance ?? 0;
+  const coinBalance: number = isDevMode ? 999999 : (data?.coinBalance ?? 0);
   const ownedCount: number = data?.ownedCount ?? 0;
 
   const carsWithState = useMemo(() =>
-    catalog.map(c => ({ car: c, state: getCarState(c, userLevel) }))
+    catalog.map(c => ({ car: c, state: getCarState(c, userLevel, isDevMode) }))
       .sort((a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state]),
-    [catalog, userLevel]
+    [catalog, userLevel, isDevMode]
   );
 
   const filterCounts = useMemo(() => ({
@@ -1116,7 +1126,7 @@ export default function GarageScreen() {
   const handlePurchase = useCallback(async (carId: string) => {
     setErrorMsg(null);
     try {
-      await purchaseCar.mutateAsync(carId);
+      await purchaseCar.mutateAsync({ carId, devMode: isDevMode });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       refetch();
       setSheetVisible(false);
@@ -1124,7 +1134,7 @@ export default function GarageScreen() {
       setSheetVisible(false);
       setErrorMsg(e.message ?? "Purchase failed");
     }
-  }, [purchaseCar, refetch]);
+  }, [purchaseCar, refetch, isDevMode]);
 
   const handleFeature = useCallback(async (carId: string) => {
     setErrorMsg(null);

@@ -18,6 +18,7 @@ import {
   getRarityColor, getRarityLabel, getSlotLabel, getSlotIcon,
   WardrobeItem,
 } from "@/components/wardrobe/wardrobeHelpers";
+import { useDevMode } from "@/context/DevModeContext";
 
 const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api`;
 
@@ -186,6 +187,7 @@ const SLOT_ORDER = ["watch", "top", "outerwear", "bottom", "accessory"];
 export default function WardrobeScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ tab?: string }>();
+  const { isDevMode } = useDevMode();
   const initialTab = (["watches", "clothing", "accessories", "equipped"].includes(params.tab ?? "") ? params.tab : "watches") as Tab;
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [activeFilter, setActiveFilter] = useState<Filter>("all");
@@ -207,9 +209,12 @@ export default function WardrobeScreen() {
   const coinBalance = (wearableData as any)?.coinBalance ?? (balanceData as any)?.coinBalance ?? 0;
   const userLevel = (wearableData as any)?.userLevel ?? 1;
   const BANNED_WATCH_NAMES = ["Classic Watch", "Refined Timepiece", "Elite Chronograph"];
-  const allItems: WardrobeItem[] = ((wearableData as any)?.items ?? []).filter(
+  const rawItems: WardrobeItem[] = ((wearableData as any)?.items ?? []).filter(
     (i: WardrobeItem) => !BANNED_WATCH_NAMES.includes(i.name)
   );
+  const allItems: WardrobeItem[] = isDevMode
+    ? rawItems.map((i) => ({ ...i, isLocked: false, canAfford: true }))
+    : rawItems;
 
   const filteredItems = useMemo(() => {
     let items = allItems;
@@ -240,7 +245,7 @@ export default function WardrobeScreen() {
   }, [allItems]);
 
   function handleBuy(itemId: string) {
-    buyMut.mutate(itemId, {
+    buyMut.mutate({ itemId, devMode: isDevMode }, {
       onSuccess: () => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setSheetVisible(false);

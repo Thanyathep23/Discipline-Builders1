@@ -1,0 +1,267 @@
+TASK: Add a DEV MODE / ADMIN MODE toggle to the app.
+When Dev Mode is ON:
+  - All items (cars, watches, outfits) are unlocked regardless of level or coins
+  - All level requirements are bypassed
+  - A visible banner shows "DEV MODE ON" so we always know it's active
+  - One tap to turn it on, one tap to turn it off
+  - The toggle persists across screens (global state)
+
+When Dev Mode is OFF:
+  - Normal game rules apply (level req, coin req, locked items)
+
+════════════════════════════════════════════════════════
+STEP 1 — CREATE DEV MODE GLOBAL STATE
+════════════════════════════════════════════════════════
+
+Create a new file: utils/devMode.ts
+```ts
+import { useState, useEffect, createContext, useContext } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+const DEV_MODE_KEY = 'dev_mode_enabled'
+
+// Global dev mode context
+export const DevModeContext = createContext<{
+  isDevMode: boolean
+  toggleDevMode: () => void
+}>({
+  isDevMode: false,
+  toggleDevMode: () => {},
+})
+
+export function useDevMode() {
+  return useContext(DevModeContext)
+}
+
+// Hook to use in _layout.tsx provider
+export function useDevModeProvider() {
+  const [isDevMode, setIsDevMode] = useState(false)
+
+  useEffect(() => {
+    AsyncStorage.getItem(DEV_MODE_KEY).then(val => {
+      setIsDevMode(val === 'true')
+    })
+  }, [])
+
+  const toggleDevMode = async () => {
+    const newVal = !isDevMode
+    setIsDevMode(newVal)
+    await AsyncStorage.setItem(DEV_MODE_KEY, String(newVal))
+  }
+
+  return { isDevMode, toggleDevMode }
+}
+```
+
+════════════════════════════════════════════════════════
+STEP 2 — WRAP APP WITH DEV MODE PROVIDER
+════════════════════════════════════════════════════════
+
+In app/_layout.tsx, wrap the root layout with DevModeContext:
+```tsx
+import { DevModeContext, useDevModeProvider } from '@/utils/devMode'
+
+export default function RootLayout() {
+  const devMode = useDevModeProvider()
+
+  return (
+    <DevModeContext.Provider value={devMode}>
+      {/* existing layout code */}
+    </DevModeContext.Provider>
+  )
+}
+```
+
+════════════════════════════════════════════════════════
+STEP 3 — DEV MODE BANNER (visible on every screen)
+════════════════════════════════════════════════════════
+
+In the root layout or main tab navigator, add a persistent banner at the top
+that shows when Dev Mode is active:
+```tsx
+import { useDevMode } from '@/utils/devMode'
+
+function DevModeBanner() {
+  const { isDevMode } = useDevMode()
+  if (!isDevMode) return null
+
+  return (
+    <View style={{
+      backgroundColor: '#FF6B00',
+      paddingVertical: 4,
+      paddingHorizontal: 12,
+      alignItems: 'center',
+      zIndex: 9999,
+    }}>
+      <Text style={{
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 1.5,
+      }}>
+        ⚡ DEV MODE ON — ALL ITEMS UNLOCKED
+      </Text>
+    </View>
+  )
+}
+```
+
+Add <DevModeBanner /> at the top of the main layout, above the tab navigator.
+
+════════════════════════════════════════════════════════
+STEP 4 — DEV MODE TOGGLE BUTTON (in Settings or Profile screen)
+════════════════════════════════════════════════════════
+
+Add a Dev Mode toggle in the Settings screen or Profile screen.
+Find the Settings/Profile component and add this section:
+```tsx
+import { useDevMode } from '@/utils/devMode'
+
+// Inside Settings/Profile component:
+const { isDevMode, toggleDevMode } = useDevMode()
+
+// Add this UI block in the settings list:
+<View style={styles.settingSection}>
+  <Text style={styles.settingSectionTitle}>DEVELOPER</Text>
+
+  <TouchableOpacity
+    style={[
+      styles.devModeRow,
+      isDevMode && styles.devModeRowActive
+    ]}
+    onPress={toggleDevMode}
+  >
+    <View style={styles.devModeLeft}>
+      <Text style={styles.devModeIcon}>⚡</Text>
+      <View>
+        <Text style={styles.devModeTitle}>Dev Mode</Text>
+        <Text style={styles.devModeSubtitle}>
+          {isDevMode ? 'All items unlocked for testing' : 'Normal game rules'}
+        </Text>
+      </View>
+    </View>
+
+    {/* Toggle Switch */}
+    <View style={[
+      styles.toggle,
+      isDevMode && styles.toggleActive
+    ]}>
+      <View style={[
+        styles.toggleThumb,
+        isDevMode && styles.toggleThumbActive
+      ]} />
+    </View>
+  </TouchableOpacity>
+</View>
+```
+
+Styles:
+```ts
+settingSection: { marginTop: 24, marginBottom: 8 },
+settingSectionTitle: { color: '#6B7280', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginBottom: 8, paddingHorizontal: 16 },
+devModeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1A1A2E', borderRadius: 12, padding: 16, marginHorizontal: 16, borderWidth: 1.5, borderColor: '#2A2A4A' },
+devModeRowActive: { borderColor: '#FF6B00', backgroundColor: '#2A1500' },
+devModeLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+devModeIcon: { fontSize: 24 },
+devModeTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+devModeSubtitle: { color: '#6B7280', fontSize: 12, marginTop: 2 },
+toggle: { width: 48, height: 26, borderRadius: 13, backgroundColor: '#374151', justifyContent: 'center', paddingHorizontal: 2 },
+toggleActive: { backgroundColor: '#FF6B00' },
+toggleThumb: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#FFFFFF', alignSelf: 'flex-start' },
+toggleThumbActive: { alignSelf: 'flex-end' },
+```
+
+════════════════════════════════════════════════════════
+STEP 5 — APPLY DEV MODE TO CARS SCREEN
+════════════════════════════════════════════════════════
+
+In the Cars collection / detail component, use isDevMode to bypass locks:
+```tsx
+import { useDevMode } from '@/utils/devMode'
+
+// Inside CarsScreen or CarDetailScreen:
+const { isDevMode } = useDevMode()
+const userLevel = useUserLevel()   // existing hook
+const userCoins = useUserCoins()   // existing hook
+
+// Replace existing lock check with:
+const isLocked = isDevMode
+  ? false  // Dev Mode: always unlocked
+  : (car.requiredLevel > userLevel || car.price > userCoins)
+
+const canAfford = isDevMode ? true : userCoins >= car.price
+const meetsLevel = isDevMode ? true : userLevel >= car.requiredLevel
+
+// Purchase / Equip button:
+<TouchableOpacity
+  style={[styles.purchaseBtn, (!canAfford && !isDevMode) && styles.purchaseBtnDisabled]}
+  onPress={() => handlePurchase(car)}
+  disabled={!canAfford && !isDevMode}
+>
+  <Text style={styles.purchaseBtnText}>
+    {isDevMode ? '⚡ UNLOCK (DEV)' : (canAfford ? 'PURCHASE' : `Need ${car.price}c`)}
+  </Text>
+</TouchableOpacity>
+```
+
+════════════════════════════════════════════════════════
+STEP 6 — APPLY DEV MODE TO WATCHES SCREEN
+════════════════════════════════════════════════════════
+
+Same pattern as Cars — find WatchesScreen / WatchDetailScreen:
+```tsx
+const { isDevMode } = useDevMode()
+
+const isLocked = isDevMode ? false : (watch.requiredLevel > userLevel)
+const canAfford = isDevMode ? true : userCoins >= watch.price
+
+// Show all watches as unlocked in grid/list:
+const displayWatches = watches.map(w => ({
+  ...w,
+  isLocked: isDevMode ? false : w.isLocked
+}))
+```
+
+════════════════════════════════════════════════════════
+STEP 7 — APPLY DEV MODE TO OUTFITS / WARDROBE SCREEN
+════════════════════════════════════════════════════════
+
+Same pattern in WardrobeScreen:
+```tsx
+const { isDevMode } = useDevMode()
+
+const displayOutfits = OUTFITS.map(o => ({
+  ...o,
+  isLocked: isDevMode ? false : o.isLocked
+}))
+```
+
+════════════════════════════════════════════════════════
+STEP 8 — APPLY DEV MODE TO CHARACTER LEVEL GATE
+════════════════════════════════════════════════════════
+
+If any screen checks user level to show/hide content:
+```tsx
+const effectiveLevel = isDevMode ? 999 : userLevel
+const effectiveCoins = isDevMode ? 999999 : userCoins
+```
+
+Use effectiveLevel and effectiveCoins everywhere instead of raw values
+when isDevMode is true.
+
+════════════════════════════════════════════════════════
+STEP 9 — VERIFY
+════════════════════════════════════════════════════════
+
+Test the following:
+
+1. ✅ Settings screen shows "Dev Mode" toggle (OFF by default)
+2. ✅ Toggle ON → orange banner "⚡ DEV MODE ON" appears at top of every screen
+3. ✅ Cars screen: all cars show "⚡ UNLOCK (DEV)" button, none are grayed out
+4. ✅ Watches screen: all watches unlocked, none grayed out
+5. ✅ Outfits screen: all outfits unlocked
+6. ✅ Tap "⚡ UNLOCK (DEV)" on any item → it unlocks/equips immediately
+7. ✅ Toggle OFF → banner disappears, game rules return to normal
+8. ✅ Restart app with Dev Mode ON → it stays ON (persisted in AsyncStorage)
+9. ✅ Restart app with Dev Mode OFF → stays OFF
+10. ✅ No TypeScript errors, no crashes

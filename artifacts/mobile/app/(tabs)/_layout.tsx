@@ -5,9 +5,10 @@ import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { Colors } from "@/constants/colors";
 import { FocusBanner } from "@/components/focus/FocusBanner";
+import { useDevMode } from "@/context/DevModeContext";
 
 function NativeTabLayout() {
   return (
@@ -100,9 +101,36 @@ function ClassicTabLayout() {
   );
 }
 
+function DevModeBanner() {
+  const { isDevMode } = useDevMode();
+  if (!isDevMode) return null;
+  return (
+    <View style={devBannerStyles.bar}>
+      <Text style={devBannerStyles.text}>⚡ DEV MODE ON — ALL ITEMS UNLOCKED</Text>
+    </View>
+  );
+}
+
+const devBannerStyles = StyleSheet.create({
+  bar: {
+    backgroundColor: "#FF6B00",
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    zIndex: 9999,
+  },
+  text: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 1.5,
+  },
+});
+
 export default function TabLayout() {
   return (
     <View style={{ flex: 1 }}>
+      <DevModeBanner />
       <FocusBanner />
       {isLiquidGlassAvailable() ? <NativeTabLayout /> : <ClassicTabLayout />}
     </View>

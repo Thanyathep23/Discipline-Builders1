@@ -15,6 +15,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { DevModeProvider } from "@/context/DevModeContext";
 import { FocusSessionProvider } from "@/context/FocusSessionContext";
 import { FocusReturnOverlay } from "@/components/focus/FocusReturnOverlay";
 
@@ -94,14 +95,16 @@ export default function RootLayout() {
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <FocusSessionProvider>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <KeyboardProvider>
-                  <RootLayoutNav />
-                  <FocusReturnOverlay />
-                </KeyboardProvider>
-              </GestureHandlerRootView>
-            </FocusSessionProvider>
+            <DevModeProvider>
+              <FocusSessionProvider>
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                  <KeyboardProvider>
+                    <RootLayoutNav />
+                    <FocusReturnOverlay />
+                  </KeyboardProvider>
+                </GestureHandlerRootView>
+              </FocusSessionProvider>
+            </DevModeProvider>
           </AuthProvider>
         </QueryClientProvider>
       </ErrorBoundary>

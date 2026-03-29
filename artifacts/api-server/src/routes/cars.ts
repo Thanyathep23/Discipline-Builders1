@@ -423,7 +423,8 @@ router.post("/:id/purchase", requireAuth, async (req: any, res) => {
     // TODO: restore lock check before launch — was: if (user.level < (car.minLevel ?? 0)) { ... return 403 }
     // Level lock bypassed for testing
 
-    if (user.coinBalance < car.cost) {
+    const devMode = req.query.devMode === "true" && process.env.NODE_ENV !== "production";
+    if (!devMode && user.coinBalance < car.cost) {
       trackEvent(Events.ITEM_PURCHASE_FAILED, userId, { itemId: id, reason: "insufficient_coins", cost: car.cost, balance: user.coinBalance, store: "cars" }).catch(() => {});
       return res.status(400).json({
         error: `Insufficient coins. You need ${car.cost} coins — you have ${user.coinBalance}.`,
@@ -436,7 +437,7 @@ router.post("/:id/purchase", requireAuth, async (req: any, res) => {
     if (existing.length > 0)
       return res.status(400).json({ error: "You already own this vehicle." });
 
-    const newBalance = user.coinBalance - car.cost;
+    const newBalance = devMode ? user.coinBalance : (user.coinBalance - car.cost);
     const invId = generateId();
 
     await db.transaction(async (tx) => {

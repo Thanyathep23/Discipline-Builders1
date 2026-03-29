@@ -9,6 +9,7 @@ import Animated, { FadeIn, SlideInDown } from "react-native-reanimated";
 import { colors, typography, spacing, radius } from "@/design-system";
 import { ItemVisual } from "./WardrobeItemVisuals";
 import { getRarityColor, getRarityLabel, getSlotLabel, WardrobeItem } from "./wardrobeHelpers";
+import { useDevMode } from "@/context/DevModeContext";
 
 const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api`;
 
@@ -120,13 +121,16 @@ export function WardrobeItemSheet({
   isBuying, isEquipping, isUnequipping, userLevel, userXp, xpForNextLevel,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { isDevMode } = useDevMode();
   if (!item) return null;
 
+  const itemLocked = isDevMode ? false : item.isLocked;
+  const itemCanAfford = isDevMode ? true : item.canAfford;
   const rarityColor = getRarityColor(item.rarity);
   const busy = isBuying || isEquipping || isUnequipping;
 
   function renderCTA() {
-    if (item!.isLocked) {
+    if (itemLocked) {
       return (
         <View>
           <Pressable style={[st.ctaBtn, st.ctaDisabled]} disabled>
@@ -175,8 +179,7 @@ export function WardrobeItemSheet({
       );
     }
 
-    if (!item!.canAfford) {
-      const needed = item!.cost - 0;
+    if (!itemCanAfford) {
       return (
         <View>
           <Pressable style={[st.ctaBtn, st.ctaDisabled]} disabled>
@@ -191,13 +194,13 @@ export function WardrobeItemSheet({
 
     return (
       <Pressable
-        style={[st.ctaBtn, st.ctaPrimary]}
+        style={[st.ctaBtn, st.ctaPrimary, isDevMode && { backgroundColor: "#FF6B00" }]}
         onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onBuy(item!.id); }}
         disabled={busy}
       >
         {isBuying
           ? <ActivityIndicator size="small" color={colors.text.inverse} />
-          : <Text style={st.ctaPrimaryText}>Purchase for {item!.cost.toLocaleString()} Coins</Text>
+          : <Text style={st.ctaPrimaryText}>{isDevMode ? "UNLOCK (DEV)" : `Purchase for ${item!.cost.toLocaleString()} Coins`}</Text>
         }
       </Pressable>
     );

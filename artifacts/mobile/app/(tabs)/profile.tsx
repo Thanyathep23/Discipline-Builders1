@@ -9,6 +9,7 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
+import { useDevMode } from "@/context/DevModeContext";
 import {
   useRewardBalance, useDailyAnalytics, useSkills,
   useLifeProfile, useInventoryBadges, useInventoryTitles, useStreaks,
@@ -68,6 +69,7 @@ export default function ProfileScreen() {
   const topStrengths = sortedByLevel.slice(0, 2);
   const weakZones = sortedByLevel.slice(-2).reverse();
 
+  const { isDevMode, toggleDevMode } = useDevMode();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   function handleLogout() {
@@ -532,6 +534,27 @@ export default function ProfileScreen() {
             <MenuItem icon="log-out-outline" label="Sign Out" onPress={handleLogout} danger />
           </View>
         </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(220).springify()}>
+          <Text style={devStyles.sectionTitle}>DEVELOPER</Text>
+          <Pressable
+            style={[devStyles.devRow, isDevMode && devStyles.devRowActive]}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); toggleDevMode(); }}
+          >
+            <View style={devStyles.devLeft}>
+              <Text style={devStyles.devIcon}>⚡</Text>
+              <View>
+                <Text style={devStyles.devTitle}>Dev Mode</Text>
+                <Text style={devStyles.devSub}>
+                  {isDevMode ? "All items unlocked for testing" : "Normal game rules"}
+                </Text>
+              </View>
+            </View>
+            <View style={[devStyles.toggle, isDevMode && devStyles.toggleActive]}>
+              <View style={[devStyles.toggleThumb, isDevMode && devStyles.toggleThumbActive]} />
+            </View>
+          </Pressable>
+        </Animated.View>
       </ScrollView>
 
       <Modal visible={showLogoutModal} transparent animationType="fade" onRequestClose={() => setShowLogoutModal(false)}>
@@ -767,4 +790,30 @@ const evolutionBtnStyle = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.accentDim,
   },
   text: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.accent },
+});
+
+const devStyles = StyleSheet.create({
+  sectionTitle: {
+    fontFamily: "Inter_700Bold", fontSize: 11, color: Colors.textMuted,
+    letterSpacing: 1.5, marginBottom: 8, paddingHorizontal: 16, marginTop: 24,
+  },
+  devRow: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    backgroundColor: Colors.bgCard, borderRadius: 12, padding: 16,
+    marginHorizontal: 16, borderWidth: 1.5, borderColor: Colors.border,
+  },
+  devRowActive: { borderColor: "#FF6B00", backgroundColor: "#2A1500" },
+  devLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  devIcon: { fontSize: 24 },
+  devTitle: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.textPrimary },
+  devSub: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, marginTop: 2 },
+  toggle: {
+    width: 48, height: 26, borderRadius: 13, backgroundColor: "#374151",
+    justifyContent: "center", paddingHorizontal: 2,
+  },
+  toggleActive: { backgroundColor: "#FF6B00" },
+  toggleThumb: {
+    width: 22, height: 22, borderRadius: 11, backgroundColor: "#FFFFFF", alignSelf: "flex-start" as const,
+  },
+  toggleThumbActive: { alignSelf: "flex-end" as const },
 });

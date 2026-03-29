@@ -10,6 +10,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { useQueryClient } from "@tanstack/react-query";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
 import { useWearables, useEquipItem, useUnequipItem, useBuyItem } from "@/hooks/useApi";
+import { useDevMode } from "@/context/DevModeContext";
 import { LoadingScreen, ErrorState, Button } from "@/design-system";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -95,6 +96,7 @@ const modal = StyleSheet.create({
 
 function WearableCard({ item, delay = 0 }: { item: WearableItem; delay?: number }) {
   const qc = useQueryClient();
+  const { isDevMode } = useDevMode();
   const equipMut    = useEquipItem();
   const unequipMut  = useUnequipItem();
   const buyMut      = useBuyItem();
@@ -112,7 +114,7 @@ function WearableCard({ item, delay = 0 }: { item: WearableItem; delay?: number 
 
   function handleBuy() {
     setErrorMsg(null);
-    buyMut.mutate(item.id, {
+    buyMut.mutate({ itemId: item.id, devMode: isDevMode }, {
       onSuccess: () => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); invalidate(); },
       onError: (e: any) => setErrorMsg(e?.message ?? "Purchase failed."),
     });
@@ -297,6 +299,7 @@ const card = StyleSheet.create({
 
 export default function WardrobeScreen() {
   const insets = useSafeAreaInsets();
+  const { isDevMode } = useDevMode();
   const { data, isLoading, isError, refetch } = useWearables();
 
   const slotGroups: WearableSlotGroup[] = data
@@ -305,7 +308,9 @@ export default function WardrobeScreen() {
           slot: slot as "top" | "watch" | "accessory",
           label: SLOT_META[slot]?.label ?? slot.toUpperCase(),
           icon:  SLOT_META[slot]?.icon  ?? "shirt-outline",
-          items,
+          items: isDevMode
+            ? items.map(i => ({ ...i, isLocked: false, canAfford: true }))
+            : items,
         }))
         .sort((a, b) => ["top", "watch", "accessory"].indexOf(a.slot) - ["top", "watch", "accessory"].indexOf(b.slot))
     : [];

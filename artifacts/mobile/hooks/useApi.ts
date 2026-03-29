@@ -476,8 +476,8 @@ export function useBuyItem() {
   const { request } = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (itemId: string) =>
-      request<any>(`/marketplace/${itemId}/buy`, { method: "POST" }),
+    mutationFn: ({ itemId, devMode }: { itemId: string; devMode?: boolean }) =>
+      request<any>(`/marketplace/${itemId}/buy${devMode ? "?devMode=true" : ""}`, { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["marketplace"] });
       queryClient.invalidateQueries({ queryKey: ["rewards", "balance"] });
@@ -1027,8 +1027,8 @@ export function usePurchaseCar() {
   const { request } = useApiClient();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (carId: string) =>
-      request<any>(`/cars/${carId}/purchase`, { method: "POST" }),
+    mutationFn: ({ carId, devMode }: { carId: string; devMode?: boolean }) =>
+      request<any>(`/cars/${carId}/purchase${devMode ? "?devMode=true" : ""}`, { method: "POST" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cars"] });
       qc.invalidateQueries({ queryKey: ["character"] });

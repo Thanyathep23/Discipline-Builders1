@@ -326,12 +326,13 @@ router.post("/:itemId/buy", requireAuth, async (req: any, res) => {
       .where(eq(usersTable.id, userId)).limit(1);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    if (user.coinBalance < item.cost) {
+    const devMode = req.query.devMode === "true" && process.env.NODE_ENV !== "production";
+    if (!devMode && user.coinBalance < item.cost) {
       trackEvent(Events.ITEM_PURCHASE_FAILED, userId, { itemId, reason: "insufficient_coins", cost: item.cost, balance: user.coinBalance, store: "marketplace" }).catch(() => {});
       return res.status(400).json({ error: "Insufficient coins", required: item.cost, balance: user.coinBalance });
     }
 
-    const newBalance = user.coinBalance - item.cost;
+    const newBalance = devMode ? user.coinBalance : (user.coinBalance - item.cost);
 
     await db.transaction(async (tx) => {
       await tx.update(usersTable)
