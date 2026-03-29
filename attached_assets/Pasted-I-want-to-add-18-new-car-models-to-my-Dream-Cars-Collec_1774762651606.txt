@@ -1,0 +1,296 @@
+I want to add 18 new car models to my Dream Cars Collection screen.
+I have uploaded the following .glb files to /api/models/ in my Replit project.
+
+## Step 1 — Find the car catalog / data file
+
+Search for where cars are defined in the project:
+- Search for "Starter Ride", "Series M Black", "Alpine GT" (existing car names)
+- Could be in: server/data/cars.ts, server/storage.ts, shared/schema.ts,
+  a database seed file, or directly in app/cars/index.tsx
+
+## Step 2 — Add these 18 new cars to the catalog
+
+Add each car below with EXACTLY these names, files, and stats.
+Use the same data structure as existing cars in the project.
+
+### 🔴 DODGE (American Muscle)
+
+**Car: Dodge Viper ACR**
+- glbFile: 2016_dodge_viper_acr.glb
+- price: 35,000 GP
+- rarity: RARE
+- category: American Muscle
+- requiredLevel: 20
+- prestige: +12
+- description: "Pure American aggression. No traction control. No excuses."
+- stats: { hp: 645, topSpeed: 331, zeroToHundred: 3.5 }
+- colors: ['#CC0000', '#1A1A1A', '#FFFFFF']
+
+**Car: Dodge Challenger SRT Demon**
+- glbFile: dodge_challenger_srt_demon_sdc.glb
+- price: 55,000 GP
+- rarity: EPIC
+- category: American Muscle
+- requiredLevel: 30
+- prestige: +20
+- description: "Street legal. Drag strip ready. The Demon doesn't ask permission."
+- stats: { hp: 840, topSpeed: 274, zeroToHundred: 2.3 }
+- colors: ['#1A1A1A', '#B22222', '#4A4A4A']
+
+---
+
+### 🟡 LAMBORGHINI (Italian Exotic)
+
+**Car: Lamborghini Reventón Roadster**
+- glbFile: 2010_lamborghini_reventon_roadster.glb
+- price: 120,000 GP
+- rarity: LEGENDARY
+- category: Italian Exotic
+- requiredLevel: 55
+- prestige: +40
+- description: "Only 15 ever made. Owning this means you've won at life."
+- stats: { hp: 670, topSpeed: 340, zeroToHundred: 3.4 }
+- colors: ['#2A2A2A', '#5C5C3D', '#8B7355']
+
+**Car: Lamborghini Centenario Roadster**
+- glbFile: lamborghini_centenario_roadster_sdc.glb
+- price: 175,000 GP
+- rarity: LEGENDARY
+- category: Italian Exotic
+- requiredLevel: 65
+- prestige: +55
+- description: "Built to celebrate 100 years of Lamborghini. A living legend."
+- stats: { hp: 770, topSpeed: 350, zeroToHundred: 2.9 }
+- colors: ['#C9A84C', '#1A1A1A', '#2D4A1E']
+
+---
+
+### 🟢 BYD (Electric Future)
+
+**Car: BYD Seal**
+- glbFile: 2024_byd_seal.glb
+- price: 18,000 GP
+- rarity: COMMON
+- category: Electric
+- requiredLevel: 8
+- prestige: +6
+- description: "Smart, electric, and built for the disciplined modern entrepreneur."
+- stats: { hp: 530, topSpeed: 240, zeroToHundred: 3.8 }
+- colors: ['#4A9EFF', '#1A1A2E', '#F5F5F5']
+
+**Car: BYD Yangwang U9**
+- glbFile: 2024_byd_yangwang_u9.glb
+- price: 65,000 GP
+- rarity: EPIC
+- category: Electric Hypercar
+- requiredLevel: 38
+- prestige: +28
+- description: "China's answer to Ferrari. 1,300 HP of electric silence."
+- stats: { hp: 1300, topSpeed: 309, zeroToHundred: 2.36 }
+- colors: ['#FFD700', '#1A1A1A', '#C0392B']
+
+**Car: BYD Yangwang U7**
+- glbFile: 2024_byd_yangwang_u7.glb
+- price: 48,000 GP
+- rarity: RARE
+- category: Electric Luxury
+- requiredLevel: 28
+- prestige: +18
+- description: "Executive electric. The boardroom on wheels."
+- stats: { hp: 960, topSpeed: 260, zeroToHundred: 3.0 }
+- colors: ['#2C3E50', '#F5F5F5', '#8E44AD']
+
+---
+
+### 🔵 TOYOTA SUPRA (JDM Legend)
+
+**Car: Toyota GR Supra Varis Supreme**
+- glbFile: 2020_varis_supreme_a90__a91_toyota_gr_supra.glb
+- price: 42,000 GP
+- rarity: RARE
+- category: JDM Tuned
+- requiredLevel: 25
+- prestige: +16
+- description: "The Supra evolved. Varis kit transforms legend into spectacle."
+- stats: { hp: 500, topSpeed: 290, zeroToHundred: 4.1 }
+- colors: ['#FFFFFF', '#1A1A1A', '#FF4444']
+
+**Car: Toyota GR Supra LB Works**
+- glbFile: 2020_lbworks_toyota_supra_a90_ver.2.glb
+- price: 58,000 GP
+- rarity: EPIC
+- category: JDM Wide Body
+- requiredLevel: 32
+- prestige: +22
+- description: "Liberty Walk doesn't build cars. They build statements."
+- stats: { hp: 550, topSpeed: 295, zeroToHundred: 3.9 }
+- colors: ['#FF6B35', '#1A1A1A', '#4A9EFF']
+
+---
+
+### 🔵 TOYOTA (Daily Driver to Track Star)
+
+**Car: Toyota Camry**
+- glbFile: toyota_camry_2020.glb
+- price: 8,000 GP
+- rarity: COMMON
+- category: Daily Driver
+- requiredLevel: 3
+- prestige: +3
+- description: "The car that gets you there. Every day. No drama."
+- stats: { hp: 203, topSpeed: 210, zeroToHundred: 7.6 }
+- colors: ['#F5F5F5', '#1A1A2E', '#C0392B']
+
+**Car: Toyota RAV4 Hybrid**
+- glbFile: 2023_toyota_rav4_hybrid.glb
+- price: 12,000 GP
+- rarity: COMMON
+- category: SUV Hybrid
+- requiredLevel: 5
+- prestige: +4
+- description: "Smart money buys smart cars. Efficiency is a discipline."
+- stats: { hp: 219, topSpeed: 180, zeroToHundred: 8.1 }
+- colors: ['#2C3E50', '#E8E8E8', '#27AE60']
+
+**Car: Toyota Avalon Hybrid**
+- glbFile: 2023_toyota_avalon_hybrid_limited.glb
+- price: 20,000 GP
+- rarity: RARE
+- category: Luxury Hybrid
+- requiredLevel: 12
+- prestige: +8
+- description: "Executive comfort meets intelligent efficiency."
+- stats: { hp: 301, topSpeed: 230, zeroToHundred: 6.3 }
+- colors: ['#1A1A2E', '#C9A84C', '#F5F5F5']
+
+**Car: Toyota GR86**
+- glbFile: 2022_toyota_gr86.glb
+- price: 25,000 GP
+- rarity: RARE
+- category: Sports Car
+- requiredLevel: 15
+- prestige: +10
+- description: "Pure driving. No assists needed when you've mastered the craft."
+- stats: { hp: 228, topSpeed: 226, zeroToHundred: 6.3 }
+- colors: ['#C0392B', '#F5F5F5', '#1A1A1A']
+
+---
+
+### 🟡 PORSCHE (German Precision)
+
+**Car: Porsche 911 GT3 RS**
+- glbFile: porsche-911-gt3-rs_2023.glb
+- price: 95,000 GP
+- rarity: LEGENDARY
+- category: German Precision
+- requiredLevel: 50
+- prestige: +38
+- description: "The benchmark. Everything else is measured against the GT3 RS."
+- stats: { hp: 518, topSpeed: 296, zeroToHundred: 3.2 }
+- colors: ['#FF6B00', '#FFFFFF', '#1A1A1A']
+
+**Car: Porsche 911 GT3 Touring**
+- glbFile: 2022_porsche_911_gt3_touring_992.glb
+- price: 80,000 GP
+- rarity: EPIC
+- category: German Precision
+- requiredLevel: 45
+- prestige: +32
+- description: "All the performance. None of the wing. Pure class."
+- stats: { hp: 510, topSpeed: 320, zeroToHundred: 3.4 }
+- colors: ['#2C3E50', '#F5F5F5', '#8B7355']
+
+---
+
+### 🔵 AUDI (German Sport)
+
+**Car: Audi TT RS Iconic Edition**
+- glbFile: 2023_audi_tt_rs_iconic_edition.glb
+- price: 45,000 GP
+- rarity: RARE
+- category: German Sport
+- requiredLevel: 28
+- prestige: +17
+- description: "The final TT. A farewell from Audi done with full force."
+- stats: { hp: 400, topSpeed: 250, zeroToHundred: 3.7 }
+- colors: ['#C0392B', '#1A1A1A', '#F5F5F5']
+
+**Car: Audi TT Coupe**
+- glbFile: 2007_audi_tt_coupe.glb
+- price: 15,000 GP
+- rarity: COMMON
+- category: German Sport
+- requiredLevel: 8
+- prestige: +6
+- description: "The design icon that started it all. Timeless."
+- stats: { hp: 200, topSpeed: 240, zeroToHundred: 6.4 }
+- colors: ['#F5F5F5', '#4A9EFF', '#C9A84C']
+
+---
+
+### 🔴 HONDA (Track Legend)
+
+**Car: Honda Civic Type R**
+- glbFile: 2023_honda_civic_type_r.glb
+- price: 28,000 GP
+- rarity: RARE
+- category: Hot Hatch
+- requiredLevel: 18
+- prestige: +11
+- description: "Front-wheel drive king. Nürburgring record holder. Enough said."
+- stats: { hp: 315, topSpeed: 275, zeroToHundred: 5.4 }
+- colors: ['#CC0000', '#1A1A1A', '#F5F5F5']
+
+---
+
+## Step 3 — Rarity color mapping (use existing system)
+
+COMMON   → gray   #9CA3AF  (requiredLevel 1-10)
+RARE     → blue   #4A9EFF  (requiredLevel 11-35)
+EPIC     → purple #B06BFF  (requiredLevel 36-55)
+LEGENDARY → gold  #C9A84C  (requiredLevel 56+)
+
+## Step 4 — Add GLB file mapping for model-viewer
+
+In the code where GLB files are mapped to car names (like BMW_GLB_MAP),
+add all 18 new cars so they show 3D models in collection cards and detail views:
+```ts
+const CAR_GLB_MAP: Record<string, string> = {
+  // Existing BMW cars
+  'Series M Black':         '2025_bmw_m4_competition.glb',
+  'Alpine GT':              'bmw_m4_widebody.glb',
+
+  // New cars
+  'Dodge Viper ACR':              '2016_dodge_viper_acr.glb',
+  'Dodge Challenger SRT Demon':   'dodge_challenger_srt_demon_sdc.glb',
+  'Lamborghini Reventón Roadster':'2010_lamborghini_reventon_roadster.glb',
+  'Lamborghini Centenario Roadster': 'lamborghini_centenario_roadster_sdc.glb',
+  'BYD Seal':                     '2024_byd_seal.glb',
+  'BYD Yangwang U9':              '2024_byd_yangwang_u9.glb',
+  'BYD Yangwang U7':              '2024_byd_yangwang_u7.glb',
+  'Toyota GR Supra Varis Supreme':'2020_varis_supreme_a90__a91_toyota_gr_supra.glb',
+  'Toyota GR Supra LB Works':     '2020_lbworks_toyota_supra_a90_ver.2.glb',
+  'Toyota Camry':                 'toyota_camry_2020.glb',
+  'Toyota RAV4 Hybrid':           '2023_toyota_rav4_hybrid.glb',
+  'Toyota Avalon Hybrid':         '2023_toyota_avalon_hybrid_limited.glb',
+  'Toyota GR86':                  '2022_toyota_gr86.glb',
+  'Porsche 911 GT3 RS':           'porsche-911-gt3-rs_2023.glb',
+  'Porsche 911 GT3 Touring':      '2022_porsche_911_gt3_touring_992.glb',
+  'Audi TT RS Iconic Edition':    '2023_audi_tt_rs_iconic_edition.glb',
+  'Audi TT Coupe':                '2007_audi_tt_coupe.glb',
+  'Honda Civic Type R':           '2023_honda_civic_type_r.glb',
+}
+```
+
+## Step 5 — Sort the full collection by requiredLevel
+
+After adding all cars, sort the collection by requiredLevel ascending:
+Toyota Camry (3) → RAV4 (5) → BYD Seal (8) → Audi TT (8) → ... → Centenario (65)
+
+## Summary
+- Add 18 new cars to the catalog with correct names, prices, rarity, stats
+- Map each car's GLB file so 3D model shows in collection and detail view
+- Maintain existing data structure — don't break current cars
+- All files are already uploaded to /api/models/
+
+Show me the updated car catalog when done.
