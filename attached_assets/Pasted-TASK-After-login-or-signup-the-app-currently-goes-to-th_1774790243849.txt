@@ -1,0 +1,112 @@
+TASK: After login or signup, the app currently goes to the Cars collection screen.
+Fix it so that after login/signup the app always goes to the HOME screen first.
+
+════════════════════════════════════════════════════════
+STEP 1 — FIND WHERE THE REDIRECT HAPPENS
+════════════════════════════════════════════════════════
+
+Search for the current redirect logic:
+
+1. grep -r "router.push\|router.replace\|navigate\|redirect" . --include="*.tsx" --include="*.ts" -n | grep -i "car\|garage\|collection\|/cars\|index"
+2. grep -r "cars\|/cars\|garage" app/_layout.tsx app/index.tsx -n 2>/dev/null
+3. grep -r "Redirect\|<Redirect" . --include="*.tsx" -n
+4. cat app/index.tsx
+5. cat app/_layout.tsx
+
+Show me what you find before changing anything.
+
+════════════════════════════════════════════════════════
+STEP 2 — FIX THE DEFAULT ROUTE
+════════════════════════════════════════════════════════
+
+The fix depends on what you find, but the most common cases are:
+
+CASE A — app/index.tsx has a Redirect to /cars:
+  Change it to redirect to /home or / (the home tab):
+```tsx
+  // Before:
+  <Redirect href="/cars" />
+
+  // After:
+  <Redirect href="/home" />
+  // (or whatever the home screen route is — check app/ folder structure)
+```
+
+CASE B — _layout.tsx sets initialRouteName to 'cars':
+```tsx
+  // Before:
+  initialRouteName="cars"
+
+  // After:
+  initialRouteName="home"
+  // (or "index" if home is the index tab)
+```
+
+CASE C — Auth handler redirects to /cars after login:
+  Search for where login/signup success is handled:
+  grep -r "onLogin\|onSignup\|signIn\|signUp\|handleSubmit" . --include="*.tsx" -n
+
+  Find the router.push or router.replace call after successful auth and change it:
+```ts
+  // Before:
+  router.replace('/cars')
+  // or
+  router.push('/cars')
+
+  // After:
+  router.replace('/(tabs)/home')
+  // or simply:
+  router.replace('/home')
+  // Use whatever path your home screen is at
+```
+
+CASE D — Tab navigator default tab is cars:
+  In the tab navigator config, move home to be the FIRST tab:
+```tsx
+  // Make sure home/index tab comes BEFORE cars tab in the navigator
+  <Tabs.Screen name="home" ... />   // ← first = default
+  <Tabs.Screen name="cars" ... />
+  <Tabs.Screen name="watches" ... />
+```
+
+════════════════════════════════════════════════════════
+STEP 3 — FIND THE HOME SCREEN ROUTE
+════════════════════════════════════════════════════════
+
+Before fixing, confirm the exact route path for home:
+
+1. ls app/
+2. ls app/(tabs)/ 2>/dev/null || ls app/tabs/ 2>/dev/null
+
+The home screen is likely one of:
+  - app/(tabs)/index.tsx  → route is "/(tabs)/" or just "/"
+  - app/(tabs)/home.tsx   → route is "/(tabs)/home"
+  - app/home/index.tsx    → route is "/home"
+  - app/home.tsx          → route is "/home"
+
+Use the EXACT correct path when setting the redirect.
+
+════════════════════════════════════════════════════════
+STEP 4 — ALSO FIX: BACK NAVIGATION AFTER LOGIN
+════════════════════════════════════════════════════════
+
+After login/signup, use router.replace() NOT router.push().
+This prevents the user from pressing the back button and going back to the login screen.
+```ts
+// Use replace (clears navigation history):
+router.replace('/home')
+
+// NOT push (keeps login in history):
+router.push('/home')
+```
+
+════════════════════════════════════════════════════════
+STEP 5 — VERIFY
+════════════════════════════════════════════════════════
+
+1. Open the app fresh (not logged in)
+2. Complete signup OR login
+3. ✅ App goes to HOME screen — NOT cars collection
+4. ✅ Press the device back button → does NOT go back to login screen
+5. ✅ Bottom tab bar is visible with home tab selected/highlighted
+6. ✅ All other tabs (cars, watches, wardrobe, character) still work normally

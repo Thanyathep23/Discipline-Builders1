@@ -38,10 +38,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!user && !inAuthGroup) {
       router.replace("/(auth)/welcome");
     } else if (user && inAuthGroup) {
-      router.replace("/cars");
+      router.replace("/(tabs)");
     } else if (user && !hasLanded.current) {
       hasLanded.current = true;
-      router.replace("/cars");
+      router.replace("/(tabs)");
     }
   }, [user, isLoading, segments]);
 
