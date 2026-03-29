@@ -222,8 +222,6 @@ export default function WardrobeScreen() {
 
   const renderItemCard = useCallback(({ item, index }: { item: WardrobeItem; index: number }) => {
     const rarityColor = getRarityColor(item.rarity);
-    const hex = item.colorVariants.find((v) => v.key === item.selectedVariant)?.hex
-      ?? item.colorVariants[0]?.hex;
     return (
       <Pressable
         style={({ pressed }) => [st.itemCard, pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] }]}
@@ -233,7 +231,7 @@ export default function WardrobeScreen() {
           {item.glbFile && Platform.OS === "web" ? (
             <WatchCardViewer glbFile={item.glbFile} />
           ) : (
-            <ItemVisual slug={item.slug} colorVariant={hex} size={100} />
+            <ItemVisual slug={item.slug} size={100} />
           )}
         </View>
         <Text style={st.itemName} numberOfLines={1}>{item.name}</Text>
@@ -353,7 +351,6 @@ export default function WardrobeScreen() {
                     <View style={st.slotVisual}>
                       <ItemVisual
                         slug={equipped.slug}
-                        colorVariant={equipped.colorVariants.find((v) => v.key === equipped.selectedVariant)?.hex ?? equipped.colorVariants[0]?.hex}
                         size={64}
                       />
                     </View>

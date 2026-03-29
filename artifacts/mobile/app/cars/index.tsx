@@ -11,7 +11,7 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import Svg, { Path, Circle, Rect, Ellipse, G, Line } from "react-native-svg";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
-import { useCars, usePurchaseCar, useFeatureCar, useSelectCarVariant, useSelectWheelStyle } from "@/hooks/useApi";
+import { useCars, usePurchaseCar, useFeatureCar, useSelectWheelStyle } from "@/hooks/useApi";
 import { LoadingScreen, EmptyState } from "@/design-system";
 
 const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api`;
@@ -56,7 +56,6 @@ const SCREEN_W = Dimensions.get("window").width;
 const CARD_GAP = 10;
 const CARD_W = (SCREEN_W - 32 - CARD_GAP) / 2;
 
-type ColorVariant = { key: string; label: string; hex: string };
 type WheelStyleDef = { key: string; label: string; cost: number; minLevel: number };
 
 type Car = {
@@ -79,8 +78,6 @@ type Car = {
   isFeatured: boolean;
   isAffordable: boolean;
   lockReason: string | null;
-  colorVariants: ColorVariant[];
-  selectedVariant: string | null;
   wheelStyles: WheelStyleDef[];
   selectedWheelStyle: string;
 };
@@ -114,10 +111,8 @@ const STATE_ORDER: Record<CarState, number> = {
   featured: 0, owned: 1, available: 2, near_reach: 3, locked_soon: 4, locked: 5,
 };
 
-function getVariantHex(car: Car, variantKey?: string | null): string {
-  const key = variantKey ?? car.selectedVariant;
-  const v = car.colorVariants?.find(cv => cv.key === key);
-  return v?.hex ?? RARITY_COLORS[car.rarity] ?? Colors.textMuted;
+function getBodyColor(car: Car): string {
+  return RARITY_COLORS[car.rarity] ?? Colors.textMuted;
 }
 
 function WheelSVG({ cx: x, cy: y, r, color, style }: { cx: number; cy: number; r: number; color: string; style: string }) {
@@ -455,7 +450,7 @@ function CarGridCard({
   const dimmed = state === "locked" || state === "locked_soon";
   const levelsAway = car.isLocked ? car.minLevel - userLevel : 0;
   const coinsAway = !car.isOwned && !car.isLocked && !car.isAffordable ? car.cost : 0;
-  const bodyColor = getVariantHex(car);
+  const bodyColor = getBodyColor(car);
   const glbFile = CAR_GLB_MAP[car.name];
   const showGlb = !!glbFile && Platform.OS === "web";
 
@@ -550,7 +545,7 @@ function FeaturedCarHero({
 }) {
   const rarityColor = RARITY_COLORS[car.rarity] ?? Colors.accent;
   const classLabel = CLASS_LABELS[car.carClass ?? "entry"] ?? "VEHICLE";
-  const bodyColor = getVariantHex(car);
+  const bodyColor = getBodyColor(car);
 
   return (
     <Pressable
@@ -639,36 +634,6 @@ const fh = StyleSheet.create({
   vizBox: { borderRadius: 14, borderWidth: 1, padding: 6, backgroundColor: Colors.bg + "50", minWidth: 130, minHeight: 100 },
 });
 
-function ColorSwatchSelector({
-  variants, selectedKey, onSelect,
-}: {
-  variants: ColorVariant[]; selectedKey: string | null;
-  onSelect: (key: string) => void;
-}) {
-  if (!variants || variants.length <= 1) return null;
-  return (
-    <View style={sw.container}>
-      <Text style={sw.label}>COLOR VARIANT</Text>
-      <View style={sw.row}>
-        {variants.map((v) => {
-          const active = v.key === selectedKey;
-          return (
-            <Pressable
-              key={v.key}
-              style={[sw.swatch, { borderColor: active ? Colors.accent : Colors.border }]}
-              onPress={() => { Haptics.selectionAsync().catch(() => {}); onSelect(v.key); }}
-            >
-              <View style={[sw.dot, { backgroundColor: v.hex }]} />
-              {active && <View style={sw.checkmark}><Ionicons name="checkmark" size={8} color={Colors.textOnAccent} /></View>}
-            </Pressable>
-          );
-        })}
-      </View>
-      <Text style={sw.variantName}>{variants.find(v => v.key === selectedKey)?.label ?? ""}</Text>
-    </View>
-  );
-}
-
 function WheelStyleSelector({
   styles, selectedKey, onSelect, userLevel, isOwned, disabled,
 }: {
@@ -711,10 +676,6 @@ const sw = StyleSheet.create({
   container: { gap: 6 },
   label: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.5 },
   row: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-  swatch: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, alignItems: "center", justifyContent: "center" },
-  dot: { width: 24, height: 24, borderRadius: 12 },
-  checkmark: { position: "absolute", bottom: -2, right: -2, width: 14, height: 14, borderRadius: 7, backgroundColor: Colors.accent, alignItems: "center", justifyContent: "center" },
-  variantName: { fontFamily: "Inter_500Medium", fontSize: 11, color: Colors.textSecondary },
   wheelBtn: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.bgElevated, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: Colors.border },
   wheelBtnActive: { borderColor: Colors.accent + "60", backgroundColor: Colors.accentDim },
   wheelBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textSecondary },
@@ -723,26 +684,22 @@ const sw = StyleSheet.create({
 
 function CarDetailSheet({
   car, visible, onClose, onPurchase, onFeature, isPurchasing, isFeaturing,
-  onSelectVariant, isSelectingVariant, onSelectWheel, isSelectingWheel,
+  onSelectWheel, isSelectingWheel,
   userLevel, coinBalance,
 }: {
   car: Car | null; visible: boolean; onClose: () => void;
   onPurchase: (id: string) => void; onFeature: (id: string) => void;
   isPurchasing: boolean; isFeaturing: boolean;
-  onSelectVariant: (carId: string, variantKey: string) => void;
-  isSelectingVariant: boolean;
   onSelectWheel: (carId: string, wheelStyle: string) => void;
   isSelectingWheel: boolean;
   userLevel: number; coinBalance: number;
 }) {
   const insets = useSafeAreaInsets();
   const [confirmPurchase, setConfirmPurchase] = useState(false);
-  const [previewVariant, setPreviewVariant] = useState<string | null>(null);
   const [previewWheel, setPreviewWheel] = useState<string | null>(null);
 
   const resetState = useCallback(() => {
     setConfirmPurchase(false);
-    setPreviewVariant(null);
     setPreviewWheel(null);
   }, []);
 
@@ -750,9 +707,8 @@ function CarDetailSheet({
 
   const rarityColor = RARITY_COLORS[car.rarity] ?? Colors.textMuted;
   const classLabel = CLASS_LABELS[car.carClass ?? "entry"] ?? "VEHICLE";
-  const currentVariant = previewVariant ?? car.selectedVariant;
   const currentWheel = previewWheel ?? car.selectedWheelStyle ?? "classic";
-  const bodyColor = getVariantHex(car, currentVariant);
+  const bodyColor = getBodyColor(car);
   const dimmed = car.isLocked;
 
   return (
@@ -795,22 +751,6 @@ function CarDetailSheet({
           </View>
           <Text style={[ds.heroName, { color: rarityColor }]}>{car.name}</Text>
         </View>
-
-        {car.colorVariants && car.colorVariants.length > 1 && (
-          <View style={{ opacity: isSelectingVariant ? 0.6 : 1 }}>
-            <ColorSwatchSelector
-              variants={car.colorVariants}
-              selectedKey={currentVariant}
-              onSelect={(key) => {
-                if (isSelectingVariant) return;
-                setPreviewVariant(key);
-                if (car.isOwned) {
-                  onSelectVariant(car.id, key);
-                }
-              }}
-            />
-          </View>
-        )}
 
         <WheelStyleSelector
           styles={car.wheelStyles ?? []}
@@ -1129,7 +1069,6 @@ export default function GarageScreen() {
   const { data, isLoading, refetch } = useCars();
   const purchaseCar = usePurchaseCar();
   const featureCar = useFeatureCar();
-  const selectVariant = useSelectCarVariant();
   const selectWheel = useSelectWheelStyle();
 
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
@@ -1198,10 +1137,6 @@ export default function GarageScreen() {
       setErrorMsg(e.message ?? "Could not feature car");
     }
   }, [featureCar, refetch]);
-
-  const handleSelectVariant = useCallback((carId: string, variantKey: string) => {
-    selectVariant.mutate({ carId, colorVariant: variantKey });
-  }, [selectVariant]);
 
   const handleSelectWheel = useCallback(async (carId: string, wheelStyle: string) => {
     try {
@@ -1328,8 +1263,6 @@ export default function GarageScreen() {
         onFeature={handleFeature}
         isPurchasing={purchaseCar.isPending}
         isFeaturing={featureCar.isPending}
-        onSelectVariant={handleSelectVariant}
-        isSelectingVariant={selectVariant.isPending}
         onSelectWheel={handleSelectWheel}
         isSelectingWheel={selectWheel.isPending}
         userLevel={userLevel}

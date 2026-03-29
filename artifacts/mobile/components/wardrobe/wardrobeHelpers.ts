@@ -45,12 +45,6 @@ export function getSlotIcon(slot: string): string {
   return map[slot?.toLowerCase()] ?? "ellipse-outline";
 }
 
-export type ColorVariant = {
-  key: string;
-  label: string;
-  hex: string;
-};
-
 export type WardrobeItem = {
   id: string;
   slug: string;
@@ -64,8 +58,6 @@ export type WardrobeItem = {
   icon: string;
   series: string | null;
   glbFile: string | null;
-  colorVariants: ColorVariant[];
-  selectedVariant: string | null;
   isOwned: boolean;
   isEquipped: boolean;
   isLocked: boolean;

@@ -21,7 +21,6 @@ interface WardrobeItemDef {
   styleEffect: string;
   series: string;
   glbFile?: string;
-  colorVariants: string;
 }
 
 const WARDROBE_ITEMS: WardrobeItemDef[] = [
@@ -34,11 +33,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     styleEffect: "Prestige +3",
     series: "Smart Watch",
     glbFile: "apple_watch_ultra_2.glb",
-    colorVariants: JSON.stringify([
-      { key: "black", label: "Black", hex: "#1A1A1A" },
-      { key: "white", label: "White", hex: "#F5F5F5" },
-      { key: "blue", label: "Blue", hex: "#4A9EFF" },
-    ]),
   },
   {
     id: "wardrobe-watch-timex", slug: "timex-expedition", name: "Timex Expedition",
@@ -48,11 +42,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     styleEffect: "Prestige +3",
     series: "Field Watch",
     glbFile: "timex_expedition_watch.glb",
-    colorVariants: JSON.stringify([
-      { key: "dark-blue", label: "Dark Blue", hex: "#2C3E50" },
-      { key: "brown", label: "Brown", hex: "#8B7355" },
-      { key: "green", label: "Green", hex: "#27AE60" },
-    ]),
   },
   {
     id: "wardrobe-watch-seiko", slug: "seiko-prospex", name: "Seiko Prospex",
@@ -62,11 +51,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     styleEffect: "Prestige +7",
     series: "Diver's Watch",
     glbFile: "seiko_watch.glb",
-    colorVariants: JSON.stringify([
-      { key: "midnight", label: "Midnight", hex: "#1A1A2E" },
-      { key: "blue", label: "Blue", hex: "#4A9EFF" },
-      { key: "dark-blue", label: "Dark Blue", hex: "#2C3E50" },
-    ]),
   },
   {
     id: "wardrobe-watch-chrono-sport", slug: "chronograph-sport", name: "Chronograph Sport",
@@ -76,11 +60,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     styleEffect: "Prestige +9",
     series: "Sport Chronograph",
     glbFile: "chronograph_watch.glb",
-    colorVariants: JSON.stringify([
-      { key: "black", label: "Black", hex: "#1A1A1A" },
-      { key: "red", label: "Red", hex: "#C0392B" },
-      { key: "gold", label: "Gold", hex: "#C9A84C" },
-    ]),
   },
   {
     id: "wardrobe-watch-dress", slug: "classic-dress-watch", name: "Classic Dress Watch",
@@ -90,11 +69,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     styleEffect: "Prestige +11",
     series: "Dress Watch",
     glbFile: "hand_watch.glb",
-    colorVariants: JSON.stringify([
-      { key: "white", label: "White", hex: "#F5F5F5" },
-      { key: "gold", label: "Gold", hex: "#C9A84C" },
-      { key: "black", label: "Black", hex: "#1A1A1A" },
-    ]),
   },
   {
     id: "wardrobe-watch-breitling", slug: "breitling-superocean-44", name: "Breitling Superocean 44",
@@ -104,11 +78,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     styleEffect: "Prestige +20",
     series: "Professional Diver",
     glbFile: "breitling_superocean_automatic_44.glb",
-    colorVariants: JSON.stringify([
-      { key: "midnight", label: "Midnight", hex: "#1A1A2E" },
-      { key: "blue", label: "Blue", hex: "#4A9EFF" },
-      { key: "white", label: "White", hex: "#F5F5F5" },
-    ]),
   },
   {
     id: "wardrobe-watch-rolex", slug: "rolex-datejust", name: "Rolex Datejust",
@@ -118,11 +87,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     styleEffect: "Prestige +38",
     series: "Luxury Icon",
     glbFile: "rolex_datejust.glb",
-    colorVariants: JSON.stringify([
-      { key: "gold", label: "Gold", hex: "#C9A84C" },
-      { key: "white", label: "White", hex: "#F5F5F5" },
-      { key: "midnight", label: "Midnight", hex: "#1A1A2E" },
-    ]),
   },
   {
     id: "wardrobe-watch-patek", slug: "patek-philippe-calatrava", name: "Patek Philippe Calatrava",
@@ -132,11 +96,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     styleEffect: "Prestige +55",
     series: "Haute Horlogerie",
     glbFile: "patek_philippe.glb",
-    colorVariants: JSON.stringify([
-      { key: "gold", label: "Gold", hex: "#C9A84C" },
-      { key: "white", label: "White", hex: "#F5F5F5" },
-      { key: "brown", label: "Brown", hex: "#8B7355" },
-    ]),
   },
   {
     id: "wardrobe-watch-rm", slug: "richard-mille-rm011", name: "Richard Mille RM 011",
@@ -146,11 +105,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     styleEffect: "Prestige +70",
     series: "Ultra Luxury",
     glbFile: "richard_mille_rm011.glb",
-    colorVariants: JSON.stringify([
-      { key: "dark-blue", label: "Dark Blue", hex: "#2C3E50" },
-      { key: "gold", label: "Gold", hex: "#C9A84C" },
-      { key: "red", label: "Red", hex: "#C0392B" },
-    ]),
   },
 
   // ── CLOTHING — TOPS ──
@@ -161,9 +115,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "top", minLevel: 1,
     styleEffect: "Default starter appearance",
     series: "Starter Collection",
-    colorVariants: JSON.stringify([
-      { key: "white", label: "White", hex: "#F0F0F0" },
-    ]),
   },
   {
     id: "wardrobe-top-hoodie", slug: "premium-hoodie-s1", name: "Premium Hoodie — Series 1",
@@ -172,11 +123,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "top", minLevel: 8,
     styleEffect: "Casual tier outfit",
     series: "Elevated Essentials",
-    colorVariants: JSON.stringify([
-      { key: "black", label: "Black", hex: "#1A1A1A" },
-      { key: "cream", label: "Cream", hex: "#F5F0E8" },
-      { key: "slate", label: "Slate", hex: "#4A4A5A" },
-    ]),
   },
   {
     id: "wardrobe-top-silk", slug: "silk-business-shirt", name: "Silk Business Shirt",
@@ -185,11 +131,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "top", minLevel: 18,
     styleEffect: "Outfit tier upgrade",
     series: "Executive Line",
-    colorVariants: JSON.stringify([
-      { key: "white", label: "White", hex: "#F8F8FF" },
-      { key: "lightblue", label: "Light Blue", hex: "#B3D4FC" },
-      { key: "palepink", label: "Pale Pink", hex: "#F8D7DA" },
-    ]),
   },
 
   // ── CLOTHING — OUTERWEAR ──
@@ -200,11 +141,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "outerwear", minLevel: 30,
     styleEffect: "Outfit tier upgrade to Refined",
     series: "Milano Collection",
-    colorVariants: JSON.stringify([
-      { key: "camel", label: "Camel", hex: "#C19A6B" },
-      { key: "charcoal", label: "Charcoal", hex: "#36363C" },
-      { key: "ivory", label: "Ivory", hex: "#FFFFF0" },
-    ]),
   },
   {
     id: "wardrobe-suit-exec", slug: "executive-suit-midnight", name: "Executive Suit — Midnight",
@@ -213,11 +149,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "outerwear", minLevel: 40,
     styleEffect: "Strongest outfit upgrade, prestige signal",
     series: "Executive Line",
-    colorVariants: JSON.stringify([
-      { key: "midnight", label: "Midnight Navy", hex: "#0D1B2A" },
-      { key: "charcoal", label: "Charcoal", hex: "#36363C" },
-      { key: "black", label: "Black", hex: "#1A1A1A" },
-    ]),
   },
 
   // ── CLOTHING — BOTTOMS ──
@@ -228,10 +159,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "bottom", minLevel: 1,
     styleEffect: "Default starter appearance",
     series: "Starter Collection",
-    colorVariants: JSON.stringify([
-      { key: "black", label: "Black", hex: "#1A1A1A" },
-      { key: "indigo", label: "Dark Indigo", hex: "#1A237E" },
-    ]),
   },
   {
     id: "wardrobe-bottom-trouser", slug: "technical-slim-trouser", name: "Technical Slim Trouser",
@@ -240,11 +167,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "bottom", minLevel: 12,
     styleEffect: "Lower outfit refinement upgrade",
     series: "Tailored Series",
-    colorVariants: JSON.stringify([
-      { key: "navy", label: "Navy", hex: "#0D1B2A" },
-      { key: "charcoal", label: "Charcoal", hex: "#36363C" },
-      { key: "black", label: "Black", hex: "#1A1A1A" },
-    ]),
   },
 
   // ── ACCESSORIES ──
@@ -255,9 +177,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "accessory", minLevel: 10,
     styleEffect: "Subtle lifestyle signal",
     series: "Milano Collection",
-    colorVariants: JSON.stringify([
-      { key: "black", label: "Black", hex: "#1A1A1A" },
-    ]),
   },
   {
     id: "wardrobe-acc-pocket", slug: "silk-pocket-square", name: "Silk Pocket Square — Midnight",
@@ -266,9 +185,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "accessory", minLevel: 15,
     styleEffect: "Outfit detail upgrade on suited looks",
     series: "Executive Line",
-    colorVariants: JSON.stringify([
-      { key: "midnight", label: "Midnight", hex: "#0D1B2A" },
-    ]),
   },
   {
     id: "wardrobe-acc-cardcase", slug: "carbon-fiber-card-case", name: "Carbon Fiber Card Case",
@@ -277,9 +193,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "accessory", minLevel: 22,
     styleEffect: "Lifestyle signal upgrade",
     series: "Carbon Atelier",
-    colorVariants: JSON.stringify([
-      { key: "carbon", label: "Carbon", hex: "#2C2C2C" },
-    ]),
   },
   {
     id: "wardrobe-acc-ring", slug: "titanium-ring-zero", name: "Titanium Ring — Zero",
@@ -288,9 +201,6 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "accessory", minLevel: 38,
     styleEffect: "Prestige signal on hands layer",
     series: "Atelier Collection",
-    colorVariants: JSON.stringify([
-      { key: "titanium", label: "Titanium", hex: "#8A8A8A" },
-    ]),
   },
 ];
 
@@ -362,7 +272,6 @@ async function ensureWardrobeSeeded() {
       await db.update(shopItemsTable)
         .set({
           series: item.series,
-          colorVariants: item.colorVariants,
           name: item.name,
           description: item.description,
           cost: item.cost,
@@ -406,8 +315,6 @@ router.get("/", requireAuth, async (req: any, res) => {
 
     const result = items.map((item) => {
       const inv = ownedMap.get(item.id) ?? null;
-      let variants: { key: string; label: string; hex: string }[] = [];
-      try { variants = JSON.parse(item.colorVariants ?? "[]"); } catch {}
       return {
         id: item.id,
         slug: item.slug,
@@ -421,8 +328,6 @@ router.get("/", requireAuth, async (req: any, res) => {
         icon: item.icon,
         series: item.series ?? null,
         glbFile: WARDROBE_GLB_MAP.get(item.id) ?? null,
-        colorVariants: variants,
-        selectedVariant: inv?.colorVariant ?? variants[0]?.key ?? null,
         isOwned: inv !== null,
         isEquipped: inv?.isEquipped ?? false,
         isLocked: userLevel < (item.minLevel ?? 0),
@@ -470,8 +375,6 @@ router.get("/equipped", requireAuth, async (req: any, res) => {
     for (const inv of equipped) {
       const item = itemMap.get(inv.itemId);
       if (!item || !item.wearableSlot) continue;
-      let variants: { key: string; label: string; hex: string }[] = [];
-      try { variants = JSON.parse(item.colorVariants ?? "[]"); } catch {}
       slots[item.wearableSlot] = {
         id: item.id,
         slug: item.slug,
@@ -480,52 +383,10 @@ router.get("/equipped", requireAuth, async (req: any, res) => {
         series: item.series,
         wearableSlot: item.wearableSlot,
         styleEffect: item.styleEffect,
-        colorVariants: variants,
-        selectedVariant: inv.colorVariant ?? variants[0]?.key ?? null,
       };
     }
 
     return res.json({ slots });
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-router.post("/:itemId/variant", requireAuth, async (req: any, res) => {
-  try {
-    const userId = req.user.id;
-    const { itemId } = req.params;
-    const { variant } = req.body ?? {};
-
-    if (!variant || typeof variant !== "string") {
-      return res.status(400).json({ error: "variant is required" });
-    }
-
-    const [item] = await db
-      .select()
-      .from(shopItemsTable)
-      .where(eq(shopItemsTable.id, itemId))
-      .limit(1);
-    if (!item) return res.status(404).json({ error: "Item not found" });
-
-    let variants: { key: string }[] = [];
-    try { variants = JSON.parse(item.colorVariants ?? "[]"); } catch {}
-    if (!variants.some((v) => v.key === variant)) {
-      return res.status(400).json({ error: "Invalid variant" });
-    }
-
-    const [inv] = await db
-      .select()
-      .from(userInventoryTable)
-      .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.itemId, itemId)))
-      .limit(1);
-    if (!inv) return res.status(403).json({ error: "You do not own this item" });
-
-    await db.update(userInventoryTable)
-      .set({ colorVariant: variant })
-      .where(eq(userInventoryTable.id, inv.id));
-
-    return res.json({ success: true, variant });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

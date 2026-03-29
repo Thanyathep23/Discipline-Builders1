@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Modal, Platform,
 } from "react-native";
@@ -120,21 +120,10 @@ export function WardrobeItemSheet({
   isBuying, isEquipping, isUnequipping, userLevel, userXp, xpForNextLevel,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (item && visible) {
-      setSelectedVariant(item.selectedVariant ?? item.colorVariants[0]?.key ?? null);
-    }
-  }, [item?.id, visible]);
-
   if (!item) return null;
 
   const rarityColor = getRarityColor(item.rarity);
   const busy = isBuying || isEquipping || isUnequipping;
-  const currentHex = item.colorVariants.find((v) => v.key === selectedVariant)?.hex
-    ?? item.colorVariants[0]?.hex;
-  const selectedLabel = item.colorVariants.find((v) => v.key === selectedVariant)?.label ?? "";
 
   function renderCTA() {
     if (item!.isLocked) {
@@ -203,7 +192,7 @@ export function WardrobeItemSheet({
     return (
       <Pressable
         style={[st.ctaBtn, st.ctaPrimary]}
-        onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onBuy(item!.id, selectedVariant ?? ""); }}
+        onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onBuy(item!.id, ""); }}
         disabled={busy}
       >
         {isBuying
@@ -227,30 +216,9 @@ export function WardrobeItemSheet({
             {item.glbFile && Platform.OS === "web" ? (
               <Watch3DViewer glbFile={item.glbFile} />
             ) : (
-              <ItemVisual slug={item.slug} colorVariant={currentHex} size={200} />
+              <ItemVisual slug={item.slug} size={200} />
             )}
           </View>
-
-          {item.colorVariants.length > 1 && (
-            <View style={st.swatchRow}>
-              {item.colorVariants.map((v) => (
-                <Pressable
-                  key={v.key}
-                  onPress={() => { setSelectedVariant(v.key); Haptics.selectionAsync(); }}
-                  style={st.swatchWrap}
-                >
-                  <View style={[
-                    st.swatch,
-                    { backgroundColor: v.hex },
-                    selectedVariant === v.key && st.swatchSelected,
-                  ]} />
-                </Pressable>
-              ))}
-            </View>
-          )}
-          {selectedLabel !== "" && item.colorVariants.length > 1 && (
-            <Text style={st.swatchLabel}>{selectedLabel}</Text>
-          )}
 
           <Text style={st.itemName}>{item.name}</Text>
           {item.series && <Text style={st.itemSeries}>{item.series}</Text>}
@@ -318,21 +286,6 @@ const st = StyleSheet.create({
     alignItems: "center", paddingVertical: spacing.lg,
     backgroundColor: colors.bg.app, borderRadius: radius.lg,
     marginBottom: spacing.base,
-  },
-  swatchRow: {
-    flexDirection: "row", justifyContent: "center", gap: spacing.md, marginBottom: spacing.xs,
-  },
-  swatchWrap: { padding: 2 },
-  swatch: {
-    width: 28, height: 28, borderRadius: 14,
-    borderWidth: 2, borderColor: "transparent",
-  },
-  swatchSelected: {
-    borderColor: colors.accent.primary, borderWidth: 2.5,
-  },
-  swatchLabel: {
-    ...typography.bodySmall,
-    color: colors.text.secondary, textAlign: "center", marginBottom: spacing.md,
   },
   itemName: {
     ...typography.h3,

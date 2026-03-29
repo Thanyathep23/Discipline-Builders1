@@ -32,8 +32,6 @@ type Car = {
   prestigeValue: number;
   styleEffect?: string | null;
   description?: string;
-  colorVariants?: { key: string; label: string; hex: string }[];
-  selectedVariant?: string | null;
 };
 
 type Scene = "nightcity" | "coastal" | "minimal" | "track";
@@ -78,10 +76,8 @@ const CLASS_LABELS: Record<string, string> = {
   hypercar: "Hypercar",
 };
 
-function getVariantHex(car: Car, variantKey?: string | null): string {
-  const key = variantKey ?? car.selectedVariant;
-  const v = car.colorVariants?.find(cv => cv.key === key);
-  return v?.hex ?? RARITY_COLORS[car.rarity] ?? Colors.textMuted;
+function getVariantHex(car: Car): string {
+  return RARITY_COLORS[car.rarity] ?? Colors.textMuted;
 }
 
 const CANVAS_W = SCREEN_W - 32;

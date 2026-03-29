@@ -23,11 +23,11 @@ const PREMIUM_BG = "#07071A";
 
 // ─── Phase 29 — Wearable State Types ──────────────────────────────────────────
 
-export type WearableTop = { id: string; slug: string; name: string; outfitTierOverride: number | null; styleEffect: string | null; colorVariant?: string } | null;
-export type WearableWatch = { id: string; slug: string; name: string; watchStyle: "basic" | "refined" | "elite"; styleEffect: string | null; colorVariant?: string } | null;
-export type WearableAccessory = { id: string; slug: string; name: string; accessoryStyle: "chain" | "pin" | "ring"; styleEffect: string | null; colorVariant?: string } | null;
-export type WearableOuterwear = { id: string; slug: string; name: string; rarity?: string; colorVariant?: string } | null;
-export type WearableBottom = { id: string; slug: string; name: string; colorVariant?: string } | null;
+export type WearableTop = { id: string; slug: string; name: string; outfitTierOverride: number | null; styleEffect: string | null } | null;
+export type WearableWatch = { id: string; slug: string; name: string; watchStyle: "basic" | "refined" | "elite"; styleEffect: string | null } | null;
+export type WearableAccessory = { id: string; slug: string; name: string; accessoryStyle: "chain" | "pin" | "ring"; styleEffect: string | null } | null;
+export type WearableOuterwear = { id: string; slug: string; name: string; rarity?: string } | null;
+export type WearableBottom = { id: string; slug: string; name: string } | null;
 export type WearableShoes = { id: string; slug: string; name: string; rarity?: string; shoesStyle: "casual" | "sneaker" | "formal" | "boot" } | null;
 export type WearableEyewear = { id: string; slug: string; name: string; rarity?: string; eyewearStyle: "thin-frame" | "bold-frame" | "sunglasses" } | null;
 export type EquippedWearableState = { top: WearableTop; watch: WearableWatch; accessory: WearableAccessory; outerwear?: WearableOuterwear; bottom?: WearableBottom; shoes?: WearableShoes; eyewear?: WearableEyewear } | null;
@@ -404,11 +404,10 @@ export function EvolvedCharacter({
       <Ellipse cx="28" cy="192" rx="5"  ry="2.5" fill="#1A1A2A" />
       <Ellipse cx="72" cy="192" rx="5"  ry="2.5" fill="#1A1A2A" />
       {(() => {
-        const bottomHex = equippedWearables?.bottom?.colorVariant;
-        const pFill = bottomHex ?? oc.p;
-        const psFill = bottomHex ? bottomHex + "CC" : oc.ps;
-        const seamFill = bottomHex ? bottomHex + "88" : oc.seam;
-        const crFill = bottomHex ? "#00000015" : oc.cr;
+        const pFill = oc.p;
+        const psFill = oc.ps;
+        const seamFill = oc.seam;
+        const crFill = oc.cr;
         return (
           <G>
             <Rect x="26" y="118" width="21" height="80" rx="4" fill={pFill} />
@@ -479,17 +478,17 @@ export function EvolvedCharacter({
       )}
       {equippedWearables?.outerwear && (
         <G opacity={0.92}>
-          <Rect x={tX - 2} y="50" width={tW + 4} height="68" rx="7" fill={equippedWearables.outerwear.colorVariant ?? "#36363C"} />
-          <Rect x={aLX - 1} y="52" width={aW + 2} height="52" rx="9" fill={equippedWearables.outerwear.colorVariant ?? "#36363C"} />
-          <Rect x={aRX - 1} y="52" width={aW + 2} height="52" rx="9" fill={equippedWearables.outerwear.colorVariant ?? "#36363C"} />
+          <Rect x={tX - 2} y="50" width={tW + 4} height="68" rx="7" fill="#36363C" />
+          <Rect x={aLX - 1} y="52" width={aW + 2} height="52" rx="9" fill="#36363C" />
+          <Rect x={aRX - 1} y="52" width={aW + 2} height="52" rx="9" fill="#36363C" />
           <Line x1="50" y1="54" x2="50" y2="118" stroke="#00000018" strokeWidth="1.5" />
           <Path d={`M${tX + 10} 50 L50 62 L${tX + tW - 10} 50`} stroke="#00000020" strokeWidth="1.5" fill="none" strokeLinecap="round" />
         </G>
       )}
       {equippedWearables?.accessory?.accessoryStyle === "ring" && (
         <G>
-          <Ellipse cx={aLX + aW / 2} cy="104" rx="4" ry="2.5" fill={equippedWearables.accessory.colorVariant ?? "#8A8A8A"} opacity={0.85} />
-          <Ellipse cx={aLX + aW / 2} cy="104" rx="3" ry="1.8" fill={equippedWearables.accessory.colorVariant ?? "#8A8A8A"} opacity={0.5} />
+          <Ellipse cx={aLX + aW / 2} cy="104" rx="4" ry="2.5" fill="#8A8A8A" opacity={0.85} />
+          <Ellipse cx={aLX + aW / 2} cy="104" rx="3" ry="1.8" fill="#8A8A8A" opacity={0.5} />
         </G>
       )}
       {oc.col ? (

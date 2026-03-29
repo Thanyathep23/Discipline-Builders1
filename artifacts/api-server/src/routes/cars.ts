@@ -10,125 +10,6 @@ import { awardBadge } from "./inventory.js";
 
 const router = Router();
 
-// ─── Color Variant Definitions ──────────────────────────────────────────────
-
-export type ColorVariant = { key: string; label: string; hex: string };
-
-export const CAR_COLOR_VARIANTS: Record<string, ColorVariant[]> = {
-  "car-v2-starter": [
-    { key: "graphite-grey", label: "Graphite Grey", hex: "#4A4A52" },
-    { key: "white",         label: "White",         hex: "#E8E8EC" },
-  ],
-  "car-v2-series-m": [
-    { key: "midnight-black", label: "Midnight Black", hex: "#1A1A22" },
-    { key: "mineral-white",  label: "Mineral White",  hex: "#E0DFE4" },
-    { key: "sapphire-blue",  label: "Sapphire Blue",  hex: "#1E3A6E" },
-  ],
-  "car-v2-alpine-gt": [
-    { key: "arctic-silver",  label: "Arctic Silver",  hex: "#BCC3CB" },
-    { key: "racing-yellow",  label: "Racing Yellow",  hex: "#E8C820" },
-    { key: "deep-black",     label: "Deep Black",     hex: "#0D0D12" },
-  ],
-  "car-v2-continental": [
-    { key: "onyx-black", label: "Onyx Black", hex: "#141418" },
-    { key: "dove-white",  label: "Dove White",  hex: "#F0EDE6" },
-    { key: "cognac",      label: "Cognac",      hex: "#7A4228" },
-  ],
-  "car-v2-phantom": [
-    { key: "black-crystal",   label: "Black Crystal",   hex: "#10101A" },
-    { key: "champagne-gold",  label: "Champagne Gold",  hex: "#C4A55A" },
-  ],
-  "car-v2-vulcan": [
-    { key: "matte-black", label: "Matte Black", hex: "#1C1C22" },
-    { key: "carbon-red",   label: "Carbon Red",   hex: "#8B1A1A" },
-  ],
-  "car-v2-rav4-hybrid": [
-    { key: "dark-blue",  label: "Dark Blue",  hex: "#2C3E50" },
-    { key: "silver",     label: "Silver",     hex: "#E8E8E8" },
-    { key: "green",      label: "Green",      hex: "#27AE60" },
-  ],
-  "car-v2-byd-seal": [
-    { key: "ocean-blue", label: "Ocean Blue", hex: "#4A9EFF" },
-    { key: "midnight",   label: "Midnight",   hex: "#1A1A2E" },
-    { key: "white",      label: "White",      hex: "#F5F5F5" },
-  ],
-  "car-v2-audi-tt": [
-    { key: "white",      label: "White",      hex: "#F5F5F5" },
-    { key: "sprint-blue", label: "Sprint Blue", hex: "#4A9EFF" },
-    { key: "gold",       label: "Gold",       hex: "#C9A84C" },
-  ],
-  "car-v2-avalon-hybrid": [
-    { key: "midnight",   label: "Midnight",   hex: "#1A1A2E" },
-    { key: "gold",       label: "Gold",       hex: "#C9A84C" },
-    { key: "white",      label: "White",      hex: "#F5F5F5" },
-  ],
-  "car-v2-gr86": [
-    { key: "track-red",  label: "Track Red",  hex: "#C0392B" },
-    { key: "white",      label: "White",      hex: "#F5F5F5" },
-    { key: "black",      label: "Black",      hex: "#1A1A1A" },
-  ],
-  "car-v2-civic-type-r": [
-    { key: "rally-red",  label: "Rally Red",  hex: "#CC0000" },
-    { key: "black",      label: "Black",      hex: "#1A1A1A" },
-    { key: "white",      label: "White",      hex: "#F5F5F5" },
-  ],
-  "car-v2-viper-acr": [
-    { key: "viper-red",  label: "Viper Red",  hex: "#CC0000" },
-    { key: "black",      label: "Black",      hex: "#1A1A1A" },
-    { key: "white",      label: "White",      hex: "#FFFFFF" },
-  ],
-  "car-v2-supra-varis": [
-    { key: "white",      label: "White",      hex: "#FFFFFF" },
-    { key: "black",      label: "Black",      hex: "#1A1A1A" },
-    { key: "red",        label: "Red",        hex: "#FF4444" },
-  ],
-  "car-v2-tt-rs-iconic": [
-    { key: "tango-red",  label: "Tango Red",  hex: "#C0392B" },
-    { key: "black",      label: "Black",      hex: "#1A1A1A" },
-    { key: "white",      label: "White",      hex: "#F5F5F5" },
-  ],
-  "car-v2-yangwang-u7": [
-    { key: "dark-teal",  label: "Dark Teal",  hex: "#2C3E50" },
-    { key: "white",      label: "White",      hex: "#F5F5F5" },
-    { key: "purple",     label: "Purple",     hex: "#8E44AD" },
-  ],
-  "car-v2-challenger-demon": [
-    { key: "black",      label: "Black",      hex: "#1A1A1A" },
-    { key: "demon-red",  label: "Demon Red",  hex: "#B22222" },
-    { key: "gunmetal",   label: "Gunmetal",   hex: "#4A4A4A" },
-  ],
-  "car-v2-supra-lbworks": [
-    { key: "lb-orange",  label: "LB Orange",  hex: "#FF6B35" },
-    { key: "black",      label: "Black",      hex: "#1A1A1A" },
-    { key: "blue",       label: "Blue",       hex: "#4A9EFF" },
-  ],
-  "car-v2-yangwang-u9": [
-    { key: "gold",       label: "Gold",       hex: "#FFD700" },
-    { key: "black",      label: "Black",      hex: "#1A1A1A" },
-    { key: "red",        label: "Red",        hex: "#C0392B" },
-  ],
-  "car-v2-911-gt3-touring": [
-    { key: "dark-blue",  label: "Dark Blue",  hex: "#2C3E50" },
-    { key: "white",      label: "White",      hex: "#F5F5F5" },
-    { key: "brown",      label: "Brown",      hex: "#8B7355" },
-  ],
-  "car-v2-911-gt3-rs": [
-    { key: "signal-orange", label: "Signal Orange", hex: "#FF6B00" },
-    { key: "white",         label: "White",         hex: "#FFFFFF" },
-    { key: "black",         label: "Black",         hex: "#1A1A1A" },
-  ],
-  "car-v2-reventon": [
-    { key: "gunmetal",   label: "Gunmetal",   hex: "#2A2A2A" },
-    { key: "olive",      label: "Olive",      hex: "#5C5C3D" },
-    { key: "bronze",     label: "Bronze",     hex: "#8B7355" },
-  ],
-  "car-v2-centenario": [
-    { key: "oro-elios",  label: "Oro Elios",  hex: "#C9A84C" },
-    { key: "black",      label: "Black",      hex: "#1A1A1A" },
-    { key: "verde",      label: "Verde",      hex: "#2D4A1E" },
-  ],
-};
-
 // ─── Car Catalog (deterministic IDs, idempotent seed) ────────────────────────
 
 const CAR_CATALOG = [
@@ -404,7 +285,6 @@ async function ensureCarsSeeded() {
     const existing = await db.select({ id: shopItemsTable.id })
       .from(shopItemsTable).where(eq(shopItemsTable.id, car.id)).limit(1);
     if (existing.length === 0) {
-      const defaultVariant = CAR_COLOR_VARIANTS[car.id]?.[0]?.key ?? null;
       await db.insert(shopItemsTable).values({
         id:           car.id,
         slug:         car.slug,
@@ -434,8 +314,6 @@ async function ensureCarsSeeded() {
         styleEffect:  JSON.stringify({
           class: car.subcategory,
           prestigeValue: CAR_PRESTIGE_VALUES[car.subcategory] ?? 0,
-          defaultVariant,
-          colorVariants: CAR_COLOR_VARIANTS[car.id] ?? [],
         }),
       } as any).onConflictDoNothing();
     }
@@ -506,8 +384,6 @@ router.get("/", requireAuth, async (req: any, res) => {
         try { return JSON.parse(car.tags ?? "[]"); } catch { return []; }
       })();
 
-      const variants = CAR_COLOR_VARIANTS[car.id] ?? [];
-      const selectedVariant = invRow?.colorVariant ?? variants[0]?.key ?? null;
       const selectedWheelStyle = invRow?.wheelStyle ?? "classic";
 
       return {
@@ -531,8 +407,6 @@ router.get("/", requireAuth, async (req: any, res) => {
         lockReason: locked
           ? `Reach level ${car.minLevel} to unlock this vehicle.`
           : null,
-        colorVariants: variants,
-        selectedVariant,
         wheelStyles: WHEEL_STYLES,
         selectedWheelStyle,
       };
@@ -566,8 +440,6 @@ router.post("/:id/purchase", requireAuth, async (req: any, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
-    const { colorVariant } = req.body ?? {};
-
     const [car] = await db.select().from(shopItemsTable)
       .where(and(eq(shopItemsTable.id, id), eq(shopItemsTable.category, "vehicle"))).limit(1);
     if (!car) return res.status(404).json({ error: "Car not found" });
@@ -594,11 +466,6 @@ router.post("/:id/purchase", requireAuth, async (req: any, res) => {
     if (existing.length > 0)
       return res.status(400).json({ error: "You already own this vehicle." });
 
-    const variants = CAR_COLOR_VARIANTS[id] ?? [];
-    const selectedVariant = colorVariant && variants.some(v => v.key === colorVariant)
-      ? colorVariant
-      : variants[0]?.key ?? null;
-
     const newBalance = user.coinBalance - car.cost;
     const invId = generateId();
 
@@ -610,7 +477,6 @@ router.post("/:id/purchase", requireAuth, async (req: any, res) => {
       await tx.insert(userInventoryTable).values({
         id: invId, userId, itemId: id,
         isEquipped: false, source: "purchase",
-        colorVariant: selectedVariant,
       });
 
       await tx.insert(rewardTransactionsTable).values({
@@ -623,7 +489,7 @@ router.post("/:id/purchase", requireAuth, async (req: any, res) => {
       await tx.insert(auditLogTable).values({
         id: generateId(), actorId: userId,
         action: "car_purchased",
-        details: JSON.stringify({ itemId: id, cost: car.cost, colorVariant: selectedVariant }),
+        details: JSON.stringify({ itemId: id, cost: car.cost }),
       });
     });
 
@@ -680,34 +546,6 @@ router.delete("/feature", requireAuth, async (req: any, res) => {
       .set({ displaySlot: null })
       .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.displaySlot, "featured_car")));
     return res.json({ success: true });
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// ─── PATCH /cars/:id/variant — select color variant ─────────────────────────
-
-router.patch("/:id/variant", requireAuth, async (req: any, res) => {
-  try {
-    const userId = req.user.id;
-    const { id } = req.params;
-    const { colorVariant } = req.body ?? {};
-
-    if (!colorVariant) return res.status(400).json({ error: "colorVariant is required" });
-
-    const [inv] = await db.select().from(userInventoryTable)
-      .where(and(eq(userInventoryTable.userId, userId), eq(userInventoryTable.itemId, id))).limit(1);
-    if (!inv) return res.status(403).json({ error: "You do not own this vehicle." });
-
-    const variants = CAR_COLOR_VARIANTS[id] ?? [];
-    if (!variants.some(v => v.key === colorVariant))
-      return res.status(400).json({ error: "Invalid color variant for this vehicle." });
-
-    await db.update(userInventoryTable)
-      .set({ colorVariant })
-      .where(eq(userInventoryTable.id, inv.id));
-
-    return res.json({ success: true, colorVariant });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
@@ -807,14 +645,11 @@ router.get("/photo-mode", requireAuth, async (req: any, res) => {
       .filter(c => ownedCarIds.includes(c.id) && c.status === "active")
       .map(c => {
         const inv = invMap.get(c.id);
-        const variants = CAR_COLOR_VARIANTS[c.id] ?? [];
         return {
           id: c.id, name: c.name, rarity: c.rarity, carClass: c.subcategory,
           icon: c.icon, description: c.description,
           prestigeValue: CAR_PRESTIGE_VALUES[c.subcategory ?? "entry"] ?? 0,
           isPhotoEligible: true,
-          colorVariants: variants,
-          selectedVariant: inv?.colorVariant ?? variants[0]?.key ?? null,
           selectedWheelStyle: inv?.wheelStyle ?? "classic",
         };
       });
@@ -853,7 +688,6 @@ router.get("/featured-info", requireAuth, async (req: any, res) => {
         rarity: car.rarity,
         carClass: car.subcategory,
         prestigeValue: CAR_PRESTIGE_VALUES[car.subcategory ?? "entry"] ?? 0,
-        colorVariant: featuredInv.colorVariant,
       },
     });
   } catch (err: any) {
