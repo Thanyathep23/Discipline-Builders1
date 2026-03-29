@@ -95,9 +95,15 @@ const WEARABLE_OUTFIT_TIER: Record<string, number> = {
 };
 
 const WEARABLE_WATCH_STYLE: Record<string, "basic" | "refined" | "elite"> = {
-  "classic-watch":     "basic",
-  "refined-timepiece": "refined",
-  "elite-chronograph": "elite",
+  "apple-watch-ultra":      "basic",
+  "timex-expedition":       "basic",
+  "seiko-prospex":          "basic",
+  "chronograph-sport":      "refined",
+  "classic-dress-watch":    "refined",
+  "breitling-superocean-44": "refined",
+  "rolex-datejust":         "elite",
+  "patek-philippe-calatrava": "elite",
+  "richard-mille-rm011":    "elite",
 };
 
 const WEARABLE_ACCESSORY_STYLE: Record<string, "chain" | "pin" | "ring"> = {

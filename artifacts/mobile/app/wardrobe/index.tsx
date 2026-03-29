@@ -151,7 +151,10 @@ export default function WardrobeScreen() {
 
   const coinBalance = (wearableData as any)?.coinBalance ?? (balanceData as any)?.coinBalance ?? 0;
   const userLevel = (wearableData as any)?.userLevel ?? 1;
-  const allItems: WardrobeItem[] = (wearableData as any)?.items ?? [];
+  const BANNED_WATCH_NAMES = ["Classic Watch", "Refined Timepiece", "Elite Chronograph"];
+  const allItems: WardrobeItem[] = ((wearableData as any)?.items ?? []).filter(
+    (i: WardrobeItem) => !BANNED_WATCH_NAMES.includes(i.name)
+  );
 
   const filteredItems = useMemo(() => {
     let items = allItems;

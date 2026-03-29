@@ -311,6 +311,9 @@ const WARDROBE_GLB_MAP = new Map(
 const DEPRECATED_WATCH_IDS = [
   "wardrobe-watch-starter", "wardrobe-watch-chrono", "wardrobe-watch-mariner",
   "wardrobe-watch-royal", "wardrobe-watch-geneve", "wardrobe-watch-carbon",
+];
+
+const HARD_DELETE_WATCH_IDS = [
   "wearable-watch-classic-001", "wearable-watch-refined-002", "wearable-watch-elite-003",
 ];
 
@@ -326,6 +329,13 @@ async function ensureWardrobeSeeded() {
       await db.update(shopItemsTable)
         .set({ isAvailable: false, status: "archived" })
         .where(eq(shopItemsTable.id, oldId));
+    }
+  }
+
+  for (const deleteId of HARD_DELETE_WATCH_IDS) {
+    if (existingIds.has(deleteId)) {
+      await db.delete(userInventoryTable).where(eq(userInventoryTable.itemId, deleteId));
+      await db.delete(shopItemsTable).where(eq(shopItemsTable.id, deleteId));
     }
   }
 
@@ -380,10 +390,12 @@ router.get("/", requireAuth, async (req: any, res) => {
     const userLevel = user?.level ?? 1;
     const coinBalance = user?.coinBalance ?? 0;
 
-    const items = await db
+    const BANNED_WATCH_NAMES = ["Classic Watch", "Refined Timepiece", "Elite Chronograph"];
+    const rawItems = await db
       .select()
       .from(shopItemsTable)
       .where(and(isNotNull(shopItemsTable.wearableSlot), eq(shopItemsTable.isAvailable, true)));
+    const items = rawItems.filter((i) => !BANNED_WATCH_NAMES.includes(i.name ?? ""));
 
     const owned = await db
       .select()
