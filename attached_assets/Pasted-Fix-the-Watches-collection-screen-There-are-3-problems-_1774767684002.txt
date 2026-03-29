@@ -1,0 +1,150 @@
+Fix the Watches collection screen. There are 3 problems to solve:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROBLEM 1 — Old watches still showing (with X placeholder)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+These 3 watches still appear in the UI but should be completely gone:
+- "Classic Watch"
+- "Refined Timepiece"
+- "Elite Chronograph"
+
+Search everywhere they could exist:
+1. The server/database catalog (seed file, storage.ts, etc.)
+2. Any hardcoded array in the watch screen component
+3. Any client-side watch list or mock data
+4. Any database entries — run a delete query if using a DB
+
+DELETE all 3 completely. They must not appear anywhere.
+
+Also add this new watch:
+- name: Apple Watch Ultra 2
+- glbFile: apple_watch_ultra_2.glb
+- brand: Apple
+- price: 4,500 GP
+- rarity: COMMON
+- category: Smart Watch
+- requiredLevel: 2
+- prestige: +3
+- description: "The most rugged Apple Watch ever. Built for those who push limits."
+- colors: ['#1A1A1A', '#F5F5F5', '#4A9EFF']
+
+Replace the old "Apple Watch Ultra" entry with this new one (same slot, updated file).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROBLEM 2 — Watches display at different sizes/zoom levels
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Each watch GLB was made by a different artist at a different scale.
+This causes model-viewer to zoom differently for each watch.
+
+THE CORRECT FIX — use JavaScript to measure each model and set camera after load:
+
+Find the component that renders watch cards with model-viewer.
+Replace the static camera-orbit attribute with this dynamic approach:
+```tsx
+// For EACH watch card model-viewer, add an onLoad handler:
+
+const watchViewerRef = useRef<HTMLElement>(null)
+
+// After model-viewer loads the model, fit the camera to show the full watch:
+const handleModelLoad = () => {
+  const mv = watchViewerRef.current as any
+  if (!mv) return
+
+  // Wait one frame for the model to be fully processed
+  requestAnimationFrame(() => {
+    // Use model-viewer's built-in getDimensions to find the model size
+    if (mv.getDimensions) {
+      const dims = mv.getDimensions()
+      // Set camera to show full model with padding
+      mv.cameraOrbit = `0deg 75deg ${Math.max(dims.x, dims.y, dims.z) * 2.5}m`
+      mv.fieldOfView = '30deg'
+    } else {
+      // Fallback: use percentage-based orbit
+      mv.cameraOrbit = '0deg 75deg 105%'
+      mv.fieldOfView = '30deg'
+    }
+  })
+}
+```
+
+AND set these attributes on every model-viewer for watches:
+```html
+<model-viewer
+  ref={watchViewerRef}
+  src={`/api/models/${watch.glbFile}`}
+  auto-rotate
+  auto-rotate-delay="2000"
+  rotation-per-second="10deg"
+  camera-orbit="0deg 75deg 105%"
+  min-camera-orbit="auto auto 90%"
+  max-camera-orbit="auto auto 130%"
+  field-of-view="30deg"
+  min-field-of-view="20deg"
+  max-field-of-view="45deg"
+  environment-image="neutral"
+  shadow-intensity="1.0"
+  exposure="1.1"
+  onLoad={handleModelLoad}
+  style={{
+    width: '100%',
+    height: '100%',
+    background: 'transparent',
+    '--poster-color': 'transparent'
+  }}
+/>
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROBLEM 3 — Apply PER-WATCH camera overrides
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Some watches are still wrong after the percentage fix because their pivot
+point (origin) is offset inside the GLB. Apply these specific overrides:
+```ts
+// Add this mapping in the watch card component:
+const WATCH_CAMERA_OVERRIDES: Record<string, {
+  orbit: string
+  fov: string
+  target?: string
+}> = {
+  'apple_watch_ultra_2.glb':                        { orbit: '0deg 70deg 105%', fov: '28deg' },
+  'apple_watch.glb':                                { orbit: '0deg 70deg 105%', fov: '28deg' },
+  'timex_expedition_watch.glb':                     { orbit: '30deg 70deg 105%', fov: '32deg' },
+  'seiko_watch.glb':                                { orbit: '0deg 75deg 105%', fov: '28deg' },
+  'chronograph_watch.glb':                          { orbit: '20deg 75deg 105%', fov: '30deg' },
+  'hand_watch__free_model.glb':                     { orbit: '0deg 80deg 105%', fov: '30deg' },
+  'breitling_superocean_automatic_44_-_watch.glb':  { orbit: '0deg 70deg 105%', fov: '28deg' },
+  'rolex_datejust.glb':                             { orbit: '10deg 75deg 105%', fov: '28deg' },
+  'patek_philippe.glb':                             { orbit: '0deg 70deg 105%', fov: '28deg' },
+  'richard_mille_rm011_low_poly.glb':               { orbit: '20deg 72deg 105%', fov: '30deg' },
+}
+
+// In the watch card JSX:
+const camOverride = WATCH_CAMERA_OVERRIDES[watch.glbFile] ?? {
+  orbit: '0deg 75deg 105%',
+  fov: '30deg'
+}
+
+<model-viewer
+  camera-orbit={camOverride.orbit}
+  field-of-view={camOverride.fov}
+  ...otherProps
+/>
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL CHECKLIST — verify all of these before finishing:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[ ] "Classic Watch" is completely gone — doesn't appear in the list
+[ ] "Refined Timepiece" is completely gone
+[ ] "Elite Chronograph" is completely gone
+[ ] "Apple Watch Ultra 2" appears with apple_watch_ultra_2.glb
+[ ] All remaining 9 watches show a 3D model (no X placeholder)
+[ ] Every watch card shows the watch at roughly the same visual size
+[ ] No watch is zoomed in so close you can only see part of it
+[ ] No watch is zoomed out so far it looks tiny
+
+Show me the final watch list and confirm each fix was applied.

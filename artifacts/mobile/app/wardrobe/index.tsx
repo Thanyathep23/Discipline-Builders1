@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet, FlatList, RefreshControl, Platform,
 } from "react-native";
@@ -21,6 +21,21 @@ import {
 
 const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api`;
 
+const WATCH_CAMERA_OVERRIDES: Record<string, { orbit: string; fov: string }> = {
+  "apple_watch_ultra_2.glb":               { orbit: "0deg 70deg 105%", fov: "28deg" },
+  "apple_watch.glb":                       { orbit: "0deg 70deg 105%", fov: "28deg" },
+  "timex_expedition_watch.glb":            { orbit: "30deg 70deg 105%", fov: "32deg" },
+  "seiko_watch.glb":                       { orbit: "0deg 75deg 105%", fov: "28deg" },
+  "chronograph_watch.glb":                 { orbit: "20deg 75deg 105%", fov: "30deg" },
+  "hand_watch.glb":                        { orbit: "0deg 80deg 105%", fov: "30deg" },
+  "breitling_superocean_automatic_44.glb": { orbit: "0deg 70deg 105%", fov: "28deg" },
+  "rolex_datejust.glb":                    { orbit: "10deg 75deg 105%", fov: "28deg" },
+  "patek_philippe.glb":                    { orbit: "0deg 70deg 105%", fov: "28deg" },
+  "richard_mille_rm011.glb":               { orbit: "20deg 72deg 105%", fov: "30deg" },
+};
+
+const DEFAULT_WATCH_CAMERA = { orbit: "0deg 75deg 105%", fov: "30deg" };
+
 function ensureModelViewerScript() {
   if (
     typeof window !== "undefined" &&
@@ -36,30 +51,50 @@ function ensureModelViewerScript() {
 }
 
 function WatchCardViewer({ glbFile }: { glbFile: string }) {
+  const viewerRef = useRef<HTMLElement>(null);
+
   useEffect(() => {
     if (Platform.OS === "web") ensureModelViewerScript();
   }, []);
 
   if (Platform.OS !== "web") return null;
 
+  const cam = WATCH_CAMERA_OVERRIDES[glbFile] ?? DEFAULT_WATCH_CAMERA;
   const modelUrl = `${API_BASE}/models/${glbFile}`;
+
+  const handleLoad = () => {
+    const mv = viewerRef.current as any;
+    if (!mv) return;
+    requestAnimationFrame(() => {
+      if (mv.getDimensions) {
+        const dims = mv.getDimensions();
+        mv.cameraOrbit = `${cam.orbit.split(" ").slice(0, 2).join(" ")} ${Math.max(dims.x, dims.y, dims.z) * 2.5}m`;
+        mv.fieldOfView = cam.fov;
+      }
+    });
+  };
+
   return (
     <View style={{ width: 100, height: 100, borderRadius: 8, overflow: "hidden" }}>
       {/* @ts-ignore */}
       <model-viewer
+        ref={viewerRef}
         src={modelUrl}
         auto-rotate
-        auto-rotate-delay="500"
+        auto-rotate-delay="2000"
         rotation-per-second="10deg"
-        camera-orbit="30deg 70deg 110%"
-        min-camera-orbit="auto auto 80%"
-        max-camera-orbit="auto auto 150%"
-        field-of-view="35deg"
+        camera-orbit={cam.orbit}
+        min-camera-orbit="auto auto 90%"
+        max-camera-orbit="auto auto 130%"
+        field-of-view={cam.fov}
+        min-field-of-view="20deg"
+        max-field-of-view="45deg"
         camera-target="0m 0m 0m"
         environment-image="neutral"
         shadow-intensity="1.0"
         exposure="1.1"
         interaction-prompt="none"
+        onLoad={handleLoad}
         style={
           {
             width: "100%",

@@ -28,10 +28,10 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
   // ── WATCHES (sorted by minLevel ascending) ──
   {
     id: "wardrobe-watch-apple-ultra", slug: "apple-watch-ultra", name: "Apple Watch Ultra 2",
-    description: "Track every metric. Every discipline session logged. Every goal measured.",
-    cost: 3500, category: "fashion", icon: "watch-outline", rarity: "common", itemType: "cosmetic",
-    wearableSlot: "watch", minLevel: 1,
-    styleEffect: "Prestige +2",
+    description: "The most rugged Apple Watch ever. Built for those who push limits.",
+    cost: 4500, category: "fashion", icon: "watch-outline", rarity: "common", itemType: "cosmetic",
+    wearableSlot: "watch", minLevel: 2,
+    styleEffect: "Prestige +3",
     series: "Smart Watch",
     glbFile: "apple_watch_ultra_2.glb",
     colorVariants: JSON.stringify([
@@ -311,6 +311,7 @@ const WARDROBE_GLB_MAP = new Map(
 const DEPRECATED_WATCH_IDS = [
   "wardrobe-watch-starter", "wardrobe-watch-chrono", "wardrobe-watch-mariner",
   "wardrobe-watch-royal", "wardrobe-watch-geneve", "wardrobe-watch-carbon",
+  "wearable-watch-classic-001", "wearable-watch-refined-002", "wearable-watch-elite-003",
 ];
 
 async function ensureWardrobeSeeded() {
