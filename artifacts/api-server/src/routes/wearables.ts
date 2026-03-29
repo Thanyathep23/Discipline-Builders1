@@ -6,6 +6,24 @@ import { eq, and, isNotNull, inArray } from "drizzle-orm";
 
 const router = Router();
 
+interface WardrobeItemDef {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  cost: number;
+  category: string;
+  icon: string;
+  rarity: string;
+  itemType: string;
+  wearableSlot: string;
+  minLevel: number;
+  styleEffect: string;
+  series: string;
+  glbFile?: string;
+  colorVariants: string;
+}
+
 export const WATCH_GLB_MAP: Record<string, string> = {
   "Apple Watch Ultra":       "apple_watch.glb",
   "Timex Expedition":        "timex_expedition_watch.glb",
@@ -18,7 +36,7 @@ export const WATCH_GLB_MAP: Record<string, string> = {
   "Richard Mille RM 011":   "richard_mille_rm011.glb",
 };
 
-const WARDROBE_ITEMS = [
+const WARDROBE_ITEMS: WardrobeItemDef[] = [
   // ── WATCHES (sorted by minLevel ascending) ──
   {
     id: "wardrobe-watch-apple-ultra", slug: "apple-watch-ultra", name: "Apple Watch Ultra",
@@ -291,7 +309,7 @@ const WARDROBE_ITEMS = [
 const STARTER_ITEM_IDS = ["wardrobe-top-starter", "wardrobe-bottom-starter", "wardrobe-watch-apple-ultra"];
 
 const WARDROBE_GLB_MAP = new Map(
-  WARDROBE_ITEMS.filter((i) => (i as any).glbFile).map((i) => [i.id, (i as any).glbFile as string])
+  WARDROBE_ITEMS.filter((i): i is WardrobeItemDef & { glbFile: string } => !!i.glbFile).map((i) => [i.id, i.glbFile])
 );
 
 const DEPRECATED_WATCH_IDS = [
@@ -315,7 +333,7 @@ async function ensureWardrobeSeeded() {
   }
 
   for (const item of WARDROBE_ITEMS) {
-    const { glbFile, ...dbFields } = item as any;
+    const { glbFile: _glb, ...dbFields } = item;
     if (!existingIds.has(item.id)) {
       await db.insert(shopItemsTable).values({
         ...dbFields,
@@ -336,17 +354,17 @@ async function ensureWardrobeSeeded() {
     } else {
       await db.update(shopItemsTable)
         .set({
-          series: dbFields.series,
-          colorVariants: dbFields.colorVariants,
-          name: dbFields.name,
-          description: dbFields.description,
-          cost: dbFields.cost,
-          rarity: dbFields.rarity,
-          minLevel: dbFields.minLevel,
-          styleEffect: dbFields.styleEffect,
-          wearableSlot: dbFields.wearableSlot,
+          series: item.series,
+          colorVariants: item.colorVariants,
+          name: item.name,
+          description: item.description,
+          cost: item.cost,
+          rarity: item.rarity,
+          minLevel: item.minLevel,
+          styleEffect: item.styleEffect,
+          wearableSlot: item.wearableSlot,
         })
-        .where(eq(shopItemsTable.id, dbFields.id));
+        .where(eq(shopItemsTable.id, item.id));
     }
   }
 }
