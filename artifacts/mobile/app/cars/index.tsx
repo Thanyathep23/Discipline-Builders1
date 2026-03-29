@@ -19,6 +19,23 @@ const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api`;
 const CAR_GLB_MAP: Record<string, string> = {
   "Series M Black": "2025_bmw_m4_competition.glb",
   "Alpine GT": "bmw_m4_widebody.glb",
+  "Toyota RAV4 Hybrid": "2023_toyota_rav4_hybrid.glb",
+  "BYD Seal": "2024_byd_seal.glb",
+  "Audi TT Coupe": "2007_audi_tt_coupe.glb",
+  "Toyota Avalon Hybrid": "2023_toyota_avalon_hybrid_limited.glb",
+  "Toyota GR86": "2022_toyota_gr86.glb",
+  "Honda Civic Type R": "2023_honda_civic_type_r.glb",
+  "Dodge Viper ACR": "2016_dodge_viper_acr.glb",
+  "Toyota GR Supra Varis Supreme": "2020_varis_toyota_gr_supra.glb",
+  "Audi TT RS Iconic Edition": "2023_audi_tt_rs_iconic_edition.glb",
+  "BYD Yangwang U7": "2024_byd_yangwang_u7.glb",
+  "Dodge Challenger SRT Demon": "dodge_challenger_srt_demon.glb",
+  "Toyota GR Supra LB Works": "2020_lbworks_toyota_supra_a90.glb",
+  "BYD Yangwang U9": "2024_byd_yangwang_u9.glb",
+  "Porsche 911 GT3 Touring": "2022_porsche_911_gt3_touring_992.glb",
+  "Porsche 911 GT3 RS": "porsche_911_gt3_rs_2023.glb",
+  "Lamborghini Reventón Roadster": "2010_lamborghini_reventon_roadster.glb",
+  "Lamborghini Centenario Roadster": "lamborghini_centenario_roadster.glb",
 };
 
 function ensureModelViewerScript() {
