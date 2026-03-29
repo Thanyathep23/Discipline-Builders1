@@ -42,14 +42,14 @@ function Watch3DViewer({ glbFile }: { glbFile: string }) {
         auto-rotate
         auto-rotate-delay="1000"
         rotation-per-second="12deg"
-        camera-orbit="30deg 70deg 0.3m"
-        min-camera-orbit="auto 40deg auto"
-        max-camera-orbit="auto 100deg auto"
+        camera-orbit="30deg 75deg 100%"
+        min-camera-orbit="auto auto 80%"
+        max-camera-orbit="auto auto 150%"
         field-of-view="25deg"
+        camera-target="0m 0m 0m"
         environment-image="neutral"
-        shadow-intensity="1.2"
-        shadow-softness="0.8"
-        exposure="1.3"
+        shadow-intensity="1.0"
+        exposure="1.1"
         camera-controls
         style={
           {

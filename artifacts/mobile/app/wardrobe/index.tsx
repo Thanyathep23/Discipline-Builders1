@@ -51,11 +51,14 @@ function WatchCardViewer({ glbFile }: { glbFile: string }) {
         auto-rotate
         auto-rotate-delay="500"
         rotation-per-second="10deg"
-        camera-orbit="30deg 70deg 0.3m"
-        field-of-view="25deg"
+        camera-orbit="30deg 70deg 110%"
+        min-camera-orbit="auto auto 80%"
+        max-camera-orbit="auto auto 150%"
+        field-of-view="35deg"
+        camera-target="0m 0m 0m"
         environment-image="neutral"
-        shadow-intensity="0.8"
-        exposure="1.3"
+        shadow-intensity="1.0"
+        exposure="1.1"
         interaction-prompt="none"
         style={
           {
