@@ -76,7 +76,7 @@ const CLASS_LABELS: Record<string, string> = {
   hypercar: "Hypercar",
 };
 
-function getVariantHex(car: Car): string {
+function getBodyColor(car: Car): string {
   return RARITY_COLORS[car.rarity] ?? Colors.textMuted;
 }
 
@@ -100,7 +100,7 @@ function PhotoScene({
 }) {
   const sm = SCENE_META[scene];
   const rarityColor = RARITY_COLORS[car.rarity] ?? "#9CA3AF";
-  const bodyColor = getVariantHex(car);
+  const bodyColor = getBodyColor(car);
   const canvasH = CANVAS_W * ASPECT_RATIOS[aspectRatio];
   const vb = `0 0 380 ${Math.round(380 * ASPECT_RATIOS[aspectRatio])}`;
   const vbH = Math.round(380 * ASPECT_RATIOS[aspectRatio]);
@@ -492,7 +492,7 @@ export default function PhotoModeScreen() {
                 {ownedCars.map((c) => {
                   const active = activeCar?.id === c.id;
                   const rc = RARITY_COLORS[c.rarity] ?? Colors.textMuted;
-                  const hex = getVariantHex(c);
+                  const hex = getBodyColor(c);
                   return (
                     <Pressable
                       key={c.id}

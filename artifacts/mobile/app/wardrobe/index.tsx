@@ -184,7 +184,7 @@ export default function WardrobeScreen() {
     return slots;
   }, [allItems]);
 
-  function handleBuy(itemId: string, _variant: string) {
+  function handleBuy(itemId: string) {
     buyMut.mutate(itemId, {
       onSuccess: () => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

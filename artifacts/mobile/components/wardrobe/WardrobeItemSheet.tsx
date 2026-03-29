@@ -104,7 +104,7 @@ type Props = {
   item: WardrobeItem | null;
   visible: boolean;
   onClose: () => void;
-  onBuy: (itemId: string, variant: string) => void;
+  onBuy: (itemId: string) => void;
   onEquip: (itemId: string) => void;
   onUnequip: (itemId: string) => void;
   isBuying: boolean;
@@ -192,7 +192,7 @@ export function WardrobeItemSheet({
     return (
       <Pressable
         style={[st.ctaBtn, st.ctaPrimary]}
-        onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onBuy(item!.id, ""); }}
+        onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onBuy(item!.id); }}
         disabled={busy}
       >
         {isBuying
