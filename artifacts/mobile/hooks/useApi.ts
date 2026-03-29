@@ -1004,18 +1004,6 @@ export function useWardrobeEquipped() {
   });
 }
 
-export function useSetVariant() {
-  const { request } = useApiClient();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ itemId, variant }: { itemId: string; variant: string }) =>
-      request<any>(`/wearables/${itemId}/variant`, { method: "POST", body: JSON.stringify({ variant }) }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["wearables"] });
-      queryClient.invalidateQueries({ queryKey: ["character", "status"] });
-    },
-  });
-}
 
 export function useEnsureStarters() {
   const { request } = useApiClient();

@@ -1,11 +1,11 @@
 import React from "react";
 import Svg, { Circle, Ellipse, Rect, Path, G, Line, Defs, LinearGradient, Stop } from "react-native-svg";
 
-type VisualProps = { colorVariant?: string; size?: number };
+type VisualProps = { color?: string; size?: number };
 const S = 160;
 
-function StarterTimepieceSVG({ colorVariant = "#F0F0F0", size = S }: VisualProps) {
-  const dial = colorVariant;
+function StarterTimepieceSVG({ color = "#F0F0F0", size = S }: VisualProps) {
+  const dial = color;
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
       <Rect x="68" y="20" width="24" height="16" rx="3" fill="#3A3A4A" />
@@ -26,8 +26,8 @@ function StarterTimepieceSVG({ colorVariant = "#F0F0F0", size = S }: VisualProps
   );
 }
 
-function ChronoSportSVG({ colorVariant = "#F0F0F0", size = S }: VisualProps) {
-  const dial = colorVariant;
+function ChronoSportSVG({ color = "#F0F0F0", size = S }: VisualProps) {
+  const dial = color;
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
       <Rect x="66" y="16" width="28" height="18" rx="4" fill="#3A3A4A" />
@@ -55,8 +55,8 @@ function ChronoSportSVG({ colorVariant = "#F0F0F0", size = S }: VisualProps) {
   );
 }
 
-function MinerBlackSVG({ colorVariant = "#1A1A1A", size = S }: VisualProps) {
-  const dial = colorVariant;
+function MinerBlackSVG({ color = "#1A1A1A", size = S }: VisualProps) {
+  const dial = color;
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
       <Rect x="64" y="14" width="32" height="20" rx="4" fill="#2A2A3A" />
@@ -83,8 +83,8 @@ function MinerBlackSVG({ colorVariant = "#1A1A1A", size = S }: VisualProps) {
   );
 }
 
-function RoyalSeriesSVG({ colorVariant = "#C0C0C0", size = S }: VisualProps) {
-  const dial = colorVariant;
+function RoyalSeriesSVG({ color = "#C0C0C0", size = S }: VisualProps) {
+  const dial = color;
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
       <Path d="M60 22 L100 22 L108 30 L108 130 L100 138 L60 138 L52 130 L52 30 Z" fill="#5A5A6A" />
@@ -107,8 +107,8 @@ function RoyalSeriesSVG({ colorVariant = "#C0C0C0", size = S }: VisualProps) {
   );
 }
 
-function GenevePerpetualSVG({ colorVariant = "#F5F5F0", size = S }: VisualProps) {
-  const dial = colorVariant;
+function GenevePerpetualSVG({ color = "#F5F5F0", size = S }: VisualProps) {
+  const dial = color;
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
       <Rect x="70" y="18" width="20" height="14" rx="3" fill="#8A7040" />
@@ -135,8 +135,8 @@ function GenevePerpetualSVG({ colorVariant = "#F5F5F0", size = S }: VisualProps)
   );
 }
 
-function CarbonRMSVG({ colorVariant = "#2C2C2C", size = S }: VisualProps) {
-  const accent = colorVariant === "#2C2C2C" ? "#FF6D00" : colorVariant;
+function CarbonRMSVG({ color = "#2C2C2C", size = S }: VisualProps) {
+  const accent = color === "#2C2C2C" ? "#FF6D00" : color;
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
       <Rect x="60" y="18" width="40" height="16" rx="4" fill="#1A1A1A" />
@@ -160,8 +160,8 @@ function CarbonRMSVG({ colorVariant = "#2C2C2C", size = S }: VisualProps) {
   );
 }
 
-function StarterWhiteShirtSVG({ colorVariant = "#F0F0F0", size = S }: VisualProps) {
-  const main = colorVariant;
+function StarterWhiteShirtSVG({ color = "#F0F0F0", size = S }: VisualProps) {
+  const main = color;
   const shadow = `${main}CC`;
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
@@ -176,8 +176,8 @@ function StarterWhiteShirtSVG({ colorVariant = "#F0F0F0", size = S }: VisualProp
   );
 }
 
-function PremiumHoodieSVG({ colorVariant = "#1A1A1A", size = S }: VisualProps) {
-  const main = colorVariant;
+function PremiumHoodieSVG({ color = "#1A1A1A", size = S }: VisualProps) {
+  const main = color;
   const lighter = `${main}CC`;
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
@@ -193,8 +193,8 @@ function PremiumHoodieSVG({ colorVariant = "#1A1A1A", size = S }: VisualProps) {
   );
 }
 
-function SilkBusinessShirtSVG({ colorVariant = "#F8F8FF", size = S }: VisualProps) {
-  const main = colorVariant;
+function SilkBusinessShirtSVG({ color = "#F8F8FF", size = S }: VisualProps) {
+  const main = color;
   const shadow = "#00000015";
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
@@ -212,8 +212,8 @@ function SilkBusinessShirtSVG({ colorVariant = "#F8F8FF", size = S }: VisualProp
   );
 }
 
-function MilanoCashmereCoatSVG({ colorVariant = "#C19A6B", size = S }: VisualProps) {
-  const main = colorVariant;
+function MilanoCashmereCoatSVG({ color = "#C19A6B", size = S }: VisualProps) {
+  const main = color;
   const shadow = "#00000020";
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
@@ -229,8 +229,8 @@ function MilanoCashmereCoatSVG({ colorVariant = "#C19A6B", size = S }: VisualPro
   );
 }
 
-function ExecutiveSuitSVG({ colorVariant = "#0D1B2A", size = S }: VisualProps) {
-  const main = colorVariant;
+function ExecutiveSuitSVG({ color = "#0D1B2A", size = S }: VisualProps) {
+  const main = color;
   const lapel = "#1A2A3A";
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
@@ -247,8 +247,8 @@ function ExecutiveSuitSVG({ colorVariant = "#0D1B2A", size = S }: VisualProps) {
   );
 }
 
-function DarkDenimSVG({ colorVariant = "#1A1A1A", size = S }: VisualProps) {
-  const main = colorVariant;
+function DarkDenimSVG({ color = "#1A1A1A", size = S }: VisualProps) {
+  const main = color;
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
       <Rect x="36" y="24" width="88" height="16" rx="3" fill="#3A3A4A" />
@@ -266,8 +266,8 @@ function DarkDenimSVG({ colorVariant = "#1A1A1A", size = S }: VisualProps) {
   );
 }
 
-function TechnicalSlimTrouserSVG({ colorVariant = "#0D1B2A", size = S }: VisualProps) {
-  const main = colorVariant;
+function TechnicalSlimTrouserSVG({ color = "#0D1B2A", size = S }: VisualProps) {
+  const main = color;
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
       <Rect x="38" y="22" width="84" height="14" rx="3" fill="#4A4A5A" />
@@ -284,8 +284,8 @@ function TechnicalSlimTrouserSVG({ colorVariant = "#0D1B2A", size = S }: VisualP
   );
 }
 
-function LeatherBifoldSVG({ colorVariant = "#1A1A1A", size = S }: VisualProps) {
-  const main = colorVariant;
+function LeatherBifoldSVG({ color = "#1A1A1A", size = S }: VisualProps) {
+  const main = color;
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
       <Rect x="28" y="40" width="104" height="80" rx="6" fill={main} />
@@ -301,8 +301,8 @@ function LeatherBifoldSVG({ colorVariant = "#1A1A1A", size = S }: VisualProps) {
   );
 }
 
-function CarbonFiberCardCaseSVG({ colorVariant = "#2C2C2C", size = S }: VisualProps) {
-  const main = colorVariant;
+function CarbonFiberCardCaseSVG({ color = "#2C2C2C", size = S }: VisualProps) {
+  const main = color;
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
       <Rect x="30" y="44" width="100" height="72" rx="8" fill={main} />
@@ -319,8 +319,8 @@ function CarbonFiberCardCaseSVG({ colorVariant = "#2C2C2C", size = S }: VisualPr
   );
 }
 
-function SilkPocketSquareSVG({ colorVariant = "#0D1B2A", size = S }: VisualProps) {
-  const main = colorVariant;
+function SilkPocketSquareSVG({ color = "#0D1B2A", size = S }: VisualProps) {
+  const main = color;
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
       <Path d="M40 120 L80 40 L120 120 Z" fill={main} />
@@ -332,8 +332,8 @@ function SilkPocketSquareSVG({ colorVariant = "#0D1B2A", size = S }: VisualProps
   );
 }
 
-function TitaniumRingSVG({ colorVariant = "#8A8A8A", size = S }: VisualProps) {
-  const main = colorVariant;
+function TitaniumRingSVG({ color = "#8A8A8A", size = S }: VisualProps) {
+  const main = color;
   return (
     <Svg width={size} height={size} viewBox="0 0 160 160">
       <Ellipse cx="80" cy="80" rx="44" ry="50" fill={main} />
@@ -375,7 +375,7 @@ export const ITEM_SVG_MAP: Record<string, React.FC<VisualProps>> = {
   "titanium-ring-zero": TitaniumRingSVG,
 };
 
-export function ItemVisual({ slug, colorVariant, size = 120 }: { slug: string; colorVariant?: string; size?: number }) {
+export function ItemVisual({ slug, color, size = 120 }: { slug: string; color?: string; size?: number }) {
   const Component = ITEM_SVG_MAP[slug];
   if (!Component) {
     return (
@@ -386,7 +386,7 @@ export function ItemVisual({ slug, colorVariant, size = 120 }: { slug: string; c
       </Svg>
     );
   }
-  return <Component colorVariant={colorVariant} size={size} />;
+  return <Component color={color} size={size} />;
 }
 
 export {
