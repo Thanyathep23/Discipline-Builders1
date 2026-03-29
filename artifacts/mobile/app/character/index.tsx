@@ -1201,6 +1201,8 @@ export default function CharacterStatusScreen() {
   }, [tierName]);
 
   const appearance = (data as any)?.appearance;
+  const equippedW = (data as any)?.equippedWearables as EquippedWearableState;
+  const equippedOutfitGlb = equippedW?.outerwear?.glbFile ?? equippedW?.top?.glbFile ?? null;
   const currentSkinTone  = appearance?.skinTone  ?? "tone-3";
   const currentBodyType  = appearance?.bodyType  ?? "male";
   const currentHairStyle = appearance?.hairStyle ?? "clean_cut";
@@ -1286,7 +1288,7 @@ export default function CharacterStatusScreen() {
                   hairColor={currentHairColor}
                   skinTone={currentSkinTone}
                   gender={currentBodyType}
-                  outfitGlb={(data as any)?.equippedWearables?.outerwear?.glbFile ?? (data as any)?.equippedWearables?.top?.glbFile ?? null}
+                  outfitGlb={equippedOutfitGlb}
                 />
                 <Pressable
                   style={styles.wardrobeBtn}

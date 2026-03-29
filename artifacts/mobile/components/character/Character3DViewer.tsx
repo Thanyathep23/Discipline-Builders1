@@ -241,22 +241,10 @@ function NativeOutfitModelInner({
 }
 
 function NativeOutfitModel(props: { outfitGlb: string; bodyRef: React.MutableRefObject<any> }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) return null;
   return (
-    <ErrorBoundaryGroup onError={() => setFailed(true)}>
+    <React.Suspense fallback={null}>
       <NativeOutfitModelInner {...props} />
-    </ErrorBoundaryGroup>
-  );
-}
-
-function ErrorBoundaryGroup({ children, onError }: { children: React.ReactNode; onError: () => void }) {
-  return (
-    <group onPointerMissed={() => {}}>
-      <React.Suspense fallback={null}>
-        {children}
-      </React.Suspense>
-    </group>
+    </React.Suspense>
   );
 }
 
