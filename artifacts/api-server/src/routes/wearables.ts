@@ -24,18 +24,6 @@ interface WardrobeItemDef {
   colorVariants: string;
 }
 
-export const WATCH_GLB_MAP: Record<string, string> = {
-  "Apple Watch Ultra":       "apple_watch.glb",
-  "Timex Expedition":        "timex_expedition_watch.glb",
-  "Seiko Prospex":           "seiko_watch.glb",
-  "Chronograph Sport":       "chronograph_watch.glb",
-  "Classic Dress Watch":     "hand_watch.glb",
-  "Breitling Superocean 44": "breitling_superocean_automatic_44.glb",
-  "Rolex Datejust":          "rolex_datejust.glb",
-  "Patek Philippe Calatrava": "patek_philippe.glb",
-  "Richard Mille RM 011":   "richard_mille_rm011.glb",
-};
-
 const WARDROBE_ITEMS: WardrobeItemDef[] = [
   // ── WATCHES (sorted by minLevel ascending) ──
   {
@@ -307,6 +295,14 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
 ];
 
 const STARTER_ITEM_IDS = ["wardrobe-top-starter", "wardrobe-bottom-starter", "wardrobe-watch-apple-ultra"];
+
+const watchItemsWithGlb = WARDROBE_ITEMS.filter(
+  (i): i is WardrobeItemDef & { glbFile: string } => i.wearableSlot === "watch" && !!i.glbFile
+);
+
+export const WATCH_GLB_MAP: Record<string, string> = Object.fromEntries(
+  watchItemsWithGlb.map((i) => [i.name, i.glbFile])
+);
 
 const WARDROBE_GLB_MAP = new Map(
   WARDROBE_ITEMS.filter((i): i is WardrobeItemDef & { glbFile: string } => !!i.glbFile).map((i) => [i.id, i.glbFile])
