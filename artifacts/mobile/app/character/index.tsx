@@ -752,6 +752,7 @@ function CharacterCustomizeSheet({
             hairStyle={hairStyle}
             hairColor={hairColor}
             skinTone={skinTone}
+            gender={bodyType}
           />
         </View>
 
@@ -1283,6 +1284,7 @@ export default function CharacterStatusScreen() {
                   hairStyle={currentHairStyle}
                   hairColor={currentHairColor}
                   skinTone={currentSkinTone}
+                  gender={currentBodyType}
                 />
                 <Pressable
                   style={styles.wardrobeBtn}

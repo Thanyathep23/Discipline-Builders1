@@ -362,16 +362,18 @@ artifacts-monorepo/
 - **Reusable 3D viewer**: `artifacts/mobile/components/character/Character3DViewer.tsx` — Drop-in 3D model viewer with cinematic lighting, auto-rotate, vignette overlay
 - **3D Model**: Superhero Male FullBody GLTF (man in suit), served via API server at `/api/models/`
 - **Hair models**: 5 separate GLTF hair meshes: `Hair_SimpleParted`, `Hair_Buzzed`, `Hair_Long`, `Hair_Buns`, `Hair_Beard`
-- **Skin textures**: `T_Superhero_Male_Light.png` (light tones 1-2), `T_Superhero_Male_Dark.png` (dark tones 3-5)
-- **Hair textures**: `T_Hair_1_BaseColor.png` (dark colors), `T_Hair_2_BaseColor.png` (light/blonde colors)
+- **Body models**: Male (`Superhero_Male_FullBody.gltf`) and Female (`Superhero_Female_FullBody.gltf`) — selected by `gender` prop
+- **Body material names**: Male uses `MI_Superhero_Male`, Female uses `MI_Superhero_Female` — used for skin texture application
+- **Skin textures**: Male: `T_Superhero_Male_Light.png`/`T_Superhero_Male_Dark.png`; Female: `T_Superhero_Female_Light.png`/`T_Superhero_Female_Dark.png` (light tones 1-2→Light, dark tones 3-5→Dark)
+- **Hair textures**: `T_Hair_1_BaseColor.png` (dark colors), `T_Hair_2_BaseColor.png` (light/blonde colors) — shared between genders
 - **Customization mappings** (exported from Character3DViewer.tsx):
-  - `HAIR_STYLE_TO_MODEL`: clean_cut→SimpleParted, buzz_cut→Buzzed, textured_crop→Long, medium_natural→Buns, slicked_back→Beard
-  - `SKIN_TONE_TO_TEXTURE`: tone-1/2→Light, tone-3/4/5→Dark
+  - `HAIR_STYLE_TO_MODEL`: clean_cut→SimpleParted, buzz_cut→Buzzed, textured_crop→Long, medium_natural→Buns, slicked_back→Beard (same models shared between genders)
+  - `SKIN_TONE_TO_TEXTURE`: gender-keyed map — `resolveSkinTexture(gender, tone)` resolves correct texture
   - `HAIR_COLOR_TO_TEXTURE`: black/dark-brown/medium-brown/auburn→Hair_1, light-brown/dirty-blonde/blonde/platinum→Hair_2
-- **Web viewer**: Standalone Three.js HTML page at `/api/character-viewer.html` embedded via iframe; supports postMessage for real-time hair/skin/texture swapping with OrbitControls
-- **Native viewer**: React Three Fiber with separate body + hair GLTF loading, texture swapping via TextureLoader
-- **Customize sheet**: `CharacterCustomizeSheet` passes `hairStyle`, `hairColor`, `skinTone` props to `Character3DViewer` for real-time preview
-- **Character status screen**: `Character3DViewer` receives saved appearance props (`currentHairStyle`, `currentHairColor`, `currentSkinTone`) to reflect user's look
+- **Web viewer**: Standalone Three.js HTML page at `/api/character-viewer.html` embedded via iframe; supports `?gender=` URL param for initial load + `setGender`/`setAll` postMessage for real-time gender/body switching with OrbitControls
+- **Native viewer**: React Three Fiber with separate body + hair GLTF loading, texture swapping via TextureLoader; `gender` prop controls body model and material selection
+- **Customize sheet**: `CharacterCustomizeSheet` passes `hairStyle`, `hairColor`, `skinTone`, `gender` (bodyType) props to `Character3DViewer` for real-time preview; gender-specific hair style lists
+- **Character status screen**: `Character3DViewer` receives saved appearance props including `gender` (from `currentBodyType`) to reflect user's look
 - **Car Showroom**: `artifacts/mobile/app/cars/showroom.tsx` — Premium 3D car viewer with swipe navigation, specs grid, purchase flow, MY GARAGE section; uses BMW M4 Competition (11MB GLB) and BMW M4 Widebody (22MB GLB); route registered at `cars/showroom` with slide_from_bottom animation
 - **Model files**: `artifacts/api-server/public/models/` — 6 GLTF + .bin pairs, 5 texture PNGs, 2 normal maps, 2 BMW GLB files
 - **Static serving**: `artifacts/api-server/src/app.ts` — `express.static` at `/api/models` with 7-day cache + character-viewer.html route

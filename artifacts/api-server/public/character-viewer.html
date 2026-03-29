@@ -88,6 +88,16 @@ let currentBodyScene = null;
 let currentHairScene = null;
 let bodyScale = 1;
 let bodyOffsetY = 0;
+let currentGender = 'male';
+
+const BODY_MODELS = {
+  male: 'Superhero_Male_FullBody.gltf',
+  female: 'Superhero_Female_FullBody.gltf',
+};
+const BODY_MATERIALS = {
+  male: 'MI_Superhero_Male',
+  female: 'MI_Superhero_Female',
+};
 
 function loadTexture(url) {
   return new Promise((resolve, reject) => {
@@ -121,9 +131,11 @@ function fixTPose(obj) {
   });
 }
 
-async function loadBody(skinTextureName) {
+async function loadBody(skinTextureName, gender) {
+  if (gender) currentGender = gender;
   try {
-    const gltf = await loadGLTF(BASE_URL + 'Superhero_Male_FullBody.gltf');
+    const modelFile = BODY_MODELS[currentGender] || BODY_MODELS.male;
+    const gltf = await loadGLTF(BASE_URL + modelFile);
     if (currentBodyScene) bodyGroup.remove(currentBodyScene);
 
     const s = gltf.scene;
@@ -160,10 +172,11 @@ async function loadBody(skinTextureName) {
 async function applySkinTexture(obj, textureName) {
   try {
     const tex = await loadTexture(BASE_URL + textureName);
+    const matName = BODY_MATERIALS[currentGender] || BODY_MATERIALS.male;
     obj.traverse((child) => {
       if (child.isMesh && child.material) {
         const mat = child.material;
-        if (mat.name === 'MI_Superhero_Male') {
+        if (mat.name === matName) {
           mat.map = tex;
           mat.needsUpdate = true;
         }
@@ -242,8 +255,10 @@ const params = new URLSearchParams(window.location.search);
 const initSkin = params.get('skin') || 'T_Superhero_Male_Dark.png';
 const initHair = params.get('hair') || 'Hair_SimpleParted.gltf';
 const initHairTex = params.get('hairTex') || 'T_Hair_1_BaseColor.png';
+const initGender = params.get('gender') || 'male';
+currentGender = initGender;
 
-await loadBody(initSkin);
+await loadBody(initSkin, initGender);
 await loadHair(initHair, initHairTex);
 
 window.addEventListener('message', async (event) => {
@@ -257,10 +272,25 @@ window.addEventListener('message', async (event) => {
     await changeSkinTexture(data.skinTexture);
   } else if (data.type === 'setHairTexture') {
     await changeHairTexture(data.hairTexture);
+  } else if (data.type === 'setGender') {
+    const newGender = data.gender || 'male';
+    if (newGender !== currentGender) {
+      currentGender = newGender;
+      await loadBody(data.skinTexture, newGender);
+      if (data.hairModel) await loadHair(data.hairModel, data.hairTexture);
+    }
   } else if (data.type === 'setAll') {
-    if (data.skinTexture) await changeSkinTexture(data.skinTexture);
-    if (data.hairModel) await loadHair(data.hairModel, data.hairTexture);
-    else if (data.hairTexture) await changeHairTexture(data.hairTexture);
+    const newGender = data.gender || currentGender;
+    if (newGender !== currentGender) {
+      currentGender = newGender;
+      await loadBody(data.skinTexture, newGender);
+      if (data.hairModel) await loadHair(data.hairModel, data.hairTexture);
+      else if (data.hairTexture) await changeHairTexture(data.hairTexture);
+    } else {
+      if (data.skinTexture) await changeSkinTexture(data.skinTexture);
+      if (data.hairModel) await loadHair(data.hairModel, data.hairTexture);
+      else if (data.hairTexture) await changeHairTexture(data.hairTexture);
+    }
   }
 });
 

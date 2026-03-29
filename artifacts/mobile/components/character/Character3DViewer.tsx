@@ -23,7 +23,15 @@ if (Platform.OS !== "web") {
 
 const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api`;
 const MODELS_BASE = `${API_BASE}/models`;
-const BODY_MODEL = "Superhero_Male_FullBody.gltf";
+const BODY_MODELS: Record<string, string> = {
+  male: "Superhero_Male_FullBody.gltf",
+  female: "Superhero_Female_FullBody.gltf",
+};
+
+const BODY_MATERIALS: Record<string, string> = {
+  male: "MI_Superhero_Male",
+  female: "MI_Superhero_Female",
+};
 
 const VIGNETTE_BG = "#07071A";
 
@@ -42,13 +50,27 @@ export const HAIR_STYLE_TO_MODEL: Record<string, string> = {
   bun_top: "Hair_Buns.gltf",
 };
 
-export const SKIN_TONE_TO_TEXTURE: Record<string, string> = {
-  "tone-1": "T_Superhero_Male_Light.png",
-  "tone-2": "T_Superhero_Male_Light.png",
-  "tone-3": "T_Superhero_Male_Dark.png",
-  "tone-4": "T_Superhero_Male_Dark.png",
-  "tone-5": "T_Superhero_Male_Dark.png",
+export const SKIN_TONE_TO_TEXTURE: Record<string, Record<string, string>> = {
+  male: {
+    "tone-1": "T_Superhero_Male_Light.png",
+    "tone-2": "T_Superhero_Male_Light.png",
+    "tone-3": "T_Superhero_Male_Dark.png",
+    "tone-4": "T_Superhero_Male_Dark.png",
+    "tone-5": "T_Superhero_Male_Dark.png",
+  },
+  female: {
+    "tone-1": "T_Superhero_Female_Light.png",
+    "tone-2": "T_Superhero_Female_Light.png",
+    "tone-3": "T_Superhero_Female_Dark.png",
+    "tone-4": "T_Superhero_Female_Dark.png",
+    "tone-5": "T_Superhero_Female_Dark.png",
+  },
 };
+
+function resolveSkinTexture(gender: string, skinTone: string): string {
+  const genderMap = SKIN_TONE_TO_TEXTURE[gender] ?? SKIN_TONE_TO_TEXTURE.male;
+  return genderMap[skinTone] ?? genderMap["tone-3"];
+}
 
 export const HAIR_COLOR_TO_TEXTURE: Record<string, string> = {
   black: "T_Hair_1_BaseColor.png",
@@ -163,13 +185,16 @@ function SuperheroModel({
   skinTexture,
   bodyRef,
   dragRotRef,
+  gender = "male",
 }: {
   skinTexture: string;
   bodyRef: React.MutableRefObject<any>;
   dragRotRef: React.MutableRefObject<{ y: number; dragging: boolean; lastInteract: number }>;
+  gender?: string;
 }) {
   const groupRef = useRef<any>(null);
-  const gltf = useLoader(GLTFLoader, `${MODELS_BASE}/${BODY_MODEL}`);
+  const bodyModel = BODY_MODELS[gender] ?? BODY_MODELS.male;
+  const gltf = useLoader(GLTFLoader, `${MODELS_BASE}/${bodyModel}`);
   const texUrl = `${MODELS_BASE}/${skinTexture}`;
 
   useEffect(() => {
@@ -209,7 +234,8 @@ function SuperheroModel({
       gltf.scene.traverse((child: any) => {
         if (child.isMesh && child.material) {
           const mat = child.material;
-          if (mat.name === "MI_Superhero_Male") {
+          const matName = BODY_MATERIALS[gender] ?? BODY_MATERIALS.male;
+          if (mat.name === matName) {
             mat.map = tex;
             mat.needsUpdate = true;
           }
@@ -311,23 +337,25 @@ function WebModelViewer({
   hairStyle,
   hairColor,
   skinTone,
+  gender = "male",
 }: {
   height: number;
   hairStyle?: string;
   hairColor?: string;
   skinTone?: string;
+  gender?: string;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const readyRef = useRef(false);
   const pendingRef = useRef<any>(null);
 
   const hairModel = HAIR_STYLE_TO_MODEL[hairStyle ?? "clean_cut"] ?? "Hair_SimpleParted.gltf";
-  const skinTexture = SKIN_TONE_TO_TEXTURE[skinTone ?? "tone-3"] ?? "T_Superhero_Male_Dark.png";
+  const skinTexture = resolveSkinTexture(gender, skinTone ?? "tone-3");
   const hairTexture = HAIR_COLOR_TO_TEXTURE[hairColor ?? "black"] ?? "T_Hair_1_BaseColor.png";
 
   const [stableUrl] = useState(
     () =>
-      `${API_BASE}/character-viewer.html?skin=${encodeURIComponent(skinTexture)}&hair=${encodeURIComponent(hairModel)}&hairTex=${encodeURIComponent(hairTexture)}`
+      `${API_BASE}/character-viewer.html?skin=${encodeURIComponent(skinTexture)}&hair=${encodeURIComponent(hairModel)}&hairTex=${encodeURIComponent(hairTexture)}&gender=${encodeURIComponent(gender)}`
   );
 
   const sendMessage = useCallback(
@@ -360,13 +388,14 @@ function WebModelViewer({
       hairModel,
       skinTexture,
       hairTexture,
+      gender,
     };
     if (readyRef.current) {
       sendMessage(msg);
     } else {
       pendingRef.current = msg;
     }
-  }, [hairModel, skinTexture, hairTexture, sendMessage]);
+  }, [hairModel, skinTexture, hairTexture, gender, sendMessage]);
 
   return (
     <View style={[viewerStyles.container, { height }]}>
@@ -411,6 +440,7 @@ export interface Character3DViewerProps {
   hairStyle?: string;
   hairColor?: string;
   skinTone?: string;
+  gender?: string;
 }
 
 function NativeCharacterViewer({
@@ -418,11 +448,13 @@ function NativeCharacterViewer({
   hairModel,
   hairTexture,
   skinTexture,
+  gender = "male",
 }: {
   height: number;
   hairModel: string;
   hairTexture: string;
   skinTexture: string;
+  gender?: string;
 }) {
   const bodyRef = useRef<any>(null);
   const dragRotRef = useRef({ y: 0, dragging: false, lastInteract: 0 });
@@ -465,9 +497,9 @@ function NativeCharacterViewer({
       >
         <CameraRig />
         <CinematicLights />
-        <SuperheroModel skinTexture={skinTexture} bodyRef={bodyRef} dragRotRef={dragRotRef} />
+        <SuperheroModel key={gender + skinTexture} skinTexture={skinTexture} bodyRef={bodyRef} dragRotRef={dragRotRef} gender={gender} />
         <NativeHairModel
-          key={hairModel + hairTexture}
+          key={gender + hairModel + hairTexture}
           hairModel={hairModel}
           hairTexture={hairTexture}
           bodyRef={bodyRef}
@@ -483,9 +515,10 @@ export function Character3DViewer({
   hairStyle,
   hairColor,
   skinTone,
+  gender = "male",
 }: Character3DViewerProps) {
   const resolvedHairModel = HAIR_STYLE_TO_MODEL[hairStyle ?? "clean_cut"] ?? "Hair_SimpleParted.gltf";
-  const resolvedSkinTex = SKIN_TONE_TO_TEXTURE[skinTone ?? "tone-3"] ?? "T_Superhero_Male_Dark.png";
+  const resolvedSkinTex = resolveSkinTexture(gender, skinTone ?? "tone-3");
   const resolvedHairTex = HAIR_COLOR_TO_TEXTURE[hairColor ?? "black"] ?? "T_Hair_1_BaseColor.png";
 
   if (Platform.OS === "web") {
@@ -495,6 +528,7 @@ export function Character3DViewer({
         hairStyle={hairStyle}
         hairColor={hairColor}
         skinTone={skinTone}
+        gender={gender}
       />
     );
   }
@@ -505,6 +539,7 @@ export function Character3DViewer({
       hairModel={resolvedHairModel}
       hairTexture={resolvedHairTex}
       skinTexture={resolvedSkinTex}
+      gender={gender}
     />
   );
 }
