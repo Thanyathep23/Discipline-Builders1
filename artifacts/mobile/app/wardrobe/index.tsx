@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
-  View, Text, ScrollView, Pressable, StyleSheet, FlatList, RefreshControl,
+  View, Text, ScrollView, Pressable, StyleSheet, FlatList, RefreshControl, Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,6 +18,58 @@ import {
   getRarityColor, getRarityLabel, getSlotLabel, getSlotIcon,
   WardrobeItem,
 } from "@/components/wardrobe/wardrobeHelpers";
+
+const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api`;
+
+function ensureModelViewerScript() {
+  if (
+    typeof window !== "undefined" &&
+    !document.querySelector("[data-model-viewer-script]")
+  ) {
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src =
+      "https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js";
+    script.setAttribute("data-model-viewer-script", "true");
+    document.head.appendChild(script);
+  }
+}
+
+function WatchCardViewer({ glbFile }: { glbFile: string }) {
+  useEffect(() => {
+    if (Platform.OS === "web") ensureModelViewerScript();
+  }, []);
+
+  if (Platform.OS !== "web") return null;
+
+  const modelUrl = `${API_BASE}/models/${glbFile}`;
+  return (
+    <View style={{ width: 100, height: 100, borderRadius: 8, overflow: "hidden" }}>
+      {/* @ts-ignore */}
+      <model-viewer
+        src={modelUrl}
+        auto-rotate
+        auto-rotate-delay="500"
+        rotation-per-second="10deg"
+        camera-orbit="30deg 70deg 0.3m"
+        field-of-view="25deg"
+        environment-image="neutral"
+        shadow-intensity="0.8"
+        exposure="1.3"
+        interaction-prompt="none"
+        style={
+          {
+            width: "100%",
+            height: "100%",
+            background: "transparent",
+            "--poster-color": "transparent",
+          } as React.CSSProperties
+        }
+        alt="3D Watch"
+      />
+    </View>
+  );
+}
 
 type Tab = "watches" | "clothing" | "accessories" | "equipped";
 type Filter = "all" | "owned" | "available" | "locked";
@@ -137,7 +189,11 @@ export default function WardrobeScreen() {
         onPress={() => openSheet(item)}
       >
         <View style={st.itemVisualWrap}>
-          <ItemVisual slug={item.slug} colorVariant={hex} size={100} />
+          {item.glbFile && Platform.OS === "web" ? (
+            <WatchCardViewer glbFile={item.glbFile} />
+          ) : (
+            <ItemVisual slug={item.slug} colorVariant={hex} size={100} />
+          )}
         </View>
         <Text style={st.itemName} numberOfLines={1}>{item.name}</Text>
         {item.series && <Text style={st.itemSeries} numberOfLines={1}>{item.series}</Text>}

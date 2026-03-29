@@ -63,6 +63,7 @@ export type WardrobeItem = {
   minLevel: number;
   icon: string;
   series: string | null;
+  glbFile: string | null;
   colorVariants: ColorVariant[];
   selectedVariant: string | null;
   isOwned: boolean;

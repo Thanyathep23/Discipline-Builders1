@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Modal,
+  View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Modal, Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,6 +9,61 @@ import Animated, { FadeIn, SlideInDown } from "react-native-reanimated";
 import { colors, typography, spacing, radius } from "@/design-system";
 import { ItemVisual } from "./WardrobeItemVisuals";
 import { getRarityColor, getRarityLabel, getSlotLabel, WardrobeItem } from "./wardrobeHelpers";
+
+const API_BASE = `${process.env.EXPO_PUBLIC_DOMAIN ?? ""}/api`;
+
+function ensureModelViewerScript() {
+  if (
+    typeof window !== "undefined" &&
+    !document.querySelector("[data-model-viewer-script]")
+  ) {
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src =
+      "https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js";
+    script.setAttribute("data-model-viewer-script", "true");
+    document.head.appendChild(script);
+  }
+}
+
+function Watch3DViewer({ glbFile }: { glbFile: string }) {
+  useEffect(() => {
+    if (Platform.OS === "web") ensureModelViewerScript();
+  }, []);
+
+  if (Platform.OS !== "web") return null;
+
+  const modelUrl = `${API_BASE}/models/${glbFile}`;
+  return (
+    <View style={{ width: "100%", height: 220, borderRadius: 16, overflow: "hidden" }}>
+      {/* @ts-ignore */}
+      <model-viewer
+        src={modelUrl}
+        auto-rotate
+        auto-rotate-delay="1000"
+        rotation-per-second="12deg"
+        camera-orbit="30deg 70deg 0.3m"
+        min-camera-orbit="auto 40deg auto"
+        max-camera-orbit="auto 100deg auto"
+        field-of-view="25deg"
+        environment-image="neutral"
+        shadow-intensity="1.2"
+        shadow-softness="0.8"
+        exposure="1.3"
+        camera-controls
+        style={
+          {
+            width: "100%",
+            height: "100%",
+            background: "transparent",
+            "--poster-color": "transparent",
+          } as React.CSSProperties
+        }
+        alt="3D Watch Model"
+      />
+    </View>
+  );
+}
 
 type Props = {
   item: WardrobeItem | null;
@@ -134,7 +189,11 @@ export function WardrobeItemSheet({
 
         <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
           <View style={st.visualWrap}>
-            <ItemVisual slug={item.slug} colorVariant={currentHex} size={200} />
+            {item.glbFile && Platform.OS === "web" ? (
+              <Watch3DViewer glbFile={item.glbFile} />
+            ) : (
+              <ItemVisual slug={item.slug} colorVariant={currentHex} size={200} />
+            )}
           </View>
 
           {item.colorVariants.length > 1 && (

@@ -6,82 +6,144 @@ import { eq, and, isNotNull, inArray } from "drizzle-orm";
 
 const router = Router();
 
+export const WATCH_GLB_MAP: Record<string, string> = {
+  "Apple Watch Ultra":       "apple_watch.glb",
+  "Timex Expedition":        "timex_expedition_watch.glb",
+  "Seiko Prospex":           "seiko_watch.glb",
+  "Chronograph Sport":       "chronograph_watch.glb",
+  "Classic Dress Watch":     "hand_watch.glb",
+  "Breitling Superocean 44": "breitling_superocean_automatic_44.glb",
+  "Rolex Datejust":          "rolex_datejust.glb",
+  "Patek Philippe Calatrava": "patek_philippe.glb",
+  "Richard Mille RM 011":   "richard_mille_rm011.glb",
+};
+
 const WARDROBE_ITEMS = [
-  // ── WATCHES ──
+  // ── WATCHES (sorted by minLevel ascending) ──
   {
-    id: "wardrobe-watch-starter", slug: "starter-timepiece", name: "Starter Timepiece",
-    description: "Time is your only real asset.",
-    cost: 200, category: "fashion", icon: "watch-outline", rarity: "common", itemType: "cosmetic",
+    id: "wardrobe-watch-apple-ultra", slug: "apple-watch-ultra", name: "Apple Watch Ultra",
+    description: "Track every metric. Every discipline session logged. Every goal measured.",
+    cost: 3500, category: "fashion", icon: "watch-outline", rarity: "common", itemType: "cosmetic",
     wearableSlot: "watch", minLevel: 1,
-    styleEffect: "Basic watch presence on wrist",
-    series: "Entry Series",
+    styleEffect: "Prestige +2",
+    series: "Smart Watch",
+    glbFile: "apple_watch.glb",
     colorVariants: JSON.stringify([
-      { key: "white", label: "White", hex: "#F0F0F0" },
       { key: "black", label: "Black", hex: "#1A1A1A" },
+      { key: "white", label: "White", hex: "#F5F5F5" },
+      { key: "blue", label: "Blue", hex: "#4A9EFF" },
     ]),
   },
   {
-    id: "wardrobe-watch-chrono", slug: "chrono-sport-38", name: "Chrono Sport 38",
-    description: "Track every second of your ascent.",
-    cost: 900, category: "fashion", icon: "watch-outline", rarity: "uncommon", itemType: "cosmetic",
+    id: "wardrobe-watch-timex", slug: "timex-expedition", name: "Timex Expedition",
+    description: "Built for those who show up. Rain or shine. Every single day.",
+    cost: 5000, category: "fashion", icon: "watch-outline", rarity: "common", itemType: "cosmetic",
+    wearableSlot: "watch", minLevel: 3,
+    styleEffect: "Prestige +3",
+    series: "Field Watch",
+    glbFile: "timex_expedition_watch.glb",
+    colorVariants: JSON.stringify([
+      { key: "dark-blue", label: "Dark Blue", hex: "#2C3E50" },
+      { key: "brown", label: "Brown", hex: "#8B7355" },
+      { key: "green", label: "Green", hex: "#27AE60" },
+    ]),
+  },
+  {
+    id: "wardrobe-watch-seiko", slug: "seiko-prospex", name: "Seiko Prospex",
+    description: "Japanese precision. The diver's choice since 1965. Earned, not bought.",
+    cost: 12000, category: "fashion", icon: "watch-outline", rarity: "rare", itemType: "cosmetic",
     wearableSlot: "watch", minLevel: 8,
-    styleEffect: "Lifestyle signal +1",
-    series: "Chrono Collection",
+    styleEffect: "Prestige +7",
+    series: "Diver's Watch",
+    glbFile: "seiko_watch.glb",
     colorVariants: JSON.stringify([
-      { key: "white", label: "White", hex: "#F0F0F0" },
+      { key: "midnight", label: "Midnight", hex: "#1A1A2E" },
+      { key: "blue", label: "Blue", hex: "#4A9EFF" },
+      { key: "dark-blue", label: "Dark Blue", hex: "#2C3E50" },
+    ]),
+  },
+  {
+    id: "wardrobe-watch-chrono-sport", slug: "chronograph-sport", name: "Chronograph Sport",
+    description: "Measure every second. In business and in life, timing is everything.",
+    cost: 18000, category: "fashion", icon: "watch-outline", rarity: "rare", itemType: "cosmetic",
+    wearableSlot: "watch", minLevel: 12,
+    styleEffect: "Prestige +9",
+    series: "Sport Chronograph",
+    glbFile: "chronograph_watch.glb",
+    colorVariants: JSON.stringify([
+      { key: "black", label: "Black", hex: "#1A1A1A" },
+      { key: "red", label: "Red", hex: "#C0392B" },
+      { key: "gold", label: "Gold", hex: "#C9A84C" },
+    ]),
+  },
+  {
+    id: "wardrobe-watch-dress", slug: "classic-dress-watch", name: "Classic Dress Watch",
+    description: "The boardroom demands refinement. This watch opens doors.",
+    cost: 22000, category: "fashion", icon: "watch-outline", rarity: "rare", itemType: "cosmetic",
+    wearableSlot: "watch", minLevel: 15,
+    styleEffect: "Prestige +11",
+    series: "Dress Watch",
+    glbFile: "hand_watch.glb",
+    colorVariants: JSON.stringify([
+      { key: "white", label: "White", hex: "#F5F5F5" },
+      { key: "gold", label: "Gold", hex: "#C9A84C" },
       { key: "black", label: "Black", hex: "#1A1A1A" },
     ]),
   },
   {
-    id: "wardrobe-watch-mariner", slug: "mariner-black-40", name: "Mariner Black 40",
-    description: "Depth-rated. Board-room ready.",
-    cost: 1200, category: "fashion", icon: "watch-outline", rarity: "uncommon", itemType: "cosmetic",
-    wearableSlot: "watch", minLevel: 10,
-    styleEffect: "Lifestyle signal +1",
-    series: "Mariner Collection",
+    id: "wardrobe-watch-breitling", slug: "breitling-superocean-44", name: "Breitling Superocean 44",
+    description: "Instruments for professionals. Swiss-made for those who mean business.",
+    cost: 45000, category: "fashion", icon: "watch-outline", rarity: "epic", itemType: "cosmetic",
+    wearableSlot: "watch", minLevel: 28,
+    styleEffect: "Prestige +20",
+    series: "Professional Diver",
+    glbFile: "breitling_superocean_automatic_44.glb",
     colorVariants: JSON.stringify([
-      { key: "black", label: "Black", hex: "#1A1A1A" },
-      { key: "blue", label: "Blue", hex: "#1565C0" },
-      { key: "green", label: "Green", hex: "#2E7D32" },
+      { key: "midnight", label: "Midnight", hex: "#1A1A2E" },
+      { key: "blue", label: "Blue", hex: "#4A9EFF" },
+      { key: "white", label: "White", hex: "#F5F5F5" },
     ]),
   },
   {
-    id: "wardrobe-watch-royal", slug: "royal-series-41", name: "Royal Series 41",
-    description: "The watch that changed what luxury meant.",
-    cost: 3500, category: "fashion", icon: "watch-outline", rarity: "rare", itemType: "cosmetic",
-    wearableSlot: "watch", minLevel: 20,
-    styleEffect: "Lifestyle signal +2, prestige accent",
-    series: "Royal Collection",
+    id: "wardrobe-watch-rolex", slug: "rolex-datejust", name: "Rolex Datejust",
+    description: "The most recognised watch in the world. A symbol of achievement since 1945.",
+    cost: 85000, category: "fashion", icon: "watch-outline", rarity: "legendary", itemType: "cosmetic",
+    wearableSlot: "watch", minLevel: 45,
+    styleEffect: "Prestige +38",
+    series: "Luxury Icon",
+    glbFile: "rolex_datejust.glb",
     colorVariants: JSON.stringify([
-      { key: "silver", label: "Silver", hex: "#C0C0C0" },
-      { key: "black", label: "Black", hex: "#1A1A1A" },
-      { key: "blue", label: "Blue", hex: "#1565C0" },
+      { key: "gold", label: "Gold", hex: "#C9A84C" },
+      { key: "white", label: "White", hex: "#F5F5F5" },
+      { key: "midnight", label: "Midnight", hex: "#1A1A2E" },
     ]),
   },
   {
-    id: "wardrobe-watch-geneve", slug: "geneve-perpetual", name: "Genève Perpetual",
-    description: "You don't own it. You keep it for the next generation.",
-    cost: 7500, category: "fashion", icon: "watch-outline", rarity: "epic", itemType: "cosmetic",
-    wearableSlot: "watch", minLevel: 35,
-    styleEffect: "Prestige accent, elite overlay marker",
-    series: "Genève Heritage",
+    id: "wardrobe-watch-patek", slug: "patek-philippe-calatrava", name: "Patek Philippe Calatrava",
+    description: "You never actually own a Patek Philippe. You merely look after it for the next generation.",
+    cost: 150000, category: "fashion", icon: "watch-outline", rarity: "legendary", itemType: "cosmetic",
+    wearableSlot: "watch", minLevel: 60,
+    styleEffect: "Prestige +55",
+    series: "Haute Horlogerie",
+    glbFile: "patek_philippe.glb",
     colorVariants: JSON.stringify([
-      { key: "white", label: "White", hex: "#F5F5F0" },
-      { key: "champagne", label: "Champagne", hex: "#F5E6CA" },
-      { key: "midnight", label: "Midnight", hex: "#0D1B2A" },
+      { key: "gold", label: "Gold", hex: "#C9A84C" },
+      { key: "white", label: "White", hex: "#F5F5F5" },
+      { key: "brown", label: "Brown", hex: "#8B7355" },
     ]),
   },
   {
-    id: "wardrobe-watch-carbon", slug: "carbon-rm-series", name: "Carbon RM Series",
-    description: "Worn by those who move faster than the market.",
-    cost: 18000, category: "fashion", icon: "watch-outline", rarity: "legendary", itemType: "cosmetic",
-    wearableSlot: "watch", minLevel: 50,
-    styleEffect: "Strongest prestige overlay, elite aura",
-    series: "Carbon Atelier",
+    id: "wardrobe-watch-rm", slug: "richard-mille-rm011", name: "Richard Mille RM 011",
+    description: "The ultimate flex. $1M on your wrist. Reserved for those who've truly made it.",
+    cost: 220000, category: "fashion", icon: "watch-outline", rarity: "legendary", itemType: "cosmetic",
+    wearableSlot: "watch", minLevel: 70,
+    styleEffect: "Prestige +70",
+    series: "Ultra Luxury",
+    glbFile: "richard_mille_rm011.glb",
     colorVariants: JSON.stringify([
-      { key: "carbon", label: "Carbon", hex: "#2C2C2C" },
-      { key: "orange", label: "Orange", hex: "#FF6D00" },
-      { key: "green", label: "Green", hex: "#00E676" },
+      { key: "dark-blue", label: "Dark Blue", hex: "#2C3E50" },
+      { key: "gold", label: "Gold", hex: "#C9A84C" },
+      { key: "red", label: "Red", hex: "#C0392B" },
     ]),
   },
 
@@ -226,7 +288,16 @@ const WARDROBE_ITEMS = [
   },
 ];
 
-const STARTER_ITEM_IDS = ["wardrobe-top-starter", "wardrobe-bottom-starter", "wardrobe-watch-starter"];
+const STARTER_ITEM_IDS = ["wardrobe-top-starter", "wardrobe-bottom-starter", "wardrobe-watch-apple-ultra"];
+
+const WARDROBE_GLB_MAP = new Map(
+  WARDROBE_ITEMS.filter((i) => (i as any).glbFile).map((i) => [i.id, (i as any).glbFile as string])
+);
+
+const DEPRECATED_WATCH_IDS = [
+  "wardrobe-watch-starter", "wardrobe-watch-chrono", "wardrobe-watch-mariner",
+  "wardrobe-watch-royal", "wardrobe-watch-geneve", "wardrobe-watch-carbon",
+];
 
 async function ensureWardrobeSeeded() {
   const existing = await db
@@ -235,10 +306,19 @@ async function ensureWardrobeSeeded() {
     .where(isNotNull(shopItemsTable.wearableSlot));
   const existingIds = new Set(existing.map((r) => r.id));
 
+  for (const oldId of DEPRECATED_WATCH_IDS) {
+    if (existingIds.has(oldId)) {
+      await db.update(shopItemsTable)
+        .set({ isAvailable: false, status: "archived" })
+        .where(eq(shopItemsTable.id, oldId));
+    }
+  }
+
   for (const item of WARDROBE_ITEMS) {
+    const { glbFile, ...dbFields } = item as any;
     if (!existingIds.has(item.id)) {
       await db.insert(shopItemsTable).values({
-        ...item,
+        ...dbFields,
         isAvailable: true,
         isEquippable: true,
         isDisplayable: false,
@@ -256,17 +336,17 @@ async function ensureWardrobeSeeded() {
     } else {
       await db.update(shopItemsTable)
         .set({
-          series: item.series,
-          colorVariants: item.colorVariants,
-          name: item.name,
-          description: item.description,
-          cost: item.cost,
-          rarity: item.rarity,
-          minLevel: item.minLevel,
-          styleEffect: item.styleEffect,
-          wearableSlot: item.wearableSlot,
+          series: dbFields.series,
+          colorVariants: dbFields.colorVariants,
+          name: dbFields.name,
+          description: dbFields.description,
+          cost: dbFields.cost,
+          rarity: dbFields.rarity,
+          minLevel: dbFields.minLevel,
+          styleEffect: dbFields.styleEffect,
+          wearableSlot: dbFields.wearableSlot,
         })
-        .where(eq(shopItemsTable.id, item.id));
+        .where(eq(shopItemsTable.id, dbFields.id));
     }
   }
 }
@@ -313,6 +393,7 @@ router.get("/", requireAuth, async (req: any, res) => {
         minLevel: item.minLevel,
         icon: item.icon,
         series: item.series ?? null,
+        glbFile: WARDROBE_GLB_MAP.get(item.id) ?? null,
         colorVariants: variants,
         selectedVariant: inv?.colorVariant ?? variants[0]?.key ?? null,
         isOwned: inv !== null,
