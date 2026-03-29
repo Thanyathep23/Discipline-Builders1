@@ -1077,7 +1077,8 @@ export default function GarageScreen() {
   const [filter, setFilter] = useState<FilterMode>("all");
   const [refreshing, setRefreshing] = useState(false);
 
-  const catalog: Car[] = data?.catalog ?? [];
+  const BANNED_CARS = ["Starter Ride", "Phantom Noir", "Vulcan R", "Continental S"];
+  const catalog: Car[] = (data?.catalog ?? []).filter((c: Car) => !BANNED_CARS.includes(c.name));
   const featuredCar: Car | undefined = data?.featuredCar;
   const userLevel: number = data?.userLevel ?? 1;
   const coinBalance: number = data?.coinBalance ?? 0;

@@ -98,7 +98,6 @@ const PURCHASE_PRIORITY = [
   { name: "Starter Timepiece", cost: 200, day: 1, category: "wearable" },
   { name: "Indoor Plant Collection", cost: 300, day: 2, category: "room" },
   { name: "Silk Pocket Square", cost: 400, day: 3, category: "wearable" },
-  { name: "Starter Ride (car)", cost: 500, day: 4, category: "car" },
   { name: "Leather Bifold", cost: 600, day: 5, category: "wearable" },
   { name: "Minimal Bookshelf", cost: 600, day: 5, category: "room" },
   { name: "Premium Hoodie", cost: 800, day: 6, category: "wearable" },
@@ -120,11 +119,8 @@ const PURCHASE_PRIORITY = [
   { name: "Executive Suite (env)", cost: 5000, day: 35, category: "room_env" },
   { name: "Milano Cashmere Coat", cost: 6000, day: 40, category: "wearable" },
   { name: "Genève Perpetual", cost: 7500, day: 50, category: "wearable" },
-  { name: "Continental S (car)", cost: 8500, day: 55, category: "car" },
   { name: "Executive Suit", cost: 9000, day: 60, category: "wearable" },
-  { name: "Phantom Noir (car)", cost: 15000, day: 80, category: "car" },
   { name: "Carbon RM Series", cost: 18000, day: 90, category: "wearable" },
-  { name: "Vulcan R (car)", cost: 25000, day: 120, category: "car" },
 ];
 
 function computeMissionReward(arch: UserArchetype): { base: number; bonus: number } {

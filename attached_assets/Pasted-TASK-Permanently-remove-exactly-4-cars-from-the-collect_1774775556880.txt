@@ -1,0 +1,81 @@
+TASK: Permanently remove exactly 4 cars from the collection. These cars have no
+real 3D GLB model — they show a cartoon/SVG placeholder icon instead.
+They must be deleted from every location in the codebase.
+
+THE 4 CARS TO DELETE:
+  1. "Starter Ride"
+  2. "Phantom Noir"
+  3. "Vulcan R"
+  4. "Continental S"
+
+════════════════════════════════════════════════════════
+STEP 1 — FIND EVERY LOCATION (search all of these)
+════════════════════════════════════════════════════════
+
+Run each search and show the results before making changes:
+
+1. grep -r "Starter Ride" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json" -n
+2. grep -r "Phantom Noir" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json" -n
+3. grep -r "Vulcan R" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json" -n
+4. grep -r "Continental S" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json" -n
+
+════════════════════════════════════════════════════════
+STEP 2 — DELETE FROM EVERY LOCATION FOUND
+════════════════════════════════════════════════════════
+
+Remove these 4 cars completely from ALL sources found above:
+
+A) CAR DATA ARRAY (wherever cars are defined — server/data/*.ts, shared/schema.ts, client/data/cars.ts, etc.):
+   - Delete the entire object entry for each of the 4 cars
+   - Fix any trailing commas or broken array syntax after deletion
+
+B) DATABASE / SEED FILE (server/seed*.ts, db/seed*.ts, server/storage.ts):
+   - Remove the 4 cars from any seed/init function
+   - If using SQL: DELETE FROM cars WHERE name IN ('Starter Ride', 'Phantom Noir', 'Vulcan R', 'Continental S');
+
+C) ANY .json DATA FILE (data/cars.json, assets/cars.json, etc.):
+   - Delete the 4 entries
+
+D) ANY MOCK / FALLBACK DATA (mockCars, fallbackCars, defaultCars arrays):
+   - Delete the 4 entries
+
+════════════════════════════════════════════════════════
+STEP 3 — ADD RUNTIME SAFETY FILTER
+════════════════════════════════════════════════════════
+
+Find the component or hook that loads the car list (useCars, fetchCars, CarsScreen, GarageScreen, etc.)
+and add this filter so the 4 cars can NEVER appear even if something re-adds them:
+```ts
+const BANNED_CARS = ['Starter Ride', 'Phantom Noir', 'Vulcan R', 'Continental S']
+
+// Apply to car array before rendering:
+const cars = rawCars.filter(c => !BANNED_CARS.includes(c.name))
+```
+
+Add this filter in BOTH:
+1. Where cars are fetched from the API / server
+2. Where cars are rendered in the list/grid component
+
+════════════════════════════════════════════════════════
+STEP 4 — VERIFY
+════════════════════════════════════════════════════════
+
+Run all 4 greps again and confirm 0 results in .ts/.tsx/.js/.json files:
+
+1. grep -r "Starter Ride" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json"
+   → Must return 0 results
+
+2. grep -r "Phantom Noir" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json"
+   → Must return 0 results
+
+3. grep -r "Vulcan R" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json"
+   → Must return 0 results
+
+4. grep -r "Continental S" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json"
+   → Must return 0 results
+
+5. The car collection should now show ONLY cars that have real GLB model files
+   in the /web app/cars_v1/ folder. Do NOT add or change any other cars.
+
+If grep still finds any of the 4 names after deletion — go back and delete them again.
+Do not finish until all 4 return 0 results.

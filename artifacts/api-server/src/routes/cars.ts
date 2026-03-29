@@ -14,15 +14,6 @@ const router = Router();
 
 const CAR_CATALOG = [
   {
-    id: "car-v2-starter", slug: "starter-ride",
-    name: "Starter Ride",
-    description: "Every journey starts with the first key.",
-    fullDescription: "Clean lines and understated presence. The Starter Ride is where every operator begins — a statement that you've entered the game and you're here to stay.",
-    cost: 500, minLevel: 5, rarity: "common", subcategory: "entry",
-    icon: "car-outline", tags: '["vehicles","entry","photo-eligible"]',
-    stats: { hp: 150, topSpeed: 190, zeroToHundred: 9.5 },
-  },
-  {
     id: "car-v2-rav4-hybrid", slug: "rav4-hybrid",
     name: "Toyota RAV4 Hybrid",
     description: "Smart money buys smart cars. Efficiency is a discipline.",
@@ -161,15 +152,6 @@ const CAR_CATALOG = [
     stats: { hp: 550, topSpeed: 295, zeroToHundred: 3.9 },
   },
   {
-    id: "car-v2-continental", slug: "continental-s",
-    name: "Continental S",
-    description: "Effortless power. Unmistakable presence.",
-    fullDescription: "Grand touring luxury at its finest. The Continental S is for those who have proven that discipline and taste are not mutually exclusive. Quiet authority on wheels.",
-    cost: 8500, minLevel: 35, rarity: "epic", subcategory: "grandtouring",
-    icon: "car-sport-outline", tags: '["vehicles","grandtouring","photo-eligible","showcase","prestige"]',
-    stats: { hp: 626, topSpeed: 318, zeroToHundred: 3.6 },
-  },
-  {
     id: "car-v2-yangwang-u9", slug: "yangwang-u9",
     name: "BYD Yangwang U9",
     description: "China's answer to Ferrari. 1,300 HP of electric silence.",
@@ -188,16 +170,6 @@ const CAR_CATALOG = [
     icon: "car-sport-outline", tags: '["vehicles","german_precision","photo-eligible","showcase","prestige"]',
     glbFile: "2022_porsche_911_gt3_touring_992.glb",
     stats: { hp: 510, topSpeed: 320, zeroToHundred: 3.4 },
-  },
-  {
-    id: "car-v2-phantom", slug: "phantom-noir",
-    name: "Phantom Noir",
-    description: "Not earned by speed. Earned by discipline.",
-    fullDescription: "Ultra-luxury flagship. The Phantom Noir is reserved for those who have built something undeniable. It does not seek attention — it commands reverence.",
-    cost: 15000, minLevel: 50, rarity: "legendary", subcategory: "flagship",
-    isLimited: true,
-    icon: "car-sport-outline", tags: '["vehicles","flagship","photo-eligible","showcase","prestige","legendary"]',
-    stats: { hp: 563, topSpeed: 250, zeroToHundred: 4.5 },
   },
   {
     id: "car-v2-911-gt3-rs", slug: "911-gt3-rs",
@@ -220,16 +192,6 @@ const CAR_CATALOG = [
     icon: "car-sport-outline", tags: '["vehicles","italian_exotic","photo-eligible","showcase","prestige","legendary"]',
     glbFile: "2010_lamborghini_reventon_roadster.glb",
     stats: { hp: 670, topSpeed: 340, zeroToHundred: 3.4 },
-  },
-  {
-    id: "car-v2-vulcan", slug: "vulcan-r",
-    name: "Vulcan R",
-    description: "Most will never. You might.",
-    fullDescription: "Track-focused hypercar. The Vulcan R exists in a category beyond aspiration. Owning it is proof that your discipline has no ceiling — a machine that few will ever touch.",
-    cost: 25000, minLevel: 65, rarity: "legendary", subcategory: "hypercar",
-    isLimited: true,
-    icon: "car-sport-outline", tags: '["vehicles","hypercar","photo-eligible","showcase","prestige","legendary"]',
-    stats: { hp: 820, topSpeed: 362, zeroToHundred: 2.9 },
   },
   {
     id: "car-v2-centenario", slug: "centenario-roadster",
@@ -278,9 +240,16 @@ const CAR_PRESTIGE_VALUES: Record<string, number> = {
   hypercar:        55,
 };
 
+const BANNED_CAR_IDS = new Set(["car-v2-starter", "car-v2-phantom", "car-v2-vulcan", "car-v2-continental"]);
+
 // ─── Idempotent seed ──────────────────────────────────────────────────────────
 
 async function ensureCarsSeeded() {
+  for (const bannedId of BANNED_CAR_IDS) {
+    await db.delete(userInventoryTable).where(eq(userInventoryTable.itemId, bannedId)).catch(() => {});
+    await db.delete(shopItemsTable).where(eq(shopItemsTable.id, bannedId)).catch(() => {});
+  }
+
   for (const car of CAR_CATALOG) {
     const existing = await db.select({ id: shopItemsTable.id })
       .from(shopItemsTable).where(eq(shopItemsTable.id, car.id)).limit(1);
@@ -356,8 +325,9 @@ router.get("/", requireAuth, async (req: any, res) => {
       .select({ level: usersTable.level, coinBalance: usersTable.coinBalance })
       .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
 
-    const allCars = await db.select().from(shopItemsTable)
+    const allCarsRaw = await db.select().from(shopItemsTable)
       .where(and(eq(shopItemsTable.category, "vehicle"), eq(shopItemsTable.status, "active")));
+    const allCars = allCarsRaw.filter(c => !BANNED_CAR_IDS.has(c.id));
 
     const inventory = await db.select().from(userInventoryTable)
       .where(eq(userInventoryTable.userId, userId));
@@ -636,8 +606,9 @@ router.get("/photo-mode", requireAuth, async (req: any, res) => {
       return res.json({ ownedCars: [], featuredCar: null });
     }
 
-    const allCars = await db.select().from(shopItemsTable)
+    const allCarsRaw = await db.select().from(shopItemsTable)
       .where(eq(shopItemsTable.category, "vehicle"));
+    const allCars = allCarsRaw.filter(c => !BANNED_CAR_IDS.has(c.id));
 
     const invMap = new Map(inventory.map(i => [i.itemId, i]));
 
@@ -679,7 +650,7 @@ router.get("/featured-info", requireAuth, async (req: any, res) => {
     const [car] = await db.select({ id: shopItemsTable.id, name: shopItemsTable.name, rarity: shopItemsTable.rarity, subcategory: shopItemsTable.subcategory })
       .from(shopItemsTable).where(eq(shopItemsTable.id, featuredInv.itemId)).limit(1);
 
-    if (!car) return res.json({ featuredCar: null });
+    if (!car || BANNED_CAR_IDS.has(car.id)) return res.json({ featuredCar: null });
 
     return res.json({
       featuredCar: {
