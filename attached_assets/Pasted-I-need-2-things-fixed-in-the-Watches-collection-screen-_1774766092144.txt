@@ -1,0 +1,91 @@
+I need 2 things fixed in the Watches collection screen:
+
+## FIX 1 — Remove these 3 watches completely
+
+Delete these entries from the watch catalog entirely:
+- "Classic Watch"
+- "Refined Timepiece"
+- "Elite Chronograph"
+
+Remove them from the data/catalog file AND from any GLB mapping.
+The remaining watches should be only these 6:
+1. Apple Watch Ultra
+2. Timex Expedition
+3. Seiko Prospex
+4. Chronograph Sport
+5. Classic Dress Watch
+6. Breitling Superocean 44
+7. Rolex Datejust
+8. Patek Philippe Calatrava
+9. Richard Mille RM 011
+
+---
+
+## FIX 2 — Fix watch camera so ALL watches show full body, same zoom
+
+The current problem: each watch GLB has a different internal scale, so
+model-viewer zooms in differently for each — some show only a strap,
+some show the full watch, some are too close.
+
+### Solution: Force model-viewer to auto-fit every watch the same way
+
+Find where watches are rendered with model-viewer (in the watch card and detail view).
+Change the model-viewer attributes to use these settings for ALL watches:
+```html
+<model-viewer
+  src="/api/models/[watch_file].glb"
+  auto-rotate
+  auto-rotate-delay="2000"
+  rotation-per-second="12deg"
+  camera-orbit="0deg 75deg 105%"
+  min-camera-orbit="auto auto 80%"
+  max-camera-orbit="auto auto 150%"
+  field-of-view="30deg"
+  camera-target="0m 0m 0m"
+  environment-image="neutral"
+  shadow-intensity="1.0"
+  exposure="1.1"
+  style="width:100%; height:100%; --poster-color:transparent; background:transparent;"
+>
+</model-viewer>
+```
+
+### Key settings that fix the zoom issue:
+- `camera-orbit="0deg 75deg 105%"` — the `105%` is a PERCENTAGE of the model's
+  bounding sphere radius, NOT a fixed distance in meters. This means every watch,
+  regardless of its real size in the GLB, will be shown at the same relative zoom.
+  105% = slight padding around the full model.
+- `min-camera-orbit="auto auto 80%"` — can't zoom in too close
+- `max-camera-orbit="auto auto 150%"` — can't zoom out too far
+- `camera-target="0m 0m 0m"` — center the camera on the model's origin
+
+### For the watch GRID CARDS specifically:
+The cards are small, so use a slightly wider field of view:
+```html
+camera-orbit="30deg 70deg 110%"
+field-of-view="35deg"
+```
+
+### For the watch DETAIL VIEW (when tapping a watch):
+More dramatic angle, tighter:
+```html
+camera-orbit="30deg 75deg 100%"
+field-of-view="25deg"
+camera-controls  <!-- allow user to rotate in detail view -->
+```
+
+### Apply this fix to EVERY watch, not just some
+
+Make sure the model-viewer camera settings are the same for all 9 watches.
+The percentage-based orbit distance (`105%`) automatically adjusts to each
+model's size, so every watch will appear full-body at the same relative size.
+
+---
+
+## Summary
+1. Remove "Classic Watch", "Refined Timepiece", "Elite Chronograph" from catalog
+2. Change ALL watch model-viewer instances to use percentage-based camera-orbit
+   (`105%` instead of fixed meters like `0.3m`) so every watch shows full-body
+3. Apply same camera settings to both grid cards and detail view
+
+Show me the changes you made.
