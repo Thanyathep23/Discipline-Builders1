@@ -139,6 +139,7 @@ const CAR_CATALOG = [
     fullDescription: "Clean lines and understated presence. The Starter Ride is where every operator begins — a statement that you've entered the game and you're here to stay.",
     cost: 500, minLevel: 5, rarity: "common", subcategory: "entry",
     icon: "car-outline", tags: '["vehicles","entry","photo-eligible"]',
+    stats: { hp: 150, topSpeed: 190, zeroToHundred: 9.5 },
   },
   {
     id: "car-v2-rav4-hybrid", slug: "rav4-hybrid",
@@ -148,6 +149,7 @@ const CAR_CATALOG = [
     cost: 12000, minLevel: 5, rarity: "common", subcategory: "suv_hybrid",
     icon: "car-outline", tags: '["vehicles","suv_hybrid","photo-eligible"]',
     glbFile: "2023_toyota_rav4_hybrid.glb",
+    stats: { hp: 219, topSpeed: 180, zeroToHundred: 8.1 },
   },
   {
     id: "car-v2-audi-tt", slug: "audi-tt-coupe",
@@ -157,6 +159,7 @@ const CAR_CATALOG = [
     cost: 15000, minLevel: 8, rarity: "common", subcategory: "german_sport",
     icon: "car-sport-outline", tags: '["vehicles","german_sport","photo-eligible"]',
     glbFile: "2007_audi_tt_coupe.glb",
+    stats: { hp: 200, topSpeed: 240, zeroToHundred: 6.4 },
   },
   {
     id: "car-v2-byd-seal", slug: "byd-seal",
@@ -166,6 +169,7 @@ const CAR_CATALOG = [
     cost: 18000, minLevel: 8, rarity: "common", subcategory: "electric",
     icon: "car-outline", tags: '["vehicles","electric","photo-eligible"]',
     glbFile: "2024_byd_seal.glb",
+    stats: { hp: 530, topSpeed: 240, zeroToHundred: 3.8 },
   },
   {
     id: "car-v2-avalon-hybrid", slug: "avalon-hybrid",
@@ -175,6 +179,7 @@ const CAR_CATALOG = [
     cost: 20000, minLevel: 12, rarity: "rare", subcategory: "luxury_hybrid",
     icon: "car-sport-outline", tags: '["vehicles","luxury_hybrid","photo-eligible","showcase"]',
     glbFile: "2023_toyota_avalon_hybrid_limited.glb",
+    stats: { hp: 301, topSpeed: 230, zeroToHundred: 6.3 },
   },
   {
     id: "car-v2-gr86", slug: "gr86",
@@ -184,6 +189,7 @@ const CAR_CATALOG = [
     cost: 25000, minLevel: 15, rarity: "rare", subcategory: "sports_car",
     icon: "car-sport-outline", tags: '["vehicles","sports_car","photo-eligible","showcase"]',
     glbFile: "2022_toyota_gr86.glb",
+    stats: { hp: 228, topSpeed: 226, zeroToHundred: 6.3 },
   },
   {
     id: "car-v2-series-m", slug: "series-m-black",
@@ -192,6 +198,7 @@ const CAR_CATALOG = [
     fullDescription: "An executive sport sedan built for operators who demand precision and presence in equal measure. The Series M Black is the vehicle of choice for those whose mornings start before dawn.",
     cost: 2500, minLevel: 15, rarity: "rare", subcategory: "sport",
     icon: "car-sport-outline", tags: '["vehicles","sport","photo-eligible","showcase"]',
+    stats: { hp: 503, topSpeed: 290, zeroToHundred: 3.9 },
   },
   {
     id: "car-v2-civic-type-r", slug: "civic-type-r",
@@ -201,6 +208,7 @@ const CAR_CATALOG = [
     cost: 28000, minLevel: 18, rarity: "rare", subcategory: "hot_hatch",
     icon: "car-sport-outline", tags: '["vehicles","hot_hatch","photo-eligible","showcase"]',
     glbFile: "2023_honda_civic_type_r.glb",
+    stats: { hp: 315, topSpeed: 275, zeroToHundred: 5.4 },
   },
   {
     id: "car-v2-viper-acr", slug: "viper-acr",
@@ -210,6 +218,7 @@ const CAR_CATALOG = [
     cost: 35000, minLevel: 20, rarity: "rare", subcategory: "american_muscle",
     icon: "car-sport-outline", tags: '["vehicles","american_muscle","photo-eligible","showcase"]',
     glbFile: "2016_dodge_viper_acr.glb",
+    stats: { hp: 645, topSpeed: 331, zeroToHundred: 3.5 },
   },
   {
     id: "car-v2-alpine-gt", slug: "alpine-gt",
@@ -218,6 +227,7 @@ const CAR_CATALOG = [
     fullDescription: "Precision-engineered performance coupe. The Alpine GT rewards discipline with raw capability — a machine that mirrors your dedication in every curve and straightaway.",
     cost: 5000, minLevel: 25, rarity: "epic", subcategory: "performance",
     icon: "car-sport-outline", tags: '["vehicles","performance","photo-eligible","showcase","prestige"]',
+    stats: { hp: 550, topSpeed: 300, zeroToHundred: 3.6 },
   },
   {
     id: "car-v2-supra-varis", slug: "supra-varis",
@@ -227,6 +237,7 @@ const CAR_CATALOG = [
     cost: 42000, minLevel: 25, rarity: "rare", subcategory: "jdm_tuned",
     icon: "car-sport-outline", tags: '["vehicles","jdm_tuned","photo-eligible","showcase"]',
     glbFile: "2020_varis_toyota_gr_supra.glb",
+    stats: { hp: 500, topSpeed: 290, zeroToHundred: 4.1 },
   },
   {
     id: "car-v2-tt-rs-iconic", slug: "tt-rs-iconic",
@@ -236,6 +247,7 @@ const CAR_CATALOG = [
     cost: 45000, minLevel: 28, rarity: "rare", subcategory: "german_sport",
     icon: "car-sport-outline", tags: '["vehicles","german_sport","photo-eligible","showcase"]',
     glbFile: "2023_audi_tt_rs_iconic_edition.glb",
+    stats: { hp: 400, topSpeed: 250, zeroToHundred: 3.7 },
   },
   {
     id: "car-v2-yangwang-u7", slug: "yangwang-u7",
@@ -245,6 +257,7 @@ const CAR_CATALOG = [
     cost: 48000, minLevel: 28, rarity: "rare", subcategory: "electric_luxury",
     icon: "car-sport-outline", tags: '["vehicles","electric_luxury","photo-eligible","showcase"]',
     glbFile: "2024_byd_yangwang_u7.glb",
+    stats: { hp: 960, topSpeed: 260, zeroToHundred: 3.0 },
   },
   {
     id: "car-v2-challenger-demon", slug: "challenger-demon",
@@ -254,6 +267,7 @@ const CAR_CATALOG = [
     cost: 55000, minLevel: 30, rarity: "epic", subcategory: "american_muscle",
     icon: "car-sport-outline", tags: '["vehicles","american_muscle","photo-eligible","showcase","prestige"]',
     glbFile: "dodge_challenger_srt_demon.glb",
+    stats: { hp: 840, topSpeed: 274, zeroToHundred: 2.3 },
   },
   {
     id: "car-v2-supra-lbworks", slug: "supra-lbworks",
@@ -263,6 +277,7 @@ const CAR_CATALOG = [
     cost: 58000, minLevel: 32, rarity: "epic", subcategory: "jdm_widebody",
     icon: "car-sport-outline", tags: '["vehicles","jdm_widebody","photo-eligible","showcase","prestige"]',
     glbFile: "2020_lbworks_toyota_supra_a90.glb",
+    stats: { hp: 550, topSpeed: 295, zeroToHundred: 3.9 },
   },
   {
     id: "car-v2-continental", slug: "continental-s",
@@ -271,6 +286,7 @@ const CAR_CATALOG = [
     fullDescription: "Grand touring luxury at its finest. The Continental S is for those who have proven that discipline and taste are not mutually exclusive. Quiet authority on wheels.",
     cost: 8500, minLevel: 35, rarity: "epic", subcategory: "grandtouring",
     icon: "car-sport-outline", tags: '["vehicles","grandtouring","photo-eligible","showcase","prestige"]',
+    stats: { hp: 626, topSpeed: 318, zeroToHundred: 3.6 },
   },
   {
     id: "car-v2-yangwang-u9", slug: "yangwang-u9",
@@ -280,6 +296,7 @@ const CAR_CATALOG = [
     cost: 65000, minLevel: 38, rarity: "epic", subcategory: "electric_hypercar",
     icon: "car-sport-outline", tags: '["vehicles","electric_hypercar","photo-eligible","showcase","prestige"]',
     glbFile: "2024_byd_yangwang_u9.glb",
+    stats: { hp: 1300, topSpeed: 309, zeroToHundred: 2.36 },
   },
   {
     id: "car-v2-911-gt3-touring", slug: "911-gt3-touring",
@@ -289,6 +306,7 @@ const CAR_CATALOG = [
     cost: 80000, minLevel: 45, rarity: "epic", subcategory: "german_precision",
     icon: "car-sport-outline", tags: '["vehicles","german_precision","photo-eligible","showcase","prestige"]',
     glbFile: "2022_porsche_911_gt3_touring_992.glb",
+    stats: { hp: 510, topSpeed: 320, zeroToHundred: 3.4 },
   },
   {
     id: "car-v2-phantom", slug: "phantom-noir",
@@ -298,6 +316,7 @@ const CAR_CATALOG = [
     cost: 15000, minLevel: 50, rarity: "legendary", subcategory: "flagship",
     isLimited: true,
     icon: "car-sport-outline", tags: '["vehicles","flagship","photo-eligible","showcase","prestige","legendary"]',
+    stats: { hp: 563, topSpeed: 250, zeroToHundred: 4.5 },
   },
   {
     id: "car-v2-911-gt3-rs", slug: "911-gt3-rs",
@@ -308,6 +327,7 @@ const CAR_CATALOG = [
     isLimited: true,
     icon: "car-sport-outline", tags: '["vehicles","german_precision","photo-eligible","showcase","prestige","legendary"]',
     glbFile: "porsche_911_gt3_rs_2023.glb",
+    stats: { hp: 518, topSpeed: 296, zeroToHundred: 3.2 },
   },
   {
     id: "car-v2-reventon", slug: "reventon-roadster",
@@ -318,6 +338,7 @@ const CAR_CATALOG = [
     isLimited: true,
     icon: "car-sport-outline", tags: '["vehicles","italian_exotic","photo-eligible","showcase","prestige","legendary"]',
     glbFile: "2010_lamborghini_reventon_roadster.glb",
+    stats: { hp: 670, topSpeed: 340, zeroToHundred: 3.4 },
   },
   {
     id: "car-v2-vulcan", slug: "vulcan-r",
@@ -327,6 +348,7 @@ const CAR_CATALOG = [
     cost: 25000, minLevel: 65, rarity: "legendary", subcategory: "hypercar",
     isLimited: true,
     icon: "car-sport-outline", tags: '["vehicles","hypercar","photo-eligible","showcase","prestige","legendary"]',
+    stats: { hp: 820, topSpeed: 362, zeroToHundred: 2.9 },
   },
   {
     id: "car-v2-centenario", slug: "centenario-roadster",
@@ -337,6 +359,7 @@ const CAR_CATALOG = [
     isLimited: true,
     icon: "car-sport-outline", tags: '["vehicles","italian_exotic","photo-eligible","showcase","prestige","legendary"]',
     glbFile: "lamborghini_centenario_roadster.glb",
+    stats: { hp: 770, topSpeed: 350, zeroToHundred: 2.9 },
   },
 ];
 
