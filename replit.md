@@ -375,7 +375,15 @@ artifacts-monorepo/
 - **Customize sheet**: `CharacterCustomizeSheet` passes `hairStyle`, `hairColor`, `skinTone`, `gender` (bodyType) props to `Character3DViewer` for real-time preview; gender-specific hair style lists
 - **Character status screen**: `Character3DViewer` receives saved appearance props including `gender` (from `currentBodyType`) to reflect user's look
 - **Car Showroom**: `artifacts/mobile/app/cars/showroom.tsx` — Premium 3D car viewer with swipe navigation, specs grid, purchase flow, MY GARAGE section; uses BMW M4 Competition (11MB GLB) and BMW M4 Widebody (22MB GLB); route registered at `cars/showroom` with slide_from_bottom animation
-- **Model files**: `artifacts/api-server/public/models/` — 6 GLTF + .bin pairs, 5 texture PNGs, 2 normal maps, 2 BMW GLB files
+- **3D Outfit Overlay**: 5 outfit GLB models overlaid on character body in both web (iframe) and native (R3F) viewers
+  - Outfit GLBs: `shirt_for_men.glb` (Starter White Shirt), `stylized_hoodie_jacket.glb` (Premium Hoodie), `elegant_clothing_set.glb` (Silk Business Shirt), `black_puffy_jacket.glb` (Milano Cashmere Coat), `mens_clothing_game.glb` (Executive Suit)
+  - `character-viewer.html`: `outfitGroup` as 3rd child of pivotGroup; `loadOutfit(glbFile)` function; `setOutfit` postMessage handler; `?outfit=` URL param
+  - `Character3DViewer.tsx`: `NativeOutfitModel` component (mirrors `NativeHairModel` pattern); `outfitGlb` prop flows through all layers
+  - `OUTFIT_ALIGNMENT_MAP` / `OUTFIT_ALIGNMENT` for per-outfit scale/yOffset tuning (both web and native)
+  - Wardrobe cards: `OutfitCardViewer` component with full-body camera settings for 3D outfit preview in wardrobe grid
+  - `equippedWearables.top.glbFile` and `equippedWearables.outerwear.glbFile` returned from character status API; outerwear takes priority over top
+  - `WARDROBE_GLB_MAP` exported from `wearables.ts`, imported by `character.ts` for glbFile resolution
+- **Model files**: `artifacts/api-server/public/models/` — 6 GLTF + .bin pairs, 5 texture PNGs, 2 normal maps, 2 BMW GLB files, 5 outfit GLB files
 - **Static serving**: `artifacts/api-server/src/app.ts` — `express.static` at `/api/models` with 7-day cache + character-viewer.html route
 - **Lighting**: Cinematic 5-light setup: warm key (#FFF2D0), blue rim (#6AADFF), gold fill (#C9A84C), ambient, bounce point light
 - **Vignette**: 3-layer LinearGradient overlay (vertical + horizontal + bottom fade) for premium look

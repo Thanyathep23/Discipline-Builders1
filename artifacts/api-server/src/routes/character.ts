@@ -9,6 +9,7 @@ import {
 import type { SkinTone, BodyType, HairStyle, HairColor, FaceShape, EyeShape } from "@workspace/db";
 import { eq, and, count, inArray, isNotNull } from "drizzle-orm";
 import { z } from "zod/v4";
+import { WARDROBE_GLB_MAP } from "./wearables.js";
 import { getUserSkills } from "../lib/skill-engine.js";
 import { getMasteryState } from "../lib/mastery-engine.js";
 import { computePrestigeState } from "../lib/prestige-engine.js";
@@ -141,6 +142,7 @@ function computeEquippedWearableState(equippedWearableItems: any[]) {
       rarity:           top.rarity,
       outfitTierOverride: WEARABLE_OUTFIT_TIER[top.slug ?? ""] ?? null,
       styleEffect:      top.styleEffect,
+      glbFile:          WARDROBE_GLB_MAP.get(top.id) ?? null,
     } : null,
     watch: watch ? {
       id:          watch.id,
@@ -163,6 +165,7 @@ function computeEquippedWearableState(equippedWearableItems: any[]) {
       slug:         outerwear.slug,
       name:         outerwear.name,
       rarity:       outerwear.rarity,
+      glbFile:      WARDROBE_GLB_MAP.get(outerwear.id) ?? null,
     } : null,
     bottom: bottom ? {
       id:           bottom.id,

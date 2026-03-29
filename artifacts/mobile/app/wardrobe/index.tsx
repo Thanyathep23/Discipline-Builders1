@@ -35,6 +35,7 @@ const WATCH_CAMERA_OVERRIDES: Record<string, { orbit: string; fov: string }> = {
 };
 
 const DEFAULT_WATCH_CAMERA = { orbit: "0deg 75deg 105%", fov: "30deg" };
+const DEFAULT_OUTFIT_CAMERA = { orbit: "0deg 80deg 120%", fov: "40deg" };
 
 function ensureModelViewerScript() {
   if (
@@ -108,6 +109,60 @@ function WatchCardViewer({ glbFile }: { glbFile: string }) {
     </View>
   );
 }
+
+function OutfitCardViewer({ glbFile }: { glbFile: string }) {
+  const viewerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (Platform.OS === "web") ensureModelViewerScript();
+  }, []);
+
+  if (Platform.OS !== "web") return null;
+
+  const cam = DEFAULT_OUTFIT_CAMERA;
+  const modelUrl = `${API_BASE}/models/${glbFile}`;
+
+  return (
+    <View style={{ width: 100, height: 100, borderRadius: 8, overflow: "hidden" }}>
+      {/* @ts-ignore */}
+      <model-viewer
+        ref={viewerRef}
+        src={modelUrl}
+        auto-rotate
+        auto-rotate-delay="2000"
+        rotation-per-second="10deg"
+        camera-orbit={cam.orbit}
+        min-camera-orbit="auto auto 90%"
+        max-camera-orbit="auto auto 150%"
+        field-of-view={cam.fov}
+        min-field-of-view="25deg"
+        max-field-of-view="50deg"
+        camera-target="0m 0m 0m"
+        environment-image="neutral"
+        shadow-intensity="1.0"
+        exposure="1.1"
+        interaction-prompt="none"
+        style={
+          {
+            width: "100%",
+            height: "100%",
+            background: "transparent",
+            "--poster-color": "transparent",
+          } as React.CSSProperties
+        }
+        alt="3D Outfit"
+      />
+    </View>
+  );
+}
+
+const OUTFIT_GLBS = new Set([
+  "shirt_for_men.glb",
+  "stylized_hoodie_jacket.glb",
+  "elegant_clothing_set.glb",
+  "black_puffy_jacket.glb",
+  "mens_clothing_game.glb",
+]);
 
 type Tab = "watches" | "clothing" | "accessories" | "equipped";
 type Filter = "all" | "owned" | "available" | "locked";
@@ -229,7 +284,11 @@ export default function WardrobeScreen() {
       >
         <View style={st.itemVisualWrap}>
           {item.glbFile && Platform.OS === "web" ? (
-            <WatchCardViewer glbFile={item.glbFile} />
+            OUTFIT_GLBS.has(item.glbFile) ? (
+              <OutfitCardViewer glbFile={item.glbFile} />
+            ) : (
+              <WatchCardViewer glbFile={item.glbFile} />
+            )
           ) : (
             <ItemVisual slug={item.slug} size={100} />
           )}

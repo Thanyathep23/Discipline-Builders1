@@ -23,10 +23,10 @@ const PREMIUM_BG = "#07071A";
 
 // ─── Phase 29 — Wearable State Types ──────────────────────────────────────────
 
-export type WearableTop = { id: string; slug: string; name: string; outfitTierOverride: number | null; styleEffect: string | null } | null;
+export type WearableTop = { id: string; slug: string; name: string; outfitTierOverride: number | null; styleEffect: string | null; glbFile?: string | null } | null;
 export type WearableWatch = { id: string; slug: string; name: string; watchStyle: "basic" | "refined" | "elite"; styleEffect: string | null } | null;
 export type WearableAccessory = { id: string; slug: string; name: string; accessoryStyle: "chain" | "pin" | "ring"; styleEffect: string | null } | null;
-export type WearableOuterwear = { id: string; slug: string; name: string; rarity?: string } | null;
+export type WearableOuterwear = { id: string; slug: string; name: string; rarity?: string; glbFile?: string | null } | null;
 export type WearableBottom = { id: string; slug: string; name: string } | null;
 export type WearableShoes = { id: string; slug: string; name: string; rarity?: string; shoesStyle: "casual" | "sneaker" | "formal" | "boot" } | null;
 export type WearableEyewear = { id: string; slug: string; name: string; rarity?: string; eyewearStyle: "thin-frame" | "bold-frame" | "sunglasses" } | null;
@@ -753,6 +753,7 @@ function CharacterCustomizeSheet({
             hairColor={hairColor}
             skinTone={skinTone}
             gender={bodyType}
+            outfitGlb={equippedWearables?.outerwear?.glbFile ?? equippedWearables?.top?.glbFile ?? null}
           />
         </View>
 
@@ -1285,6 +1286,7 @@ export default function CharacterStatusScreen() {
                   hairColor={currentHairColor}
                   skinTone={currentSkinTone}
                   gender={currentBodyType}
+                  outfitGlb={(data as any)?.equippedWearables?.outerwear?.glbFile ?? (data as any)?.equippedWearables?.top?.glbFile ?? null}
                 />
                 <Pressable
                   style={styles.wardrobeBtn}

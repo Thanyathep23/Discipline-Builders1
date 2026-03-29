@@ -115,6 +115,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "top", minLevel: 1,
     styleEffect: "Default starter appearance",
     series: "Starter Collection",
+    glbFile: "shirt_for_men.glb",
   },
   {
     id: "wardrobe-top-hoodie", slug: "premium-hoodie-s1", name: "Premium Hoodie — Series 1",
@@ -123,6 +124,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "top", minLevel: 8,
     styleEffect: "Casual tier outfit",
     series: "Elevated Essentials",
+    glbFile: "stylized_hoodie_jacket.glb",
   },
   {
     id: "wardrobe-top-silk", slug: "silk-business-shirt", name: "Silk Business Shirt",
@@ -131,6 +133,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "top", minLevel: 18,
     styleEffect: "Outfit tier upgrade",
     series: "Executive Line",
+    glbFile: "elegant_clothing_set.glb",
   },
 
   // ── CLOTHING — OUTERWEAR ──
@@ -141,6 +144,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "outerwear", minLevel: 30,
     styleEffect: "Outfit tier upgrade to Refined",
     series: "Milano Collection",
+    glbFile: "black_puffy_jacket.glb",
   },
   {
     id: "wardrobe-suit-exec", slug: "executive-suit-midnight", name: "Executive Suit — Midnight",
@@ -149,6 +153,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     wearableSlot: "outerwear", minLevel: 40,
     styleEffect: "Strongest outfit upgrade, prestige signal",
     series: "Executive Line",
+    glbFile: "mens_clothing_game.glb",
   },
 
   // ── CLOTHING — BOTTOMS ──
@@ -214,7 +219,7 @@ export const WATCH_GLB_MAP: Record<string, string> = Object.fromEntries(
   watchItemsWithGlb.map((i) => [i.name, i.glbFile])
 );
 
-const WARDROBE_GLB_MAP = new Map(
+export const WARDROBE_GLB_MAP = new Map(
   WARDROBE_ITEMS.filter((i): i is WardrobeItemDef & { glbFile: string } => !!i.glbFile).map((i) => [i.id, i.glbFile])
 );
 

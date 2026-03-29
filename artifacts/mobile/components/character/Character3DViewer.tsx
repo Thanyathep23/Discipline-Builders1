@@ -181,6 +181,85 @@ function NativeHairModel({
   );
 }
 
+function NativeOutfitModelInner({
+  outfitGlb,
+  bodyRef,
+}: {
+  outfitGlb: string;
+  bodyRef: React.MutableRefObject<any>;
+}) {
+  const groupRef = useRef<any>(null);
+  const alignedRef = useRef(false);
+  const url = `${MODELS_BASE}/${outfitGlb}`;
+  const gltf = useLoader(GLTFLoader, url);
+  const align = OUTFIT_ALIGNMENT_MAP[outfitGlb] ?? { scale: 1.0, yOffset: 0 };
+
+  useEffect(() => {
+    if (!gltf?.scene) return;
+    const s = gltf.scene;
+    alignedRef.current = false;
+
+    if (bodyRef.current) {
+      s.scale.copy(bodyRef.current.scale);
+      s.scale.multiplyScalar(align.scale);
+      s.position.copy(bodyRef.current.position);
+      s.position.y += align.yOffset;
+      alignedRef.current = true;
+    } else {
+      const box = new THREE.Box3().setFromObject(s);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const scale = (1.8 / size.y) * align.scale;
+      s.scale.setScalar(scale);
+    }
+
+    s.traverse((child: any) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
+    fixTPose(s);
+  }, [gltf]);
+
+  useFrame(() => {
+    if (!alignedRef.current && gltf?.scene && bodyRef.current) {
+      gltf.scene.scale.copy(bodyRef.current.scale);
+      gltf.scene.scale.multiplyScalar(align.scale);
+      gltf.scene.position.copy(bodyRef.current.position);
+      gltf.scene.position.y += align.yOffset;
+      alignedRef.current = true;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      {gltf?.scene && <primitive object={gltf.scene} />}
+    </group>
+  );
+}
+
+function NativeOutfitModel(props: { outfitGlb: string; bodyRef: React.MutableRefObject<any> }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <ErrorBoundaryGroup onError={() => setFailed(true)}>
+      <NativeOutfitModelInner {...props} />
+    </ErrorBoundaryGroup>
+  );
+}
+
+function ErrorBoundaryGroup({ children, onError }: { children: React.ReactNode; onError: () => void }) {
+  return (
+    <group onPointerMissed={() => {}}>
+      <React.Suspense fallback={null}>
+        {children}
+      </React.Suspense>
+    </group>
+  );
+}
+
 function SuperheroModel({
   skinTexture,
   bodyRef,
@@ -338,12 +417,14 @@ function WebModelViewer({
   hairColor,
   skinTone,
   gender = "male",
+  outfitGlb,
 }: {
   height: number;
   hairStyle?: string;
   hairColor?: string;
   skinTone?: string;
   gender?: string;
+  outfitGlb?: string | null;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const readyRef = useRef(false);
@@ -355,7 +436,7 @@ function WebModelViewer({
 
   const [stableUrl] = useState(
     () =>
-      `${API_BASE}/character-viewer.html?skin=${encodeURIComponent(skinTexture)}&hair=${encodeURIComponent(hairModel)}&hairTex=${encodeURIComponent(hairTexture)}&gender=${encodeURIComponent(gender)}`
+      `${API_BASE}/character-viewer.html?skin=${encodeURIComponent(skinTexture)}&hair=${encodeURIComponent(hairModel)}&hairTex=${encodeURIComponent(hairTexture)}&gender=${encodeURIComponent(gender)}${outfitGlb ? `&outfit=${encodeURIComponent(outfitGlb)}` : ""}`
   );
 
   const sendMessage = useCallback(
@@ -389,13 +470,14 @@ function WebModelViewer({
       skinTexture,
       hairTexture,
       gender,
+      outfitGlb: outfitGlb || null,
     };
     if (readyRef.current) {
       sendMessage(msg);
     } else {
       pendingRef.current = msg;
     }
-  }, [hairModel, skinTexture, hairTexture, gender, sendMessage]);
+  }, [hairModel, skinTexture, hairTexture, gender, outfitGlb, sendMessage]);
 
   return (
     <View style={[viewerStyles.container, { height }]}>
@@ -435,12 +517,21 @@ function WebModelViewer({
   );
 }
 
+const OUTFIT_ALIGNMENT_MAP: Record<string, { scale: number; yOffset: number }> = {
+  "shirt_for_men.glb":          { scale: 1.0, yOffset: 0 },
+  "stylized_hoodie_jacket.glb": { scale: 1.0, yOffset: 0 },
+  "elegant_clothing_set.glb":   { scale: 1.0, yOffset: 0 },
+  "black_puffy_jacket.glb":     { scale: 1.0, yOffset: 0 },
+  "mens_clothing_game.glb":     { scale: 1.0, yOffset: 0 },
+};
+
 export interface Character3DViewerProps {
   height?: number;
   hairStyle?: string;
   hairColor?: string;
   skinTone?: string;
   gender?: string;
+  outfitGlb?: string | null;
 }
 
 function NativeCharacterViewer({
@@ -449,12 +540,14 @@ function NativeCharacterViewer({
   hairTexture,
   skinTexture,
   gender = "male",
+  outfitGlb,
 }: {
   height: number;
   hairModel: string;
   hairTexture: string;
   skinTexture: string;
   gender?: string;
+  outfitGlb?: string | null;
 }) {
   const bodyRef = useRef<any>(null);
   const dragRotRef = useRef({ y: 0, dragging: false, lastInteract: 0 });
@@ -504,6 +597,13 @@ function NativeCharacterViewer({
           hairTexture={hairTexture}
           bodyRef={bodyRef}
         />
+        {outfitGlb ? (
+          <NativeOutfitModel
+            key={gender + outfitGlb}
+            outfitGlb={outfitGlb}
+            bodyRef={bodyRef}
+          />
+        ) : null}
       </Canvas>
       <VignetteOverlay />
     </View>
@@ -516,6 +616,7 @@ export function Character3DViewer({
   hairColor,
   skinTone,
   gender = "male",
+  outfitGlb,
 }: Character3DViewerProps) {
   const resolvedHairModel = HAIR_STYLE_TO_MODEL[hairStyle ?? "clean_cut"] ?? "Hair_SimpleParted.gltf";
   const resolvedSkinTex = resolveSkinTexture(gender, skinTone ?? "tone-3");
@@ -529,6 +630,7 @@ export function Character3DViewer({
         hairColor={hairColor}
         skinTone={skinTone}
         gender={gender}
+        outfitGlb={outfitGlb}
       />
     );
   }
@@ -540,6 +642,7 @@ export function Character3DViewer({
       hairTexture={resolvedHairTex}
       skinTexture={resolvedSkinTex}
       gender={gender}
+      outfitGlb={outfitGlb}
     />
   );
 }

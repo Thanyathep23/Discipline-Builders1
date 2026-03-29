@@ -79,16 +79,27 @@ const textureLoader = new THREE.TextureLoader();
 
 let bodyGroup = new THREE.Group();
 let hairGroup = new THREE.Group();
+let outfitGroup = new THREE.Group();
 let pivotGroup = new THREE.Group();
 pivotGroup.add(bodyGroup);
 pivotGroup.add(hairGroup);
+pivotGroup.add(outfitGroup);
 scene.add(pivotGroup);
 
 let currentBodyScene = null;
 let currentHairScene = null;
+let currentOutfitScene = null;
 let bodyScale = 1;
 let bodyOffsetY = 0;
 let currentGender = 'male';
+
+const OUTFIT_ALIGNMENT = {
+  'shirt_for_men.glb':         { scale: 1.0, yOffset: 0 },
+  'stylized_hoodie_jacket.glb': { scale: 1.0, yOffset: 0 },
+  'elegant_clothing_set.glb':  { scale: 1.0, yOffset: 0 },
+  'black_puffy_jacket.glb':    { scale: 1.0, yOffset: 0 },
+  'mens_clothing_game.glb':    { scale: 1.0, yOffset: 0 },
+};
 
 const BODY_MODELS = {
   male: 'Superhero_Male_FullBody.gltf',
@@ -239,6 +250,39 @@ async function applyHairTexture(obj, textureName) {
   }
 }
 
+async function loadOutfit(glbFile) {
+  try {
+    if (currentOutfitScene) {
+      outfitGroup.remove(currentOutfitScene);
+      currentOutfitScene = null;
+    }
+    if (!glbFile || glbFile === 'none') return;
+
+    const gltf = await loadGLTF(BASE_URL + glbFile);
+    const s = gltf.scene;
+    const align = OUTFIT_ALIGNMENT[glbFile] ?? { scale: 1.0, yOffset: 0 };
+    s.scale.setScalar(bodyScale * align.scale);
+
+    if (currentBodyScene) {
+      s.position.copy(currentBodyScene.position);
+    } else {
+      s.position.set(0, bodyOffsetY, 0);
+    }
+    s.position.y += align.yOffset;
+
+    s.traverse((child) => {
+      if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
+    });
+
+    fixTPose(s);
+
+    outfitGroup.add(s);
+    currentOutfitScene = s;
+  } catch (e) {
+    console.error('Failed to load outfit:', e);
+  }
+}
+
 async function changeSkinTexture(textureName) {
   if (currentBodyScene) {
     await applySkinTexture(currentBodyScene, textureName);
@@ -256,10 +300,12 @@ const initSkin = params.get('skin') || 'T_Superhero_Male_Dark.png';
 const initHair = params.get('hair') || 'Hair_SimpleParted.gltf';
 const initHairTex = params.get('hairTex') || 'T_Hair_1_BaseColor.png';
 const initGender = params.get('gender') || 'male';
+const initOutfit = params.get('outfit') || '';
 currentGender = initGender;
 
 await loadBody(initSkin, initGender);
 await loadHair(initHair, initHairTex);
+if (initOutfit) await loadOutfit(initOutfit);
 
 window.addEventListener('message', async (event) => {
   if (event.source !== window.parent) return;
@@ -272,6 +318,8 @@ window.addEventListener('message', async (event) => {
     await changeSkinTexture(data.skinTexture);
   } else if (data.type === 'setHairTexture') {
     await changeHairTexture(data.hairTexture);
+  } else if (data.type === 'setOutfit') {
+    await loadOutfit(data.outfitGlb || null);
   } else if (data.type === 'setGender') {
     const newGender = data.gender || 'male';
     if (newGender !== currentGender) {
@@ -291,6 +339,7 @@ window.addEventListener('message', async (event) => {
       if (data.hairModel) await loadHair(data.hairModel, data.hairTexture);
       else if (data.hairTexture) await changeHairTexture(data.hairTexture);
     }
+    if (data.outfitGlb !== undefined) await loadOutfit(data.outfitGlb || null);
   }
 });
 
