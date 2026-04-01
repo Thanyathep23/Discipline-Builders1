@@ -99,30 +99,32 @@ router.post("/shop/:itemId/redeem", async (req, res) => {
   }
 
   const newBalance = users[0].coinBalance - item.cost;
-  await db.update(usersTable).set({ coinBalance: newBalance, updatedAt: new Date() }).where(eq(usersTable.id, userId));
+  await db.transaction(async (tx) => {
+    await tx.update(usersTable).set({ coinBalance: newBalance, updatedAt: new Date() }).where(eq(usersTable.id, userId));
 
-  await db.insert(rewardTransactionsTable).values({
-    id: generateId(),
-    userId,
-    type: "spent",
-    amount: -item.cost,
-    reason: `Redeemed: ${item.name}`,
-  });
+    await tx.insert(rewardTransactionsTable).values({
+      id: generateId(),
+      userId,
+      type: "spent",
+      amount: -item.cost,
+      reason: `Redeemed: ${item.name}`,
+    });
 
-  await db.insert(userInventoryTable).values({
-    id: generateId(),
-    userId,
-    itemId: item.id,
-  });
+    await tx.insert(userInventoryTable).values({
+      id: generateId(),
+      userId,
+      itemId: item.id,
+    });
 
-  await db.insert(auditLogTable).values({
-    id: generateId(),
-    actorId: userId,
-    actorRole: "user",
-    action: "item_redeemed",
-    targetId: item.id,
-    targetType: "shop_item",
-    details: JSON.stringify({ cost: item.cost, newBalance }),
+    await tx.insert(auditLogTable).values({
+      id: generateId(),
+      actorId: userId,
+      actorRole: "user",
+      action: "item_redeemed",
+      targetId: item.id,
+      targetType: "shop_item",
+      details: JSON.stringify({ cost: item.cost, newBalance }),
+    });
   });
 
   res.json({
