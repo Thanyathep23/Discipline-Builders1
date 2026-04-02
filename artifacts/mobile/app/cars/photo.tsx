@@ -20,8 +20,31 @@ import { useCarPhotoMode, useCharacterStatus, useIdentity, useEndgame } from "@/
 import { useAuth } from "@/context/AuthContext";
 import { CarVisual } from "@/app/cars/index";
 import { EvolvedCharacter, type VisualState, type EquippedWearableState } from "@/app/character/index";
+import GLBViewer from "@/components/GLBViewer";
 
 const SCREEN_W = Dimensions.get("window").width;
+
+const CAR_GLB_MAP: Record<string, string> = {
+  "Series M Black": "2025_bmw_m4_competition.glb",
+  "Alpine GT": "bmw_m4_widebody.glb",
+  "Toyota RAV4 Hybrid": "2023_toyota_rav4_hybrid.glb",
+  "BYD Seal": "2024_byd_seal.glb",
+  "Audi TT Coupe": "2007_audi_tt_coupe.glb",
+  "Toyota Avalon Hybrid": "2023_toyota_avalon_hybrid_limited.glb",
+  "Toyota GR86": "2022_toyota_gr86.glb",
+  "Honda Civic Type R": "2023_honda_civic_type_r.glb",
+  "Dodge Viper ACR": "2016_dodge_viper_acr.glb",
+  "Toyota GR Supra Varis Supreme": "2020_varis_toyota_gr_supra.glb",
+  "Audi TT RS Iconic Edition": "2023_audi_tt_rs_iconic_edition.glb",
+  "BYD Yangwang U7": "2024_byd_yangwang_u7.glb",
+  "Dodge Challenger SRT Demon": "dodge_challenger_srt_demon.glb",
+  "Toyota GR Supra LB Works": "2020_lbworks_toyota_supra_a90.glb",
+  "BYD Yangwang U9": "2024_byd_yangwang_u9.glb",
+  "Porsche 911 GT3 Touring": "2022_porsche_911_gt3_touring_992.glb",
+  "Porsche 911 GT3 RS": "porsche_911_gt3_rs_2023.glb",
+  "Lamborghini Reventón Roadster": "2010_lamborghini_reventon_roadster.glb",
+  "Lamborghini Centenario Roadster": "lamborghini_centenario_roadster.glb",
+};
 
 type Car = {
   id: string;
@@ -98,6 +121,7 @@ function PhotoScene({
   hairStyle?: string;
   hairColor?: string;
 }) {
+  const [glbFailed, setGlbFailed] = useState(false);
   const sm = SCENE_META[scene];
   const rarityColor = RARITY_COLORS[car.rarity] ?? "#9CA3AF";
   const bodyColor = getBodyColor(car);
@@ -105,6 +129,8 @@ function PhotoScene({
   const vb = `0 0 380 ${Math.round(380 * ASPECT_RATIOS[aspectRatio])}`;
   const vbH = Math.round(380 * ASPECT_RATIOS[aspectRatio]);
   const groundY = vbH - 60;
+  const glbFile = CAR_GLB_MAP[car.name];
+  const use3D = !!glbFile && !glbFailed;
 
   return (
     <View style={[psc.outer, { height: canvasH }]}>
@@ -199,7 +225,18 @@ function PhotoScene({
           />
         </View>
         <View style={psc.carPos}>
-          <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={CANVAS_W * 0.62} />
+          {use3D ? (
+            <GLBViewer
+              modelFile={glbFile}
+              width={CANVAS_W * 0.62}
+              height={canvasH * 0.5}
+              autoRotate
+              autoRotateSpeed={0.4}
+              onError={() => setGlbFailed(true)}
+            />
+          ) : (
+            <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={CANVAS_W * 0.62} />
+          )}
         </View>
       </View>
 
@@ -215,7 +252,7 @@ function PhotoScene({
       )}
 
       {showCarName && (
-        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={psc.carNameOverlay}>
+        <View style={psc.carNameOverlay}>
           <View style={[psc.carNameCard, { borderColor: rarityColor + "40" }]}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <View style={[psc.carNameDot, { backgroundColor: rarityColor }]} />
@@ -226,7 +263,7 @@ function PhotoScene({
               <Text style={psc.carPrestigeText}>+{car.prestigeValue} Prestige</Text>
             )}
           </View>
-        </Animated.View>
+        </View>
       )}
 
       {showWatermark && (
@@ -614,7 +651,7 @@ const psc = StyleSheet.create({
   identityTitle: { fontFamily: "Inter_500Medium", fontSize: 9, color: Colors.gold, opacity: 0.9 },
   identityTier: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted, letterSpacing: 0.3 },
 
-  carNameOverlay: { position: "absolute", bottom: 14, right: 14 },
+  carNameOverlay: { position: "absolute", bottom: 14, right: 14, zIndex: 3 },
   carNameCard: {
     borderRadius: 10, padding: 8, borderWidth: 1,
     backgroundColor: "#000000BB", gap: 2, minWidth: 90, maxWidth: 140, overflow: "hidden",
