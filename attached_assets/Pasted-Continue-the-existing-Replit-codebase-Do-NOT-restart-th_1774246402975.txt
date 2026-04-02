@@ -1,0 +1,495 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Transform the Room/Command Center screen into a fully 
+interactive space where users can buy decorations with 
+coins, place items, and bring their character into the room.
+
+==================================================
+PART 1 — ROOM DECORATION CATALOG
+==================================================
+
+Add these decoration items to the shop_items catalog
+with category: 'room_decor' and wearableSlot: 'room_item'
+
+DESK SETUP ITEMS:
+
+ITEM 1 — Minimal Desk Setup
+- slot: desk
+- rarity: Common
+- level: 1
+- price: 0 (default owned)
+- description: "A clean slate. Every empire starts here."
+- room effect: adds basic desk visual
+
+ITEM 2 — Premium Oak Desk
+- slot: desk  
+- rarity: Refined
+- level: 5
+- price: 800
+- description: "Solid. Serious. Built to work."
+- room effect: upgrades desk tier
+
+ITEM 3 — Executive Carbon Desk
+- slot: desk
+- rarity: Elite
+- level: 25
+- price: 4500
+- description: "The desk of someone who means business."
+- room effect: premium desk visual
+
+COFFEE & LIFESTYLE:
+
+ITEM 4 — Espresso Machine
+- slot: coffee_station
+- rarity: Refined
+- level: 8
+- price: 1200
+- description: "Fuel for focus. Non-negotiable."
+- room effect: adds coffee station to room
+
+ITEM 5 — Premium Pour-Over Set
+- slot: coffee_station
+- rarity: Prestige
+- level: 18
+- price: 2800
+- description: "Ritual before results."
+- room effect: premium coffee visual
+
+MONITOR & TECH:
+
+ITEM 6 — Dual Monitor Setup
+- slot: monitor
+- rarity: Refined
+- level: 10
+- price: 1500
+- description: "Double the screen. Double the output."
+- room effect: adds dual monitors
+
+ITEM 7 — Ultrawide Command Screen
+- slot: monitor
+- rarity: Elite
+- level: 30
+- price: 5000
+- description: "One screen to rule them all."
+- room effect: ultrawide monitor visual
+
+ITEM 8 — Trading Terminal Setup
+- slot: monitor
+- rarity: Prestige
+- level: 20
+- price: 3500
+- description: "Where positions are opened and closed."
+- room effect: trading terminal visual
+
+AMBIANCE:
+
+ITEM 9 — Minimal Bookshelf
+- slot: bookshelf
+- rarity: Refined
+- level: 6
+- price: 600
+- description: "Knowledge on display."
+- room effect: adds bookshelf
+
+ITEM 10 — Premium Speaker System
+- slot: audio
+- rarity: Prestige
+- level: 15
+- price: 2200
+- description: "The soundtrack of execution."
+- room effect: adds speakers
+
+ITEM 11 — Indoor Plant Collection
+- slot: plants
+- rarity: Common
+- level: 3
+- price: 300
+- description: "Life in the workspace."
+- room effect: adds plants
+
+ITEM 12 — Trophy Display Case
+- slot: trophy_case
+- rarity: Elite
+- level: 20
+- price: 3000
+- description: "Evidence of the work."
+- room effect: displays earned badges/trophies
+
+LIGHTING:
+
+ITEM 13 — LED Ambient Lighting
+- slot: lighting
+- rarity: Refined
+- level: 8
+- price: 900
+- description: "Set the mood. Control the environment."
+- room effect: ambient glow color
+
+ITEM 14 — Premium Arc Floor Lamp
+- slot: lighting
+- rarity: Prestige
+- level: 20
+- price: 2500
+- description: "Luxury light. Premium atmosphere."
+- room effect: warm premium lighting
+
+ROOM THEMES:
+
+ITEM 15 — Dark Command Theme
+- slot: room_theme
+- rarity: Refined
+- level: 5
+- price: 1000
+- description: "Dark. Focused. Minimal."
+
+ITEM 16 — Executive Suite Theme
+- slot: room_theme
+- rarity: Elite
+- level: 30
+- price: 6000
+- description: "Corner office energy."
+
+ITEM 17 — Trading Floor Theme
+- slot: room_theme
+- rarity: Prestige
+- level: 25
+- price: 4500
+- description: "Built for the market."
+
+==================================================
+PART 2 — ROOM LAYOUT SYSTEM
+==================================================
+
+The room is divided into placement zones:
+
+ZONES:
+┌─────────────────────────────┐
+│  BACKGROUND / WALL ZONE     │  ← room_theme, lighting
+│  ┌─────────────────────┐    │
+│  │   MONITOR ZONE      │    │  ← monitor
+│  └─────────────────────┘    │
+│  ┌──────┐  ┌───────────┐   │
+│  │SHELF │  │   DESK    │   │  ← bookshelf, desk
+│  └──────┘  └───────────┘   │
+│       ┌──────────┐          │
+│       │CHARACTER │          │  ← character placement
+│       │  ZONE    │          │
+│       └──────────┘          │
+│  ┌────┐          ┌──────┐  │
+│  │PLANT│         │COFFEE│  │  ← plants, coffee_station
+│  └────┘          └──────┘  │
+└─────────────────────────────┘
+
+2A. Room Canvas Component
+
+Create: artifacts/mobile/components/room/RoomCanvas.tsx
+
+This is the main visual room renderer.
+
+Props:
+- equippedItems: RoomItem[] (all currently placed items)
+- showCharacter: boolean
+- characterState: CharacterVisualState (from existing system)
+- roomTheme: string
+- onZoneTap: (zone: string) => void
+
+The room canvas renders:
+- background based on room theme
+- each equipped decoration in its zone
+- character overlay if showCharacter is true
+- tap zones for placing/replacing items
+- ambient lighting effect if lighting item equipped
+
+Use SVG or React Native View composition.
+Each zone is a positioned absolute layer.
+Character appears as the existing character SVG/component.
+
+2B. Room Item Visual Components
+
+Create: artifacts/mobile/components/room/RoomItemVisuals.tsx
+
+SVG components for each item type:
+
+DESK items:
+- MinimalDeskSVG
+- PremiumOakDeskSVG  
+- ExecutiveCarbonDeskSVG
+
+COFFEE items:
+- EspressoMachineSVG (classic espresso machine silhouette)
+- PourOverSetSVG
+
+MONITOR items:
+- DualMonitorSVG
+- UltrawideMonitorSVG
+- TradingTerminalSVG
+
+AMBIENT items:
+- MinimalBookshelfSVG
+- PremiumSpeakerSVG
+- IndoorPlantSVG (small plant in pot)
+- TrophyDisplayCaseSVG
+- LEDAmbientSVG
+- ArcFloorLampSVG
+
+SVG requirements:
+- dark background friendly
+- premium flat/minimal illustration style
+- sized appropriately for room zones
+- NOT cartoon style
+
+==================================================
+PART 3 — ROOM SCREEN UPGRADE
+==================================================
+
+Rewrite the Room screen to support full decoration:
+
+3A. Screen Layout
+
+HEADER:
+- Back button
+- "COMMAND CENTER" label + room name
+- Level chip (T0, T1, etc.)
+- Coin balance
+
+ROOM CANVAS (top section, ~45% of screen):
+- RoomCanvas component
+- Shows all placed items visually
+- Shows character if character mode is on
+- Tap on empty zone → opens shop filtered to that zone
+
+CHARACTER TOGGLE BUTTON:
+- Floating button bottom-right of room canvas
+- Icon: person/character icon
+- Label: "Enter Room" / "Exit Room"
+- On press: toggles showCharacter state
+- When character is in room:
+  - character SVG appears in character zone
+  - character wears currently equipped wardrobe items
+  - subtle entrance animation (fade in)
+  - button changes to "Exit Room"
+
+ROOM TIER PROGRESS (below canvas):
+- Current tier name
+- Base score progress bar
+- What improves this base (list)
+
+PLACED ITEMS SECTION:
+- Horizontal scroll of placed/owned room items
+- Each shows item icon, name, slot
+- "Active" chip if currently placed
+- Tap to manage (replace/remove)
+
+SHOP SECTION:
+- "Decorate Your Space" header
+- 3 featured items (recommended for current level)
+- "Browse All Room Items →" button
+
+3B. Zone Tap Behavior
+
+When user taps an empty zone in the room canvas:
+- show a bottom sheet: "Place Item Here"
+- filter shop items to that zone category
+- show owned-but-not-placed items first
+- then show locked/purchasable items
+
+When user taps an occupied zone:
+- show options: "Replace" / "Remove"
+- Replace → same filter sheet
+- Remove → confirm → item goes back to inventory
+
+3C. Purchase Flow
+
+When user taps a room item to buy:
+- show item detail bottom sheet
+- show room preview: "How this will look in your room"
+  (small preview with item placed in correct zone)
+- "Purchase for X Coins" button
+- on purchase: item added to inventory + placed in room
+- room canvas updates immediately
+
+==================================================
+PART 4 — CHARACTER IN ROOM
+==================================================
+
+4A. Character Toggle
+
+Add state: isCharacterInRoom (boolean, per user, persisted)
+
+When true:
+- character appears in room canvas character zone
+- character uses current equipped wardrobe state
+- character pose: standing/relaxed (not action pose)
+
+4B. Character Rendering in Room
+
+The room character should be:
+- smaller than the Character Status Hub version
+  (room context, not full-screen focus)
+- same visual fidelity
+- same equipped outfit/watch
+- standing naturally in the room space
+- subtle drop shadow to feel grounded
+
+4C. Character Interaction
+
+Tap on character in room:
+- show small popup: "View Character →"
+- tapping navigates to Character Status Hub
+
+4D. Room Selfie / Photo Moment
+
+Add "Photo" button when character is in room:
+- captures the room canvas with character
+- opens photo mode with:
+  - current room + character composition
+  - room name overlay
+  - status tier overlay
+  - share button
+- this is the "room selfie" feature
+
+==================================================
+PART 5 — ROOM PROGRESSION SYSTEM
+==================================================
+
+5A. Base Score Calculation
+
+Room base score = sum of:
+- placed item rarity weights:
+  Common: +3
+  Refined: +8
+  Prestige: +15
+  Elite: +25
+  Legendary: +40
+- room theme equipped: +20
+- character in room: +5
+- lighting equipped: +8
+
+5B. Room Tiers
+
+Tier 0 (Unranked): 0-29 points → "Standard Base"
+Tier 1 (Recruit): 30-74 → "Emerging Workspace"  
+Tier 2 (Rising): 75-149 → "Professional Setup"
+Tier 3 (Established): 150-249 → "Premium Command Center"
+Tier 4 (Elite): 250-399 → "Executive Suite"
+Tier 5 (Legendary): 400+ → "Iconic Command Center"
+
+5C. Tier Benefits
+
+Higher room tier:
+- increases passive Finance/Lifestyle signal on Character Hub
+- unlocks room-exclusive badge milestones
+- shown as prestige signal on profile/showcase
+
+5D. Milestone Badges
+
+"First Decoration" — first room item purchased
+"Workspace Ready" — desk + monitor both placed
+"Coffee Culture" — coffee item placed
+"Command Center I" — reach Tier 2
+"Executive Setup" — reach Tier 4
+"Full Setup" — all 6 zone types filled
+
+==================================================
+PART 6 — BACKEND
+==================================================
+
+6A. Room State API
+
+GET /api/room/state
+Returns:
+- placed items per zone
+- room tier + score
+- isCharacterInRoom
+- milestone badges earned
+
+POST /api/room/place
+Body: { itemId, zone }
+- validates user owns item
+- places item in zone (replaces existing)
+- recalculates room score
+- checks for new milestone badges
+- returns updated room state
+
+POST /api/room/remove  
+Body: { itemId }
+- removes item from zone
+- recalculates score
+
+POST /api/room/toggle-character
+Body: { inRoom: boolean }
+- saves character-in-room preference
+
+6B. Schema
+
+Add to user state or create room_state table:
+- user_id
+- placed_items: JSON { zone: itemId }
+- is_character_in_room: boolean
+- room_score: integer
+- room_tier: integer
+- updated_at
+
+6C. Seed Room Items
+
+Add all 17 room decoration items to shop_items table
+with category: 'room_decor'
+
+Auto-give "Minimal Desk Setup" (price: 0) to all users
+as default owned item.
+
+==================================================
+TECHNICAL REQUIREMENTS
+==================================================
+
+- Room canvas must be responsive to screen width
+- Character in room uses existing character renderer
+- All purchases use existing buy API
+- Room score recalculated server-side on every placement
+- Photo mode uses react-native-view-shot
+- All UI uses design system tokens
+- Animations: subtle, premium, not flashy
+
+==================================================
+DO NOT BUILD
+==================================================
+
+- 3D room rendering
+- Physics-based item placement
+- Multiplayer room visiting
+- Real-money items
+- New gameplay systems outside room
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. Room screen shows visual room canvas
+2. All 17 decoration items exist in catalog
+3. User can buy items with coins
+4. Placed items appear visually in correct zones
+5. Character toggle works (enter/exit room)
+6. Character in room wears current wardrobe
+7. Room photo mode captures room + character
+8. Room tier calculates from placed items
+9. Milestone badges unlock correctly
+10. Zone tap → shop filter → buy → placed works
+11. All coin gates enforced server-side
+12. Default desk item auto-owned at signup
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. Room catalog seeded (17 items)
+2. Room canvas component built
+3. Zone tap and placement flow
+4. Character toggle implementation
+5. Room tier calculation
+6. Photo mode for room
+7. Files changed only
+8. End-to-end test results
+9. Remaining gaps

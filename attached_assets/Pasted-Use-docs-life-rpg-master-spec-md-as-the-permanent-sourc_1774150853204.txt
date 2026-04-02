@@ -1,0 +1,399 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 28 — Character Evolution Renderer.
+
+Current context:
+- Phase 27 is complete.
+- The app now has a Game Mode / Character Status Hub with:
+  - a dedicated game-mode entry point
+  - a starter full-body character
+  - the 4 key status dimensions:
+    - Fitness
+    - Discipline
+    - Finance / Lifestyle
+    - Prestige
+  - a visible status tier/class
+  - a room preview starter state
+  - next evolution / next unlock hints
+- The next highest-value step is to make the character visually evolve in a meaningful way based on real progression.
+- The product now needs a real Character Evolution Renderer that makes status growth visible, emotionally satisfying, and technically maintainable.
+
+Your task:
+Build only the smallest high-impact Character Evolution Renderer layer.
+
+==================================================
+PHASE 28 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Character evolution state engine
+2. Layered character renderer
+3. Visual evolution rules for the 4 key dimensions
+4. Progression-driven appearance changes
+5. Evolution explanation layer
+6. Minimal internal/admin controls only if strictly needed
+
+Do NOT build:
+- full 3D real-time character system
+- freeform avatar editor
+- full outfit/item application system for purchased products
+- complex animation rig
+- face customization suite
+- advanced body sliders
+- giant art/content pipeline
+- redesign of the whole app
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current Game Mode / Character Status Hub from Phase 27
+2. inspect the current status tier system, world/room preview, profile/status systems, identity layer, and any existing visual state computation
+3. identify what already exists for starter character rendering and what needs to become dynamic
+4. identify the minimum renderer and visual state model needed to create meaningful visible growth
+5. implement only the minimum systems needed
+6. avoid broad refactors
+
+==================================================
+A. CORE PRODUCT FANTASY FOR THIS PHASE
+==================================================
+
+This phase must make the user feel:
+
+“My character is changing because my real life is changing.”
+
+The user should be able to see:
+- stronger posture
+- better composure
+- higher-status presentation
+- more refined lifestyle cues
+- more elite/prestige cues over time
+
+The visual evolution should feel:
+- premium
+- motivating
+- believable
+- game-like but not childish
+- aspirational, not cringe
+- tied to real progress, not random cosmetics
+
+Important:
+This phase is NOT about letting the user manually customize everything.
+This phase is about rendering real progression into visible character change.
+
+==================================================
+B. CHARACTER EVOLUTION STATE ENGINE
+==================================================
+
+Build a data-driven character evolution state engine.
+
+Purpose:
+Convert real player progression into a structured visual state.
+
+The engine should consume trusted internal state such as:
+- Fitness status / relevant skill
+- Discipline status / relevant skill
+- Finance / Lifestyle status
+- Prestige / mastery / title markers where relevant
+- overall status tier/class
+- possibly current arc if useful
+- possibly selected starter/default appearance config if needed
+
+The engine should output a compact visual state model, for example:
+- bodyToneState
+- postureState
+- outfitTierState
+- grooming/refinementState
+- accessoryPlaceholderState
+- prestigeAccentState
+- facialConfidenceState
+- lifestyleSignalState
+- environmentHarmonyState (if lightly connected to room preview)
+
+Requirements:
+- keep the visual state model deterministic and explainable
+- keep it recomputable from trusted progression data
+- do not make it depend on arbitrary client-side overrides
+- keep it small and maintainable
+
+==================================================
+C. LAYERED CHARACTER RENDERER
+==================================================
+
+Build a layered renderer instead of a combinatorial asset explosion.
+
+Purpose:
+Make character evolution technically realistic to implement and scale.
+
+Use a composable approach such as:
+- layered SVG
+- layered React/React Native visual components
+- deterministic image/layer composition
+- token-driven rendered figure system
+
+Support at minimum these conceptual layers:
+1. Base body/character
+2. Body tone / health / energy layer
+3. Posture / confidence layer
+4. Outfit quality / refinement layer
+5. Lifestyle signal layer
+6. Prestige accent layer
+7. Background or subtle environment sync layer if useful
+
+Requirements:
+- each layer should be able to evolve independently
+- the renderer should not require separate art for every full combination
+- keep performance reasonable for mobile
+- keep the style aligned with the current premium pseudo-3D character direction
+- keep the figure full-body and readable on mobile
+
+==================================================
+D. VISUAL EVOLUTION RULES FOR THE 4 KEY DIMENSIONS
+==================================================
+
+Implement visual evolution logic specifically for:
+
+1. Fitness
+Should visibly affect:
+- posture
+- body readiness / health vibe
+- energy / vitality
+- physical confidence
+
+2. Discipline
+Should visibly affect:
+- composure
+- neatness
+- refinement
+- overall “put-together” feeling
+
+3. Finance / Lifestyle
+Should visibly affect:
+- outfit quality class
+- subtle premium/lifestyle cues
+- visual sense of upward mobility
+- polished presence
+
+4. Prestige
+Should visibly affect:
+- elite accents
+- advanced presentation markers
+- rarity / distinction feel
+- high-tier status signals
+
+Rules:
+- not all changes need to be dramatic
+- progression should feel noticeable but tasteful
+- the user should be able to recognize the direction of growth
+- real progression must matter more than cosmetics in this phase
+- avoid exaggerated stereotypes
+- avoid making Finance/Lifestyle look gaudy or fake-luxury
+
+==================================================
+E. STARTER -> RISING EVOLUTION CURVE
+==================================================
+
+In this phase, implement a visible journey from basic starter state toward a more advanced status state.
+
+At minimum, the system should support a progression arc such as:
+- Starter
+- Hustle
+- Rising
+- Refined
+- Elite
+
+Requirements:
+- character visuals should change meaningfully across these states
+- the starter state must remain:
+  - white shirt
+  - black jeans
+  - basic premium-starter vibe
+- later states should visually communicate progression without needing dozens of custom outfits
+- the user should feel that the system is evolving them, not just swapping clothes randomly
+
+==================================================
+F. EVOLUTION EXPLANATION LAYER
+==================================================
+
+Add a lightweight explanation layer so the user trusts the renderer.
+
+Examples:
+- “Your Fitness is improving your posture and body confidence.”
+- “Your Discipline is refining your overall presentation.”
+- “Your Lifestyle level is starting to influence your visual class.”
+- “Your Prestige is adding elite identity signals.”
+
+Requirements:
+- explanations should be concise
+- should connect visible change to real progression
+- should appear in the Character Status Hub or related detail area
+- should help the user understand what to improve next
+- should reinforce the app’s fantasy of real-life progress becoming visible
+
+==================================================
+G. VISUAL CHANGE FEEDBACK
+==================================================
+
+When the visual state changes, make it feel noticeable.
+
+Possible examples:
+- subtle “evolution updated” feedback
+- refreshed character reveal after major progression
+- “new visible state unlocked” card or hint
+- comparison-aware explanation like “your posture has improved” if practical
+
+Requirements:
+- keep feedback premium and not over-animated
+- focus on emotional clarity, not noise
+- do not build a full before/after replay system in this phase
+- make progress feel rewarding when a new visual threshold is reached
+
+==================================================
+H. CONNECTION TO EXISTING SYSTEMS
+==================================================
+
+Connect the renderer lightly but correctly to existing systems.
+
+At minimum:
+- Character Status Hub should now show the evolved character state
+- status tier/class should influence visual state
+- next evolution hint should align with renderer thresholds if possible
+- room preview may lightly harmonize with the current visual status state if practical
+- do not yet deeply integrate purchased wearable items; that belongs to later phases
+- preserve existing mission/proof/reward/economy/state systems
+
+This phase should focus on evolution from progression first, not item application.
+
+==================================================
+I. MOBILE-FIRST PERFORMANCE RULES
+==================================================
+
+Because this is a character-heavy screen on mobile, keep performance under control.
+
+Requirements:
+- avoid heavy rendering that will cause jank on mobile
+- avoid huge image payloads if they are not necessary
+- use a renderer approach that remains maintainable
+- keep transitions and updates smooth
+- prioritize readability and responsiveness over visual excess
+- if needed, use caching or memoization only where justified
+
+==================================================
+J. MINIMAL INTERNAL / ADMIN CONTROLS
+==================================================
+
+Add only minimal internal controls if strictly needed.
+
+Possible examples:
+- debug view of computed character evolution state
+- threshold config for major visual states
+- enable/disable certain evolution layers during rollout
+- test utility for visual progression snapshots
+
+Requirements:
+- admin-only
+- lightweight
+- use existing admin/tuning surfaces where possible
+- do not build a giant avatar configuration console
+
+==================================================
+K. UI / UX DIRECTION
+==================================================
+
+Design direction:
+- dark premium
+- stylized but not childish
+- polished pseudo-3D status fantasy
+- aspirational and elegant
+- character-first
+- visually clear on mobile
+- emotionally rewarding when change happens
+
+The user should feel:
+- “I can see myself leveling up”
+- “This is my character”
+- “My growth is becoming visible”
+- “The app looks more like a game now, but still serious and premium”
+
+==================================================
+L. BACKEND / SECURITY RULES
+==================================================
+
+- all derived evolution state should be based on trusted internal progression data
+- preserve JSON-only APIs
+- preserve ownership checks
+- do not trust client-provided visual state
+- keep schema changes additive and minimal
+- preserve existing app flows
+- if visual state is stored or cached, it must remain recomputable from trusted data
+
+==================================================
+M. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a real Character Evolution Renderer exists
+2. the starter character can now evolve visually based on real progression data
+3. a layered rendering approach is used instead of combinatorial hardcoding
+4. Fitness, Discipline, Finance/Lifestyle, and Prestige all visibly influence the character
+5. status tier progression visibly changes the character presentation
+6. the Character Status Hub now reflects the evolved visual state
+7. users can understand why their appearance is changing
+8. the system remains mobile-friendly and maintainable
+9. existing app flow still works
+10. no oversized 3D/avatar-editor scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what character evolution/rendering capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Character evolution engine added
+- input signals used
+- output visual state model
+- how state is computed
+
+4. Layered renderer added
+- what layers exist
+- how they combine
+- why this approach was chosen
+
+5. Visual evolution rules added
+- how Fitness affects the character
+- how Discipline affects the character
+- how Finance/Lifestyle affects the character
+- how Prestige affects the character
+
+6. Character Status Hub integration added
+- what the user now sees
+- how explanation/evolution hints appear
+
+7. End-to-end verification results for:
+- starter character visibility
+- progression-driven visual change
+- tier-driven visual difference
+- explanation visibility
+- existing app flow unchanged
+
+8. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

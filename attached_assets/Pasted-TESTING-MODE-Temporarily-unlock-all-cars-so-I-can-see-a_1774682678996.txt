@@ -1,0 +1,117 @@
+TESTING MODE — Temporarily unlock all cars so I can see and test them without level requirements.
+I will re-lock them before launch. This is for development/preview only.
+
+## What to do
+
+### Step 1 — Find all car data
+Search the project for:
+- Car catalog / car data definitions (search for "requiredLevel", "levelReq", "level_required", "minLevel", or wherever cars are defined)
+- Could be in: `server/data/cars.ts`, `server/storage.ts`, `shared/schema.ts`, `app/cars/index.tsx`, or a database seed file
+
+### Step 2 — Remove ALL level locks
+
+For every car in the catalog, set:
+- `requiredLevel` → 0  (or 1)
+- `levelReq` → 0  (or 1)
+- `isLocked` → false
+- `unlockLevel` → 0  (or 1)
+
+(Use whatever field name the project actually uses)
+
+### Step 3 — Remove lock UI check
+
+Find the condition that checks if a car is locked. It will look something like:
+```ts
+const isLocked = userLevel < car.requiredLevel
+// or
+const isLocked = car.levelReq > user.level
+// or
+const locked = !car.owned && user.level < car.minLevel
+```
+
+Change it to:
+```ts
+const isLocked = false  // TEMP: all unlocked for testing
+```
+
+Add a comment: `// TODO: restore lock check before launch`
+
+### Step 4 — Remove lock overlay from car cards
+
+In the car grid cards, find the lock overlay UI:
+```tsx
+{isLocked && (
+  <View style={lockOverlay}>
+    <Text>🔒</Text>
+    <Text>Lv {car.requiredLevel}</Text>
+  </View>
+)}
+```
+
+Wrap it with a temporary disable:
+```tsx
+{false && isLocked && (  // TEMP: disabled for testing
+  <View style={lockOverlay}>
+    ...
+  </View>
+)}
+```
+
+### Step 5 — Remove "Locked" button in car detail sheet
+
+Find the car detail/modal screen that shows the car info. It will have a button like:
+```tsx
+<Button disabled>🔒 Locked — Level {car.requiredLevel}</Button>
+// or
+{isLocked ? <LockedButton /> : <BuyButton />}
+```
+
+Change it so it always shows the BUY button (or OWNED button), never the locked state:
+```tsx
+{/* TEMP: always show buy button for testing */}
+<BuyButton car={car} />
+```
+
+### Step 6 — Hide "UNLOCK PROGRESS" bar
+
+In the car detail screen there's an unlock progress bar:
+```tsx
+{isLocked && (
+  <View>
+    <Text>UNLOCK PROGRESS</Text>
+    <Text>X levels away — reach Level Y to unlock</Text>
+  </View>
+)}
+```
+
+Disable it temporarily:
+```tsx
+{false && isLocked && (  // TEMP: hidden for testing
+  ...
+)}
+```
+
+### Step 7 — Update "Locked" count in collection header
+
+The header shows "Locked: 6". Change the locked count to always show 0 during testing:
+```tsx
+// Find something like:
+const lockedCount = cars.filter(c => c.requiredLevel > userLevel).length
+// Change to:
+const lockedCount = 0  // TEMP: all unlocked for testing
+```
+
+---
+
+## After making all changes:
+- All 6 cars should be fully visible and tappable
+- No lock icons, no "X levels away" messages
+- Every car detail screen should show the car image + Buy button
+- The collection header should show "Locked: 0"
+
+## Add a clear comment at the top of every file you change:
+```ts
+// ⚠️ TESTING MODE: Level locks temporarily disabled — restore before launch
+```
+
+Make all these changes now and confirm what files you edited.

@@ -1,0 +1,189 @@
+CRITICAL REDESIGN of CharacterRenderer.tsx.
+The shirt currently looks like 3 separate boxes — this is wrong.
+The shirt must be ONE unified SVG shape including torso AND arms together.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THE CORE FIX: UNIFIED SHIRT SILHOUETTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DELETE all existing separate torso, left arm, right arm shapes.
+Replace with ONE single Path that draws the entire shirt silhouette:
+
+const shirtPath = `
+  M 52,78
+  Q 48,80 38,86
+  Q 24,90 16,96
+  L 14,96
+  Q 10,98 10,102
+  L 10,174
+  Q 10,180 16,182
+  L 22,184
+  Q 26,184 28,180
+  L 30,172
+  L 32,104
+  L 36,100
+  L 88,100
+  L 90,104
+  L 92,172
+  L 94,180
+  Q 96,184 100,184
+  L 106,182
+  Q 112,180 112,174
+  L 112,102
+  Q 112,98 108,96
+  L 104,96
+  Q 96,90 82,86
+  Q 72,80 68,78
+  Q 64,76 60,76
+  Q 56,76 52,78
+  Z
+`;
+
+This creates:
+- Natural shoulder slope (not square)
+- Arms that flow FROM the shirt body (no gap)
+- Tapered sleeves (wider at shoulder, narrower at wrist)
+- Unified silhouette
+
+Apply fill with LinearGradient:
+  shirtMainGrad: x1="20%" y1="0%" x2="80%" y2="100%"
+  stop 0%: shirtHighlight (lit left shoulder area)
+  stop 40%: shirtBase
+  stop 100%: shirtDeep (shadow at bottom-right)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SHIRT SHADOW OVERLAY (makes it 3D)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After drawing shirt base, add these shadow layers:
+
+Left sleeve shadow (arm underside):
+  Path: M 10,102 L 32,104 L 30,172 L 10,174
+  fill: LinearGradient left-to-right
+    stop 0%: #000000 opacity=0.18
+    stop 100%: transparent
+
+Right sleeve shadow:
+  Path: M 110,102 L 88,104 L 90,172 L 110,174
+  fill: LinearGradient right-to-left
+    stop 0%: #000000 opacity=0.18
+    stop 100%: transparent
+
+Armpit/side shadow (gives shirt depth):
+  Left: Ellipse cx=32 cy=112 rx=8 ry=18
+    fill: RadialGradient, center=#000000 opacity=0.2, edge=transparent
+  Right: Ellipse cx=88 cy=112 rx=8 ry=18
+    fill: same
+
+Center fold shadow (shirt hangs naturally):
+  Rect x=57 y=100 width=6 height=80
+    fill: LinearGradient y, #000000 opacity=0.05 to 0
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COLLAR REDESIGN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The collar must be a proper SPREAD COLLAR shape, not a rectangle:
+
+Right collar blade:
+  Path: M 60,78 L 76,90 Q 78,96 74,100 L 60,96 Z
+  fill: shirtHighlight (slightly brighter — catching light)
+  stroke: shirtShadow, strokeWidth=0.5
+
+Left collar blade:
+  Path: M 60,78 L 44,90 Q 42,96 46,100 L 60,96 Z
+  fill: shirtHighlight
+  stroke: shirtShadow, strokeWidth=0.5
+
+Collar shadow (where collar meets shirt):
+  Path: M 44,98 L 60,102 L 76,98 Q 78,104 74,106 L 60,104 L 46,106 Q 42,104 44,98 Z
+  fill: #00000025
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SHIRT COLORS (sophisticated, not flat white)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"starter" shirt is NOT pure white. Premium cream/off-white:
+  shirtHighlight: #F8F6F0  (warm cream — premium feel)
+  shirtBase:      #EEEAE0  (warm off-white)
+  shirtDeep:      #D8D4C8  (warm shadow)
+  shirtShadow:    #C4C0B4  (deep shadow on edges)
+
+Do NOT use #FFFFFF or #F0F0F0 — too cold and flat.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HANDS (natural relaxed hand, not a fist)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Left hand (natural relaxed, slightly open):
+  Palm: Path M 10,178 Q 6,182 6,190 Q 8,198 16,198 Q 22,196 24,190 L 24,180 Z
+  Thumb: Path M 6,186 Q 2,184 2,180 Q 4,176 8,178 Z
+  Finger hint (index): Path M 8,178 Q 6,172 10,170 Q 14,172 14,178
+    fill=skinBase stroke=none
+  Middle finger hint: Path M 13,177 Q 12,170 16,169 Q 20,170 20,177
+  Little finger: Path M 19,179 Q 20,174 23,176 Q 25,180 23,184
+  
+  All finger paths: fill=skinBase, no stroke
+  Apply skinHandGrad to palm
+
+Right hand: Mirror at x=110 reference point
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NECK — SHORT AND NATURAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Neck must be SHORT — maximum 10px tall.
+  Path: M 54,{headCY+headRY} Q 52,{headCY+headRY+6} 54,{headCY+headRY+10}
+        L 66,{headCY+headRY+10} Q 68,{headCY+headRY+6} 66,{headCY+headRY} Z
+  fill=skinBase
+
+Neck shadow on right side (depth):
+  Path same but shifted right 2px, fill=skinDeep opacity=0.3
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LEGS — SLIM PREMIUM TROUSER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Premium trousers are SLIM, not wide:
+  Left trouser: Path M 36,196 Q 36,200 34,316 L 54,316 Q 56,200 56,196 Z
+  Right trouser: Path M 64,196 Q 64,200 66,316 L 86,316 Q 84,200 84,196 Z
+  Crotch: Path M 36,196 Q 60,208 84,196 L 84,210 Q 60,220 36,210 Z
+
+  Trouser gradient (slim side shadows):
+    LinearGradient x1="0%" x2="100%" y1="0%" y2="0%"
+    stop 0%: pantsDeep
+    stop 20%: pantsMid
+    stop 80%: pantsMid
+    stop 100%: pantsDeep
+
+  Trouser crease (center front):
+    Left: Line x1=45 y1=206 x2=43 y2=312
+      stroke=pantsDeep strokeWidth=0.8 opacity=0.5
+    Right: Line x1=75 y1=206 x2=77 y2=312
+      stroke=pantsDeep strokeWidth=0.8 opacity=0.5
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OVERALL SILHOUETTE RULE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The character must be SLIM and TALL — like a fashion model.
+Total width at widest point (shirt shoulders): 102px out of 120px viewbox.
+Total width at waist (shirt body): 80px.
+Total width at trouser: 52px.
+
+This creates an inverted triangle / V-shape silhouette from above 
+that reads as strong and premium, not boxy.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT CHANGE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Face rendering (eyes, nose, mouth, eyebrows)
+- Hair system
+- Belt and buckle
+- Shoes
+- Watch, chain, accessories
+- All props interface
+- All exports
+
+ONLY change: shirt/torso/arms, neck, hands, trouser proportions, shirt colors.
+This is a surgical fix of the body shape only.

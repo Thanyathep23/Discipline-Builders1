@@ -1,0 +1,413 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 31 — Car Collection / Showcase / Photo Mode Lite.
+
+Current context:
+- Phase 27 is complete: Game Mode / Character Status Hub exists.
+- Phase 28 is complete: Character Evolution Renderer exists and progression visibly changes the character.
+- Phase 29 is complete: Wearables / Style / Identity Application exists, and clothing/watch/accessory items can be purchased, owned, and visibly equipped.
+- Phase 30 is complete: Room Progression / Workspace Decor exists, and the player’s workspace/command-center can evolve and display owned room items/themes.
+- The next highest-value fantasy layer is aspirational collection:
+  the user should now be able to collect dream cars, view locked vs owned vehicles, unlock them via coin + level requirements, display them as prestige/status assets, and use a lightweight photo mode to create a “me + my dream car” moment.
+- This phase is NOT about driving gameplay, racing, simulation physics, or matchmaking.
+- This phase is about car collection, aspiration, prestige display, and screenshot-worthy identity moments.
+
+Your task:
+Build only the smallest high-impact Car Collection / Showcase / Photo Mode Lite layer.
+
+==================================================
+PHASE 31 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Car catalog / collection layer
+2. Car ownership / unlock model
+3. Car showcase / display layer
+4. Car prestige/value linkage
+5. Photo Mode Lite
+6. Minimal store/inventory/profile/world linkage for cars
+7. Minimal internal/admin controls only if strictly needed
+
+Do NOT build:
+- drivable vehicle gameplay
+- racing
+- physics simulation
+- open-world vehicle system
+- multiplayer car meetups
+- live player matching by level
+- giant garage simulator
+- complex photo editor studio
+- redesign of the whole app
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current marketplace/catalog, inventory, character status hub, room/world presentation, status tiers, prestige layer, premium layer, shareable layer, and asset application/display logic
+2. identify what already exists for luxury/lifestyle items and what is missing specifically for cars
+3. identify the minimum car collection system needed to make cars feel aspirational and real
+4. implement only the minimum systems needed
+5. avoid broad refactors
+
+==================================================
+A. CORE PRODUCT FANTASY FOR THIS PHASE
+==================================================
+
+This phase must make the user feel:
+
+“I can work toward my dream cars, collect them, show them, and capture moments with them as symbols of the life I am building.”
+
+The car system should communicate:
+- aspiration
+- status
+- long-term motivation
+- prestige
+- collection satisfaction
+- visible life upgrade fantasy
+
+Cars in this phase are not transportation mechanics.
+They are:
+- collection goals
+- prestige/status items
+- showcase assets
+- emotional milestones
+- visual/photo-mode fantasy anchors
+
+==================================================
+B. CAR CATALOG / COLLECTION SYSTEM
+==================================================
+
+Build a dedicated car collection layer.
+
+Purpose:
+Allow cars to exist as a first-class aspirational category inside the game.
+
+Each car entry should support at minimum:
+- id
+- name
+- slug
+- brand/make if the catalog model already supports brand-like fields
+- short description
+- aspirational/premium description
+- rarity/class
+- required level
+- coin cost
+- premium/exclusive/limited flags if applicable
+- locked / unlockable / owned / displayed states
+- preview image/media
+- collection category / tags
+- prestige value or prestige impact field
+- showcase eligibility
+- photo mode eligibility
+- created/updated timestamps
+
+Suggested lightweight car classes:
+- Starter aspiration
+- Rising luxury
+- Refined executive
+- Elite supercar
+- Prestige signature
+or equivalent tasteful classes
+
+Requirements:
+- keep the car system catalog-driven
+- do not hardcode individual car cards
+- keep it consistent with the existing product catalog architecture
+
+==================================================
+C. CAR OWNERSHIP / UNLOCK MODEL
+==================================================
+
+Cars in this phase should use controlled progression rules.
+
+Requirements:
+- cars can require:
+  - coin cost
+  - minimum level
+  - optional prestige/mastery requirement if already practical
+  - optional premium/exclusive/limited flags if already supported
+- all ownership and eligibility checks must be server-side
+- users can see:
+  - locked vs unlockable vs owned
+  - required level
+  - coin cost
+  - why a car is still locked
+  - whether it is displayable / photo-eligible
+- preserve clean JSON-only APIs and ownership checks
+
+Rules:
+- no client-side bypass of car ownership
+- no equipping/showing non-owned cars
+- no fake ownership states
+- keep the progression understandable and fair
+
+==================================================
+D. CAR SHOWCASE / DISPLAY LAYER
+==================================================
+
+Add a lightweight car showcase layer.
+
+Purpose:
+Let owned cars visibly matter beyond just sitting in inventory.
+
+At minimum, support:
+- view owned car collection
+- view locked dream cars
+- set one or more eligible featured/showcase cars where appropriate
+- show a featured car on a dedicated car showcase screen
+- lightly connect the featured car to identity/prestige presentation if useful
+- optionally show featured car in room/world/profile surfaces if already practical and elegant
+
+Requirements:
+- keep the showcase premium and aspirational
+- cars should feel like meaningful trophies/status symbols
+- not every surface needs to show a car
+- avoid clutter and duplication
+- keep the visual treatment mobile-friendly
+
+==================================================
+E. CAR PRESTIGE / STATUS LINKAGE
+==================================================
+
+Connect cars to the existing status/prestige fantasy in a tasteful way.
+
+Purpose:
+Make cars feel relevant to the player’s life progression without overpowering the real progression systems.
+
+Requirements:
+- car ownership/showcase can contribute to prestige presentation or identity signaling
+- cars can affect:
+  - prestige display
+  - lifestyle class feel
+  - aspirational profile/showcase surfaces
+  - room/world featured display if already practical
+- cars should NOT fake core life progression or skill progression
+- cars should amplify identity, not replace earned status
+
+Rules:
+- real progress still matters more than purchased/status objects
+- car ownership should feel prestigious, but not like a cheat code
+- keep the psychology aspirational and coherent
+
+==================================================
+F. PHOTO MODE LITE
+==================================================
+
+Build a lightweight photo mode.
+
+Purpose:
+Give the user a high-emotion moment with their owned car(s) and character.
+
+At minimum, support:
+- character + selected owned car composition
+- clean photo scene/background
+- simple pose/state options if already easy
+- optional room/world or showcase background if practical
+- export/share-ready screenshot surface
+- support for premium-looking composition
+
+Requirements:
+- keep it lightweight
+- do NOT build a full studio/editor
+- do NOT build heavy pose animation systems
+- do NOT make it fragile
+- should be good enough for screenshot/share moments
+- should feel stylish, premium, and aspirational
+
+Possible simple photo options:
+- select owned car
+- choose 1 of a few simple scene variations
+- choose whether to show title/prestige badge overlay or not
+- choose clean composition style
+- export/screenshot-friendly layout
+
+==================================================
+G. STORE / INVENTORY / PROFILE / WORLD LINKAGE
+==================================================
+
+Connect cars cleanly to the rest of the product.
+
+Requirements:
+- marketplace/store should now support a car category cleanly
+- inventory/collection should clearly separate cars from other assets
+- product detail for cars should explain:
+  - required level
+  - price
+  - rarity/class
+  - prestige/showcase value
+  - whether photo mode is supported
+- profile/showcase surfaces may optionally reference featured car if already tasteful
+- room/world layer may optionally support a featured car presentation in a limited way if practical
+- keep all linkages coherent and non-spammy
+
+Do not force cars onto every screen.
+Use them where they strengthen the fantasy.
+
+==================================================
+H. COLLECTION UX / ASPIRATION UX
+==================================================
+
+The car system should feel emotionally strong even before ownership.
+
+Requirements:
+- locked cars should still be inspiring, not frustrating
+- users should see what they need to unlock a car
+- owned cars should feel collectible and proud
+- the collection screen should make the user want to keep progressing
+- the UX should support:
+  - browsing
+  - goal-setting
+  - ownership pride
+  - showcasing
+  - taking a photo moment
+
+Possible helpful copy examples:
+- “Reach level X to unlock.”
+- “Earn Y more coin to claim this upgrade.”
+- “A prestige-worthy addition to your collection.”
+- “Ready for photo mode.”
+- “Featured car potential.”
+
+Keep copy premium and concise.
+
+==================================================
+I. CONSISTENCY / VALIDATION / ANTI-ERROR RULES
+==================================================
+
+Because cars will connect catalog, store, ownership, prestige, and photo mode, validation must be strong.
+
+Requirements:
+- server-side validation for purchase / ownership / display / photo-mode eligibility
+- reject non-owned car showcase attempts
+- reject under-level car purchase attempts
+- preserve consistency between:
+  - catalog state
+  - ownership state
+  - displayed/featured state
+  - profile/showcase state
+  - photo mode selection state
+- keep JSON-only APIs
+- preserve ownership checks
+- if needed, add minimal recompute/rebuild helpers for featured car state
+
+==================================================
+J. MINIMAL INTERNAL / ADMIN CONTROLS
+==================================================
+
+Add only minimal internal controls if strictly needed.
+
+Possible examples:
+- mark catalog items as car-collection items
+- set car class / prestige value / photo eligibility
+- define featured/default showcase order
+- toggle car display eligibility in specific surfaces
+- debug featured car state
+
+Requirements:
+- admin-only
+- lightweight
+- use existing admin/catalog/tuning surfaces where possible
+- do not build a giant vehicle ops console
+
+==================================================
+K. UI / UX DIRECTION
+==================================================
+
+Design direction:
+- dark premium
+- luxury lifestyle
+- aspirational but tasteful
+- serious, stylish, elegant
+- screenshot-worthy
+- not childish
+- not tacky
+- not like an arcade racing menu
+
+The user should feel:
+- “These are my dream cars”
+- “I can earn toward them”
+- “Owning one means something”
+- “My character and car together represent my future self”
+
+==================================================
+L. BACKEND / SECURITY RULES
+==================================================
+
+- all car ownership, unlock eligibility, display, and photo-mode selection checks must be server-side
+- preserve JSON-only APIs
+- preserve ownership checks
+- do not trust client-provided car ownership or display state
+- keep schema changes additive and minimal
+- preserve existing mission/proof/reward/economy/world/community/premium flows
+- if featured car state is persisted, it must remain recomputable and trustworthy
+
+==================================================
+M. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a real car collection layer exists
+2. cars can be browsed as aspirational collection items
+3. coin + level unlock logic is enforced for cars
+4. owned cars can be showcased/featured in a meaningful way
+5. cars contribute to prestige/lifestyle fantasy without replacing real progression
+6. a lightweight photo mode exists for character + owned car moments
+7. store/inventory/profile/world linkages for cars are coherent where implemented
+8. users can clearly understand locked vs owned vs showcase-ready car states
+9. existing app flow still works
+10. no oversized driving/racing/multiplayer scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what car/collection/showcase capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Car collection system added
+- data model
+- unlock/ownership logic
+- collection states
+
+4. Car showcase/prestige linkage added
+- what users can feature/display
+- how cars influence identity/prestige presentation
+
+5. Photo Mode Lite added
+- what options exist
+- how character + car composition works
+- how share/export readiness is handled
+
+6. Store/inventory/profile/world linkage added
+- where car state is now visible
+- how consistency is maintained
+
+7. End-to-end verification results for:
+- browse car catalog
+- locked vs unlockable vs owned visibility
+- level lock enforcement
+- purchase owned car
+- feature/showcase car
+- photo mode visibility
+- existing app flow unchanged
+
+8. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

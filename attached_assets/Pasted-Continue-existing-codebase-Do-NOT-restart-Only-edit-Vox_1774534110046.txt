@@ -1,0 +1,145 @@
+Continue existing codebase. Do NOT restart.
+Only edit VoxelCharacter3D.tsx
+
+Goal: Add life and polish to the character.
+Currently static and mechanical-feeling.
+Add subtle animations that make it feel premium.
+
+ANIMATIONS TO IMPLEMENT:
+
+1. IDLE BREATHING
+   Very subtle — chest rises and falls.
+   
+   Animate torso voxels y-position:
+   - Chest voxels (upper torso): 
+     y offset = sin(time * 1.2) * 0.3
+   - Shoulders follow chest
+   - Head moves up/down by 0.15 (less than chest)
+   - Period: ~5 seconds per breath cycle
+   
+   Implementation:
+   useRef for breathTime
+   requestAnimationFrame increments breathTime
+   Apply offset in projection step
+
+2. SUBTLE HEAD LOOK-AROUND
+   Character slowly glances slightly left/right.
+   
+   Head rotates independently ±3° from body:
+   headYaw = sin(time * 0.3) * 0.05 radians
+   
+   Apply extra rotateY to head voxels only
+   (identify head voxels by y > headBase)
+   
+   Very subtle — should feel alive not robotic.
+
+3. WEIGHT SHIFT
+   Character shifts weight slightly.
+   
+   Hip voxels tilt 1-2° side to side:
+   hipTilt = sin(time * 0.4) * 0.02 radians
+   
+   Shoulders counter-rotate (opposite direction):
+   shoulderTilt = -hipTilt * 0.7
+   
+   This creates natural standing posture sway.
+
+4. ARM MICRO-MOVEMENT
+   Arms hang with slight swing:
+   
+   Left arm: y += sin(time * 0.8 + 0.5) * 0.4
+   Right arm: y += sin(time * 0.8) * 0.4
+   
+   (slightly out of phase with each other)
+
+5. IDLE AUTO-ROTATE (improve existing)
+   Current auto-rotate is constant speed.
+   
+   Improve with:
+   - Rotation pauses slightly at front view (0°)
+     and side views (90°, 270°)
+   - Eases out at pause, eases in resuming
+   - 1.5 second pause at front view
+   - 0.5 second pause at each side view
+   - Use sin curve for easing
+
+6. MOMENTUM ON RELEASE (if not exists)
+   When finger lifts:
+   - Calculate velocity from last 3 move events
+   - Continue rotation at that velocity
+   - Decelerate with friction: velocity *= 0.95 per frame
+   - Stop when velocity < 0.001
+   
+   This feels natural like spinning a globe.
+
+7. SCREEN ENTRY ANIMATION
+   When character screen first opens:
+   
+   - Character starts slightly small (scale 0.85)
+     and transparent (opacity 0)
+   - Animates to full size (scale 1.0) and
+     opacity 1.0 over 600ms
+   - Easing: ease-out cubic
+   - Character also does one slow rotation (360°)
+     during entry over 1.2 seconds
+   
+   Use React Native Animated API.
+
+8. GLOW PULSE (subtle)
+   Background spotlight pulses slowly:
+   
+   spotlightOpacity oscillates between 0.02-0.05
+   Period: 4 seconds
+   
+   Creates feeling of character being "alive"
+   under the light.
+
+9. TIER-UP CELEBRATION
+   When outfitTier prop changes to higher value:
+   
+   - Brief particle burst effect
+     (8-12 gold/colored square particles)
+   - Particles fly outward from character center
+   - Fade out over 1 second
+   - Character does quick 360° spin
+   
+   Particles = simple View components with
+   Animated position and opacity.
+
+10. TOUCH FEEDBACK
+    When user starts dragging:
+    - Subtle haptic suggestion (no native module needed,
+      just a slight scale pulse: 1.0 → 1.02 → 1.0)
+    - Background spotlight brightens slightly
+      (opacity +0.02 while dragging)
+
+PERFORMANCE:
+All animations must:
+- Use requestAnimationFrame
+- Never cause unnecessary voxel rebuilds
+- Only recalculate projection when rotation changes
+- Target 60fps on iPhone 12 / mid Android
+- Limit total animation state changes to
+  necessary minimum
+
+IMPLEMENTATION APPROACH:
+Create an animationState ref that tracks:
+{
+  breathPhase: number,
+  headYaw: number,
+  hipTilt: number,
+  armSwingL: number,
+  armSwingR: number,
+}
+
+Update in single rAF loop.
+Pass as prop to memoized voxel transform.
+
+After all changes:
+- Character breathes subtly
+- Head has slight life movement
+- Rotation has momentum/physics feel  
+- Entry animation is polished
+- 60fps maintained throughout
+- All existing functionality preserved
+- Works in Expo Go

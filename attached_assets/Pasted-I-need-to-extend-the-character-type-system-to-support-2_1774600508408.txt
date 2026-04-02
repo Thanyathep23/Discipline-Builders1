@@ -1,0 +1,60 @@
+I need to extend the character type system to support 2 new wearable slots 
+and face customization fields.
+
+STEP 1 — Update artifacts/mobile/lib/characterEngine.ts
+
+In the CharacterVisualState interface, add these new fields:
+  equippedShoesStyle: "casual" | "sneaker" | "formal" | "boot" | null;
+  equippedEyewearStyle: "none" | "thin-frame" | "bold-frame" | "sunglasses" | null;
+  faceShape: "oval" | "round" | "square";
+  eyeShape: "round" | "almond" | "wide";
+
+In computeCharacterState(), map new fields from apiResponse:
+  equippedShoesStyle: wearables.shoes?.shoesStyle ?? null,
+  equippedEyewearStyle: wearables.eyewear?.eyewearStyle ?? null,
+  faceShape: (appearance.faceShape ?? "oval") as "oval" | "round" | "square",
+  eyeShape: (appearance.eyeShape ?? "almond") as "round" | "almond" | "wide",
+
+STEP 2 — Update artifacts/api-server/src/routes/character.ts
+
+In computeEquippedWearableState(), add two new slots:
+
+  const shoes    = equippedWearableItems.find(i => i.wearableSlot === "shoes")    ?? null;
+  const eyewear  = equippedWearableItems.find(i => i.wearableSlot === "eyewear")  ?? null;
+
+Add to the return object:
+  shoes: shoes ? {
+    id: shoes.id, slug: shoes.slug, name: shoes.name, rarity: shoes.rarity,
+    shoesStyle: WEARABLE_SHOES_STYLE[shoes.slug ?? ""] ?? "casual",
+  } : null,
+  eyewear: eyewear ? {
+    id: eyewear.id, slug: eyewear.slug, name: eyewear.name, rarity: eyewear.rarity,
+    eyewearStyle: WEARABLE_EYEWEAR_STYLE[eyewear.slug ?? ""] ?? "thin-frame",
+  } : null,
+
+Add these mapping objects near other wearable mappings:
+  const WEARABLE_SHOES_STYLE: Record<string, string> = {
+    "white-sneakers":  "sneaker",
+    "clean-casuals":   "casual",
+    "oxford-black":    "formal",
+    "chelsea-boots":   "boot",
+  };
+  const WEARABLE_EYEWEAR_STYLE: Record<string, string> = {
+    "thin-gold-frames":  "thin-frame",
+    "bold-black-frames": "bold-frame",
+    "matte-sunglasses":  "sunglasses",
+  };
+
+STEP 3 — Update patchAppearanceSchema in character.ts to accept new fields:
+  faceShape: z.enum(["oval", "round", "square"]).optional(),
+  eyeShape: z.enum(["round", "almond", "wide"]).optional(),
+
+STEP 4 — Update the character appearance database schema if needed:
+  Add faceShape and eyeShape columns to character_appearance table with defaults "oval" and "almond".
+
+STEP 5 — Update artifacts/mobile/app/character/index.tsx CustomizeSheet:
+  Add face shape selector (3 options: Oval / Round / Square) with small face-shape SVG previews.
+  Add eye shape selector (3 options: Round / Almond / Wide) with small eye SVG previews.
+  Pass faceShape and eyeShape to handleSaveAppearance() and include in the PATCH request.
+
+Do not change any other logic. These are purely additive changes.

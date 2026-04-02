@@ -1,0 +1,198 @@
+PROJECT: Anime 3D Character Creator
+PLATFORM: Replit (Static Web — HTML + CSS + JavaScript only, no backend)
+
+===========================================
+GOAL
+===========================================
+Build a browser-based 3D anime character viewer and customizer.
+The character is displayed in 3D, rotatable 360° freely by mouse drag or touch.
+Users can customize the character in real-time using a UI panel on the side.
+No login. No save. No backend. Pure frontend experience.
+
+===========================================
+TECH STACK (strict)
+===========================================
+- Three.js (r152 or latest) via CDN
+- @pixiv/three-vrm via CDN or npm (for VRM anime model support)
+- Three.js OrbitControls (for 360° free rotation)
+- Vanilla HTML + CSS + JavaScript (no React, no framework)
+- Load a free VRM model as the base character
+  Recommended free VRM: https://hub.vroid.com (use any CC0/free license VRM)
+  Fallback: use a placeholder box humanoid if VRM not available yet
+
+===========================================
+WHAT TO BUILD
+===========================================
+
+[1] 3D VIEWPORT (main area, ~70% width)
+- Three.js canvas fills the left/center area
+- Background: dark gradient (deep navy or charcoal, not pure black)
+- Subtle ambient + directional lighting — anime-style bright fill, soft shadow
+- Rim light from behind to give character a glowing silhouette
+- Character displayed at full body, centered, slight upward angle camera
+- OrbitControls enabled:
+  - Left click drag = rotate
+  - Right click drag = pan (limit pan range so character stays centered)
+  - Scroll = zoom (min/max clamp so character never disappears)
+  - Auto-rotate: off by default, toggle button to enable slow spin
+- Ground: subtle circular gradient shadow disc under character (fake AO shadow)
+- Add soft particle dust or floating sparkles in background (optional, low cost)
+
+[2] CUSTOMIZATION PANEL (right sidebar, ~30% width)
+Scrollable panel. Divided into sections with clear labels.
+Each change must update the 3D character in real-time (no confirm button needed).
+
+--- SECTION: HAIR ---
+- Hair Style: button group or dropdown
+  Options: Short, Medium, Long, Ponytail, Twin Tails, Bob
+  (Toggle mesh visibility per style — only one visible at a time)
+- Hair Color: color picker
+  Options: preset swatches (Black, Brown, Blonde, Silver, Red, Blue, Pink, Purple, White)
+  + custom hex color picker
+  Apply color to hair mesh material in real-time
+
+--- SECTION: FACE ---
+Use VRM morph targets (blend shapes) if available, else use sliders that affect geometry
+- Eye Shape: slider (narrow ↔ wide) — morphTarget: "eyeWide" or similar
+- Eye Size: slider (small ↔ large)
+- Nose: slider (subtle ↔ defined)
+- Mouth: slider (small ↔ wide)
+- Skin Tone: color swatches
+  Options: Fair, Light, Warm, Tan, Brown, Deep
+  Apply to all skin-visible meshes
+
+--- SECTION: OUTFIT ---
+- Outfit Style: button group
+  Options: School Uniform, Battle Armor, Mage Robe, Casual Streetwear, Royal Dress
+  (Toggle outfit mesh groups — only one visible at a time)
+- Outfit Primary Color: color picker (swatch + hex)
+- Outfit Secondary Color: color picker (swatch + hex)
+
+--- SECTION: WEAPON / ACCESSORY ---
+- Weapon: dropdown
+  Options: None, Sword, Staff, Bow, Shield, Dual Daggers
+  (Show/hide weapon mesh attached to hand bone)
+- Accessory: checkbox group (can combine)
+  Options: Earrings, Necklace, Glasses, Headband, Wings, Halo
+  (Toggle accessory mesh visibility)
+
+===========================================
+UI / UX DESIGN DIRECTION
+===========================================
+- Overall vibe: Premium anime game character screen (think Genshin Impact character page)
+- Dark theme: background #0f0f1a or similar deep dark
+- Panel: semi-transparent dark glass card (#1a1a2e / 70% opacity, subtle border glow)
+- Accent color: soft gold or cyan glow (#c9a84c or #00d4ff) for section headers
+- Typography: clean sans-serif, slightly futuristic (Google Font: Rajdhani or Exo 2)
+- Buttons: rounded pill shape, highlight on active state
+- Sliders: thin track, glowing thumb
+- Color swatches: circle shape, border glow on selected
+- Section headers: uppercase letter-spacing, small divider line
+- Smooth transitions: all mesh/color changes animate within 200–300ms
+- Mobile responsive: on small screens, panel moves to bottom drawer (collapsible)
+
+===========================================
+LIGHTING SETUP (Three.js)
+===========================================
+- AmbientLight: intensity 0.6, color #ffffff
+- DirectionalLight (key): intensity 1.2, position top-left, castShadow: true
+- DirectionalLight (fill): intensity 0.4, position right, warm tone #ffe0c0
+- PointLight (rim): intensity 0.8, position behind character, color #8888ff (cool blue rim)
+- Optional: SpotLight from above for dramatic top-down highlight
+
+===========================================
+DATA MODEL (frontend state only)
+===========================================
+characterState = {
+  hair: {
+    style: "medium",        // string — maps to mesh group name
+    color: "#1a1a1a"        // hex string
+  },
+  face: {
+    eyeShape: 0.5,          // float 0–1 (morph weight)
+    eyeSize: 0.5,
+    nose: 0.5,
+    mouth: 0.5,
+    skinTone: "#f5c5a3"     // hex string
+  },
+  outfit: {
+    style: "school",        // string — maps to outfit mesh group
+    primaryColor: "#1a3a6b",
+    secondaryColor: "#ffffff"
+  },
+  accessories: {
+    weapon: "none",         // string — maps to weapon mesh
+    extras: []              // array of strings — ["earrings", "halo"]
+  }
+}
+
+On every UI change:
+→ update characterState
+→ call applyCharacterState(characterState) to update Three.js meshes/materials
+
+===========================================
+PERFORMANCE REQUIREMENTS
+===========================================
+- Target: 60fps on modern desktop browser
+- Render loop: use requestAnimationFrame
+- Avoid re-creating materials on every update — reuse and just update .color
+- Dispose unused geometries and textures when swapping meshes
+- Shadow map: PCFSoftShadowMap, resolution 1024 (not 4096)
+- Avoid postprocessing unless bloom only (optional, lightweight)
+
+===========================================
+STATES TO HANDLE
+===========================================
+- Loading state: show centered spinner + "Loading character..." text while VRM loads
+- Error state: if VRM fails to load, show fallback humanoid box figure + warning toast
+- Empty weapon: hide weapon mesh cleanly, no floating invisible objects
+- Mobile state: panel collapses to bottom sheet, toggle button to open/close
+
+===========================================
+BUILD ORDER (do in this sequence)
+===========================================
+Step 1: Setup Three.js canvas, camera, lighting, OrbitControls
+Step 2: Load base VRM model, confirm it renders correctly
+Step 3: Implement free rotation + zoom + auto-spin toggle
+Step 4: Build customization panel UI (HTML/CSS only, no logic yet)
+Step 5: Connect hair style toggle (mesh visibility)
+Step 6: Connect hair color picker → material update
+Step 7: Connect skin tone → all skin mesh material
+Step 8: Connect face sliders → VRM morph targets
+Step 9: Connect outfit style toggle
+Step 10: Connect outfit color pickers
+Step 11: Connect weapon toggle
+Step 12: Connect accessories checkboxes
+Step 13: Mobile responsive layout
+Step 14: Polish — lighting, transitions, background effects
+
+===========================================
+DO NOT
+===========================================
+- Do NOT use React or any JS framework — vanilla JS only
+- Do NOT put all code in one 5000-line file — split into: main.js, character.js, ui.js, state.js
+- Do NOT reload/re-instantiate the VRM model on every customization change
+- Do NOT use alert() or console.log for user-facing messages
+- Do NOT hardcode colors inside Three.js objects — drive everything from characterState
+- Do NOT skip the loading state — VRM files can be 10–30MB
+- Do NOT use HDR environment map without checking performance cost first
+- Do NOT skip mobile layout — even basic collapsible panel is required
+
+===========================================
+ACCEPTANCE CHECKLIST
+===========================================
+[ ] Character loads and displays correctly on first open
+[ ] 360° rotation works smoothly with mouse drag
+[ ] Zoom in/out works with scroll wheel
+[ ] Hair style change updates mesh instantly
+[ ] Hair color change updates material in real-time
+[ ] Skin tone change applies to all skin meshes
+[ ] Face sliders visibly change character appearance
+[ ] Outfit swap changes visible mesh cleanly (no z-fighting, no invisible leftovers)
+[ ] Outfit colors apply correctly to primary and secondary zones
+[ ] Weapon appears/disappears cleanly
+[ ] Accessories stack correctly (can wear earrings + halo together)
+[ ] Loading spinner shows while VRM loads
+[ ] No console errors after full interaction
+[ ] Works on Chrome, Firefox, Safari (desktop)
+[ ] Responsive: panel accessible on mobile screen

@@ -1,0 +1,166 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Resume Phase 20 only: Launch / Scale / Post-launch Operations.
+
+Important:
+- Do NOT restart the project from scratch.
+- Do NOT re-implement completed Phase 20 work.
+- Do NOT broaden scope beyond the remaining Phase 20 closeout items.
+- First audit the current working tree and determine exactly what Phase 20 items are already complete vs still incomplete.
+- Then finish only the remaining Phase 20 tasks.
+- If some risk is too large to fix safely in this closeout pass, explicitly mark it as must-fix-before-launch in the runbook and final report.
+
+Current context from previous run:
+Likely already implemented:
+- backend kill-switch architecture
+- auth rate limiting backend
+- improved health check
+- transaction-safe applySystemPenalty
+- admin support / observability / repair backend tools
+- multiple kill-switch integrations
+Likely unfinished because the run stopped on quota:
+- mobile admin kill-switch screen
+- launch runbook / documentation
+- remaining pre-existing type errors in inventory.ts and world.ts
+- final verification / completion report
+Potential still-open launch risk:
+- in-memory auth tokens/session persistence if not already resolved
+
+==================================================
+STEP 1 — AUDIT BEFORE CODING
+==================================================
+
+Before changing anything:
+1. inspect the current Phase 20 implementation
+2. list exactly which Phase 20 acceptance criteria are already complete
+3. list exactly which items are still unfinished
+4. change only what is still needed
+
+Focus especially on:
+- admin/mobile kill-switch UI or admin control surface
+- launch runbook / launch checklist docs
+- remaining type errors in inventory.ts and world.ts
+- final launch-safe verification
+- whether auth/session tokens are still in-memory and lost on restart
+
+==================================================
+STEP 2 — COMPLETE ONLY THE REMAINING PHASE 20 ITEMS
+==================================================
+
+Finish only the remaining items from this list:
+
+A. Mobile / admin kill-switch surface
+- build or finish the admin-facing kill-switch screen/surface
+- allow safe viewing/toggling of the already-implemented kill-switches
+- keep access admin-only
+- keep actions audit-logged if already supported
+- do not redesign the admin app
+
+B. Launch runbook / launch docs
+Create or finish practical docs such as:
+- launch checklist
+- critical flows checklist
+- degraded mode / kill-switch notes
+- incident response notes
+- what to check first for common failures
+- support/recovery notes for stuck user states
+- known must-fix-before-launch items if any remain
+
+C. Typecheck closeout
+- fix the remaining relevant type errors in inventory.ts and world.ts if they are still present
+- do not chase unrelated sandbox/ui-library issues outside scope
+- get the relevant app packages as clean as possible
+
+D. Final verification
+Run focused verification for:
+- signup/login/session behavior
+- auth rate limiting
+- health check
+- kill-switch behavior
+- proof/upload/reward flow
+- marketplace/world/premium flow
+- community/invite flow if live
+- support/repair tools if added
+- degraded/disabled subsystem behavior
+
+E. Auth/session persistence decision
+- audit whether auth/session tokens are still in-memory and lost on restart
+- if this is already fixed, verify it
+- if it is not fixed and can be safely fixed in this pass, fix it
+- if it cannot be fixed safely without broad scope, document it explicitly as must-fix-before-launch in the runbook and final report
+
+==================================================
+RULES
+==================================================
+
+- Do not add new gameplay systems
+- Do not broaden scope
+- Do not rebuild already-complete backend work
+- Do not change unrelated systems
+- Keep fixes minimal and targeted
+- Preserve JSON-only APIs
+- Preserve ownership and admin authorization checks
+- Preserve existing core user flows
+
+==================================================
+PHASE 20 CLOSEOUT ACCEPTANCE CRITERIA
+==================================================
+
+Phase 20 can be considered complete only if:
+
+1. the remaining Phase 20 closeout items are finished
+2. admin/mobile kill-switch surface exists if backend kill-switches already exist
+3. launch runbook/checklist documentation exists
+4. remaining relevant type errors are resolved or explicitly documented as out-of-scope/pre-existing
+5. final verification confirms critical flows still work
+6. auth/session persistence risk is either fixed or clearly documented as must-fix-before-launch
+7. no unrelated feature scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what Phase 20 items were already complete
+- what was still unfinished
+- what was completed in this run
+
+2. Files changed in this run only
+
+3. Kill-switch/admin surface changes
+- what screen/surface was added or finished
+- what controls are available
+
+4. Launch runbook/docs added
+- exact files created or updated
+- what checklists/notes were included
+
+5. Typecheck closeout
+- what errors were fixed
+- what remains and why
+
+6. Auth/session persistence status
+- fixed, already safe, or still must-fix-before-launch
+- exact reasoning
+
+7. Final verification results for:
+- auth/login/session flow
+- auth rate limiting
+- health check
+- kill-switch behavior
+- proof/upload/reward flow
+- marketplace/world/premium flow
+- community/invite flow if live
+- degraded subsystem behavior
+
+8. Final Phase 20 status:
+- complete
+- or complete except for explicitly documented must-fix-before-launch items
+
+Important:
+This is a closeout pass only.
+Do not broaden scope.
+Do not restart the project.
+Finish only the remaining Phase 20 work cleanly.

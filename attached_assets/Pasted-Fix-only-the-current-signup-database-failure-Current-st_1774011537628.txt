@@ -1,0 +1,65 @@
+Fix only the current signup database failure.
+
+Current status:
+- The network/routing issue is already fixed.
+- Requests now reach the API server correctly.
+- Signup still fails because the backend crashes while querying the users table.
+- The failing query is a SELECT from "users" by email before account creation.
+
+Likely problem:
+- Drizzle schema and actual database schema are out of sync
+- or one/more expected columns in "users" do not exist in the real database
+- or the users table shape differs from what the auth code expects
+
+Your task:
+1. Audit the real database schema for the users table
+2. Compare it against the current Drizzle users schema and auth route expectations
+3. Find the exact mismatch causing the SELECT query to fail
+4. Apply the minimum safe fix so signup/login work again
+5. Keep scope strictly limited to auth + users table schema consistency
+
+Strict scope:
+- inspect only:
+  - users table schema
+  - Drizzle users schema
+  - auth signup/login route
+  - migrations/schema push status
+  - any DB index/export files needed for this fix
+- do not touch missions, rewards, arcs, proof system, uploads, chains, or gameplay systems
+- do not refactor broadly
+- do not add new features
+
+What to check:
+- does the real database users table actually contain all of these columns:
+  id, email, username, password_hash, role, coin_balance, level, xp, current_streak, longest_streak, trust_score, is_active, last_active_at, last_streak_date, created_at, updated_at
+- if not, which columns are missing or mismatched
+- whether recent schema changes were never pushed/applied
+- whether the auth code is selecting unnecessary columns during signup/login
+- whether the minimal fix is:
+  - apply missing migration/schema push
+  - or reduce the selected columns in auth
+  - or align the schema definition with the real DB
+- ensure the fix is compatible with existing auth/session logic
+
+Requirements:
+- signup must work
+- login must still work
+- auth endpoints must keep returning JSON
+- error handling should be clean
+- use the smallest safe patch
+- if DB migration is required, apply only the missing auth/users table changes
+
+Acceptance criteria:
+1. signup query no longer fails
+2. login query no longer fails
+3. users table schema matches what auth code needs
+4. signup successfully creates a user
+5. login successfully authenticates an existing user
+6. no unrelated systems are changed
+
+At the end return:
+1. exact root cause
+2. exact schema mismatch found
+3. files changed
+4. migration/schema action taken
+5. verification results for signup and login

@@ -1,0 +1,415 @@
+Continue existing codebase. Do NOT restart the project.
+
+Task:
+Completely delete and rewrite VoxelCharacter3D.tsx from scratch.
+Remove all previous voxel character code.
+
+Target: Premium quality voxel character
+Outfit: White t-shirt + Black slim trousers
+Style: Match reference voxel art businessman quality
+Must work: Expo Go, no native modules, react-native-svg only
+
+==================================================
+APPROACH: Hand-crafted voxel sprite maps
+==================================================
+
+Instead of procedural geometry,
+define the character as precise 2D color grids
+per view angle, then project with 3D rotation.
+
+This is how real voxel games work.
+Each "frame" is a carefully designed pixel map.
+
+==================================================
+STEP 1 — DEFINE VOXEL MAPS AS COLOR STRINGS
+==================================================
+
+Each row = string of color codes
+Each character in string = one voxel
+Use a lookup table for colors
+
+COLOR LOOKUP:
+const C = {
+  _: null,           // transparent
+  H: '#2C1A0E',      // hair dark
+  h: '#4A2C14',      // hair highlight
+  S: '#E59866',      // skin medium
+  s: '#C07848',      // skin shadow
+  e: '#FFFFFF',      // eye white
+  i: '#1A3A6A',      // iris
+  p: '#080808',      // pupil
+  b: '#1A1008',      // eyebrow
+  n: '#C07848',      // nose shadow
+  l: '#8B4030',      // lip
+  W: '#F2F2F2',      // white tee highlight
+  w: '#DCDCDC',      // white tee mid
+  d: '#C0C0C0',      // white tee shadow
+  B: '#1A1A2A',      // black pants highlight
+  k: '#0F0F18',      // black pants mid
+  K: '#080810',      // black pants shadow
+  X: '#5C3A1E',      // brown shoe top
+  x: '#3E2208',      // brown shoe sole
+  t: '#1A0A00',      // belt
+  g: '#C0A030',      // belt buckle
+}
+
+==================================================
+STEP 2 — FRONT VIEW MAP (32 wide × 56 tall)
+==================================================
+
+Define as array of strings, each char = one voxel.
+Read left to right, top to bottom.
+32 columns, 56 rows.
+
+const FRONT_MAP = [
+// HEAD & HAIR (rows 0-13)
+'________________HHHHHHHH________________',
+'____________HHHHHHHHHHHHHHHH____________',
+'__________HHHHHhhhHHHHHhhhHHHH__________',
+'_________HHHHHhhhhhHHHhhhhhHHHH_________',
+'_________HHHHHhhhhhHHHhhhhhHHHH_________',
+'_________HHHSSSSSSSSSSSSSSSSHHHHH_______',
+'________SSSSSSSSSSSSSSSSSSSSSSSs________',
+// eyebrow row
+'________SSSbbbbSSSSSSSSSSbbbbSSs________',
+// eye row
+'________SSeeeiiSSSSSSSSeeeiSSSSs________',
+'________SSeepiiSSSSSSSSeepiSSSSs________',
+// nose
+'________SSSSSSSSSnSSSSSSSSSSSSs_________',
+'________SSSSSSSnnnnSSSSSSSSSSs__________',
+// mouth
+'________SSSsssslllllssssSSSSs___________',
+'_________SSsssssssssssssSSs_____________',
+// NECK (rows 14-15)
+'____________SSSSSSSSSSSS________________',
+'____________SSSSSSSSSSSS________________',
+// SHOULDERS (row 16-17)
+'_______WWWWWWWWWWWWWWWWWWWwwwww_________',
+'_____WWWWWWwwwWWWWWWWWWWwwwWWWWWW_______',
+// TORSO white tee (rows 18-30)
+'____WWWWWdWWWWWWWWWWWWWWWWWdWWWWW_______',
+'____WWWWWdWWWWWWWWWWWWWWWWWdWWWWW_______',
+'____WWWWWdWWWWWWWWWWWWWWWWWdWWWWW_______',
+'____WWWWWdWWWWWWWWWWWWWWWWWdWWWWW_______',
+'____WWWWWdWWWWWWWWWWWWWWWWWdWWWWW_______',
+'____WWWWWdWWWWWWWWWWWWWWWWWdWWWWW_______',
+'____WWWWWdWWWWWWWWWWWWWWWWWdWWWWW_______',
+'____WWWWWdWWWWWWWWWWWWWWWWWdWWWWW_______',
+// arms exposed skin
+'__SSWWWWWdWWWWWWWWWWWWWWWWWdWWWWSS______',
+'__SSWWWWWdWWWWWWWWWWWWWWWWWdWWWWSS______',
+'__ssSWWWWdWWWWWWWWWWWWWWWWWdWWWSss______',
+'__ssSSSWWdWWWWWWWWWWWWWWWWWdWWSSss______',
+// BELT (row 30)
+'____SSSSSttttttttgttttttttttSSSSSS______',
+// BLACK PANTS (rows 31-48)
+'_____KKkkBBBBBBBBBBBBBBBkkkKKK__________',
+'_____KKkBBBBkkBBBBBBkkBBBBkKK___________',
+'_____KKkBBBBkkBBBBBBkkBBBBkKK___________',
+'_____KKkBBBBkkBBBBBBkkBBBBkKK___________',
+'_____KKkBBBBkkBBBBBBkkBBBBkKK___________',
+'_____KKkBBBBkkBBBBBBkkBBBBkKK___________',
+'_____KKkBBBBkkBBBBBBkkBBBBkKK___________',
+'_____KKkBBBBkkBBBBBBkkBBBBkKK___________',
+'_____KKkBBBBkk______kkBBBBkKK___________',
+'_____KKkBBBBkk______kkBBBBkKK___________',
+'_____KKkBBBBkk______kkBBBBkKK___________',
+'_____KKkBBBBkk______kkBBBBkKK___________',
+'_____KKkBBBBkk______kkBBBBkKK___________',
+'_____KKkBBBBkk______kkBBBBkKK___________',
+'_____KKkBBBBkk______kkBBBBkKK___________',
+'_____KKkBBBkk_______kkBBBkKK____________',
+'_____KKkBBBk_________kBBBkKK____________',
+// SHOES (rows 49-51)
+'____XXXXXXXx__________XXXXXXXx__________',
+'___XXXXXXXxx__________XXXXXXXxx_________',
+'___xxxxxxxxx__________xxxxxxxxx_________',
+]
+
+Parse this map:
+- Each character maps to C[char] color
+- null = skip (transparent)
+- Voxel at (col, row) in grid
+
+==================================================
+STEP 3 — SIDE VIEW MAP (24 wide × 56 tall)
+==================================================
+
+const SIDE_MAP = [
+// Profile view — left side facing right
+// Hair
+'________HHHHHHhh________',
+'______HHHHHhhhhhHH______',
+'_____HHHHhhhhhhhHHH_____',
+'_____HHHhhhhhhHHHHH_____',
+'_____HHHHHHHHHHHHHs_____',
+'_____SSSSSSSSSSSSSS_____',
+// profile eyebrow
+'_____SSSbbbbSSSSSSSs____',
+// profile eye
+'_____SSSeeiiiSSSSSss____',
+// nose profile
+'_____SSSSSSnnSSSSss_____',
+'_____SSSSSSnnnSSss______',
+// chin/jaw
+'_____SSSSSSSSSSss_______',
+'______SSSSSSSss_________',
+// neck
+'_______SSSSSS___________',
+'_______SSSSSS___________',
+// shoulder side
+'_____WWWWWWwwww_________',
+'____WWWWWwwwwWWW________',
+// torso side
+'____WWWWWwwwWWWW________',
+'____WWWWWwwwWWWW________',
+'____WWWWWwwwWWWW________',
+'____WWWWWwwwWWWW________',
+'____WWWWWwwwWWWW________',
+'____WWWWWwwwWWWW________',
+'____WWWWWwwwWWWW________',
+'___SWWWWWwwwWWWWSS______',
+'___SSWWWWwwwWWWSSS______',
+'___ssSWWWwwwWWSSss______',
+'___sssSSSttttSSsss______',
+// pants side
+'____KKkkBBBBBBkKK_______',
+'____KKkBBkkBBBkKK_______',
+'____KKkBBkkBBBkKK_______',
+'____KKkBBkkBBBkKK_______',
+'____KKkBBkkBBBkKK_______',
+'____KKkBBkkBBBkKK_______',
+'____KKkBBkkBBBkKK_______',
+'____KKkBBkkBBBkKK_______',
+'____KKkBBkkBBkKK________',
+'____KKkBBkkkBkKK________',
+'____KKkBBBBBBkKK________',
+'____KKkBBBBBkKK_________',
+'____KKkBBBBBkKK_________',
+'____KKkBBBBkKK__________',
+// shoe side
+'___XXXXXXXXXXxx_________',
+'__XXXXXXXXXXXXxx________',
+'__xxxxxXXXXXxxxx________',
+]
+
+==================================================
+STEP 4 — BACK VIEW MAP (32 wide × 56 tall)
+==================================================
+
+const BACK_MAP = [
+// Back of head
+'________________HHHHHHHH________________',
+'____________HHHHHHHHHHHHHHHH____________',
+'__________HHHHHHHHHHHHHHHHHHhh__________',
+'_________HHHHHHHHHHHHHHHHHHHHhh_________',
+'_________HHHHHHHHHHHHHHHHHHHHhH_________',
+'_________HHHHHHHHHHHHHHHHHHHHs__________',
+'__________HHHHHHHHHHHHHHHHHss___________',
+// back of head = all hair
+'________HHHHHHHHHHHHHHHHHHHHHs_________',
+'________HHHHHHHHHHHHHHHHHHHHHs_________',
+'________HHHHHHHHHHHHHHHHHHHHHs_________',
+'_________HHHHHHHHHHHHHHHHHHHs__________',
+'__________HHHHHHHHHHHHHHHHHs___________',
+'___________HHHHSSSSSSSSSSss_____________',
+'____________SSSSSSSSSSSss_______________',
+// neck back
+'____________SSSSSSSSSSSS________________',
+'____________SSSSSSSSSSSS________________',
+// back of shirt
+'_______WWWWWWWWWWWWWWWWWWwwwww__________',
+'_____WWWWWwwwwwwwwwwwwwwwwwWWWWW________',
+'____WWWWWdddddddddddddddddddWWWWW_______',
+'____WWWWWdddddddddddddddddddWWWWW_______',
+'____WWWWWdddddddddddddddddddWWWWW_______',
+'____WWWWWdddddddddddddddddddWWWWW_______',
+'____WWWWWdddddddddddddddddddWWWWW_______',
+'____WWWWWdddddddddddddddddddWWWWW_______',
+'____WWWWWdddddddddddddddddddWWWWW_______',
+'____WWWWWdddddddddddddddddddWWWWW_______',
+'__SsWWWWWdddddddddddddddddddWWWWSsS_____',
+'__SsWWWWWdddddddddddddddddddWWWWSsS_____',
+'__ssSWWWWdddddddddddddddddddWWWSSss_____',
+'__sssSSSWdddddddddddddddddddWSSssss_____',
+// belt back
+'____SSSSSttttttttttttttttttttSSSSSS_____',
+// pants back
+'_____KKkkBBBBBBBBBBBBBBBkkkKKK__________',
+'_____KKkBBBBBBBBBBBBBBBBBkKK____________',
+'_____KKkBBBBBBBBBBBBBBBBBkKK____________',
+'_____KKkBBBBBBBBBBBBBBBBBkKK____________',
+'_____KKkBBBBBBBBBBBBBBBBBkKK____________',
+'_____KKkBBBBBBBBBBBBBBBBBkKK____________',
+'_____KKkBBBBBBBBBBBBBBBBBkKK____________',
+'_____KKkBBBBBBBBBBBBBBBBBkKK____________',
+'_____KKkBBBBkk______kkBBBkKK____________',
+'_____KKkBBBkk_______kkBBBkKK____________',
+'_____KKkBBBkk_______kkBBBkKK____________',
+'_____KKkBBBkk_______kkBBBkKK____________',
+'_____KKkBBBkk_______kkBBBkKK____________',
+'_____KKkBBBkk_______kkBBBkKK____________',
+'_____KKkBBBkk_______kkBBBkKK____________',
+'_____KKkBBBkk_______kkBBBkKK____________',
+// shoes back
+'____XXXXXXXx___________XXXXXXXx_________',
+'___XXXXXXXxx___________XXXXXXXxx________',
+'___xxxxxxxxx___________xxxxxxxxx________',
+]
+
+==================================================
+STEP 5 — RENDERING SYSTEM
+==================================================
+
+Parse maps into 3D voxel arrays:
+
+function parseMap(
+  mapRows: string[],
+  colorTable: Record<string,string|null>,
+  view: 'front'|'side'|'back'
+): Voxel[] {
+  const voxels: Voxel[] = []
+  const depth = 3  // give each 2D pixel some depth
+
+  mapRows.forEach((row, rowIdx) => {
+    const y = mapRows.length - 1 - rowIdx  // flip Y
+    
+    [...row].forEach((char, col) => {
+      const color = colorTable[char]
+      if (!color) return
+      
+      const centerX = row.length / 2
+      const x = col - centerX
+      
+      // For side view: rotate 90 degrees
+      if (view === 'side') {
+        for (let d = 0; d < depth; d++) {
+          voxels.push({ x: d - depth/2, y, z: x * 0.5, c: color })
+        }
+      }
+      // For back view: mirror x
+      else if (view === 'back') {
+        for (let d = 0; d < depth; d++) {
+          voxels.push({ x: -x * 0.5, y, z: d - depth/2, c: color })
+        }
+      }
+      // Front view
+      else {
+        for (let d = 0; d < depth; d++) {
+          voxels.push({ x: x * 0.5, y, z: d - depth/2, c: color })
+        }
+      }
+    })
+  })
+  return voxels
+}
+
+Combine front + side + back into one unified 3D model:
+- Front voxels: z = +2 to +4
+- Side voxels: x = +5 to +8 (right side)
+           and x = -5 to -8 (left side, mirrored)
+- Back voxels: z = -2 to -4
+
+This creates a hollow 3D shell that looks
+correct from all angles.
+
+==================================================
+STEP 6 — ROTATION + RENDERING
+==================================================
+
+Keep the same rotation math from current file:
+- rotateY() for left/right spin
+- rotateX() for tilt (clamped -0.4 to 0.3)
+- project() for perspective
+- Sort by Z depth
+- Draw SVG Rect per voxel with 4-face shading
+
+VOXEL SIZE: 8px
+FOV: 300
+CANVAS: full screen width, 65% height
+CENTER: cx = SW*0.5, cy = CH*0.50
+
+==================================================
+STEP 7 — FREE ROTATION
+==================================================
+
+Keep PanResponder from current file:
+- Horizontal drag → rotY (unlimited, full 360)
+- Vertical drag → rotX (clamped, tilt only)
+- Slow auto-rotate when idle
+- Momentum on release:
+  Store velocity from last 3 gesture events
+  On release: continue rotation at velocity,
+  decelerate to 0 over 1.5 seconds
+  Use requestAnimationFrame + lerp
+
+==================================================
+STEP 8 — QUALITY SETTINGS
+==================================================
+
+const VOXEL_SIZE = 8
+const FOV = 300
+const CANVAS_H = SH * 0.65
+
+// Light: top-slightly-left-front
+const LIGHT = { x: -0.25, y: 0.85, z: 0.45 }
+
+// Shading multipliers per face:
+// top:    1.30  (brightest)
+// front:  1.00  (base)
+// left:   0.80
+// right:  0.65  (shadow side)
+// bottom: 0.45  (darkest)
+
+// This creates premium cubic voxel look
+
+==================================================
+STEP 9 — COMPONENT INTERFACE
+==================================================
+
+Export same interface as before:
+
+export interface VoxelCharacter3DProps {
+  skinTone?: 'light'|'mediumLight'|'medium'|'mediumDark'|'dark'
+  hairColor?: string
+  outfitTier?: 1|2|3|4
+}
+
+For skin tone: replace all 'S' and 's' colors
+in map with selected skin tone dynamically.
+
+For hair color: replace 'H' and 'h' colors.
+
+For outfit tier: keep white tee for all tiers
+for now, upgrade later.
+
+Default export: VoxelCharacter3D
+
+==================================================
+STEP 10 — REMOVE OLD CODE COMPLETELY
+==================================================
+
+In the new file:
+- NO procedural buildCharacter() with for loops
+- NO BoxGeometry / sphere / cylinder logic
+- ONLY the map-based system above
+- Clean slate, clean code
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. Character clearly shows white t-shirt
+2. Character clearly shows black trousers
+3. Head proportions are adult and correct
+4. Face shows eyes, nose, mouth clearly
+5. Hair style visible on head
+6. Drag rotates freely 360° horizontal
+7. Front/side/back all look correct
+8. Voxels have clear 3D cube shading
+9. Character fills 65%+ of screen height
+10. Smooth rotation (no stutter)
+11. Works in Expo Go — no crash
+12. Auto-rotates slowly when idle
+13. Momentum continues after finger lift

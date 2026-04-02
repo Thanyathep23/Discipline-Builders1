@@ -1,0 +1,200 @@
+I want to completely replace the existing watch collection with 9 new 3D watch models.
+Remove ALL old watch entries from the catalog and replace with these new ones.
+
+The .glb files are already uploaded to /api/models/
+
+## Step 1 — Find the watch catalog
+
+Search the project for where watches are defined:
+- Search for "watch", "Watch", "timepiece", "WATCH" in data files
+- Could be in: server/data/watches.ts, server/storage.ts, shared/schema.ts,
+  a database seed file, or a watches screen component
+- Also search for any existing watch names to find the right file
+
+## Step 2 — DELETE all existing watches
+
+Remove every existing watch entry from the catalog entirely.
+Start fresh with only the 9 watches below.
+
+## Step 3 — Add these 9 new watches
+
+Use the EXACT same data structure as the rest of the collection (cars, etc.)
+
+---
+
+### ⌚ WATCH CATALOG
+
+**Watch 1: Apple Watch Ultra**
+- glbFile: apple_watch.glb
+- name: Apple Watch Ultra
+- brand: Apple
+- price: 3,500 GP
+- rarity: COMMON
+- category: Smart Watch
+- requiredLevel: 2
+- prestige: +2
+- description: "Track every metric. Every discipline session logged. Every goal measured."
+- stats: { batteryDays: 60, waterResistance: 100, features: 'GPS + Health Tracking' }
+- colors: ['#1A1A1A', '#F5F5F5', '#4A9EFF']
+
+---
+
+**Watch 2: Timex Expedition**
+- glbFile: timex_expedition_watch.glb
+- name: Timex Expedition
+- brand: Timex
+- price: 5,000 GP
+- rarity: COMMON
+- category: Field Watch
+- requiredLevel: 3
+- prestige: +3
+- description: "Built for those who show up. Rain or shine. Every single day."
+- stats: { waterResistance: 50, durability: 'Military Grade', style: 'Field Watch' }
+- colors: ['#2C3E50', '#8B7355', '#27AE60']
+
+---
+
+**Watch 3: Seiko Prospex**
+- glbFile: seiko_watch.glb
+- name: Seiko Prospex
+- brand: Seiko
+- price: 12,000 GP
+- rarity: RARE
+- category: Diver's Watch
+- requiredLevel: 8
+- prestige: +7
+- description: "Japanese precision. The diver's choice since 1965. Earned, not bought."
+- stats: { waterResistance: 200, movement: 'Automatic', powerReserve: '41 hours' }
+- colors: ['#1A1A2E', '#4A9EFF', '#2C3E50']
+
+---
+
+**Watch 4: Chronograph Sport**
+- glbFile: chronograph_watch.glb
+- name: Chronograph Sport
+- brand: Swiss Made
+- price: 18,000 GP
+- rarity: RARE
+- category: Sport Chronograph
+- requiredLevel: 12
+- prestige: +9
+- description: "Measure every second. In business and in life, timing is everything."
+- stats: { movement: 'Swiss Automatic', waterResistance: 100, functions: 'Chronograph + Date' }
+- colors: ['#1A1A1A', '#C0392B', '#C9A84C']
+
+---
+
+**Watch 5: Classic Dress Watch**
+- glbFile: hand_watch__free_model.glb
+- name: Classic Dress Watch
+- brand: Swiss Heritage
+- price: 22,000 GP
+- rarity: RARE
+- category: Dress Watch
+- requiredLevel: 15
+- prestige: +11
+- description: "The boardroom demands refinement. This watch opens doors."
+- stats: { movement: 'Swiss Quartz', case: '40mm', strap: 'Genuine Leather' }
+- colors: ['#F5F5F5', '#C9A84C', '#1A1A1A']
+
+---
+
+**Watch 6: Breitling Superocean 44**
+- glbFile: breitling_superocean_automatic_44_-_watch.glb
+- name: Breitling Superocean 44
+- brand: Breitling
+- price: 45,000 GP
+- rarity: EPIC
+- category: Professional Diver
+- requiredLevel: 28
+- prestige: +20
+- description: "Instruments for professionals. Swiss-made for those who mean business."
+- stats: { waterResistance: 500, movement: 'Swiss Automatic', caseDiameter: '44mm' }
+- colors: ['#1A1A2E', '#4A9EFF', '#F5F5F5']
+
+---
+
+**Watch 7: Rolex Datejust**
+- glbFile: rolex_datejust.glb
+- name: Rolex Datejust
+- brand: Rolex
+- price: 85,000 GP
+- rarity: LEGENDARY
+- category: Luxury Icon
+- requiredLevel: 45
+- prestige: +38
+- description: "The most recognised watch in the world. A symbol of achievement since 1945."
+- stats: { movement: 'Rolex Calibre 3235', waterResistance: 100, powerReserve: '70 hours' }
+- colors: ['#C9A84C', '#F5F5F5', '#1A1A2E']
+
+---
+
+**Watch 8: Patek Philippe Calatrava**
+- glbFile: patek_philippe.glb
+- name: Patek Philippe Calatrava
+- brand: Patek Philippe
+- price: 150,000 GP
+- rarity: LEGENDARY
+- category: Haute Horlogerie
+- requiredLevel: 60
+- prestige: +55
+- description: "You never actually own a Patek Philippe. You merely look after it for the next generation."
+- stats: { movement: 'Cal. 240', powerReserve: '48 hours', complications: 'Date + Seconds' }
+- colors: ['#C9A84C', '#F5F5F5', '#8B7355']
+
+---
+
+**Watch 9: Richard Mille RM 011**
+- glbFile: richard_mille_rm011_low_poly.glb
+- name: Richard Mille RM 011
+- brand: Richard Mille
+- price: 220,000 GP
+- rarity: LEGENDARY
+- category: Ultra Luxury
+- requiredLevel: 70
+- prestige: +70
+- description: "The ultimate flex. $1M on your wrist. Reserved for those who've truly made it."
+- stats: { movement: 'RMAC2 Flyback', waterResistance: 50, case: 'Grade 5 Titanium' }
+- colors: ['#2C3E50', '#C9A84C', '#C0392B']
+
+---
+
+## Step 4 — GLB file mapping for 3D model display
+
+Add this mapping so each watch shows its 3D model in cards and detail views:
+```ts
+const WATCH_GLB_MAP: Record<string, string> = {
+  'Apple Watch Ultra':          'apple_watch.glb',
+  'Timex Expedition':           'timex_expedition_watch.glb',
+  'Seiko Prospex':              'seiko_watch.glb',
+  'Chronograph Sport':          'chronograph_watch.glb',
+  'Classic Dress Watch':        'hand_watch__free_model.glb',
+  'Breitling Superocean 44':    'breitling_superocean_automatic_44_-_watch.glb',
+  'Rolex Datejust':             'rolex_datejust.glb',
+  'Patek Philippe Calatrava':   'patek_philippe.glb',
+  'Richard Mille RM 011':       'richard_mille_rm011_low_poly.glb',
+}
+```
+
+## Step 5 — Sort by requiredLevel (ascending)
+
+Final sort order:
+Apple Watch (2) → Timex (3) → Seiko (8) → Chronograph (12) → Dress Watch (15)
+→ Breitling (28) → Rolex (45) → Patek Philippe (60) → Richard Mille (70)
+
+## Step 6 — model-viewer camera for watches
+
+Watches are small objects — use a closer camera angle than cars:
+```html
+camera-orbit="30deg 70deg 0.3m"
+field-of-view="25deg"
+```
+
+## Summary
+- REMOVE all old watch entries completely
+- ADD these 9 new watches with correct names, brands, prices, rarity, stats
+- All GLB files are at /api/models/
+- Sort by requiredLevel ascending
+- Show 3D model in cards and detail view using model-viewer
+
+Show me the updated watch catalog when done.

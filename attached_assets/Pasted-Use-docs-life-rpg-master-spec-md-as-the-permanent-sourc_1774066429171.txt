@@ -1,0 +1,288 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 16 — Platformization / API / Automation / Integrations Lite.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Proof intelligence works
+- Adaptive challenge, quest chains, rarity, identity layer, telemetry, growth, endgame, live-ops, and controlled community/accountability systems are complete
+- The next highest-value step is to make the product extensible and more deeply embedded into real workflows through safe APIs, lightweight automations, and practical integrations
+
+Your task:
+Build only the smallest high-impact platformization layer:
+1. internal/external-safe API surfaces
+2. automation hooks
+3. calendar/inbox/task-adjacent integrations lite
+4. import/export utilities
+5. minimal admin/internal integration controls
+
+Do NOT build:
+- a giant public developer platform
+- open app marketplace
+- full Zapier-like automation engine
+- deep enterprise admin suite
+- broad CRM/inbox replacement
+- full plugin SDK
+- full OAuth provider platform
+- redesign of the whole app
+
+==================================================
+PHASE 16 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Controlled API surface lite
+2. Automation hooks / event triggers lite
+3. Calendar integration lite
+4. Import / export utilities lite
+5. Minimal integration management UI
+6. Minimal admin/internal controls for integrations
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current mission system, AI mission generation, event telemetry, admin tools, live-ops/content systems, invite/community systems, and share/export surfaces
+2. identify what internal data/actions are already stable enough to expose safely
+3. identify the smallest integration layer that would create real-world leverage without making the product fragile
+4. implement only the minimum systems needed
+5. avoid broad refactors
+
+==================================================
+A. CONTROLLED API SURFACE LITE
+==================================================
+
+Add a small, safe API layer for key product capabilities.
+
+Purpose:
+Allow safe programmatic access to the most useful parts of the system without opening everything.
+
+Possible API surface areas:
+- read current profile summary
+- read current skills / arc / title summary
+- read active missions / AI missions
+- create mission
+- update mission state in controlled ways
+- read reward/wallet summary
+- read selected share/progress summaries
+- trigger selected internal flows if safe
+
+Requirements:
+- keep APIs controlled and minimal
+- use authentication and ownership checks
+- if API keys/tokens are added, keep them scoped and revocable
+- preserve JSON-only contracts
+- do not expose sensitive raw data by default
+- do not expose unsafe mutation surfaces
+- prefer read-heavy and carefully limited write surfaces
+
+Rules:
+- this is not a public free-for-all API
+- keep schema and contract clean and stable
+- only expose what is already mature and safe
+
+==================================================
+B. AUTOMATION HOOKS / EVENT TRIGGERS LITE
+==================================================
+
+Add a lightweight automation layer.
+
+Purpose:
+Allow internal or user-level automation for meaningful moments.
+
+Examples:
+- when AI mission accepted
+- when proof approved
+- when chain completed
+- when title unlocked
+- when comeback mission appears
+- when current arc changes
+- when focus session starts/completes
+
+Build:
+- event hooks or webhook-like trigger system lite
+- scoped event subscriptions if feasible
+- internal action routing or external endpoint callback if safe
+- retry/failure handling lite if practical
+- auditability of triggers
+
+Requirements:
+- keep it lightweight
+- preserve privacy and ownership
+- do not create a complex no-code automation builder
+- if external webhooks are supported, keep them admin/internal or user-opt-in and tightly scoped
+
+==================================================
+C. CALENDAR INTEGRATION LITE
+==================================================
+
+Add a practical calendar-adjacent integration.
+
+Goal:
+Let the system become more real-world useful.
+
+Possible MVP directions:
+- export missions/focus sessions to calendar events
+- import selected calendar availability/context for mission planning
+- suggested focus blocks based on availability
+- sync selected challenge/event windows to calendar
+
+Requirements:
+- keep this lightweight
+- preserve privacy
+- do not build a full calendar app
+- do not require deep two-way sync unless already easy and safe
+- one-way export or lightweight assisted sync is acceptable if it creates real value
+
+Examples:
+- “add mission to calendar”
+- “reserve a focus block”
+- “export challenge pack schedule”
+- “import next free time window” if feasible
+
+==================================================
+D. IMPORT / EXPORT UTILITIES LITE
+==================================================
+
+Add small but useful import/export utilities.
+
+Possible examples:
+- export progress summary
+- export mission history
+- export reward/unlock summary
+- export selected share/profile data
+- import seed tasks/goals from a simple format
+- import selected routines/templates
+
+Requirements:
+- keep it lightweight
+- preserve ownership/security
+- export formats should be practical (JSON/CSV if useful)
+- do not build giant migration/import tooling
+- imports should be validated and safe
+
+==================================================
+E. INTEGRATION MANAGEMENT UI
+==================================================
+
+Add only the minimum UI needed to manage integrations and automation.
+
+Possible user-facing surfaces:
+- Integrations screen
+- connected services list
+- automation hooks list
+- export/import tools
+- API key or token management lite if implemented
+- calendar connection / export controls
+
+Possible admin/internal surfaces:
+- integration status view
+- automation event log lite
+- webhook/test delivery view if implemented
+- feature flag/toggle for integrations
+
+Requirements:
+- keep UI tactical and clear
+- preserve current dark premium style
+- do not build a giant settings/control center
+
+==================================================
+F. SECURITY / PLATFORMIZATION RULES
+==================================================
+
+Because this phase exposes system surfaces externally, security must stay strict.
+
+Requirements:
+- all API and integration routes must enforce auth and ownership
+- any tokens/keys must be scoped, revocable, and minimally permissive
+- do not expose sensitive profile answers, proof files, or private notes by default
+- keep webhooks/integrations opt-in and auditable
+- validate imports strictly
+- preserve JSON-only APIs
+- keep schema changes additive and minimal
+- do not create open-ended mutation access without strong controls
+
+==================================================
+G. BACKEND / RELIABILITY RULES
+==================================================
+
+- event hooks should not break the main product flow if a downstream integration fails
+- external delivery failures should degrade gracefully
+- keep retries/simple failure logging lightweight
+- preserve existing mission/proof/reward flows
+- avoid fragile dependencies
+- prefer robust MVP architecture over feature breadth
+
+==================================================
+H. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a controlled API surface exists for selected mature capabilities
+2. auth/ownership/security are enforced on all exposed surfaces
+3. lightweight automation hooks/events exist for key product milestones
+4. at least one practical calendar-adjacent integration exists
+5. useful import/export utilities exist
+6. users/admin can manage integrations in a lightweight way
+7. integration failures do not break the core product flow
+8. existing mission/proof/reward/community flows still work
+9. no oversized public platform scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what platform/integration capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Controlled API surface added
+- endpoints/surfaces added
+- auth/scoping model
+- sensitive data protections
+
+4. Automation hook/event system added
+- what events can trigger
+- what actions/endpoints they can call
+- failure handling model
+
+5. Calendar integration added
+- exact integration mode
+- what can be exported/imported/synced
+
+6. Import/export utilities added
+- formats supported
+- validation and security rules
+
+7. Integration management UI added
+- what users/admin can manage
+- where it lives
+
+8. End-to-end verification results for:
+- API access
+- auth/ownership enforcement
+- automation trigger flow
+- calendar flow
+- import/export flow
+- existing app flow unchanged
+
+9. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

@@ -1,0 +1,80 @@
+Continue existing codebase. Do NOT restart.
+Only edit VoxelCharacter3D.tsx
+
+Goal: Make the face look realistic, not cartoon.
+
+The face is the most important part.
+Currently eyes are too simple and head too blocky.
+
+Improvements needed:
+
+1. HEAD SHAPE
+   Reduce head width from current size.
+   Target ratio: head width = 45% of shoulder width.
+   Add subtle jaw definition by tapering 
+   bottom 3 rows of head voxels inward.
+
+2. EYES — Complete rebuild
+   Each eye needs 6 voxels minimum:
+   
+   Left eye cluster:
+   - 2 white sclera voxels (#F0F0F0)
+   - 1 iris voxel (#2A5080) — slightly larger
+   - 1 pupil voxel (#0A0A12) — center of iris
+   - 1 upper eyelid shadow (#C07848 darken 15%)
+   - 1 lower lid highlight (skin lighten 5%)
+   
+   Eyes must have visible whites.
+   Iris must have color depth.
+   Pupil must be darkest center point.
+   
+   Space eyes correctly:
+   - 2 voxel gap between eyes (nose bridge)
+   - Eyes at 60% height of face
+   - Each eye 2 voxels wide x 2 voxels tall
+
+3. EYEBROWS
+   Each brow = 3 voxels in slight arch:
+   Color: darken(hairColor, 0.1)
+   Position: 2 voxels above eyes
+   Slight inward tilt (inner corner higher)
+
+4. NOSE
+   Not just dots — 3D nose:
+   - Bridge: 1 voxel centerline going down
+   - Tip: 1 voxel slightly forward (z+1)
+   - Nostrils: 2 voxels slightly darker skin
+   - Side shadows: darken(skin, 0.12)
+
+5. MOUTH
+   3 components:
+   - Upper lip: 3 voxels, medium lip color (#8B4030)
+   - Lower lip: 4 voxels, slightly fuller (#9B5038)
+     lower lip = 1px lower and 1 wider than upper
+   - Corner shadow: 2 small dark voxels at corners
+
+6. CHIN & JAW
+   Jaw definition:
+   - Jaw corners: darken(skin, 0.10) at x±3, y=2
+   - Chin center: darken(skin, 0.08)
+   - This creates masculine jaw structure
+
+7. EAR
+   Each ear = 3 voxels:
+   - Main ear: skin color, z=0
+   - Inner ear: darken 12%, z=-1 (recessed)
+   Position: sides of head at eye level
+
+8. NECK
+   Not a thin column:
+   - Width: 4 voxels (2 per side of center)
+   - Depth: 3 voxels
+   - Slight shadow on sides: darken(skin, 0.08)
+   - Sternocleidomastoid hint: 
+     2 diagonal darker voxels each side
+
+After changes, verify:
+- Face readable at small screen size
+- No floating voxels
+- Build passes
+- Works in Expo Go

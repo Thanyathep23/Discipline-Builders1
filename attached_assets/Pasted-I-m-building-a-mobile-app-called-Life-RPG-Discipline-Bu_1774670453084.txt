@@ -1,0 +1,152 @@
+I'm building a mobile app called "Life RPG / Discipline-Builders" on Replit using TypeScript.
+The app gamifies real-life discipline across 4 dimensions: Fitness, Discipline, Finance, Prestige.
+
+I need you to integrate a 3D character model into the CHARACTER STATUS screen of my app.
+
+## Files I have uploaded to my project
+I have uploaded these files into a folder called `public/models/` (or `models/` in the project root):
+- Superhero_Male_FullBody.gltf   (3D character model — man in a suit)
+- Superhero_Male_FullBody.bin    (geometry data for the model)
+- T_Superhero_Male_Dark.png      (skin/suit texture — base color)
+- T_Superhero_Male_Normal.png    (normal map — surface detail)
+- T_Superhero_Male_Roughness.png (roughness/metallic map)
+- T_Hair_1_BaseColor.png         (hair texture)
+- T_Eye_Brown.png                (eye texture)
+
+## What I want
+Create a CHARACTER STATUS screen with:
+
+1. **3D Character Viewer** — Display the 3D GLTF model using Google's model-viewer web component.
+   The character should:
+   - Auto-rotate slowly (6 degrees/second)
+   - Allow drag/touch to rotate manually
+   - Be lit cinematically: warm key light left, cool blue rim light right
+   - Camera framed on upper body (chest to slightly above head)
+   - Dark transparent background so my app background shows through
+
+2. **Premium dark UI** around the 3D viewer with:
+   - Header: Character name "ALEX CHEN" + title "The Relentless Achiever"
+   - Level badge: "LVL 47"
+   - XP bar: 8,420 / 13,200 XP (64% filled, gold gradient)
+   - Identity pill (floating over the 3D view): "Entrepreneur · Alpha | The Visionary"
+   - Elite Status badge (bottom right of 3D view)
+   - 4 stat cards in a 2x2 grid below the viewer:
+     * 💪 Fitness: 78/100 (red bar)
+     * 🧠 Discipline: 91/100 (purple bar)
+     * 💰 Finance: 65/100 (gold bar)
+     * 👑 Prestige: 84/100 (blue bar)
+   - Bottom navigation: Profile | Quests | Stats | Ranks
+
+3. **Design requirements**:
+   - Color scheme: Dark background (#080A0E), Gold accent (#C9A84C / #F5D88A), Blue (#4A9EFF)
+   - Fonts: Bebas Neue (headings) + Inter (body)
+   - Target audience: Entrepreneurs age 25-40
+   - Must look PREMIUM and WORLD-CLASS — not cartoonish
+   - Floating particles (gold + blue dots) in background for atmosphere
+
+## Technical implementation
+
+### Option A — Simplest (model-viewer web component)
+Add to HTML head:
+```html
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+```
+
+Use in the character screen:
+```html
+<model-viewer
+  src="/models/Superhero_Male_FullBody.gltf"
+  camera-controls
+  auto-rotate
+  auto-rotate-delay="3000"
+  rotation-per-second="6deg"
+  camera-orbit="0deg 82deg auto"
+  field-of-view="36deg"
+  environment-image="neutral"
+  shadow-intensity="1.2"
+  exposure="1.1"
+  style="width: 100%; height: 100%; background: transparent; --poster-color: transparent;">
+</model-viewer>
+```
+
+### Option B — Three.js (for full control)
+Install: `npm install three @types/three`
+
+Then use THREE.GLTFLoader to load `/models/Superhero_Male_FullBody.gltf`
+
+Lighting setup (IMPORTANT for cinematic look):
+- Key light: DirectionalLight(0xFFF2D0, 3.0) at position (-1.8, 2.8, 2.0) with shadows
+- Rim light: DirectionalLight(0x6AADFF, 2.5) at position (2.5, 2.0, -1.5)
+- Fill light: DirectionalLight(0xC9A84C, 0.8) at position (0, 0.5, 3.0)
+- Ambient: AmbientLight(0x101520, 1.5)
+- Bounce: PointLight(0x9B7030, 1.0) at position (0, -0.2, 1.2)
+
+Camera setup:
+- PerspectiveCamera(36, aspect, 0.01, 100)
+- Position at (0, focusY + 0.22, 2.1) where focusY = modelHeight * 0.70
+- LookAt (0, focusY - 0.10, 0)
+
+Model setup after loading:
+- Scale model to 1.8m height: scale = 1.8 / boundingBoxHeight
+- Move to y=0 (feet on ground)
+- Enable castShadow and receiveShadow on all meshes
+- Renderer: ACESFilmicToneMapping, exposure 1.1, sRGBEncoding output
+
+## If using React / TypeScript component
+
+Create file: `src/components/CharacterViewer.tsx`
+```tsx
+import { useEffect, useRef } from 'react'
+
+// Declare model-viewer as a custom element for TypeScript
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'model-viewer': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
+        src?: string
+        alt?: string
+        'camera-controls'?: boolean
+        'auto-rotate'?: boolean
+        'auto-rotate-delay'?: string
+        'rotation-per-second'?: string
+        'camera-orbit'?: string
+        'field-of-view'?: string
+        'environment-image'?: string
+        'shadow-intensity'?: string
+        'exposure'?: string
+      }, HTMLElement>
+    }
+  }
+}
+
+export default function CharacterViewer() {
+  useEffect(() => {
+    // Load model-viewer script once
+    if (!document.querySelector('script[data-mv]')) {
+      const s = document.createElement('script')
+      s.type = 'module'
+      s.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js'
+      s.setAttribute('data-mv', '1')
+      document.head.appendChild(s)
+    }
+  }, [])
+
+  return (
+    <model-viewer
+      src="/models/Superhero_Male_FullBody.gltf"
+      camera-controls
+      auto-rotate
+      auto-rotate-delay="3000"
+      rotation-per-second="6deg"
+      camera-orbit="0deg 82deg auto"
+      field-of-view="36deg"
+      environment-image="neutral"
+      shadow-intensity="1.2"
+      exposure="1.1"
+      style={{ width: '100%', height: '100%', background: 'transparent' }}
+    />
+  )
+}
+```
+
+## The full CHARACTER STATUS page structure

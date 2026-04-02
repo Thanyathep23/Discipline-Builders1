@@ -1,0 +1,533 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+This is the FINAL POLISH pass for the Room screen.
+The structure and functionality are correct.
+Now make it feel like a $100M app — not just functional,
+but genuinely beautiful, premium, and emotionally compelling.
+
+Reference feeling:
+- Apple Fitness+ meets a luxury lifestyle game
+- Dark premium with real depth and material feel
+- Every pixel intentional
+- Users should feel proud of their room
+
+==================================================
+PART 1 — ROOM CANVAS: FINAL VERSION
+==================================================
+
+1A. Complete Visual Overhaul
+
+The room canvas needs to feel like a REAL space.
+Currently it looks like a UI diagram with icons.
+
+Implement this exact layering system:
+
+LAYER 1 — Room Shell (bottom)
+Background: linear gradient top-to-bottom
+Top (wall): #0D0E1A
+Bottom (floor): #080910
+Border radius: 16px
+
+LAYER 2 — Floor Surface
+Position: bottom 45% of canvas
+Background: linear gradient
+#111220 → #0C0D18
+Add perspective lines using SVG:
+
+5 lines converging to vanishing point
+Color: rgba(255,255,255,0.035)
+Creates real depth illusion
+
+
+LAYER 3 — Floor Glow (ambient light pool)
+Shape: ellipse, 70% width, 25% height
+Position: center, 65% from top
+Background: radial gradient
+rgba(109,40,217,0.18) center → transparent edge
+Blur: 20px equivalent
+
+LAYER 4 — Zone Items (positioned absolutely)
+Each zone is a View positioned in perspective:
+Back zones (Lighting, Theme): y=15%, smaller scale
+Mid zones (Shelf, Monitor, Trophy): y=32%, normal
+Floor zones (Plants, Desk, Coffee, Audio): y=52%, larger
+Character: y=60%, front-center
+
+LAYER 5 — Foreground vignette
+Subtle dark edges left/right
+gradient: transparent center → rgba(0,0,0,0.3) edges
+Makes room feel enclosed
+
+1B. Perspective Scaling
+
+Items further back appear smaller:
+Back row scale: 0.75
+Mid row scale: 0.88  
+Front row scale: 1.0
+Character scale: 1.0
+
+This single change makes the room feel 3D.
+
+1C. Zone Slot Redesign (FINAL)
+
+Empty zone — replace current dashed cards with:
+Container: 68x88px
+Background: rgba(255,255,255,0.04)
+Border: 1px solid rgba(255,255,255,0.10)
+Border radius: 12px
+Center icon: zone-specific, 22px, rgba(255,255,255,0.25)
+Label: 9px, rgba(255,255,255,0.35), 1px letter-spacing
+No "+" symbol — just icon + label
+On hover/press: border brightens to rgba(139,92,246,0.5)
+background tints purple rgba(139,92,246,0.08)
+
+Filled zone — item placed:
+No container border
+Item SVG rendered directly
+Size matches zone proportions
+Drop shadow: 0 8px 24px rgba(0,0,0,0.6)
+Elite+ items: thin rgba(234,179,8,0.4) glow border
+
+1D. Character Grounding (CRITICAL FIX)
+
+Current issue: character floats, no connection to floor
+Fix:
+Character shadow on floor:
+
+Ellipse beneath character feet
+40px wide, 8px tall
+rgba(0,0,0,0.5), blur 6px
+Makes character feel planted
+
+Character position:
+
+Feet touch the floor surface line
+Not hovering above it
+
+Character scale in room: 0.62
+(realistic relative to desk)
+
+==================================================
+PART 2 — HEADER REDESIGN (FINAL)
+==================================================
+
+Current header is functional but plain.
+Replace with:
+Row 1: [← back]    COMMAND CENTER label    [T0 chip] [💰100]
+Row 2: [room name large]
+COMMAND CENTER  ←  small uppercase, text.tertiary
+Standard Base   ←  H2, text.primary, bold
+T0 chip:
+Background: rgba(255,255,255,0.08)
+Border: 1px rgba(255,255,255,0.12)
+Text: white, small
+Coin chip:
+Background: rgba(234,179,8,0.15)
+Border: 1px rgba(234,179,8,0.3)
+Icon: ⚡ or coin icon, amber
+Text: amber color
+
+==================================================
+PART 3 — "YOU ARE IN THE ROOM" CARD (FINAL)
+==================================================
+
+Current: plain card, gets the job done
+Replace with this exact design:
+┌─────────────────────────────────────────┐
+│                                         │
+│  ┌──────┐                               │
+│  │  👤  │  You're in your              │
+│  │  ●   │  command center               │
+│  └──────┘  Standard Base · T0           │
+│                                         │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━   │
+│                                         │
+│  [📷 Photo]    [🚪 Exit Room]           │
+└─────────────────────────────────────────┘
+Styling:
+Background: linear gradient
+rgba(139,92,246,0.12) → rgba(59,130,246,0.08)
+Border: 1px solid rgba(139,92,246,0.3)
+Border radius: 16px
+Avatar area:
+Circular background rgba(139,92,246,0.2)
+Small character icon or initials
+Green online dot (position: bottom-right of circle)
+Divider: rgba(255,255,255,0.08), 1px
+Photo button: ghost style, icon + "Photo"
+Exit button: filled, accent, icon + "Exit Room"
+
+For "Enter Room" state (not yet entered):
+Same card but different content:
+[Character silhouette dim]
+"Your command center awaits"
+Standard Base · T0 · 8 pts
+[Enter Room →]  ← full width primary button
+Silhouette: character SVG at 25% opacity
+Creates anticipation / FOMO
+
+==================================================
+PART 4 — ROOM TIER CARD (FINAL)
+==================================================
+
+Current: good but needs visual refinement
+┌─────────────────────────────────────────┐
+│  ○  ROOM TIER                     8 pts │
+│                                         │
+│  Standard Base                          │
+│                                         │
+│  ▓▓▓▒░░░░░░░░░░░░░░░░░░░░░  8 / 30     │
+│  Progress bar: gradient purple→blue     │
+│  Animated shimmer on load               │
+│                                         │
+│  ⊙ Next: Emerging Workspace at 30 pts  │
+│    Unlocks: "Workspace Ready" badge     │
+│                                         │
+│  TO UPGRADE:                            │
+│  ┌─────────────────────────────────┐   │
+│  │ 🎨 Add Room Theme      +20 pts →│   │
+│  └─────────────────────────────────┘   │
+│  ┌─────────────────────────────────┐   │
+│  │ ☕ Add Coffee Station   +3 pts →│   │
+│  └─────────────────────────────────┘   │
+│  ┌─────────────────────────────────┐   │
+│  │ 📺 Add Monitor Setup   +3 pts →│   │
+│  └─────────────────────────────────┘   │
+└─────────────────────────────────────────┘
+Upgrade hint cards:
+Background: rgba(255,255,255,0.04)
+Border: 1px rgba(255,255,255,0.07)
+Border radius: 10px
+pts value: amber/gold color (#F59E0B)
+Arrow: text.tertiary
+On press: scale(0.97) + navigate to that zone
+
+Progress bar details:
+Height: 6px
+Background track: rgba(255,255,255,0.08)
+Fill: linear gradient left→right
+#7C3AED → #2563EB
+Border radius: full (pill shape)
+Animation: fill from 0 to current on mount
+Duration: 800ms, ease-out
+
+==================================================
+PART 5 — YOUR SETUP SECTION (FINAL)
+==================================================
+
+Current: cards are too uniform, all look the same
+
+Redesign with visual hierarchy:
+
+Section header:
+YOUR SETUP          1 / 9 zones
+[▓░░░░░░░░]  8 zones remaining
+Progress bar: 6px, same style as tier card
+
+Horizontal scroll cards:
+
+FILLED zone card:
+Size: 104 x 144px
+Background: rgba(255,255,255,0.05)
+Border: 1px rgba(255,255,255,0.10)
+Border radius: 14px
+Padding: 12px
+Top: item SVG illustration (72x72)
+Middle: item name (12px, semibold)
+Bottom: rarity chip + "Active" or "Replace" button
+Active card gets:
+Purple border glow: 0 0 0 1px rgba(139,92,246,0.5)
+Subtle purple background tint
+
+EMPTY zone card:
+Size: 104 x 144px
+Background: rgba(255,255,255,0.02)
+Border: 1px dashed rgba(255,255,255,0.08)
+Border radius: 14px
+Center: zone icon (32px, 20% opacity)
+Zone name: text.tertiary
+"Add +Xpts" pill button at bottom:
+Background: rgba(139,92,246,0.15)
+Border: rgba(139,92,246,0.3)
+Text: accent purple
+Small + icon before text
+
+This contrast makes users immediately see
+what's empty vs filled — drives action.
+
+==================================================
+PART 6 — DECORATE YOUR SPACE (FINAL)
+==================================================
+
+Section header redesign:
+DECORATE YOUR SPACE
+"Every item you place builds your empire."
+Subtitle in text.tertiary, italic
+
+Featured item cards (FINAL):
+Size: 140 x 180px
+Background: rgba(255,255,255,0.04)
+Border: 1px rgba(255,255,255,0.08)
+Border radius: 16px
+Layout (top to bottom):
+┌──────────────────┐
+│                  │
+│   [ITEM SVG]     │  ← 100px, centered
+│                  │
+├──────────────────┤
+│  Item Name       │  ← 13px semibold
+│  ⬡ Refined       │  ← rarity chip, colored dot
+│  +8 pts          │  ← amber, 11px
+│                  │
+│  [1,200 ₿] [+]  │  ← price chip + add button
+└──────────────────┘
+Price chip:
+Background: rgba(234,179,8,0.12)
+Text: #F59E0B
+Coin icon before number
+Add button (+):
+Background: accent.primary
+Size: 28x28, circle
+Icon: + white
+If locked:
+Gray overlay on SVG
+Lock icon center
+"Lvl X" pill instead of price
+
+Category pills (redesign):
+Current: plain text pills
+Replace with icon + text pills:
+[🖥 Desk] [📺 Monitor] [☕ Coffee] [💡 Lighting] [🎨 Themes]
+Active: filled accent background
+Inactive: rgba(255,255,255,0.06) background
+Border radius: 20px (pill)
+Height: 34px
+
+==================================================
+PART 7 — MILESTONES SECTION (FINAL)
+==================================================
+
+Current: small icon cards at bottom, feels forgotten
+
+Redesign:
+MILESTONES                           1 earned
+Horizontal scroll of milestone cards:
+EARNED milestone:
+┌────────────────────┐
+│  ✓                 │  ← checkmark top-right
+│     🏠             │  ← large icon 40px
+│                    │
+│  First Decoration  │
+│  Room milestone    │
+│  ██████  Earned    │  ← filled bar + green badge
+└────────────────────┘
+Background: rgba(34,197,94,0.08)
+Border: rgba(34,197,94,0.2)
+LOCKED milestone:
+┌────────────────────┐
+│     🏢             │  ← icon at 30% opacity
+│                    │
+│  Workspace Ready   │
+│  Fill desk+monitor │
+│  ░░░░░░  Locked    │  ← empty bar + lock icon
+└────────────────────┘
+Background: rgba(255,255,255,0.03)
+Border: rgba(255,255,255,0.08)
+Card size: 120 x 140px
+
+==================================================
+PART 8 — ITEM PLACEMENT ANIMATIONS (FINAL)
+==================================================
+
+8A. Item Drop Animation
+When item placed in zone:
+
+Item starts at y: -30, opacity: 0, scale: 0.8
+Animates to y: 0, opacity: 1, scale: 1
+Duration: 350ms
+Easing: spring (damping: 12, stiffness: 150)
+After landing: small bounce (scale 1→1.04→1)
+Floor shadow fades in simultaneously
+
+
+8B. Score Update Animation
+When base score increases:
+
+Score number counts up from old to new value
+Duration: 600ms
+Progress bar extends smoothly
+If tier changes:
+Full-screen celebration overlay:
+┌─────────────────────────────┐
+│                             │
+│        🎉                   │
+│   Tier Upgraded!            │
+│   Standard Base             │
+│         ↓                   │
+│   Emerging Workspace        │
+│                             │
+│   [New badge preview]       │
+│                             │
+│      [Awesome!]             │
+└─────────────────────────────┘
+
+
+8C. Character Enter Animation
+
+Character starts: x: -100, opacity: 0
+Slides to position: x: 0, opacity: 1
+Duration: 400ms, ease-out
+Shadow fades in with character
+Small bounce on arrival
+
+
+8D. Canvas Idle Animation
+
+Floor glow: opacity oscillates 0.12 → 0.18
+Period: 4 seconds, sine easing
+Creates "breathing" room atmosphere
+Very subtle — users notice it subconsciously
+
+
+==================================================
+PART 9 — TYPOGRAPHY & SPACING SYSTEM
+==================================================
+
+Final typography rules for this screen:
+Section labels (YOUR SETUP, DECORATE, etc.):
+Font size: 11px
+Weight: 600
+Letter spacing: 1.5px (uppercase tracking)
+Color: text.tertiary
+Room name in header:
+Font size: 22px
+Weight: 700
+Tier name:
+Font size: 20px
+Weight: 600
+Points values:
+Color: #F59E0B (amber/gold)
+Weight: 700
+Item names in cards:
+Font size: 12-13px
+Weight: 600
+Line clamp: 2 lines max
+Section spacing:
+Between sections: 28px
+Card internal padding: 12px
+Grid gap: 10px
+
+==================================================
+PART 10 — SCREEN-LEVEL POLISH
+==================================================
+
+10A. Screen Background
+Not pure black — use:
+Background: #080910
+This deep navy makes everything pop more
+
+10B. Scroll behavior
+ScrollView with:
+showsVerticalScrollIndicator: false
+contentContainerStyle: paddingBottom: 100
+Sections fade in as user scrolls
+(use Animated with intersection detection
+or simply stagger mount animations)
+
+10C. Safe area handling
+Top: proper safe area inset for notch
+Bottom: 100px padding for tab bar
+
+10D. Pull to refresh
+Add RefreshControl:
+onRefresh: reload room state
+tintColor: accent.primary
+title: "Syncing your room..."
+
+==================================================
+FINAL ACCEPTANCE CRITERIA
+==================================================
+
+Visual:
+1. Room canvas has real floor/wall depth layers
+2. Items use perspective scaling (back=smaller)
+3. Empty zones: elegant minimal cards, NOT diagrams
+4. Character has floor shadow and proper grounding
+5. "In room" card has gradient border and photo button
+6. Progress bars: purple→blue gradient with shimmer
+7. Upgrade hints are styled tap-target cards
+8. YOUR SETUP shows filled vs empty with clear contrast
+9. Featured items have large SVGs and price chips
+10. Milestones look earned/locked with proper states
+
+Interaction:
+11. Zone tap → item sheet with filtered catalog
+12. Upgrade hint tap → navigates + highlights zone
+13. Category pills filter correctly
+14. Item placement has drop-in animation
+15. Score update animates when item placed
+16. Tier upgrade shows celebration modal
+17. Character has slide-in animation
+18. Canvas has idle breathing glow animation
+19. Photo button captures room correctly
+
+Technical:
+20. All colors from design tokens
+21. No hardcoded values in components
+22. 60fps performance maintained
+23. Proper safe areas on iOS/Android
+24. Pull to refresh works
+25. No existing functionality broken
+
+==================================================
+DELIVERABLE
+==================================================
+
+1. Complete list of visual changes (before→after)
+2. New animations implemented
+3. Files changed only
+4. Performance metrics (render time)
+5. Screenshots of key sections after change
+6. Any compromises made and why
+
+ภาพรวม Final Version ที่จะได้
+┌─────────────────────────────────┐
+│ ←  COMMAND CENTER        T0 💰  │
+│    Standard Base                │
+├─────────────────────────────────┤
+│ ╔═══════════════════════════╗   │
+│ ║  [Wall panels, dark]      ║   │
+│ ║  [Light] ........[Theme]  ║   │  ← back row (smaller)
+│ ║  [Shelf] [Monitor][Trophy]║   │  ← mid row
+│ ║  [perspective floor lines]║   │
+│ ║     [Desk with shadow]    ║   │  ← floor level
+│ ║  [Character standing] 👤  ║   │  ← with shadow
+│ ║  [Plant]         [Coffee] ║   │
+│ ║      [ambient glow]       ║   │
+│ ╚═══════════════════════════╝   │
+│                                 │
+│ ┌─────────────────────────────┐ │
+│ │👤● You're in command center │ │
+│ │   Standard Base · T0        │ │  ← gradient border
+│ │  ─────────────────────────  │ │
+│ │  [📷 Photo]  [🚪 Exit Room] │ │
+│ └─────────────────────────────┘ │
+│                                 │
+│ ○ ROOM TIER              8 pts  │
+│ Standard Base                   │
+│ ████░░░░░░░░░░░  8/30           │  ← shimmer bar
+│ [Add Theme +20→][Add Coffee +3→]│  ← tappable cards
+│                                 │
+│ YOUR SETUP          1/9 zones   │
+│ [═══░░░░░░░░░░░░░░░░░░░░░░░]   │
+│ [Desk✓] [Monitor+] [Coffee+]    │  ← filled vs empty
+│                                 │
+│ DECORATE YOUR SPACE             │
+│ "Every item builds your empire" │
+│ [☕1200₿][📺1500₿][🎨1000₿]   │  ← large SVG cards
+│ [Desk][Monitor][Coffee][Themes] │  ← category pills
+│ [Browse All Room Items →]       │
+└─────────────────────────────────┘

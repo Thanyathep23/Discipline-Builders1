@@ -1,0 +1,200 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+Do NOT add new gameplay systems in this phase.
+
+Goal:
+Complete Phase 6.5 — Production Safety Pass.
+
+Current context:
+Phase 6 hardening is complete.
+The remaining must-fix-before-production items are:
+1. in-memory rate limiter resets on server restart
+2. grantReward is not fully transaction-safe
+3. fileUrls remains a weak/unvalidated input surface
+
+Your task:
+Implement only these production-safety fixes with the smallest safe change set.
+
+==================================================
+PHASE 6.5 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. DB-backed or otherwise persistence-safe rate limiting for proof uploads
+2. Transaction-safe reward granting
+3. fileUrls hardening or removal
+4. minimal regression checks for these changes only
+
+Do NOT build:
+- new gameplay systems
+- social/community
+- leaderboard
+- new mission types
+- new skill systems
+- UI redesign
+- analytics overhaul
+- economy expansion
+- new onboarding flows
+- new proof intelligence features
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current implementation of:
+   - upload rate limiting
+   - proof upload route
+   - grantReward and any reward transaction helpers
+   - wallet / reward_transactions writes
+   - proofs schema and proof submission input handling
+   - fileUrls usage across backend and frontend
+2. identify the minimum safe implementation path
+3. avoid unnecessary refactors
+
+==================================================
+A. PERSISTENCE-SAFE RATE LIMITING
+==================================================
+
+Replace the fragile in-memory upload rate limiter with a persistence-safe solution.
+
+Preferred order:
+1. DB-backed limiter using existing Postgres/Drizzle setup
+2. If there is already Redis or equivalent available, use that
+3. If neither is reasonable, implement a DB-backed simple limiter table with minimal complexity
+
+Requirements:
+- rate limit /api/proofs/upload
+- survive server restarts
+- enforce per-user limits
+- keep JSON-only errors
+- keep auth required
+- keep ownership/security intact
+- keep implementation simple and maintainable
+
+Suggested behavior:
+- small rolling window or time bucket per user
+- return clear JSON error when limit exceeded
+- include enough metadata/message for the mobile UI to show a clean error
+
+==================================================
+B. TRANSACTION-SAFE REWARD GRANTING
+==================================================
+
+Make reward granting transaction-safe.
+
+Current concern:
+grantReward performs multiple DB writes that should be atomic.
+
+Requirements:
+- wrap wallet update + reward transaction logging + any directly related writes in a single DB transaction
+- prevent partial state if a failure occurs mid-flow
+- preserve existing reward logic, formulas, and server-side authority
+- do not change gameplay balance in this phase
+- if idempotency guard already exists, preserve it
+- if not, do not invent a large new system — keep scope tight
+
+Verify that:
+- approved proof updates wallet and reward_transactions atomically
+- failures do not leave inconsistent balances/logs
+
+==================================================
+C. FILEURLS HARDENING
+==================================================
+
+Harden or remove fileUrls as an input surface.
+
+Current concern:
+fileUrls is a weak free-form string array and may be shadowed by proofFileIds.
+
+Your task:
+- audit whether fileUrls is still needed anywhere meaningful
+- if it is not needed, remove or deprecate it safely
+- if it must remain for compatibility, strictly validate it:
+  - only allow safe internal URLs or explicitly approved domains
+  - reject unsafe/untrusted external URLs
+  - keep JSON error responses
+- prefer the simplest secure outcome
+
+Important:
+- do not break current proofFileIds-based upload flow
+- do not break existing text/link proof flow unnecessarily
+
+==================================================
+D. REGRESSION CHECKS
+==================================================
+
+Run focused regression checks only for this phase:
+
+1. authenticated proof upload works
+2. rate limit survives server restart / process reset behavior
+3. rate-limited upload returns clean JSON
+4. approved proof still grants reward correctly
+5. reward + wallet logging remain consistent under failure-safe flow
+6. current proofFileIds flow still works
+7. fileUrls is either removed safely or validated safely
+8. ownership and auth protections still hold
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. upload rate limiting no longer depends on in-memory process state
+2. upload rate limiting survives server restart
+3. grantReward or equivalent reward finalization is transaction-safe
+4. wallet and reward transaction writes are atomic
+5. fileUrls is no longer an unsafe free-form input surface
+6. proof upload flow still works
+7. proof -> judge -> reward flow still works
+8. all new/updated error responses remain JSON
+9. no unrelated systems were changed
+10. no new gameplay scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what the old implementation did
+- what the risks were
+- what was changed
+
+2. Files changed in this run only
+
+3. Rate-limiting strategy used
+- storage layer used
+- per-user rule
+- window/bucket logic
+- JSON error format
+
+4. Reward transaction safety changes
+- what is now inside the DB transaction
+- what consistency issue was removed
+
+5. fileUrls decision
+- removed, deprecated, or validated
+- exact rule applied
+
+6. Focused regression test results for:
+- upload success
+- rate-limited upload
+- restart persistence of rate limit
+- proof -> reward success
+- wallet/log consistency
+- fileUrls handling
+- ownership/security checks
+
+7. Confirmation that no new gameplay or unrelated scope was added
+
+Important:
+Keep this phase conservative.
+Audit first.
+Change only what is necessary.
+Do not broaden scope.

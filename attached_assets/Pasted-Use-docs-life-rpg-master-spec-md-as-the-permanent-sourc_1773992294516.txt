@@ -1,0 +1,181 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Current status:
+- Core loop works
+- Life RPG layer works
+- Arc system works
+- Skill suggestions work
+- File upload proof types work
+- The next highest-value improvement is to make proof validation more intelligent, more trustworthy, and more polished
+
+Your task in this phase:
+Implement Proof Intelligence + Upload Hardening.
+
+==================================================
+PHASE 5A SCOPE
+==================================================
+
+Build only:
+
+1. File content awareness for proof evaluation
+2. Upload abuse protection and cleanup
+3. Better proof submission UX for attached files
+4. Minimal AI/rule-based proof intelligence improvements
+
+Do NOT build:
+- social/community
+- leaderboard
+- new skill systems
+- economy overhaul
+- new onboarding systems
+- world map
+- quest chains
+- deep analytics
+- large UI redesign
+
+==================================================
+A. FILE CONTENT AWARENESS
+==================================================
+
+Upgrade the proof system so the judge can use more than file metadata when possible.
+
+Goals:
+- For image proofs: support OCR/text extraction if feasible and safe
+- For PDF proofs: extract text content when feasible and safe
+- If full extraction is not reliable, still create a useful content summary/fallback based on metadata + filename + mission fit
+- Pass extracted text/content summary into the AI judge or rule-based judge
+- Preserve existing rule-based fallback if OpenAI is unavailable
+
+Requirements:
+- Do not block the app if OCR/PDF extraction fails
+- Extraction failure should gracefully fall back to metadata-only evaluation
+- Store extracted text or extracted summary only if safe and useful
+- Keep the proof evaluation explainable
+- File-aware proof should improve confidence only when relevant to the mission
+
+Examples:
+- Trading PDF journal -> extracted text can improve Trading/Learning proof confidence
+- Study notes PDF -> extracted takeaways improve Learning proof confidence
+- Screenshot with visible chart notes -> OCR text can support Trading proof confidence
+- Random unrelated image -> should not gain strong confidence just because a file exists
+
+==================================================
+B. UPLOAD HARDENING
+==================================================
+
+Improve the robustness and safety of proof uploads.
+
+Requirements:
+- Add rate limiting to /api/proofs/upload
+- Prevent upload abuse and excessive file spam
+- Add orphaned file cleanup logic:
+  - if a file is uploaded but never attached to a proof submission within a reasonable window, mark or clean it
+  - keep implementation simple and safe
+- Maintain server-side MIME validation and size limits
+- Preserve ownership checks
+- Keep JSON-only API responses
+
+Suggested implementation:
+- simple per-user rate limit
+- optional file count cap per proof submission
+- orphan cleanup job or safe cleanup utility
+- idempotent linking logic where possible
+
+==================================================
+C. PROOF SUBMISSION UX POLISH
+==================================================
+
+Improve the proof submission UI for attached files without redesigning the whole screen.
+
+Requirements:
+- Show attached file list clearly
+- Show file name, type, and size
+- Show image thumbnail preview for image files
+- Show PDF/document badge or icon for document files
+- Allow removing an attached file before final submission
+- Keep existing text/link proof flows working exactly as before
+- Show clean upload errors inline
+
+Do not make proof upload mandatory unless the mission proof requirement calls for it.
+
+==================================================
+D. PROOF JUDGE IMPROVEMENTS
+==================================================
+
+Improve the proof judge in a minimal, high-value way.
+
+Requirements:
+- AI/rule-based judge should consider:
+  - file presence
+  - file type relevance
+  - extracted text if available
+  - mission category fit
+  - filename hints only as weak signals
+- Judge should not over-reward files that are irrelevant
+- Judge should give a slightly better explanation when file-based evidence helps or fails
+- Keep reward logic server-side
+- Keep final verdict persistence server-side
+
+If OpenAI is missing:
+- rule-based judge must still use extracted text or metadata signals where available
+- product must remain fully usable
+
+==================================================
+E. SECURITY / BACKEND RULES
+==================================================
+
+- keep all upload validation server-side
+- keep all ownership checks server-side
+- uploaded proof files must not be publicly exposed
+- do not trust client-supplied file type alone
+- preserve auth checks
+- preserve JSON-only responses
+- do not break existing proof -> judge -> reward flow
+
+==================================================
+F. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. Image and/or PDF proof content can be used by the judge when feasible
+2. OCR/PDF extraction failures fall back gracefully without breaking proof review
+3. Upload route has rate limiting
+4. Orphaned proof files are handled safely
+5. Proof submission UI shows attached files clearly
+6. Image files show thumbnail preview
+7. Documents show a clear file badge/icon
+8. User can remove files before final proof submission
+9. Existing text-only and link-only proof flows still work
+10. File-aware proof improves evaluation only when relevant
+11. Ownership and security remain intact
+12. All upload/proof APIs still return JSON
+
+==================================================
+G. DELIVERABLE FORMAT
+==================================================
+
+At the end report:
+1. files changed
+2. OCR/PDF extraction strategy used
+3. upload rate-limit rules
+4. orphan cleanup strategy
+5. proof UI changes
+6. how the judge now uses file content or extracted text
+7. end-to-end test results for:
+   - text proof
+   - link proof
+   - image proof
+   - PDF proof
+   - invalid upload
+   - rate-limited upload
+   - orphan file handling
+8. remaining TODOs for the next phase
+
+Important:
+Do not expand scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

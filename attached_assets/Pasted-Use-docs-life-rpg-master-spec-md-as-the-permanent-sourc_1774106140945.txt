@@ -1,0 +1,183 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Resume Phase 23 only: Asset Application / Equip / World Connection.
+
+Important:
+- Do NOT restart the project from scratch.
+- Do NOT re-implement completed Phase 23 work.
+- Do NOT broaden scope beyond Phase 23.
+- First inspect the current codebase and determine exactly which Phase 23 requirements are already complete vs still incomplete.
+- Then implement only the remaining unfinished items.
+- If all Phase 23 acceptance criteria are already met, do NOT make unnecessary changes — only run verification, polish consistency, and return the completion report.
+
+Current context:
+The previous Phase 23 implementation was interrupted by quota limits after substantial work was already completed, including:
+- /inventory/applied-state endpoint
+- marketplace item detail enrichment with applicableSurfaces, applicationMode, slotEligibility
+- displaySlot propagation
+- showcase backend response including equipped profile items
+- character engine integration with equipped items
+- useAppliedState hook and cache invalidation updates
+- rewards/inventory UI improvements including “Applies To”
+- evolution screen integration and gear row
+- partial showcase/profile UI work for equipped profile items
+
+Treat the current working tree as the source of truth and continue from there.
+
+==================================================
+PHASE 23 SCOPE ONLY
+==================================================
+
+Build / finish only:
+
+1. Complete showcase/profile equipped item visibility
+2. Finalize inventory/item detail/application-state consistency
+3. Verify equip/display/status/world/profile linkage end to end
+4. Apply only small polish needed to make Phase 23 feel complete and professional
+
+Do NOT build:
+- new gameplay systems
+- new marketplace systems beyond Phase 23 needs
+- new avatar creator features
+- housing simulator features
+- new onboarding systems
+- new social systems
+- Phase 24 or later scope
+
+==================================================
+STEP 1 — AUDIT BEFORE CODING
+==================================================
+
+Before changing anything:
+1. inspect all current Phase 23-related files
+2. list which acceptance criteria are already satisfied
+3. identify only the remaining gaps
+4. make the minimum changes needed
+
+Specifically inspect:
+- marketplace route
+- inventory/applied-state endpoint
+- showcase route
+- characterEngine.ts
+- useApi.ts
+- rewards.tsx
+- evolution/index.tsx
+- showcase/profile screen(s)
+- any slot/display state helpers
+- any product/item detail types
+- any inventory state rendering helpers
+
+==================================================
+STEP 2 — COMPLETE ONLY THE REMAINING PHASE 23 GAPS
+==================================================
+
+Finish only what is still missing from these requirements:
+
+A. Showcase / Profile completion
+- finish the equipped profile items section in showcase/profile UI
+- add any missing styles
+- ensure backend response and frontend rendering match correctly
+- ensure equipped profile items display clearly and elegantly
+
+B. Inventory / Item Detail consistency
+- ensure inventory clearly distinguishes:
+  - owned
+  - equipped
+  - displayed
+  - stored/inactive
+- ensure item detail clearly explains:
+  - where the item applies
+  - what surfaces it affects
+  - whether it is equip-only, display-only, passive, or multi-surface
+- ensure wording is consistent across item detail, inventory, evolution, and showcase
+
+C. Character / World / Profile connection verification
+- verify equipped items affect the character evolution output correctly
+- verify displayed items affect world/room state correctly where applicable
+- verify profile/showcase reflects active/equipped identity items correctly
+- verify no invalid state slips through
+
+D. Small professional polish only
+- improve naming/labels if confusing
+- improve status chips/badges if needed
+- improve empty states if one of these screens now has a blank section
+- keep polish lightweight and focused
+
+==================================================
+STEP 3 — VALIDATION / TYPECHECK / FLOW VERIFICATION
+==================================================
+
+After finishing any missing work, verify:
+
+1. server typecheck / app build where relevant
+2. no broken imports or stale types
+3. equip item flow works
+4. display item flow works
+5. active/equipped state appears correctly in inventory
+6. “Applies To” appears correctly in item detail
+7. character evolution changes when relevant items are equipped
+8. showcase/profile shows equipped profile items
+9. invalid slot/surface combinations are rejected cleanly
+10. existing app flow remains unchanged
+
+==================================================
+PHASE 23 ACCEPTANCE CRITERIA
+==================================================
+
+Phase 23 is complete only if:
+
+1. a real asset application/equip system exists
+2. owned items can be equipped/applied/displayed in valid contexts
+3. slot mapping between item types and surfaces exists
+4. equipped items visibly affect the character/status system where appropriate
+5. displayed items visibly affect the room/world layer where appropriate
+6. profile/showcase surfaces reflect active applied identity items
+7. inventory and item detail clearly explain where and how an item applies
+8. server-side validation prevents invalid item application states
+9. existing purchase/inventory/world/status flow still works
+10. no oversized avatar-builder or housing-simulator scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- which Phase 23 criteria were already complete before this run
+- which items were unfinished
+- what was done in this run
+
+2. Files changed in this run only
+
+3. Showcase/profile completion changes
+- what was added/fixed
+- how equipped profile items are shown
+
+4. Inventory/item detail consistency changes
+- what labels/states were clarified
+- how “applies to” and state display now work
+
+5. Character/world/profile linkage verification
+- what item types now affect which surfaces
+- what was verified
+
+6. Validation and type/build results
+
+7. End-to-end test results for:
+- equip item
+- display item
+- item detail “applies to”
+- inventory state visibility
+- character evolution update
+- showcase/profile equipped item visibility
+- invalid application rejection
+- existing app flow unchanged
+
+8. Confirmation that no Phase 24 or unrelated scope was touched
+
+Important:
+Preserve the existing working app.
+Do not repeat finished work.
+Do not expand scope.
+Only finish Phase 23 cleanly and professionally.

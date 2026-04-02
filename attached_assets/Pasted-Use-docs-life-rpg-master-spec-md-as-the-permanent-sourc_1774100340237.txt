@@ -1,0 +1,411 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 21 — Character Evolution / Status Visualization System.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Proof intelligence works
+- Adaptive challenge, quest chains, rarity, identity layer, telemetry, growth, endgame, live-ops, community/accountability, integrations, economy/marketplace, world/room/lifestyle presentation, premium, and launch-readiness systems are complete
+- The next highest-value gap is the “status visualization” fantasy:
+  users can progress numerically, but the app still needs a clear visual character/status system that makes life progress feel embodied and emotionally visible
+- The product now needs a real visual evolution layer where the user’s life status, fitness, discipline, finance/lifestyle, prestige, and specialist identity can be seen directly
+
+Your task:
+Build only the smallest high-impact Character Evolution / Status Visualization layer.
+
+==================================================
+PHASE 21 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Character evolution engine
+2. Layered status visualization system
+3. Status page / Character evolution screen
+4. Visual progression tiers for major life dimensions
+5. Lightweight status-class naming and presentation
+6. Minimal linkage to existing profile/world/room systems
+7. Minimal admin/internal controls only if strictly necessary
+
+Do NOT build:
+- full 3D character creator
+- advanced animation system
+- full fashion simulator
+- full body customization suite
+- open-ended avatar editor
+- giant image generation pipeline
+- freeform paper-doll game
+- major redesign of the whole app
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current status/profile screen, character summary, room/world presentation, equipped items, marketplace assets, prestige/mastery markers, and world-display logic
+2. identify what visual/state data already exists that can drive character evolution
+3. identify the minimum new system needed to make progression visibly embodied
+4. implement only the minimum systems needed
+5. avoid broad refactors
+
+==================================================
+A. CORE PRODUCT FANTASY FOR THIS PHASE
+==================================================
+
+The purpose of this phase is to make the user feel:
+
+“My life progress is not just numbers. I can see who I am becoming.”
+
+This phase must transform the status page from a static dashboard into a visible evolution surface.
+
+The character/status system should show progression in a psychologically strong but non-toxic way:
+- more healthy
+- more composed
+- more disciplined
+- more refined
+- more aspirational
+- more elite over time
+
+Do NOT use insulting labels like “poor” as an explicit UI label.
+It is acceptable for the visual starting point to feel humble, basic, or early-stage, but the naming should remain aspirational and premium.
+
+Preferred status tier language examples:
+- Starter
+- Hustle
+- Rising
+- Refined
+- Elite
+
+Use language that motivates, not shames.
+
+==================================================
+B. CHARACTER EVOLUTION ENGINE
+==================================================
+
+Build a data-driven character evolution engine.
+
+Purpose:
+Map real user state into a visualized character/status representation.
+
+This engine must not require a separate hand-authored art asset for every possible combination.
+Instead, build a layered renderer/state model.
+
+Required visual/state dimensions:
+1. Base status tier
+2. Fitness/body presentation
+3. Discipline/refinement presentation
+4. Lifestyle/finance presentation
+5. Specialist identity presentation
+6. Prestige/mastery accents
+7. Energy/momentum tone if feasible
+
+The engine should compute a compact visual state object from existing data.
+
+Suggested inputs:
+- Fitness skill
+- Discipline skill
+- Learning skill
+- Trading skill
+- current arc
+- mastery/prestige state
+- owned/equipped relevant items
+- room/world theme if useful
+- selected active title or prestige markers if useful
+
+The engine should output a structured visual state such as:
+- statusTier
+- bodyState
+- postureState
+- outfitTier
+- accessoryTier
+- specialistProps
+- prestigeOverlay
+- roomBackdropVariant
+- mood/energyTone
+
+Keep this data model lightweight, deterministic, and explainable.
+
+==================================================
+C. LAYERED VISUALIZATION SYSTEM
+==================================================
+
+Build the visualization using layers rather than brute-force combinations.
+
+Use a composable renderer such as:
+- layered SVG
+- layered React components
+- data-driven image/component composition
+- deterministic visual token system
+
+The renderer should support at least these logical layers:
+
+1. Base character/body layer
+2. Posture/body-quality layer
+3. Outfit/status layer
+4. Accessory layer
+5. Specialist/profession layer
+6. Prestige/mastery accent layer
+7. Background/status environment layer
+
+Rules:
+- do not try to support every conceivable customization
+- make the evolution feel strong even with a limited number of layers
+- keep the look premium and clean
+- avoid childish RPG visuals
+- avoid uncanny/overly-detailed human rendering if the existing app style does not support it well
+
+==================================================
+D. VISUAL PROGRESSION DIMENSIONS
+==================================================
+
+Implement visible progression across the most meaningful dimensions.
+
+1. Fitness progression
+Should visibly affect:
+- posture
+- physical confidence
+- body/health vibe
+- energy presence
+
+2. Discipline progression
+Should visibly affect:
+- cleanliness / orderliness
+- composure
+- refinement
+- “togetherness” of the character/status presentation
+
+3. Lifestyle / finance progression
+Should visibly affect:
+- outfit quality
+- watch/accessory/luxury signals where appropriate
+- backdrop/environment quality
+- command-center/lifestyle feel
+
+4. Learning / Trading / specialist identity
+Should visibly affect:
+- specialist props
+- role flavor
+- expert vibe
+- domain-specific identity accents
+
+5. Prestige / Mastery
+Should visibly affect:
+- elite markers
+- subtle status accents
+- advanced presentation layer
+
+Do not make every skill influence everything equally.
+Each dimension should have a clear role.
+
+==================================================
+E. STATUS TIERS / VISUAL CLASS SYSTEM
+==================================================
+
+Add a lightweight visual class/tier system.
+
+Purpose:
+Give users a simple high-level read of their current overall status.
+
+Recommended tier model:
+- Starter
+- Hustle
+- Rising
+- Refined
+- Elite
+
+Requirements:
+- tier should be derived from real progress, not manually chosen
+- tier should be visible in the status/character screen
+- tier should feel like a summary of current state, not a replacement for skill detail
+- users should be able to improve their tier over time
+- keep the system psychologically encouraging, not humiliating
+
+This is a presentation layer, not a rigid caste system.
+Do not let it override the deeper skill system.
+
+==================================================
+F. STATUS PAGE / CHARACTER EVOLUTION SCREEN
+==================================================
+
+Build or upgrade the status page into a real Character Evolution screen.
+
+The screen should show at minimum:
+- the visual character/status representation
+- current status tier
+- what is driving the current look
+- top strengths currently reflected in the character
+- weak zones currently limiting the character
+- next visible evolution hint
+- links or CTAs to improve the relevant dimensions
+
+Examples of helpful guidance:
+- “Fitness progress is starting to improve your posture and energy.”
+- “Your discipline is holding back your refinement tier.”
+- “Upgrade your lifestyle presentation through marketplace items or stronger finance-related progress.”
+- “Trading growth is starting to unlock a more specialist identity.”
+
+Requirements:
+- this page should feel like a prestige/status dashboard, not a debug panel
+- the character must be the hero of the page
+- the page must be understandable quickly
+- use existing dark premium / command-center language and style
+
+==================================================
+G. PROFILE / WORLD / MARKETPLACE LINKAGE
+==================================================
+
+Connect this new system to what already exists.
+
+Requirements:
+- equipped or active owned items that are relevant should affect the visual character/status output
+- room/world themes can influence background or environment state if appropriate
+- profile summary should link to the status/evolution screen
+- marketplace should be able to reference whether an item affects visual character/status presentation
+- identity layer and room/world layer should feel connected, not separate silos
+
+Do not redesign those other systems.
+Add only the linkage needed for Phase 21.
+
+==================================================
+H. GUIDANCE / NEXT EVOLUTION HINTS
+==================================================
+
+Because this is a psychologically important screen, include lightweight guidance.
+
+Requirements:
+- tell the user what is helping their current evolution
+- tell the user what is holding it back
+- show at least one “next visible unlock/evolution” style hint
+- guidance must be based on real user state
+- keep copy concise, motivating, and non-cringe
+
+Examples:
+- “Improve Fitness to unlock a stronger body posture state.”
+- “Your current discipline is limiting your refinement tier.”
+- “A better watch/accessory or prestige item can upgrade your visible lifestyle class.”
+- “Complete 2 more verified trading missions to unlock the next specialist presentation tier.”
+
+==================================================
+I. OPTIONAL INTERNAL / ADMIN CONTROLS
+==================================================
+
+Add only minimal internal controls if strictly needed.
+
+Possible examples:
+- mark items as affecting visual status layer
+- define which category affects which layer
+- activate/deactivate status tier thresholds
+- inspect a user’s computed visual state for debugging
+
+Requirements:
+- admin-only
+- lightweight
+- use current admin/tuning surfaces where possible
+- do not build a giant avatar configuration console
+
+==================================================
+J. UI / UX DIRECTION
+==================================================
+
+Design direction:
+- dark premium
+- serious, aspirational, elegant
+- status fantasy without cartoon excess
+- “life upgrade” more than “fantasy RPG cosplay”
+- screenshot-worthy
+- visually clear and emotionally rewarding
+
+The status page should feel like:
+- a premium life-status dashboard
+- a before/after evolution surface
+- a clean embodiment of real progress
+
+Do NOT make it:
+- childish
+- over-cluttered
+- meme-like
+- too busy with tiny stats everywhere
+
+==================================================
+K. BACKEND / SECURITY RULES
+==================================================
+
+- all computed visual state should be derived server-side or from trusted internal logic
+- do not trust client-provided visual progression state
+- preserve ownership checks
+- preserve JSON-only APIs
+- keep schema changes additive and minimal
+- preserve existing mission/proof/reward/economy/world/community flows
+- if visual state is cached or persisted, keep it auditable and recomputable
+
+==================================================
+L. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a real Character Evolution / Status Visualization system exists
+2. the status page clearly shows a visually evolving character/state
+3. the character evolution is driven by real progression data
+4. layered rendering is used instead of a combinatorial asset explosion
+5. major progression dimensions (fitness, discipline, lifestyle, specialist identity, prestige) are visibly represented
+6. a lightweight status tier/class system exists and feels motivating
+7. users can understand what is improving or limiting their visible evolution
+8. the new system links appropriately to profile/world/marketplace state
+9. existing app flow still works
+10. no oversized avatar-creator or 3D-simulator scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what status/character presentation capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Character evolution engine added
+- input signals used
+- visual state model
+- how it is computed
+
+4. Layered renderer / visualization system added
+- what layers exist
+- how they combine
+- why this approach was chosen
+
+5. Status tier/class system added
+- tier names
+- how tiers are determined
+- how they are displayed
+
+6. Status page / Character Evolution screen changes
+- what the user now sees
+- what guidance is shown
+
+7. Profile/world/marketplace linkage added
+- what existing systems now affect the visual character state
+
+8. End-to-end verification results for:
+- status page visibility
+- progression-driven visual change
+- owned/equipped item influence
+- world/profile linkage
+- existing app flow unchanged
+
+9. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

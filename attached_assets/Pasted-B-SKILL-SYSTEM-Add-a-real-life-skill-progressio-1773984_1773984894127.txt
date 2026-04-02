@@ -1,0 +1,249 @@
+B. SKILL SYSTEM
+==================================================
+
+Add a real life skill progression system.
+
+For MVP, create these 6 core skills:
+- Focus
+- Discipline
+- Sleep
+- Fitness
+- Learning
+- Trading
+
+Each skill must have:
+- key
+- display name
+- description
+- level
+- xp
+- rank
+- current trend
+- confidence score
+- last updated timestamp
+
+Use Rank + Level, not just a plain level number.
+
+Suggested rank ladder:
+- Gray
+- Green
+- Blue
+- Purple
+- Gold
+- Red
+
+Rules:
+- Skills must never level up from button presses alone
+- Skills must update from actual behavior and evidence
+- Skill XP should come from approved missions, session quality, consistency, and evidence quality
+- Weak proof or low actual performance should give weak or zero skill growth
+- Trading skill must reflect actual trading-related missions and verified work only
+- Sleep skill should not dominate this phase unless already easy to wire in from existing logs
+
+Suggested mapping:
+- Focus skill: focus sessions, blocked attempts, completed deep work missions
+- Discipline skill: consistency, accepted/finished missions, lower abandonment
+- Sleep skill: sleep logs or manual sleep entries if already present
+- Fitness skill: exercise-related missions with proof
+- Learning skill: reading/study/skill practice missions with proof
+- Trading skill: analysis, backtesting, journaling, chart review missions with proof
+
+Suggested new tables if missing:
+- skill_definitions
+- user_skills
+- skill_xp_events
+
+==================================================
+C. AI MISSION GENERATOR
+==================================================
+
+Add AI-generated missions as a second mission source besides user-created missions.
+
+Mission sources:
+- user_created
+- ai_generated
+
+AI-generated missions should be based on:
+- user profile
+- current skill levels
+- weak skills
+- available daily time
+- strictness mode
+- recent completion history
+- current life goals
+- current constraints
+
+Types of AI missions for MVP:
+- Daily Discipline
+- Skill Growth
+- Trading Practice
+- Recovery / Reset
+
+Difficulty colors:
+- Gray
+- Green
+- Blue
+- Purple
+- Gold
+- Red
+
+Each AI-generated mission must include:
+- title
+- short reason why this mission matters now
+- related skill
+- difficulty color
+- estimated duration
+- recommended proof requirements
+- suggested reward bonus
+- mission category
+- whether it is stretch/challenge content
+- expiry window if appropriate
+
+AI mission design rules:
+- Missions should be challenging but realistic
+- Do not generate missions far beyond current ability
+- Missions should push the user slightly beyond current baseline
+- AI-generated missions should feel personal, not generic
+- AI-generated missions should have bonus rewards compared with normal missions
+- User must be able to:
+  - Accept
+  - Reject
+  - Not now
+  - Make easier
+  - Make harder
+  - Ask why this matters
+
+Suggested tables if missing:
+- ai_missions
+- ai_mission_variants
+- mission_acceptance_events
+
+If OpenAI is unavailable, provide a strong rule-based generator fallback so the feature still works.
+
+==================================================
+D. PROOF REQUIREMENT ENGINE
+==================================================
+
+Add a proof requirement generation layer.
+
+For each AI-generated mission, the system must define proof expectations up front.
+
+Supported proof requirement types:
+- text summary
+- screenshot
+- image/photo
+- file upload
+- external link
+- reflection answers
+
+Each mission should store:
+- accepted proof types
+- minimum proof count or requirement
+- proof difficulty tier
+- fraud risk level
+- review rubric summary
+
+Rules:
+- AI sets the default proof requirements
+- User can request an alternate proof path
+- Alternate proof path should be allowed when reasonable
+- Harder missions can require richer proof
+- Proof requirements must be proportional to mission difficulty
+- Do not make proof too annoying for small missions
+- Do not auto-approve based only on time
+
+Examples:
+- Reading mission -> screenshot/photo + 3 takeaways
+- Trading review mission -> chart screenshot + reasoning summary
+- Fitness mission -> photo or text log + reps/sets summary
+- Deep work mission -> output summary + screenshot/file/link if relevant
+
+Suggested tables if missing:
+- mission_proof_requirements
+- proof_requirement_templates
+- alternate_proof_requests
+
+==================================================
+E. INVENTORY / ASSETS LITE
+==================================================
+
+Add a light asset layer connected to progression.
+
+This is NOT a deep economy yet.
+
+For MVP include:
+- titles
+- badges
+- milestone trophies
+- symbolic assets
+- cosmetic profile unlocks
+
+Examples:
+- "Focus Initiate"
+- "7-Day Discipline Badge"
+- "Trading Apprentice"
+- "Recovery Rebuilder"
+- "Command Room Upgrade"
+
+Requirements:
+- Purchased/earned items should show in an inventory lite page
+- Some assets can be tied to milestones or AI mission completion
+- AI-generated mission completion can unlock special badges/titles
+- Keep this simple and data-driven
+
+Suggested tables if missing:
+- badges
+- user_badges
+- titles
+- user_titles
+- milestone_unlocks
+
+==================================================
+F. UI / UX MVP
+==================================================
+
+Build only the minimum UI needed for the Life RPG layer.
+
+Priority screens/components:
+1. Mission Board
+2. Skill Summary / Skill Tree Lite
+3. Profile / Character Summary
+4. Inventory Lite
+5. Onboarding Progress / Continue Profiling
+
+Mission Board must show:
+- user-created missions
+- AI-generated missions
+- mission difficulty color
+- related skill
+- reward preview
+- proof preview
+- accept/reject/not-now actions for AI missions
+
+Skill screen must show:
+- current 6 skills
+- rank + level
+- xp progress
+- what recently improved or hurt the skill
+- simple recommendations
+
+Character/Profile screen must show:
+- current arc or focus
+- top strengths
+- weak zones
+- active goals
+- onboarding completion status
+
+Inventory Lite must show:
+- earned badges
+- active title
+- unlocked symbolic assets
+
+Design direction:
+- dark premium
+- command center
+- serious but exciting
+- not childish
+- clear game progression cues
+- visible difficulty colors
+- visible skill growth

@@ -1,0 +1,407 @@
+TASK: Build a complete Outfit/Wardrobe system with:
+1. A new "Wardrobe" collection screen (like Cars/Watches)
+2. Outfit items can be previewed on the 3D character
+3. Selected outfit is worn on the character in Customize and Character Status screens
+
+════════════════════════════════════════════════════════
+FILES ALREADY UPLOADED — in folder "web app/outfits/"
+════════════════════════════════════════════════════════
+
+5 outfit GLB files are ready:
+  1. stylized_hoodie_jacket.glb          (2.2 MB)
+  2. mens_clothing_for_game.glb          (7.2 MB)
+  3. elegant_clothing_set__waistcoat_shirt__pants.glb  (12 MB)
+  4. men_s_black_puffy_jacket.glb        (3.2 MB)
+  5. shirt_for_men.glb                   (11 MB)
+
+════════════════════════════════════════════════════════
+STEP 1 — SERVE OUTFIT FILES
+════════════════════════════════════════════════════════
+
+In server/index.ts (or server/routes.ts), add a static route:
+```ts
+app.use('/api/outfits', express.static(path.join(process.cwd(), 'web app/outfits')))
+```
+
+Verify: GET /api/outfits/shirt_for_men.glb must return the GLB file.
+
+════════════════════════════════════════════════════════
+STEP 2 — OUTFIT DATA CATALOG
+════════════════════════════════════════════════════════
+
+Create a new file: shared/outfitData.ts (or add to shared/schema.ts)
+```ts
+export interface OutfitItem {
+  id: string
+  name: string
+  glbFile: string
+  category: 'Casual' | 'Street' | 'Business' | 'Premium'
+  rarity: 'COMMON' | 'UNCOMMON' | 'RARE' | 'EPIC' | 'LEGENDARY'
+  price: number
+  prestige: number
+  requiredLevel: number
+  description: string
+  tags: string[]
+  isLocked: boolean
+}
+
+export const OUTFITS: OutfitItem[] = [
+  {
+    id: 'outfit_001',
+    name: 'Everyday Shirt',
+    glbFile: 'shirt_for_men.glb',
+    category: 'Casual',
+    rarity: 'COMMON',
+    price: 300,
+    prestige: 1,
+    requiredLevel: 1,
+    description: 'A clean, versatile shirt for the operator who means business every day.',
+    tags: ['CASUAL', 'COMMON'],
+    isLocked: false,
+  },
+  {
+    id: 'outfit_002',
+    name: 'Street Hoodie',
+    glbFile: 'stylized_hoodie_jacket.glb',
+    category: 'Street',
+    rarity: 'UNCOMMON',
+    price: 800,
+    prestige: 3,
+    requiredLevel: 5,
+    description: 'Comfortable, sharp, and built for those who move with intention.',
+    tags: ['STREET', 'UNCOMMON'],
+    isLocked: false,
+  },
+  {
+    id: 'outfit_003',
+    name: 'Urban Combat Set',
+    glbFile: 'mens_clothing_for_game.glb',
+    category: 'Street',
+    rarity: 'RARE',
+    price: 2000,
+    prestige: 8,
+    requiredLevel: 15,
+    description: 'Tactical street wear for operators who dominate the urban field.',
+    tags: ['STREET', 'RARE'],
+    isLocked: false,
+  },
+  {
+    id: 'outfit_004',
+    name: 'Puffy Stealth Jacket',
+    glbFile: 'men_s_black_puffy_jacket.glb',
+    category: 'Street',
+    rarity: 'RARE',
+    price: 2500,
+    prestige: 10,
+    requiredLevel: 20,
+    description: 'Bold silhouette, zero noise. This jacket enters the room before you do.',
+    tags: ['STREET', 'RARE'],
+    isLocked: false,
+  },
+  {
+    id: 'outfit_005',
+    name: 'Executive Waistcoat Set',
+    glbFile: 'elegant_clothing_set__waistcoat_shirt__pants.glb',
+    category: 'Business',
+    rarity: 'EPIC',
+    price: 6000,
+    prestige: 22,
+    requiredLevel: 35,
+    description: 'Power is dressed. The waistcoat set is worn by operators who close deals before lunch.',
+    tags: ['BUSINESS', 'EPIC'],
+    isLocked: false,
+  },
+]
+```
+
+════════════════════════════════════════════════════════
+STEP 3 — CREATE WARDROBE SCREEN (app/wardrobe/index.tsx)
+════════════════════════════════════════════════════════
+
+Create a new screen at app/wardrobe/index.tsx (same pattern as Cars/Watches).
+
+The screen layout:
+- Header: "WARDROBE" with camera icon (top right)
+- Horizontal card carousel (same as cars/watches)
+- Each card shows:
+  - 3D model-viewer of the outfit GLB
+  - Outfit name
+  - Rarity tag + Category tag
+  - Level Required / Price / Prestige stats
+  - "EQUIP" button (or "NEED X coins" if locked by price)
+
+Use this card component:
+```tsx
+import { useRef } from 'react'
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
+import { OUTFITS } from '@/shared/outfitData'
+
+export default function WardrobeScreen() {
+  const [selectedOutfit, setSelectedOutfit] = useState(OUTFITS[0])
+  const [equippedOutfitId, setEquippedOutfitId] = useState<string | null>(null)
+
+  const rarityColors = {
+    COMMON: '#9CA3AF',
+    UNCOMMON: '#34D399',
+    RARE: '#60A5FA',
+    EPIC: '#A78BFA',
+    LEGENDARY: '#FBBF24',
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerSub}>WARDROBE</Text>
+        <Text style={styles.headerTitle}>Collection</Text>
+      </View>
+
+      {/* Horizontal Outfit Cards */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.carousel}>
+        {OUTFITS.map(outfit => (
+          <TouchableOpacity
+            key={outfit.id}
+            style={[styles.card, selectedOutfit.id === outfit.id && styles.cardActive]}
+            onPress={() => setSelectedOutfit(outfit)}
+          >
+            {/* Tags */}
+            <View style={styles.tagRow}>
+              <View style={styles.tag}><Text style={styles.tagText}>{outfit.category.toUpperCase()}</Text></View>
+              <View style={[styles.tag, { borderColor: rarityColors[outfit.rarity] }]}>
+                <Text style={[styles.tagText, { color: rarityColors[outfit.rarity] }]}>{outfit.rarity}</Text>
+              </View>
+            </View>
+
+            {/* 3D model-viewer */}
+            <model-viewer
+              src={`/api/outfits/${outfit.glbFile}`}
+              camera-orbit="0deg 75deg 105%"
+              field-of-view="30deg"
+              min-camera-orbit="auto auto 90%"
+              max-camera-orbit="auto auto 130%"
+              auto-rotate
+              auto-rotate-delay="1500"
+              rotation-per-second="12deg"
+              environment-image="neutral"
+              shadow-intensity="1"
+              exposure="1.1"
+              style={{ width: '100%', height: 200, background: 'transparent' }}
+            />
+
+            {/* Name */}
+            <Text style={[styles.outfitName, { color: rarityColors[outfit.rarity] }]}>
+              {outfit.name}
+            </Text>
+
+            {/* Stats row */}
+            <View style={styles.statsRow}>
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>LEVEL REQ</Text>
+                <Text style={styles.statValue}>Lv {outfit.requiredLevel}</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>PRICE</Text>
+                <Text style={styles.statValue}>{outfit.price.toLocaleString()}c</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>PRESTIGE</Text>
+                <Text style={[styles.statValue, { color: '#34D399' }]}>+{outfit.prestige}</Text>
+              </View>
+            </View>
+
+            {/* Description */}
+            <Text style={styles.description}>{outfit.description}</Text>
+
+            {/* Equip Button */}
+            <TouchableOpacity
+              style={[
+                styles.equipBtn,
+                equippedOutfitId === outfit.id && styles.equippedBtn
+              ]}
+              onPress={() => {
+                setEquippedOutfitId(outfit.id)
+                // Save to AsyncStorage / global state
+                saveEquippedOutfit(outfit.id, outfit.glbFile)
+              }}
+            >
+              <Text style={styles.equipBtnText}>
+                {equippedOutfitId === outfit.id ? '✓ EQUIPPED' : '⚡ EQUIP'}
+              </Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  )
+}
+```
+
+════════════════════════════════════════════════════════
+STEP 4 — EQUIP OUTFIT: SAVE SELECTION
+════════════════════════════════════════════════════════
+
+Create a helper to save the equipped outfit (use AsyncStorage or global state):
+```ts
+// utils/outfitStore.ts
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+const OUTFIT_KEY = 'equipped_outfit'
+
+export async function saveEquippedOutfit(outfitId: string, glbFile: string) {
+  await AsyncStorage.setItem(OUTFIT_KEY, JSON.stringify({ outfitId, glbFile }))
+}
+
+export async function getEquippedOutfit(): Promise<{ outfitId: string; glbFile: string } | null> {
+  const raw = await AsyncStorage.getItem(OUTFIT_KEY)
+  return raw ? JSON.parse(raw) : null
+}
+```
+
+════════════════════════════════════════════════════════
+STEP 5 — OVERLAY OUTFIT ON CHARACTER (Three.js WebView)
+════════════════════════════════════════════════════════
+
+This is the core feature: show the outfit on top of the body model.
+
+In character_v7.html (the Three.js WebView), add outfit overlay support:
+```js
+let outfitMesh = null  // currently loaded outfit mesh
+
+// Function to load and overlay outfit on the body
+window.equipOutfit = function(glbPath) {
+  // Remove existing outfit overlay
+  if (outfitMesh) {
+    scene.remove(outfitMesh)
+    outfitMesh = null
+  }
+
+  if (!glbPath) return  // no outfit = naked body (default)
+
+  const loader = new THREE.GLTFLoader()
+  loader.load(
+    glbPath,
+    function(gltf) {
+      outfitMesh = gltf.scene
+
+      // ── IMPORTANT: align outfit to body position/scale ──
+      // Copy position and scale from the body model
+      if (bodyModel) {
+        outfitMesh.position.copy(bodyModel.position)
+        outfitMesh.rotation.copy(bodyModel.rotation)
+        outfitMesh.scale.copy(bodyModel.scale)
+      } else {
+        // Default positioning if body not yet loaded
+        outfitMesh.scale.set(1, 1, 1)
+        outfitMesh.position.set(0, 0, 0)
+      }
+
+      scene.add(outfitMesh)
+    },
+    undefined,
+    function(error) {
+      console.error('Outfit load error:', error)
+    }
+  )
+}
+
+// Update window.updateCharacter to also accept outfit
+window.updateCharacter = function({ gender, skinTone, hairStyle, hairColor, outfitGlb }) {
+  if (gender) { /* ... existing gender switch code ... */ }
+  if (skinTone) { /* ... existing skin tone code ... */ }
+  if (hairStyle) { /* ... existing hair code ... */ }
+  if (outfitGlb !== undefined) {
+    window.equipOutfit(outfitGlb ? `/api/outfits/${outfitGlb}` : null)
+  }
+}
+```
+
+NOTE on alignment: GLB outfit files from Sketchfab may have different origin
+points. After loading each outfit, you may need to fine-tune position.y offset.
+Add per-outfit position offsets if needed:
+```js
+const OUTFIT_OFFSETS = {
+  'shirt_for_men.glb':                                     { y: 0,    scale: 1.0 },
+  'stylized_hoodie_jacket.glb':                            { y: 0,    scale: 1.0 },
+  'mens_clothing_for_game.glb':                            { y: 0,    scale: 1.0 },
+  'men_s_black_puffy_jacket.glb':                          { y: 0,    scale: 1.0 },
+  'elegant_clothing_set__waistcoat_shirt__pants.glb':      { y: 0,    scale: 1.0 },
+}
+
+// After loading, apply the offset:
+const offset = OUTFIT_OFFSETS[filename] ?? { y: 0, scale: 1.0 }
+outfitMesh.position.y += offset.y
+outfitMesh.scale.multiplyScalar(offset.scale)
+```
+
+If an outfit appears too big/small or floats above/below the body, UPDATE the
+offset values in OUTFIT_OFFSETS for that specific file until it aligns correctly.
+
+════════════════════════════════════════════════════════
+STEP 6 — SYNC EQUIPPED OUTFIT TO CHARACTER SCREENS
+════════════════════════════════════════════════════════
+
+A) In Customize screen (CustomizeScreen.tsx):
+   On screen load, read the saved equipped outfit and send it to WebView:
+```ts
+   useEffect(() => {
+     getEquippedOutfit().then(outfit => {
+       if (outfit) {
+         sendToWebView({ outfitGlb: outfit.glbFile })
+       }
+     })
+   }, [])
+```
+
+B) In Character Status screen (CharacterStatus.tsx):
+   Same — on load, read saved outfit and send to WebView:
+```ts
+   useEffect(() => {
+     getEquippedOutfit().then(outfit => {
+       sendToWebView({ outfitGlb: outfit ? outfit.glbFile : null })
+     })
+   }, [])
+```
+
+C) When user equips a new outfit in Wardrobe screen:
+   After saving to AsyncStorage, also broadcast to any active WebViews so the
+   character updates in real time if Customize/Status is open.
+
+════════════════════════════════════════════════════════
+STEP 7 — ADD WARDROBE TO NAVIGATION
+════════════════════════════════════════════════════════
+
+Add Wardrobe to the app navigation (tab bar or drawer):
+
+In the tab navigator / bottom nav component, add:
+```ts
+{
+  name: 'wardrobe',
+  title: 'Wardrobe',
+  icon: '👕',   // or a shirt icon from lucide-react
+  screen: WardrobeScreen,
+}
+```
+
+Or add it as a sub-tab inside the existing collection area alongside Cars and Watches.
+
+════════════════════════════════════════════════════════
+STEP 8 — VERIFY
+════════════════════════════════════════════════════════
+
+Check ALL of these work before finishing:
+
+1. ✅ GET /api/outfits/shirt_for_men.glb returns the GLB file
+2. ✅ Wardrobe screen opens and shows 5 outfit cards
+3. ✅ Each card shows the 3D outfit model (not a broken image or grey box)
+4. ✅ Tapping an outfit card selects it and shows description + stats
+5. ✅ Pressing "EQUIP" button marks it with "✓ EQUIPPED" and saves the selection
+6. ✅ Open Customize screen → character wears the equipped outfit
+7. ✅ Open Character Status screen → character wears the equipped outfit
+8. ✅ Equip a different outfit in Wardrobe → character updates on next Customize open
+9. ✅ App restarts → equipped outfit is still saved and shown
+10. ✅ No TypeScript errors
+11. ✅ No crash when switching outfits rapidly
+
+If an outfit mesh doesn't align with the body (floating, too big, wrong position),
+update its OUTFIT_OFFSETS entry — do NOT move on until all 5 outfits align correctly
+with the body model.

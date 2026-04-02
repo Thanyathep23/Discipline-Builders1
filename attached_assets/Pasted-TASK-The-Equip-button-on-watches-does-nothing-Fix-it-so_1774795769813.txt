@@ -1,0 +1,199 @@
+TASK: The "Equip" button on watches does nothing. Fix it so:
+1. Pressing Equip saves the selected watch
+2. The character's wrist shows the watch 3D model in Customize and Character Status screens
+
+════════════════════════════════════════════════════════
+STEP 1 — FIND THE BROKEN EQUIP HANDLER
+════════════════════════════════════════════════════════
+
+Run this and show me the results:
+
+grep -rn "equip\|Equip\|EQUIP" . --include="*.tsx" --include="*.ts" | grep -v ".md"
+
+Then open the Watches detail/collection component and show me the onPress
+handler for the Equip button. It is likely empty, a console.log, or missing.
+
+════════════════════════════════════════════════════════
+STEP 2 — CREATE WATCH STORAGE UTILITY
+════════════════════════════════════════════════════════
+
+Create file: utils/watchStore.ts
+```ts
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+const KEY = 'equipped_watch'
+
+export async function saveEquippedWatch(watchId: string, glbFile: string) {
+  await AsyncStorage.setItem(KEY, JSON.stringify({ watchId, glbFile }))
+}
+
+export async function getEquippedWatch(): Promise<{ watchId: string; glbFile: string } | null> {
+  const raw = await AsyncStorage.getItem(KEY)
+  return raw ? JSON.parse(raw) : null
+}
+
+export async function clearEquippedWatch() {
+  await AsyncStorage.removeItem(KEY)
+}
+```
+
+════════════════════════════════════════════════════════
+STEP 3 — FIX THE EQUIP BUTTON
+════════════════════════════════════════════════════════
+
+In the Watch detail/collection component, fix the Equip button onPress:
+```tsx
+import { saveEquippedWatch, getEquippedWatch } from '@/utils/watchStore'
+
+// State to track which watch is equipped
+const [equippedWatchId, setEquippedWatchId] = useState<string | null>(null)
+
+// Load on mount
+useEffect(() => {
+  getEquippedWatch().then(w => {
+    if (w) setEquippedWatchId(w.watchId)
+  })
+}, [])
+
+// Equip handler — attach this to the button onPress
+const handleEquip = async (watch: WatchItem) => {
+  await saveEquippedWatch(watch.id, watch.glbFile)
+  setEquippedWatchId(watch.id)
+}
+
+// Button JSX
+<TouchableOpacity
+  style={[styles.equipBtn, equippedWatchId === watch.id && styles.equippedBtn]}
+  onPress={() => handleEquip(watch)}
+>
+  <Text style={styles.equipBtnText}>
+    {equippedWatchId === watch.id ? '✓ EQUIPPED' : '⚡ EQUIP'}
+  </Text>
+</TouchableOpacity>
+```
+
+Button styles:
+```ts
+equipBtn: {
+  backgroundColor: '#8B5CF6',
+  borderRadius: 12,
+  paddingVertical: 14,
+  alignItems: 'center',
+  marginTop: 12,
+},
+equippedBtn: {
+  backgroundColor: '#065F46',
+  borderColor: '#34D399',
+  borderWidth: 1,
+},
+equipBtnText: {
+  color: '#FFFFFF',
+  fontWeight: '700',
+  fontSize: 15,
+  letterSpacing: 1,
+},
+```
+
+════════════════════════════════════════════════════════
+STEP 4 — SHOW WATCH ON CHARACTER (Three.js WebView)
+════════════════════════════════════════════════════════
+
+In character_v7.html, add a watch overlay on the character's LEFT WRIST bone.
+
+Add this function inside the <script> block:
+```js
+let watchMesh = null
+
+window.equipWatch = function(glbPath) {
+  // Remove previous watch
+  if (watchMesh) {
+    scene.remove(watchMesh)
+    watchMesh = null
+  }
+  if (!glbPath) return
+
+  const loader = new THREE.GLTFLoader()
+  loader.load(glbPath, function(gltf) {
+    watchMesh = gltf.scene
+
+    // Find the left wrist/hand bone on the character skeleton
+    let wristBone = null
+    if (bodyModel) {
+      bodyModel.traverse(function(node) {
+        if (node.isBone) {
+          const name = node.name.toLowerCase()
+          if (name.includes('hand_l') || name.includes('wrist_l') ||
+              name.includes('lefthand') || name.includes('hand.l')) {
+            wristBone = node
+          }
+        }
+      })
+    }
+
+    if (wristBone) {
+      // Attach watch mesh directly to the wrist bone so it moves with the character
+      watchMesh.scale.set(0.08, 0.08, 0.08)   // adjust scale to fit wrist
+      watchMesh.rotation.set(0, 0, Math.PI / 2) // rotate to face correctly
+      wristBone.add(watchMesh)
+    } else {
+      // Fallback: place near left wrist position if bone not found
+      watchMesh.scale.set(0.08, 0.08, 0.08)
+      watchMesh.position.set(-0.18, 0.85, 0)
+      scene.add(watchMesh)
+    }
+  })
+}
+
+// Update window.updateCharacter to accept watch
+const _origUpdate = window.updateCharacter
+window.updateCharacter = function(params) {
+  if (_origUpdate) _origUpdate(params)
+  if (params.watchGlb !== undefined) {
+    window.equipWatch(params.watchGlb ? `/api/models/watches/${params.watchGlb}` : null)
+  }
+}
+```
+
+NOTE on watch scale: GLB watch models from Sketchfab are often very large
+compared to the character. Start with scale 0.08. If the watch is too big or
+too small on the wrist, adjust the scale value until it fits correctly.
+
+════════════════════════════════════════════════════════
+STEP 5 — SERVE WATCH FILES UNDER /api/models/watches/
+════════════════════════════════════════════════════════
+
+In server/index.ts, make sure watches are served at the path the WebView expects:
+```ts
+app.use('/api/models/watches', express.static(path.join(process.cwd(), 'web app/watches_v1')))
+```
+
+(If already served at /api/models/ then update the path in Step 4 accordingly)
+
+════════════════════════════════════════════════════════
+STEP 6 — LOAD EQUIPPED WATCH IN CHARACTER SCREENS
+════════════════════════════════════════════════════════
+
+In BOTH Customize screen and Character Status screen, on mount load the saved watch
+and send it to the WebView:
+```ts
+import { getEquippedWatch } from '@/utils/watchStore'
+
+useEffect(() => {
+  getEquippedWatch().then(w => {
+    sendToWebView({
+      watchGlb: w ? w.glbFile : null
+    })
+  })
+}, [])
+```
+
+════════════════════════════════════════════════════════
+STEP 7 — VERIFY
+════════════════════════════════════════════════════════
+
+1. ✅ Tap "EQUIP" on any watch → button changes to "✓ EQUIPPED"
+2. ✅ Open Customize screen → character's left wrist shows the watch 3D model
+3. ✅ Open Character Status screen → same watch visible on wrist
+4. ✅ Equip a different watch → wrist updates to new watch
+5. ✅ Restart app → equipped watch is still showing (persisted)
+6. ✅ No crashes, no TypeScript errors

@@ -1,0 +1,746 @@
+Use docs/life-rpg-master-spec.md, the AI Handoff Master Brief, the existing Replit codebase, and all completed Phase 27–28 artifacts as the permanent source of truth.
+
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+# Phase 29 — Metrics / Decision Dashboard v1
+Version: 1.0 | Platform: Replit | Scope: Event taxonomy, KPI definitions, dashboard foundation, decision instrumentation
+
+## 🎯 PROJECT OVERVIEW
+Build the first real Metrics / Decision Dashboard foundation for the existing Life RPG app.
+
+This phase is NOT about adding new gameplay.
+This phase is NOT about building an enterprise BI stack.
+This phase is about making the product measurable so the team can make launch and post-launch decisions using real data.
+
+The dashboard foundation must answer questions like:
+- Are users activating?
+- Where do they drop off?
+- Are proofs being submitted?
+- Are proofs being approved fairly?
+- Are rewards healthy?
+- Is the economy inflating?
+- Are users buying status assets?
+- Are room / wardrobe / garage systems actually being used?
+- Is the core loop working?
+- What should the founder look at every day?
+
+The target outcome:
+1. a clean event taxonomy exists
+2. the highest-value product events are instrumented
+3. the highest-value KPIs are defined and computable
+4. a founder-facing dashboard exists in a practical v1 form
+5. product decisions can be made from metrics instead of intuition alone
+
+==================================================
+PHASE SCOPE ONLY
+==================================================
+
+Build only the minimum strong metrics foundation needed for launch readiness and early live decision-making.
+
+Required outputs for this phase:
+1. metrics audit
+2. event taxonomy
+3. KPI dictionary
+4. dashboard metric definitions
+5. instrumentation for core flow events
+6. economy metric instrumentation
+7. dashboard data aggregation layer
+8. founder/admin dashboard v1
+9. alert/watchlist metric definitions
+10. repo documentation for metrics and decisions
+
+Do NOT build:
+- a huge analytics warehouse
+- third-party enterprise analytics stack unless already present and trivial to use
+- complex attribution modeling beyond current scope
+- ML forecasting
+- vanity charts with no product value
+- marketing analytics platform
+- A/B testing engine
+- retention CRM automation
+- live ops engine
+- new gameplay features
+
+If the app already has telemetry or audit logs, reuse and extend them.
+Do NOT duplicate event systems unnecessarily.
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything, inspect and report the current state of analytics / telemetry across:
+
+A. Existing telemetry infrastructure
+- audit logs
+- event tracking tables
+- server logs
+- reward/wallet transaction logs
+- proof/judge logs
+- item ownership logs
+- any admin metrics screens already present
+
+B. Current measurable surfaces
+- auth/register/login
+- mission creation
+- focus session start/stop
+- proof submission
+- judge verdict
+- reward grant
+- coin balance changes
+- purchase events
+- equip/switch events
+- room/car/wheel/wardrobe engagement
+- character progression updates
+
+C. Current gaps
+- events that are not tracked
+- events tracked inconsistently
+- events only visible in logs but not dashboardable
+- events missing user/context metadata
+- economy movements not measurable enough
+- funnel drop-offs not measurable enough
+
+D. Existing data quality risks
+- duplicate events
+- ambiguous naming
+- frontend-only events without server confirmation
+- server-only events without user-facing context
+- missing timestamps / user ids / entity ids
+- weak linkage across mission → session → proof → verdict → reward
+
+E. Existing dashboard/admin surfaces
+- whether there is already an admin analytics page
+- whether current queries are expensive or fragile
+- whether dashboard data should come from direct SQL/views/service layer
+
+Your audit must identify:
+1. what already exists
+2. what can be reused
+3. what is missing
+4. what is too noisy
+5. what is too expensive to query directly
+6. what must be instrumented in this phase
+
+Do not guess.
+Audit first, then instrument.
+
+==================================================
+STEP 2 — DEFINE THE DECISION QUESTIONS
+==================================================
+
+Build this phase around concrete founder/product questions.
+
+The dashboard must answer, at minimum:
+
+### Acquisition / Activation
+- How many new users registered today / this week?
+- How many new users created a first mission?
+- How many new users started a first focus session?
+- How many new users submitted a first proof?
+- How many new users reached first approved proof?
+- How long does it take to reach first meaningful progress?
+
+### Core Loop Health
+- How many missions are created per day?
+- How many sessions are started / stopped?
+- What % of started sessions become proof submissions?
+- What % of proof submissions become approved / follow-up / rejected?
+- What % of approved proofs generate reward successfully?
+- Is the core loop leaking at any step?
+
+### Trust / Judge Health
+- Approval rate
+- Follow-up rate
+- Reject rate
+- Provider fallback rate
+- judge failure/error rate
+- suspicious duplicate proof signals
+- dispute-prone surfaces if measurable
+
+### Economy Health
+- Coins minted per day
+- Coins spent per day
+- Net wallet delta
+- Average reward by type/category
+- Purchase conversion rate
+- Time to first purchase
+- Most purchased categories
+- Inflation warning signals
+- abnormal mint/spend events
+
+### Status / Identity Engagement
+- Wardrobe usage
+- Equip rate
+- Room switch rate
+- Car switch rate
+- Wheel switch rate
+- Character progression advancement rate
+- Milestone/visual progression frequency
+
+### Retention / Ongoing Use
+- D1 retention
+- D7 retention
+- returning active users
+- streak participation if measurable
+- repeat proof submitters
+- repeat purchasers
+- users who stall after first failure / rejection
+
+The dashboard must serve decisions, not curiosity.
+
+==================================================
+STEP 3 — CREATE THE METRICS ARTIFACTS IN THE REPO
+==================================================
+
+Create a clear docs structure.
+
+Recommended structure:
+
+/docs/metrics/
+  metrics-audit.md
+  event-taxonomy.md
+  kpi-dictionary.md
+  dashboard-spec.md
+  funnel-definitions.md
+  economy-metrics.md
+  trust-metrics.md
+  status-engagement-metrics.md
+  alert-watchlist.md
+  known-metrics-risks.md
+
+Recommended code structure:
+
+/shared/metrics/
+  eventNames.ts
+  metricDefinitions.ts
+  funnelDefinitions.ts
+  dashboardConfig.ts
+
+/server/metrics/
+  metricsService.ts
+  metricsQueries.ts
+  metricsAggregations.ts
+  metricsRoutes.ts
+
+If the repo already has conventions, adapt to them without duplicating systems.
+
+==================================================
+STEP 4 — DEFINE THE EVENT TAXONOMY
+==================================================
+
+Create a clean event taxonomy with consistent naming and payload shape.
+
+At minimum define events for:
+
+### Auth
+- user_registered
+- user_login_success
+- user_login_failed
+
+### Missions
+- mission_created
+- mission_updated if active in product
+- mission_archived/completed if relevant
+
+### Focus
+- focus_session_started
+- focus_session_paused if present
+- focus_session_resumed if present
+- focus_session_stopped
+- focus_session_abandoned if present
+
+### Proof
+- proof_submitted
+- proof_submission_failed
+- proof_duplicate_flagged
+- proof_followup_requested
+- proof_approved
+- proof_rejected
+
+### Judge / Trust
+- judge_started
+- judge_provider_fallback
+- judge_result_returned
+- judge_failed
+- suspicious_behavior_flagged if already supported
+
+### Reward / Wallet
+- reward_granted
+- reward_grant_failed
+- wallet_balance_changed
+
+### Economy / Store
+- item_purchase_attempted
+- item_purchased
+- item_purchase_failed
+- item_equipped
+- room_switched
+- car_switched
+- wheel_switched
+- wardrobe_switched
+
+### Progress / Status
+- character_progress_updated
+- visual_tier_changed if trackable
+- milestone_reached if present
+
+For each event define:
+- event name
+- trigger source
+- actor
+- entity ids
+- timestamp
+- metadata payload
+- whether source of truth is backend or frontend
+- whether event is required for KPI calculations
+
+Naming rules:
+1. snake_case only
+2. avoid ambiguous verbs
+3. backend-confirmed events should be the source of truth for financial and trust-sensitive KPIs
+4. avoid overlapping duplicate names
+
+==================================================
+STEP 5 — DEFINE THE KPI DICTIONARY
+==================================================
+
+Create a KPI dictionary with precise definitions.
+
+At minimum define:
+
+### Activation KPIs
+- registrations
+- activation_to_first_mission
+- activation_to_first_session
+- activation_to_first_proof
+- activation_to_first_approved_proof
+- time_to_first_purchase
+
+### Funnel KPIs
+- mission_create_rate
+- session_start_rate
+- proof_submission_rate
+- proof_to_verdict_rate
+- approval_rate
+- followup_rate
+- reject_rate
+- reward_success_rate
+
+### Economy KPIs
+- total_coins_minted
+- total_coins_spent
+- net_coin_delta
+- avg_reward_per_approval
+- avg_purchase_value
+- purchase_conversion_rate
+- first_purchase_rate
+- room_purchase_rate
+- car_purchase_rate
+- wardrobe_purchase_rate
+
+### Engagement KPIs
+- daily_active_users
+- weekly_active_users
+- repeat_proof_submitters
+- repeat_purchasers
+- equip_engagement_rate
+- room_switch_engagement_rate
+- car_switch_engagement_rate
+- wheel_switch_engagement_rate
+
+### Retention KPIs
+- D1 retention
+- D7 retention
+- user return rate
+- failed_first_week_recovery_rate if measurable
+
+### Quality / Risk KPIs
+- judge_failure_rate
+- provider_fallback_rate
+- duplicate_proof_rate
+- reward_failure_rate
+- anomalous_wallet_delta_count
+
+For each KPI define:
+- exact description
+- formula
+- numerator
+- denominator
+- event dependencies
+- data source
+- update cadence
+- caveats
+- launch critical or not
+
+Do NOT leave definitions vague.
+
+==================================================
+STEP 6 — INSTRUMENT THE CORE PRODUCT FLOWS
+==================================================
+
+Add or standardize instrumentation for the highest-value existing flows only.
+
+Instrument these flows end-to-end:
+
+1. register / login
+2. create mission
+3. start focus / stop session
+4. submit proof
+5. judge verdict
+6. reward grant
+7. wallet delta
+8. buy item
+9. equip/switch item
+10. switch room / car / wheel / wardrobe
+11. character update after approved progress
+
+Rules:
+- backend-confirmed events are the source of truth for critical KPIs
+- frontend interaction events may be used for UX/supporting metrics only
+- avoid duplicate emission
+- event payloads must be compact but sufficient
+- sensitive/private data must not be logged unnecessarily
+- use consistent user and entity identifiers
+
+If a unified telemetry helper does not exist, create a lightweight one.
+Do NOT build an over-engineered event bus.
+
+==================================================
+STEP 7 — BUILD THE FUNNELS
+==================================================
+
+Define and implement at minimum these funnels:
+
+### Funnel A — New User Activation Funnel
+registered
+→ mission_created
+→ focus_session_started
+→ proof_submitted
+→ proof_approved
+→ first_reward_granted
+→ first_purchase
+
+### Funnel B — Core Productivity Loop
+mission_created
+→ focus_session_started
+→ focus_session_stopped
+→ proof_submitted
+→ verdict_returned
+→ reward_granted
+
+### Funnel C — Status Adoption Funnel
+approved_progress
+→ wallet_growth
+→ first_item_purchase
+→ first_equip
+→ first_room/car/visual identity use
+
+### Funnel D — Trust Risk Funnel
+proof_submitted
+→ follow-up/reject
+→ resubmission
+→ approval or churn risk
+
+For each funnel define:
+- steps
+- exact event sources
+- conversion rate
+- where drop-off is measured
+- whether the funnel is launch critical
+
+==================================================
+STEP 8 — BUILD THE DASHBOARD DATA LAYER
+==================================================
+
+Create the minimum practical data layer to power the dashboard.
+
+Preferred approach:
+- server-side aggregation
+- safe query layer
+- reusable metric functions
+- avoid heavy raw client queries
+
+Implement:
+1. metrics service
+2. query layer
+3. date-range support
+4. daily/weekly aggregation support
+5. cohort-friendly helper structure where reasonable
+6. guardrails for empty/no-data states
+
+If current DB tables are sufficient, query directly.
+If aggregation helpers are needed, add them.
+If SQL views help and fit the codebase, use them carefully.
+Do NOT overbuild a warehouse.
+
+==================================================
+STEP 9 — BUILD THE DASHBOARD UI v1
+==================================================
+
+Create a founder/admin-facing dashboard v1.
+
+Use the existing admin/ops console patterns if present.
+Do NOT redesign the app.
+This should be practical, fast, and easy to scan.
+
+At minimum include sections/cards for:
+
+### Section 1 — Topline Health
+- registrations
+- DAU / WAU
+- D1 / D7 retention if available
+- missions created
+- proofs submitted
+- proofs approved
+- rewards granted
+- coins minted
+- coins spent
+
+### Section 2 — Core Funnel
+- activation funnel
+- core productivity loop funnel
+- step conversion rates
+- biggest drop-off step
+
+### Section 3 — Trust / Judge
+- approval / follow-up / reject split
+- judge failure rate
+- fallback rate
+- duplicate/suspicious proof signals
+
+### Section 4 — Economy
+- net coin delta
+- avg reward
+- avg purchase value
+- time to first purchase
+- top purchased categories
+- inflation/risk indicators
+
+### Section 5 — Status Engagement
+- wardrobe equip engagement
+- room switch engagement
+- car switch engagement
+- wheel switch engagement
+- character progress updates
+
+### Section 6 — Alerts / Watchlist
+- unusual reward failures
+- unusual judge failures
+- abnormal wallet deltas
+- sudden approval collapse
+- sudden proof submission drop
+
+UI rules:
+- prioritize readability
+- avoid clutter
+- show clear date ranges
+- support empty states
+- support loading states
+- support error states
+- no vanity charts
+- every panel must answer a product or ops question
+
+==================================================
+STEP 10 — DEFINE THE ALERT / WATCHLIST RULES
+==================================================
+
+Create a practical alert/watchlist definition.
+
+At minimum define conditions for:
+- proof submission drops sharply
+- approval rate drops sharply
+- judge failure rate spikes
+- provider fallback spikes
+- reward failures occur
+- anomalous wallet changes appear
+- purchase conversion collapses
+- first purchase latency worsens
+- suspicious duplicate proof rate rises
+
+For each alert define:
+- metric
+- threshold logic
+- why it matters
+- recommended first investigation step
+
+Do NOT build full notification automation unless trivial and already supported.
+This phase only needs the logic and dashboard visibility.
+
+==================================================
+STEP 11 — METRICS QUALITY RULES
+==================================================
+
+Define data quality rules to prevent bad dashboards.
+
+At minimum handle:
+- duplicate event emission
+- missing entity ids
+- missing timestamps
+- backend-confirmed vs frontend-attempt events
+- retried requests
+- stale client events
+- partial failures
+- timezone consistency
+- null / empty dataset handling
+
+Document what counts as:
+- trustworthy metric
+- directional metric
+- currently incomplete metric
+
+Be honest about limitations.
+
+==================================================
+STEP 12 — SECURITY, PRIVACY, ERROR HANDLING, EDGE CASES
+==================================================
+
+## 🔐 SECURITY / PRIVACY
+- do not expose sensitive user data in dashboard payloads
+- keep dashboard access admin/founder only
+- no raw proof content in metrics views unless already explicitly allowed
+- no secret tokens / private metadata in telemetry payloads
+- financial and trust-sensitive metrics must come from backend-confirmed events
+
+## 🛡️ ERROR HANDLING
+- dashboard still renders if one query fails
+- clear empty state if data is insufficient
+- clear partial-data state if some metrics are not ready
+- avoid hard crashes on missing events
+- fail safely on bad date range input
+
+## ⚠️ EDGE CASES
+- zero-data system before launch
+- very small sample sizes
+- users with purchases but no recent sessions
+- old data with inconsistent instrumentation
+- events arriving from retried requests
+- item switch without new purchase
+- follow-up then later approval path
+- reward granted after delayed processing
+- missing retention data for immature cohorts
+
+==================================================
+STEP 13 — DOCUMENT THE METRICS LAYER
+==================================================
+
+Create docs that clearly explain:
+- which events exist
+- which KPIs are launch-critical
+- which dashboard panels exist
+- how to interpret each metric
+- what not to overreact to
+- which metrics are incomplete
+- what should be reviewed daily vs weekly
+
+In particular, make it obvious for the founder:
+### Daily review metrics
+- registrations
+- proofs submitted
+- approval/follow-up/reject split
+- rewards granted
+- wallet anomalies
+- purchases
+- biggest funnel drop-off
+- major alert/watchlist signals
+
+### Weekly review metrics
+- D1 / D7 retention
+- first purchase timing
+- room/car/wardrobe adoption
+- judge fallback trend
+- economy mint/spend balance
+- cohort behavior differences
+
+==================================================
+STEP 14 — DO NOT OVER-ENGINEER
+==================================================
+
+Important implementation rules:
+
+1. Do NOT build a giant analytics platform.
+2. Do NOT add metrics for everything just because you can.
+3. Instrument the highest-decision-value surfaces first.
+4. Prefer backend-confirmed events for important KPIs.
+5. Prefer readable docs and clear KPI definitions over fancy visualization.
+6. Keep the dashboard useful for launch and first live iteration.
+7. Preserve performance and avoid expensive fragile queries.
+8. Reuse existing telemetry/audit infrastructure wherever possible.
+
+==================================================
+STEP 15 — ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a metrics audit exists
+2. an event taxonomy exists
+3. a KPI dictionary exists with exact formulas
+4. launch-critical events are instrumented
+5. core funnels are defined and computable
+6. economy metrics are defined and computable
+7. trust/judge metrics are defined and computable
+8. a founder/admin dashboard v1 exists
+9. alert/watchlist rules exist
+10. metrics risks and limitations are documented
+11. dashboard access is appropriately restricted
+12. no new gameplay scope was added
+13. the dashboard helps answer real product questions
+14. the system is easier to measure after this phase than before
+
+==================================================
+STEP 16 — DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary
+- what telemetry already existed
+- what was missing
+- what was reused
+- what was instrumented in this phase
+
+2. Files created or changed in this run only
+
+3. Metrics documentation summary
+- event taxonomy
+- KPI dictionary
+- funnel definitions
+- dashboard spec
+- alert/watchlist
+- known risks
+
+4. Instrumentation summary
+- which events were added or standardized
+- which are backend-confirmed
+- which are still approximate or incomplete
+
+5. Dashboard summary
+- sections implemented
+- metrics shown
+- date ranges supported
+- access restrictions
+
+6. Verification results
+- typecheck/build status
+- tests status
+- dashboard load status
+- any remaining non-blocking issues
+
+7. Launch recommendation
+- METRICS READY or NOT READY
+- if NOT READY, list the exact blockers
+
+==================================================
+IMPORTANT OPERATING RULES
+==================================================
+
+- Audit before instrumenting
+- Keep scope narrow
+- Do not restart the project
+- Do not invent a new product direction
+- Do not build a giant BI system
+- Do not silently rely on ambiguous events
+- Prefer useful decision metrics over vanity metrics
+- Preserve trust-critical and economy-critical truth sources

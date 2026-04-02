@@ -1,0 +1,752 @@
+Use docs/life-rpg-master-spec.md, the AI Handoff Master Brief, the existing Replit codebase, and all completed Phase 27–32 artifacts as the permanent source of truth.
+
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+# Phase 33 — Trust Engine v2
+Version: 1.0 | Platform: Replit | Scope: Fair verdicts, anti-gaming, confidence routing, explainability, trust logging, low-cost decision safety
+
+## 🎯 PROJECT OVERVIEW
+Build Trust Engine v2 for the existing Life RPG app.
+
+This phase is NOT about adding new gameplay.
+This phase is NOT about building a giant AI moderation platform.
+This phase is about making proof judgment more trustworthy, more consistent, more explainable, and more resilient.
+
+The trust engine must improve:
+- verdict fairness
+- consistency across similar cases
+- protection against low-effort or fake submissions
+- confidence-aware routing
+- low-cost handling for easy cases
+- escalation for ambiguous/high-risk cases
+- logging for future learning and audits
+
+The target outcome:
+1. trivial or obviously invalid proofs are handled safely and cheaply
+2. high-confidence clean proofs are handled consistently
+3. ambiguous proofs do not get over-rewarded
+4. suspicious patterns are flagged instead of blindly approved
+5. verdicts become easier to explain and audit
+6. the system gains a reusable trust foundation for future personalization and data flywheel phases
+
+==================================================
+PHASE SCOPE ONLY
+==================================================
+
+Build only the minimum strong Trust Engine v2 foundation needed for fairer judgment and launch-stage scale.
+
+Required outputs for this phase:
+1. trust audit
+2. trust doctrine
+3. verdict schema standardization
+4. confidence model
+5. routing model for easy / ambiguous / risky cases
+6. anti-gaming signal layer
+7. explainability layer for verdict reasons
+8. trust logging / audit improvements
+9. manual review escalation rules
+10. trust engine config structure
+11. lightweight trust metrics definitions
+12. repo documentation for trust logic and known limitations
+
+Do NOT build:
+- a full ML training platform
+- a giant moderation dashboard
+- a new reward system
+- a social reputation network
+- a full appeals product
+- a heavy human-review workflow platform
+- a massive policy engine disconnected from current product rules
+- personalization systems beyond what is needed for trust routing
+- new gameplay features
+
+If the app already has:
+- pre-screening
+- duplicate detection
+- trust score
+- rule-based judge fallback
+- provider fallback
+reuse and strengthen them.
+
+Do NOT replace working systems blindly.
+Upgrade them into a clearer Trust Engine v2.
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything, inspect and report the current trust-related system across:
+
+A. Existing proof pipeline
+- proof submission entry points
+- proof types supported
+- proof validation
+- pre-screen checks
+- duplicate detection
+- proof states
+- proof re-submission behavior
+
+B. Existing judge logic
+- AI providers used
+- rule-based fallback
+- current verdict schema
+- current reward/no-reward handling
+- current follow-up behavior
+- provider failure handling
+- current confidence handling if any
+
+C. Existing trust-related data
+- user trust score if present
+- suspicious proof markers
+- duplicate proof signals
+- reward history
+- proof history
+- recent approval/reject patterns
+- any audit trail that exists
+
+D. Existing fairness risks
+- similar proofs getting inconsistent outcomes
+- clearly low-effort proofs passing too easily
+- real effort being over-rejected
+- follow-up/reject reasoning too vague
+- duplicate or near-duplicate submissions slipping through
+- provider variability producing inconsistent results
+- cost too high because every case is treated equally
+
+E. Existing operational surfaces
+- support tools
+- audit logs
+- metrics from Phase 29
+- incident handling from Phase 30
+- any admin review paths
+
+F. Current architecture risks
+- trust logic scattered across files
+- reward logic too tightly coupled to verdict logic
+- lack of structured explanation
+- lack of confidence/risk separation
+- no clear escalation path
+- no consistent logging for later analysis
+
+Your audit must identify:
+1. what already exists
+2. what is reusable
+3. what is too permissive
+4. what is too harsh
+5. what is inconsistent
+6. what must be centralized in this phase
+
+Do not guess blindly.
+Audit first, then upgrade.
+
+==================================================
+STEP 2 — DEFINE THE TRUST DOCTRINE
+==================================================
+
+Create a clear v2 trust doctrine.
+
+The trust engine must satisfy all of these simultaneously:
+
+### Goal A — Fairness
+Users doing real work should not feel randomly punished.
+The same type of submission should produce roughly similar outcomes.
+
+### Goal B — Friction With Purpose
+Not every proof should be instantly approved.
+Low-quality or ambiguous submissions should be challenged appropriately.
+
+### Goal C — Anti-Gaming
+The engine must resist:
+- empty effort
+- duplicated effort
+- template spam
+- obvious low-signal submissions
+- suspicious repeated patterns
+
+### Goal D — Explainability
+Every non-trivial verdict should have usable reasons:
+- why it passed
+- why it got follow-up
+- why it was rejected
+- what is missing if more proof is needed
+
+### Goal E — Cost Discipline
+Easy cases should not consume expensive processing unnecessarily.
+Ambiguous or risky cases deserve stronger handling.
+
+### Goal F — Future Extensibility
+The trust layer should create foundations for:
+- future personalization
+- future appeals/review
+- future data flywheel
+- future smarter routing
+
+==================================================
+STEP 3 — STANDARDIZE THE VERDICT MODEL
+==================================================
+
+Create a clear structured verdict schema and migrate existing trust/judge outputs toward it.
+
+At minimum define verdict states such as:
+- approved
+- followup_required
+- rejected
+- flagged_for_review if needed and feasible
+- system_error / retry_safe if needed
+
+For each verdict define:
+- meaning
+- reward eligibility
+- whether progression may advance
+- whether user feedback is shown
+- whether manual review may be required
+- whether it is trust-sensitive
+
+Create a structured verdict payload shape such as:
+
+- verdict
+- confidence_level
+- confidence_score if appropriate
+- trust_risk_level
+- reward_decision
+- progression_decision
+- primary_reasons[]
+- missing_requirements[]
+- suspicious_signals[]
+- escalation_recommended
+- provider_used
+- rules_triggered
+- evaluation_version
+
+Rules:
+1. avoid vague freeform-only responses
+2. keep output structured and auditable
+3. make it safe for logging and analytics
+4. do not expose unsafe internal prompts or secrets to clients
+5. ensure reward and progression are downstream consequences of structured verdicts, not fuzzy side effects
+
+==================================================
+STEP 4 — BUILD THE TRUST ROUTING MODEL
+==================================================
+
+Create a lightweight trust routing model.
+
+At minimum define these case classes:
+
+### Class A — Easy Clean Case
+Examples:
+- valid structured submission
+- no duplicate/suspicious signals
+- strong evidence
+- low ambiguity
+
+Handling:
+- cheapest valid route
+- high-confidence fast decision
+- structured verdict
+- audit log retained
+
+### Class B — Ambiguous Case
+Examples:
+- some effort present but insufficient detail
+- unclear evidence
+- borderline quality
+- incomplete explanation
+- weak image/text linkage
+
+Handling:
+- follow-up preferred over blind reject
+- request better evidence
+- stronger reasoning output
+- no reward until resolved
+
+### Class C — Risky / Suspicious Case
+Examples:
+- near-duplicate proof
+- repeated low-effort patterns
+- suspicious timing or volume
+- conflicting evidence
+- abnormal reuse behavior
+
+Handling:
+- stricter scrutiny
+- stronger rule enforcement
+- reward blocked unless high confidence
+- escalation / flagging path if appropriate
+
+### Class D — System / Provider Failure Case
+Examples:
+- provider timeout
+- malformed response
+- unavailable provider
+- empty model output
+
+Handling:
+- safe fallback
+- no accidental reward
+- retry-safe or follow-up-safe response
+- trust log entry
+
+For each class define:
+- routing rule
+- provider or rule path
+- allowed verdicts
+- escalation behavior
+- reward safety constraints
+- logging requirements
+
+==================================================
+STEP 5 — BUILD THE CONFIDENCE MODEL
+==================================================
+
+Create a practical confidence system.
+
+This does NOT need advanced ML.
+It needs a bounded launch-safe confidence layer.
+
+At minimum define:
+- confidence_low
+- confidence_medium
+- confidence_high
+
+Confidence should consider factors such as:
+- completeness of submission
+- clarity of explanation
+- evidence quality/signal
+- consistency with expected proof type
+- duplicate/suspicious signals
+- provider certainty if available
+- fallback/rule-based confidence
+- user history only if already available and safe to use
+
+Rules:
+- low confidence should never mint full reward casually
+- medium confidence may produce follow-up more often
+- high confidence may approve only if no serious risk signal exists
+- confidence must not be confused with trustworthiness of the user alone
+- current user trust score, if used, must be only one signal, not absolute truth
+
+Create a documented confidence rubric and central config.
+
+==================================================
+STEP 6 — BUILD THE ANTI-GAMING SIGNAL LAYER
+==================================================
+
+Create a lightweight anti-gaming layer using current available data and logic.
+
+At minimum evaluate signals such as:
+- exact duplicate proof
+- near-duplicate text pattern
+- repeated boilerplate explanations
+- repeated suspicious submission timing
+- low-information submissions
+- inconsistent proof-to-mission mapping
+- same content reused across submissions
+- abnormal approval-seeking spam behavior
+- repeated follow-up-triggering behavior
+- repeated suspicious failures after rewards if trackable
+
+For each signal define:
+- signal name
+- trigger logic
+- severity
+- whether it blocks approval directly
+- whether it lowers confidence
+- whether it recommends follow-up
+- whether it recommends escalation
+- false-positive risk
+
+Do NOT create aggressive punishment systems in this phase.
+Focus on:
+- safe detection
+- confidence adjustment
+- escalation
+- protection against obvious abuse
+
+==================================================
+STEP 7 — BUILD THE EXPLAINABILITY LAYER
+==================================================
+
+Create a structured explanation system for verdicts.
+
+At minimum the trust engine must be able to produce:
+- primary reason for verdict
+- secondary reasons if relevant
+- what is missing in follow-up cases
+- safe rejection guidance
+- safe approval explanation for audits
+- operator-facing explanation details where useful
+
+Create reason codes such as:
+- evidence_clear
+- evidence_insufficient
+- explanation_too_short
+- duplicate_detected
+- suspicious_pattern_detected
+- mission_mismatch
+- low_confidence
+- provider_failure_fallback
+- incomplete_submission
+- strong_consistency_signal
+
+Rules:
+1. user-facing explanations must be understandable and calm
+2. operator-facing explanations may be more detailed
+3. explanation codes must be loggable and analytics-friendly
+4. do not overexpose exploitable internals
+5. explanations should reduce support burden and perceived randomness
+
+==================================================
+STEP 8 — DEFINE MANUAL REVIEW / ESCALATION RULES
+==================================================
+
+Create a lightweight escalation framework.
+
+Do NOT build a giant manual review system.
+Define the rules first.
+
+At minimum define:
+- when a case should be flagged
+- when support/admin may inspect
+- when engineering must investigate
+- when reward must remain blocked
+- when the case is safe to auto-follow-up instead of escalate
+- when repeated suspicious behavior should be logged for future policy review
+
+Examples:
+- high reward + low confidence + suspicious signal
+- provider disagreement or malformed evaluation
+- repeated user complaint on inconsistent verdicts
+- impossible state: approved verdict but blocked progression, or vice versa
+- reward granted on a verdict that should not have rewarded
+
+If minimal admin review surfaces already exist, reuse them.
+If a tiny review-read surface is necessary, add only the minimum safe, auditable version.
+
+==================================================
+STEP 9 — BUILD THE TRUST CONFIG LAYER
+==================================================
+
+Create a centralized trust config structure.
+
+Recommended structure:
+
+/shared/trust/
+  trustConfig.ts
+  verdictTypes.ts
+  confidenceRules.ts
+  antiGamingSignals.ts
+  reasonCodes.ts
+  trustRouting.ts
+  trustUtils.ts
+
+/server/trust/
+  trustEngine.ts
+  trustEvaluator.ts
+  trustLogging.ts
+  trustRoutes.ts if needed
+  trustReviewService.ts if needed and minimal
+
+Adapt to repo conventions if needed.
+
+At minimum centralize:
+- verdict enums
+- confidence levels
+- trust risk levels
+- reason codes
+- anti-gaming signal definitions
+- routing thresholds
+- escalation thresholds
+- evaluation versioning
+
+Requirements:
+1. no scattered trust magic numbers
+2. no duplicated verdict semantics
+3. one clear source of truth
+4. easy future tuning
+5. clear comments and documentation
+
+==================================================
+STEP 10 — BUILD TRUST LOGGING / AUDIT IMPROVEMENTS
+==================================================
+
+Upgrade trust-related logs so the system can be reviewed later.
+
+At minimum log:
+- proof id
+- user id
+- mission/session context
+- verdict
+- confidence level
+- risk level
+- reason codes
+- suspicious signals
+- provider used
+- fallback used
+- escalation flag
+- evaluation version
+- reward decision
+- progression decision
+- timestamp
+
+Rules:
+- logs must be safe and structured
+- logs must support support/ops debugging
+- logs must support future metrics
+- avoid dumping raw sensitive content unless already allowed and necessary
+- do not create noisy useless logs
+
+If existing audit logs are already strong, extend them instead of duplicating another system.
+
+==================================================
+STEP 11 — DEFINE TRUST METRICS
+==================================================
+
+Without building a huge analytics system, define trust metrics that Phase 29 can consume.
+
+At minimum define:
+- approval rate
+- follow-up rate
+- reject rate
+- low/medium/high confidence distribution
+- suspicious signal rate
+- duplicate detection rate
+- provider fallback rate
+- system failure rate
+- escalation rate
+- reward-blocked-by-risk count
+- repeat follow-up user rate
+- inconsistent verdict investigation count if measurable
+
+For each metric define:
+- formula
+- event/log dependencies
+- why it matters
+- what threshold might be concerning
+- whether launch-critical or directional only
+
+Also define a watchlist for:
+- sudden approval spike
+- sudden approval collapse
+- suspicious signal spike
+- provider instability spike
+- follow-up rate becoming too high
+- reject rate becoming unfairly high
+
+==================================================
+STEP 12 — APPLY THE TRUST ENGINE TO ACTIVE FLOWS
+==================================================
+
+Apply Trust Engine v2 only to active proof/reward/progression flows.
+
+At minimum ensure it controls or influences:
+- proof pre-screen
+- verdict generation
+- follow-up generation
+- reward gating
+- progression gating
+- suspicious case logging
+- fallback behavior
+- support/audit visibility
+
+Do NOT let:
+- low-confidence risky cases mint full rewards casually
+- provider failure accidentally approve
+- follow-up cases advance progression
+- rejected cases advance progression
+- suspicious duplicate cases pass as clean approvals without explicit safe reason
+
+Do NOT rewrite unrelated mission, economy, or UI systems except as needed for trust integration.
+
+==================================================
+STEP 13 — USER-FACING TRUST MESSAGING
+==================================================
+
+Create or refine trust-related user-facing copy where needed.
+
+At minimum improve messages for:
+- follow-up required
+- rejected proof
+- system retry-safe issue
+- suspicious/duplicate safe messaging without sounding accusatory
+- what to do next for successful resubmission
+
+Tone rules:
+- calm
+- fair
+- non-hostile
+- specific enough to help
+- not exploitable
+- not humiliating
+
+Avoid:
+- sounding random
+- sounding punitive without reason
+- leaking detailed detection methods
+- blaming the user unnecessarily
+
+==================================================
+STEP 14 — SECURITY, FAIRNESS, ERROR HANDLING, EDGE CASES
+==================================================
+
+## 🔐 SECURITY
+Explicitly protect against:
+- duplicate reward minting through verdict confusion
+- provider malformed output causing accidental approval
+- suspicious repeated submissions bypassing checks
+- unsafe admin review powers
+- inconsistent verdict-to-reward mapping
+- route-level replay or duplicate processing
+
+## ⚖️ FAIRNESS
+Explicitly review for:
+- similar submissions treated similarly
+- real effort not punished too harshly
+- follow-up used instead of reject when ambiguity is fixable
+- user history not overriding real evidence unfairly
+- confidence and suspicion used carefully, not as blunt punishment
+
+## 🛡️ ERROR HANDLING
+Handle:
+- provider timeout
+- empty model result
+- malformed structured result
+- fallback failure
+- missing proof metadata
+- evaluation version mismatch
+- logging failure
+- reward/progression write blocked after verdict
+
+## ⚠️ EDGE CASES
+Document and handle:
+- user submits solid text-only proof if allowed
+- user submits image with weak explanation
+- duplicate content with slightly changed wording
+- high trust user submits weak evidence
+- low trust user submits strong evidence
+- follow-up then strong resubmission
+- provider disagreement across retries
+- suspicious signal appears but evidence is otherwise strong
+- approved verdict returned but downstream reward write fails
+- progression update lags after correct approval
+
+==================================================
+STEP 15 — CREATE THE TRUST DOCS
+==================================================
+
+Create a clear docs structure.
+
+Recommended structure:
+
+/docs/trust/
+  trust-audit.md
+  trust-doctrine.md
+  verdict-schema.md
+  confidence-model.md
+  trust-routing.md
+  anti-gaming-signals.md
+  explainability-reason-codes.md
+  escalation-rules.md
+  trust-metrics.md
+  known-trust-risks.md
+
+Document:
+- what changed
+- what stayed the same
+- what is now centralized
+- what still remains imperfect
+- what future phases should extend
+
+==================================================
+STEP 16 — DO NOT OVER-ENGINEER
+==================================================
+
+Important implementation rules:
+
+1. Do NOT build a giant AI trust platform.
+2. Do NOT invent overly complex scoring models.
+3. Do NOT turn suspicion into automatic punishment everywhere.
+4. Prefer clear routing, reason codes, and bounded confidence over black-box complexity.
+5. Reuse existing proof/judge/reward systems where possible.
+6. Keep the trust engine auditable and understandable.
+7. Optimize for launch-stage fairness and safety first.
+8. Make future personalization and data flywheel phases easier, not harder.
+
+==================================================
+STEP 17 — ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a trust audit exists
+2. a trust doctrine exists
+3. verdict schema is standardized
+4. confidence model is defined and implemented
+5. routing model exists for easy / ambiguous / risky / failure cases
+6. anti-gaming signal layer exists
+7. explainability reason codes exist
+8. trust config is centralized
+9. trust logging is improved and structured
+10. manual review/escalation rules exist
+11. trust metrics are defined
+12. user-facing trust messaging is improved where needed
+13. no new gameplay scope was added
+14. verdict fairness and safety are better than before
+15. reward/progression trust integrity is stronger than before
+
+==================================================
+STEP 18 — DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary
+- what trust logic already existed
+- what was missing
+- what was reused
+- what was upgraded in this phase
+
+2. Files created or changed in this run only
+
+3. Trust documentation summary
+- doctrine
+- verdict schema
+- confidence model
+- routing model
+- anti-gaming signals
+- reason codes
+- escalation rules
+- trust metrics
+- known risks
+
+4. Trust system summary
+- what was centralized
+- how routing now works
+- how confidence now works
+- how suspicious cases are handled
+- how reward/progression safety improved
+
+5. Verification results
+- typecheck/build status
+- tests status
+- trust flow validation status
+- any remaining non-blocking trust gaps
+
+6. Launch recommendation
+- TRUST ENGINE V2 READY or NOT READY
+- if NOT READY, list the exact blockers
+
+==================================================
+IMPORTANT OPERATING RULES
+==================================================
+
+- Audit before upgrading
+- Keep scope narrow
+- Do not restart the project
+- Do not invent a new product direction
+- Do not build a giant moderation platform
+- Do not silently punish users with opaque logic
+- Prefer fair explainable structure over black-box cleverness
+- Preserve reward integrity and progression integrity at all costs

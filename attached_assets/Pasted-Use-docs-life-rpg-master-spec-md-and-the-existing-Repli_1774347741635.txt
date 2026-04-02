@@ -1,0 +1,610 @@
+Use docs/life-rpg-master-spec.md and the existing Replit codebase as the permanent source of truth.
+
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+# Phase 27 — QA / Regression Foundation
+Version: 1.0 | Platform: Replit | Scope: Stability, verification, release gating
+
+## 🎯 PROJECT OVERVIEW
+Build a real QA / Regression Foundation for the existing Life RPG app so core flows do not break when other systems are edited.
+
+This phase is NOT about adding new gameplay.
+This phase is about making the current product launch-safe:
+- testable
+- repeatable
+- auditable
+- releasable
+
+The goal is to protect the product’s most important flows:
+1. register / login
+2. create mission
+3. start focus / stop session
+4. submit proof
+5. judge verdict
+6. reward grant
+7. coin balance update
+8. buy / equip / switch room / switch car / wheel / wardrobe
+9. character update after verified progress
+
+==================================================
+PHASE SCOPE ONLY
+==================================================
+
+Build only the minimum QA / Regression Foundation needed to make the app safe to iterate on.
+
+Required outputs for this phase:
+1. Regression checklist
+2. Smoke test list
+3. Critical path pass/fail matrix
+4. Bug severity rules
+5. Release gate before deploy
+6. Minimal automated regression coverage for high-risk logic
+7. Minimal fixtures / reset tooling for repeatable QA
+8. QA documentation inside the repo
+9. Verification that no P0 / P1 blockers remain open at end of run
+
+Do NOT build:
+- new game systems
+- new missions
+- new monetization features
+- new room/car/store content
+- redesigns
+- new admin dashboards beyond what is required for QA support
+- heavy end-to-end test infrastructure if the repo does not already support it
+
+If a full E2E framework does not already exist, do NOT force one in this phase.
+Prefer:
+- targeted logic tests
+- lightweight API/integration tests
+- manual QA sheets
+- deterministic smoke scripts
+- release-gate documentation
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing any code, inspect and report the current state of:
+
+A. Auth
+- register flow
+- login flow
+- auth token/session handling
+- logout behavior
+- invalid credential handling
+- duplicate email handling
+- account state edge cases
+
+B. Mission flow
+- mission creation path
+- mission editing if it exists
+- mission category / proof requirement mapping
+- active mission lifecycle
+- any mission completion assumptions
+
+C. Focus session flow
+- start focus session
+- pause/resume if present
+- stop session
+- end early / abandon if present
+- minimum duration checks
+- duplicate stop prevention
+- active session edge cases
+
+D. Proof flow
+- proof submission entry points
+- text / image / link / file support
+- duplicate detection
+- proof validation
+- proof status transitions
+- retry / resubmission handling
+
+E. Judge flow
+- AI judge provider routing
+- fallback rules
+- confidence / verdict handling
+- follow-up state
+- rejection reasons
+- provider failure handling
+- any cost-saving short-circuit logic
+
+F. Reward / wallet / coin flow
+- reward calculation
+- reward grant transaction safety
+- wallet update
+- duplicate reward prevention
+- balance integrity
+- rollback behavior on failure
+
+G. Store / ownership flow
+- buy wearable
+- equip / unequip wearable
+- buy car
+- select color variant
+- select wheel
+- buy / switch room environment
+- purchase validation
+- already-owned handling
+- insufficient funds handling
+
+H. Character progression flow
+- when character visual state updates
+- what data triggers it
+- whether rejected/follow-up proof incorrectly advances progression
+- whether approved proof reliably updates progression everywhere
+
+I. Existing testing setup
+- current unit test framework
+- current integration test setup
+- current smoke scripts
+- current CI/check scripts
+- current seed/reset scripts
+- whether test data is deterministic or fragile
+
+Your audit must identify:
+1. what is already covered
+2. what is missing
+3. what is high-risk
+4. what is flaky
+5. what must be protected before release
+
+Do not change architecture blindly.
+Audit first, then implement the minimum strong QA foundation.
+
+==================================================
+STEP 2 — DEFINE THE QA SURFACES TO PROTECT
+==================================================
+
+Create a repo-level QA inventory that clearly defines:
+
+1. Core flow surfaces
+2. Supporting dependencies
+3. Data integrity checkpoints
+4. User-visible failure points
+5. Financial / reward integrity risk points
+6. Regression-prone areas
+
+At minimum, define these protected surfaces:
+
+### Protected Surface A — Auth Integrity
+- register with valid email/password
+- reject invalid email
+- reject duplicate email
+- login succeeds with correct credentials
+- login fails with wrong credentials
+- authenticated route rejects unauthenticated access
+- logout/session invalidation works if applicable
+
+### Protected Surface B — Mission Lifecycle
+- create mission works
+- required fields validated
+- category and proof requirements persist correctly
+- mission can enter active state
+- mission cannot enter invalid broken state
+
+### Protected Surface C — Focus Session Integrity
+- start session creates only one active session
+- second active session is blocked if that is the product rule
+- stop/end transitions session correctly
+- end-early / abandon does not accidentally count as completion
+- invalid stop does not corrupt session state
+- pause/resume if present does not break timer/session logic
+
+### Protected Surface D — Proof Submission Integrity
+- proof can be submitted only against valid target/session/mission rules
+- empty or invalid proof is rejected
+- duplicate exact proof is blocked if that is the rule
+- suspicious repeated proof is flagged correctly
+- file/image metadata is handled safely
+- proof status persists correctly
+
+### Protected Surface E — Judge Integrity
+- judge returns structured result
+- provider failure falls back safely
+- no verdict returns malformed or uncaught response
+- follow-up does not accidentally grant reward
+- reject does not grant reward
+- approve grants reward exactly once
+- same proof cannot be judged into multiple rewards
+
+### Protected Surface F — Reward / Wallet Integrity
+- reward amount matches expected logic
+- reward transaction is atomic
+- coin balance updates exactly once
+- duplicate approval cannot mint duplicate rewards
+- failed reward write does not partially update state
+- insufficient balance checks protect purchases
+
+### Protected Surface G — Ownership / Purchase Integrity
+- buy item deducts correct coins
+- already-owned item is not double-charged
+- equip/switch owned item works
+- buying without enough coins fails cleanly
+- switching to previously owned wheel/style/environment does not charge again if that is the rule
+- invalid category mismatch fails safely
+- ownership records persist correctly
+
+### Protected Surface H — Character Progress Integrity
+- approved progress updates character state
+- rejected proof does not
+- follow-up does not prematurely advance character
+- wardrobe integration still renders after progression update
+- room/garage/world views reflect updated state consistently where expected
+
+==================================================
+STEP 3 — CREATE THE QA FOUNDATION FILES
+==================================================
+
+Create the following docs inside the repo.
+
+Recommended structure:
+
+/docs/qa/
+  qa-inventory.md
+  regression-checklist.md
+  smoke-test-list.md
+  critical-path-matrix.md
+  bug-severity-rules.md
+  release-gate.md
+  manual-qa-sheet.md
+  known-risks-and-gaps.md
+
+You may adjust names slightly if the repo already has a documentation pattern,
+but keep the structure clear and easy to find.
+
+### 3A. qa-inventory.md
+Must list:
+- all protected surfaces
+- routes/screens/components/hooks involved
+- risk level (critical / high / medium / low)
+- data touched
+- failure impact
+- test coverage type (manual / automated / both)
+
+### 3B. regression-checklist.md
+Must include step-by-step repeatable checklist for:
+- auth
+- mission
+- focus
+- proof
+- judge
+- reward
+- wallet
+- store ownership
+- character update
+- room / garage / wardrobe state continuity
+
+This checklist must be practical for a human tester.
+No vague bullets.
+Each item must have:
+- preconditions
+- action
+- expected result
+- actual result field
+- pass/fail checkbox
+
+### 3C. smoke-test-list.md
+Create a short must-run smoke list for every release.
+This is the fastest possible confidence pass.
+
+Smoke test list must be short, brutal, and high-value.
+Only include things that would seriously damage the product if broken.
+
+### 3D. critical-path-matrix.md
+Build a pass/fail matrix table for all critical launch flows.
+
+Columns:
+- flow name
+- entry point
+- dependencies
+- expected success result
+- failure impact
+- severity if broken
+- last verified by
+- last verified at
+- automated/manual
+- release blocker? yes/no
+
+### 3E. bug-severity-rules.md
+Define severity levels clearly:
+
+P0:
+- app unusable
+- auth fully broken
+- reward duplication / coin minting
+- data corruption
+- crash in critical flow
+- purchase/reward financial integrity broken
+
+P1:
+- major core flow blocked
+- proof/judge/reward inconsistent
+- session completion broken
+- owned item cannot be used
+- character progression wrong in core path
+
+P2:
+- degraded behavior with workaround
+- non-critical incorrect UI state
+- partial feature failure not blocking core loop
+
+P3:
+- cosmetic / copy / spacing / low-risk issues
+- small edge-case issues with minimal user harm
+
+Include examples specific to this app.
+
+### 3F. release-gate.md
+Create a strict release gate:
+A build cannot be considered releasable unless:
+1. all smoke tests pass
+2. all critical-path manual checks pass
+3. no open P0
+4. no open P1
+5. wallet/reward/purchase integrity verified
+6. auth verified
+7. proof/judge fallback behavior verified
+8. typecheck/build/dev server still run cleanly
+9. known risks explicitly documented
+10. any skipped tests are called out with reason
+
+### 3G. manual-qa-sheet.md
+Create a human-friendly test execution sheet for repeating manual validation before launch.
+
+### 3H. known-risks-and-gaps.md
+Log:
+- things intentionally not covered yet
+- flaky areas
+- temporary limitations
+- manual-only checks
+- future automation candidates
+
+==================================================
+STEP 4 — ADD MINIMAL AUTOMATED REGRESSION COVERAGE
+==================================================
+
+Use the existing test framework if present.
+If no framework exists, add the lightest stable solution that fits the repo.
+Do NOT add a giant brittle framework.
+
+Preferred priority order:
+1. Pure logic tests
+2. API/integration tests for high-risk server flows
+3. Small deterministic smoke scripts
+4. Manual QA docs for mobile/UI surfaces
+
+Automate the highest-risk logic only.
+
+At minimum add coverage for:
+
+### 4A. Auth logic / route coverage
+- successful register
+- duplicate register rejected
+- successful login
+- invalid login rejected
+- protected route rejects unauthenticated request
+
+### 4B. Mission / session guardrails
+- mission creation validation
+- one-active-session rule if applicable
+- invalid stop/end behavior handled safely
+- session end states do not accidentally count as completed when they should not
+
+### 4C. Proof / judge guardrails
+- empty proof rejected
+- exact duplicate proof rejected or flagged according to current rule
+- rule-based fallback returns valid structured verdict
+- provider failure still returns safe structured response
+- follow-up verdict does not grant reward
+- reject verdict does not grant reward
+- approve verdict grants reward exactly once
+
+### 4D. Reward / wallet integrity
+- reward transaction writes exactly once
+- duplicate processing does not duplicate reward
+- balance update equals expected amount
+- rollback on simulated failure leaves no partial balance corruption
+
+### 4E. Purchase / ownership integrity
+- insufficient funds rejects purchase
+- first purchase deducts coins
+- already-owned behavior follows product rule
+- equip/switch owned asset works
+- invalid car/category/wheel/room switch fails cleanly
+
+### 4F. Character update integrity
+- approved progress updates progression state
+- rejected/follow-up state does not trigger same update path
+- character state remains render-safe after progression update
+
+If any current code is too entangled to test cleanly:
+- extract the minimum logic into testable helpers
+- do NOT refactor the whole app
+- do NOT broaden scope
+
+==================================================
+STEP 5 — ADD REPEATABLE QA FIXTURES / RESET TOOLING
+==================================================
+
+Create minimal repeatable QA tooling so testing is not random.
+
+Add the minimum needed, such as:
+- test user seed or fixture generator
+- test mission seed
+- known wallet balances for QA users
+- owned/unowned item states where useful
+- reset script for proof/reward/session test data
+
+Recommended deliverables:
+- scripts or commands for seeding/resetting QA state
+- a documented QA user matrix
+
+Example QA user matrix:
+- fresh_user
+- active_user_with_missions
+- user_with_owned_items
+- user_with_low_balance
+- user_with_progressed_character
+- suspicious_proof_user if useful for trust/judge checks
+
+Do not create bloated fake data.
+Create only what helps repeat core regression checks reliably.
+
+==================================================
+STEP 6 — IMPLEMENT A RELEASE-SAFE SMOKE COMMAND
+==================================================
+
+Add a single easy-to-run release smoke command if practical in this repo.
+
+Examples:
+- npm run qa:smoke
+- pnpm qa:smoke
+- yarn qa:smoke
+
+This command should run only the highest-value checks.
+It should be fast enough to run before deploy.
+
+If the repo already has scripts, integrate with them instead of inventing a parallel system.
+
+The smoke command should verify as much of this as reasonably possible:
+- auth route sanity
+- mission create sanity
+- focus start/stop sanity
+- proof submission sanity
+- reward/wallet sanity
+- one ownership/purchase sanity path
+- one progression update sanity path
+
+==================================================
+STEP 7 — ERROR HANDLING, SECURITY, AND EDGE CASES
+==================================================
+
+This phase must explicitly define and test the following:
+
+## 🔐 SECURITY
+- unauthenticated access to protected flows
+- duplicate reward submission attempts
+- duplicate purchase attempts
+- invalid ownership switching
+- invalid user/item/session/proof IDs
+- malformed proof payloads
+- race conditions where two reward/purchase actions happen near-simultaneously
+- balance integrity under concurrent requests
+- unsafe file metadata assumptions in proof submissions
+
+## 🛡️ ERROR HANDLING
+- judge provider unavailable
+- database write partially fails
+- network request retried by client
+- stale UI state after purchase or reward
+- session stop called twice
+- proof submit called twice
+- purchase endpoint hit with already-owned asset
+- invalid color/wheel/environment switch target
+- render-safe fallback if progression data is incomplete
+
+## ⚠️ EDGE CASES
+- user submits proof with text only
+- user submits proof with image only if allowed
+- user submits too-short explanation
+- user resubmits after follow-up
+- user abandons session then tries to submit proof
+- user has exactly the minimum coins needed
+- user has zero coins
+- user owns multiple variants
+- user progression updates while a UI screen is open
+- known pre-existing non-blocking issues must be documented separately, not silently ignored
+
+==================================================
+STEP 8 — DO NOT OVER-ENGINEER
+==================================================
+
+Important implementation rules:
+
+1. Do NOT turn this into a months-long QA platform.
+2. Build the minimum strong foundation.
+3. Prefer testable helpers over giant refactors.
+4. Prefer deterministic checks over brittle UI automation.
+5. Protect the economic and trust-critical flows first.
+6. If mobile UI automation is too heavy, document manual QA clearly instead.
+7. If some areas cannot be fully automated yet, mark them manual with clear rationale.
+8. Preserve existing product behavior unless a bug is found.
+
+==================================================
+STEP 9 — ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. The repo contains a clear /docs/qa/ documentation set
+2. Regression checklist exists and covers all critical core flows
+3. Smoke test list exists and is short enough to run before every deploy
+4. Critical path pass/fail matrix exists
+5. Bug severity rules exist with app-specific examples
+6. Release gate exists and clearly defines “must pass before release”
+7. Minimal automated regression coverage exists for the highest-risk logic
+8. QA fixtures/reset tooling exists or equivalent deterministic test setup exists
+9. High-risk reward/wallet/purchase duplication paths are explicitly tested
+10. Proof/judge fallback and failure behavior are explicitly tested
+11. Character progression update after approved proof is verified
+12. No blocker-level regressions are left open at the end of this phase
+13. No new gameplay scope was added
+14. Existing working flows remain intact
+
+==================================================
+STEP 10 — DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary
+- what already existed
+- what was fragile
+- what was missing
+- what was protected in this phase
+
+2. Files created or changed in this run only
+
+3. QA documentation summary
+- regression checklist
+- smoke test list
+- critical path matrix
+- bug severity rules
+- release gate
+- manual QA sheet
+- known risks and gaps
+
+4. Automated coverage summary
+- what logic/routes were tested
+- what is still manual
+- what was intentionally deferred
+
+5. Fixture/reset summary
+- QA users or seeds created
+- reset commands
+- smoke command
+
+6. Verification results
+- typecheck/build status
+- tests pass/fail
+- smoke command result
+- any remaining non-blocking issues
+
+7. Release recommendation
+- READY or NOT READY
+- if NOT READY, list exact blockers by severity
+
+==================================================
+IMPORTANT OPERATING RULES
+==================================================
+
+- Audit before implementing
+- Keep scope narrow
+- Do not restart the project
+- Do not invent a new product direction
+- Do not remove existing features
+- Do not silently ignore high-risk gaps
+- Prefer minimal stable implementation over clever complexity
+- Preserve launch-critical behavior at all costs

@@ -1,0 +1,421 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+VISUAL REFERENCE (see attached image):
+The attached image shows KEN — Prototype Character.
+This is the EXACT style required:
+- Semi-realistic illustration style
+- Adult male proportions (1:7 head-to-body ratio)
+- NOT cartoon, NOT chibi, NOT rounded/childish
+- White cotton tee + raw indigo denim jeans
+- Dog tag necklace, leather wrist bracelet
+- Canvas sneakers
+- Front view, Side view, Back view all visible
+- Muscle definition visible through shirt
+- Realistic face with defined jaw and features
+
+Goal:
+Replace the current cartoon character renderer
+with a premium semi-realistic 3D character
+that can rotate 360 degrees on user swipe/drag.
+
+The character must look as close as possible
+to the KEN prototype concept art.
+
+==================================================
+TECHNICAL APPROACH: React Three Fiber (R3F)
+==================================================
+
+Use React Three Fiber + Three.js to render
+a real-time 3D character that:
+- Matches the KEN prototype visual style
+- Rotates 360° on horizontal swipe/drag
+- Has stylized shading to match illustration look
+- Works smoothly on mobile (60fps target)
+
+Install required packages:
+- @react-three/fiber
+- @react-three/drei
+- expo-gl (already likely installed)
+- expo-three
+
+==================================================
+PART 1 — 3D CHARACTER MODEL
+==================================================
+
+Build the character using Three.js geometry:
+
+BODY CONSTRUCTION:
+Use BoxGeometry + CylinderGeometry + SphereGeometry
+combined to build the character body.
+Apply a stylized "toon shader" or flat shading
+with carefully chosen colors to match the
+semi-realistic illustration style.
+
+Alternatively: use a simple GLTF/GLB model.
+If no model file is available, construct
+procedurally from primitives.
+
+TARGET PROPORTIONS (from reference image):
+- Total height: 10 units
+- Head: 1.2 units (realistic 1:7+ ratio)
+- Shoulders width: 2.8 units
+- Chest: defined, not blocky
+- Waist: slightly narrower than chest
+- Legs: 5 units (long limbs, adult)
+- Arms: relaxed at sides
+
+BODY PARTS LIST:
+- Head (slightly angular, not round)
+- Neck (defined)
+- Torso (chest/shoulders/waist shape)
+- Left arm + right arm (with elbow definition)
+- Left hand + right hand
+- Hips
+- Left leg + right leg (straight, slim)
+- Left foot + right foot (sneaker shape)
+
+==================================================
+PART 2 — MATERIALS AND STYLE
+==================================================
+
+Apply materials to match the reference illustration:
+
+SKIN:
+- Material: MeshToonMaterial or MeshLambertMaterial
+- Base color: matches selected skin tone
+- Subtle gradient on face/neck for depth
+
+HAIR:
+- Dark brown (#2C1810) base
+- Slight highlight (#4A2E1C)
+- Short textured style (starter default)
+- Geometry: layered flat planes or simple mesh
+
+WHITE TEE:
+- Color: #F5F5F5 (off-white, not pure white)
+- Subtle crease/fold lines via geometry
+- Collar defined
+- Sleeve ends visible on arms
+
+RAW INDIGO DENIM:
+- Color: #1A2744 (dark indigo)
+- Slightly lighter at knees: #263355
+- Subtle texture via normal map if possible
+- Slim straight cut geometry
+
+DOG TAG NECKLACE:
+- Thin chain: dark silver (#8A8A8A)
+- Tag: small rectangle, metallic silver
+- Hangs at center chest
+
+LEATHER BRACELET:
+- Right wrist
+- Dark brown (#4A2C0A)
+- Wrap-style geometry
+
+SNEAKERS:
+- Canvas material: #C8BFA8 (beige/grey)
+- Rubber sole: #E8E8E8
+- Simple clean lace detail
+
+==================================================
+PART 3 — LIGHTING SETUP
+==================================================
+
+Replicate the lighting from the reference:
+(Clean, even, slightly directional from top-left)
+
+Setup:
+- AmbientLight: intensity 0.6, color #FFFFFF
+- DirectionalLight: 
+  position: [2, 4, 3]
+  intensity: 1.2
+  color: #FFFFFF
+  castShadow: true
+- FillLight (DirectionalLight):
+  position: [-2, 1, 2]
+  intensity: 0.3
+  color: #C8D8FF (slight blue)
+- BackLight:
+  position: [0, 2, -3]
+  intensity: 0.2
+
+This creates the reference illustration lighting.
+
+==================================================
+PART 4 — 360° ROTATION SYSTEM
+==================================================
+
+Implement smooth 360° rotation:
+
+4A. Gesture Handler
+
+Use react-native-gesture-handler PanGestureHandler:
+
+const panGesture = Gesture.Pan()
+  .onUpdate((e) => {
+    rotation.value = startRotation + 
+      (e.translationX / containerWidth) * Math.PI * 2
+  })
+
+Map horizontal drag to Y-axis rotation.
+Full swipe across screen = one full rotation.
+
+4B. Rotation Behavior
+- Start angle: front facing (0°)
+- Drag right: rotates to show left side → back
+- Drag left: rotates to show right side → back
+- Momentum: slight deceleration after release
+- Snap to: front (0°), side (90°), 
+           back (180°), other side (270°)
+           if user releases near those angles
+
+4C. Auto-rotate (Optional)
+When no interaction for 3 seconds:
+Slowly auto-rotate 360° once to "show off"
+Then stop at front view.
+
+4D. Camera Position
+Camera: position [0, 5, 12]
+Looking at: [0, 4, 0] (character center)
+FOV: 40 (not too wide — prevents distortion)
+Near/Far: 0.1 / 100
+
+==================================================
+PART 5 — SKIN TONE SYSTEM IN 3D
+==================================================
+
+Skin tone changes the material color of:
+- Head/face mesh
+- Neck mesh
+- Hands mesh
+- Any exposed arm skin
+
+5 skin tones:
+  light: '#F5D5B8'
+  mediumLight: '#E8B48A'
+  medium: '#C68A5E'
+  mediumDark: '#8D5524'
+  dark: '#4A2C0A'
+
+Changing skin tone = update material.color
+on all skin meshes simultaneously.
+No re-render needed, just material update.
+
+==================================================
+PART 6 — HAIR STYLE SYSTEM IN 3D
+==================================================
+
+Hair is a separate mesh group.
+Swapping hair style = swap mesh geometry.
+
+6 male hair styles as separate mesh configs:
+1. clean_cut: short layered planes
+2. side_part: swept side geometry  
+3. textured_crop: textured front mass
+4. buzz_cut: close-cropped thin mesh
+5. medium_natural: slightly longer
+6. slicked_back: swept back smooth
+
+Hair color = update hair mesh material color
+8 colors as before.
+
+==================================================
+PART 7 — CHARACTER VIEWER SCREEN
+==================================================
+
+Create a dedicated Character Viewer component:
+File: artifacts/mobile/components/character/
+      CharacterViewer3D.tsx
+
+Screen layout:
+
+HEADER:
+- "CHARACTER" label
+- Customization button (top right)
+
+3D VIEWPORT (70% of screen height):
+- R3F Canvas fills this area
+- Character centered
+- Dark background (#0A0B14)
+- Subtle ambient glow on floor
+  (simple circle gradient below feet)
+
+ROTATION HINT (first time only):
+- Small "↔ Swipe to rotate" label
+- Fades after first interaction
+
+CUSTOMIZATION CONTROLS (below viewport):
+- Skin tone row (5 circles)
+- Hair style row (6 icon buttons)
+- Hair color row (8 circles)
+- [Save] button
+
+==================================================
+PART 8 — PERFORMANCE REQUIREMENTS
+==================================================
+
+Mobile performance rules:
+- Max polygon count: 5,000 triangles total
+- Texture maps: max 512x512 if used
+- Use MeshToonMaterial (cheaper than PBR)
+- Disable shadows on mobile if performance drops
+- Target 60fps on iPhone 12 / mid Android
+- Lazy load the 3D canvas
+
+Performance switches:
+const isMobile = Platform.OS !== 'web'
+if (isMobile) {
+  shadows: false
+  antialias: false
+  pixelRatio: Math.min(PixelRatio.get(), 2)
+}
+
+==================================================
+PART 9 — INTEGRATION WITH EXISTING SYSTEM
+==================================================
+
+The 3D viewer connects to existing systems:
+
+9A. Replace Character Status Hub renderer
+In artifacts/mobile/app/character/index.tsx:
+- Replace old SVG CharacterRenderer
+- Use CharacterViewer3D component
+- Pass existing visualState props
+
+9B. Keep all existing logic unchanged:
+- characterEngine.ts — unchanged
+- dimension XP system — unchanged
+- customization API — unchanged
+- skin/hair stored values — same format
+
+9C. Room scene integration:
+- Use static front/side PNG snapshot
+  (capture from 3D render or use fallback SVG)
+- Full 3D not needed in room scene
+
+9D. Garage photo mode:
+- Use CharacterViewer3D in static pose
+- Disable rotation gesture in photo mode
+- Pose at slight angle (15° rotation)
+  for dynamic photo composition
+
+==================================================
+PART 10 — OUTFIT TIER PROGRESSION IN 3D
+==================================================
+
+As Finance dimension upgrades,
+swap outfit mesh materials:
+
+TIER 1 — Starter (L1-3):
+  Tee: #F5F5F5 cotton
+  Jeans: #1A2744 raw indigo with knee wear
+
+TIER 2 — Rising (L4-6):
+  Shirt: #FFFFFF cleaner white
+  Trousers: #0D1A35 darker premium denim
+  (no distressing geometry)
+
+TIER 3 — Premium (L7-8):
+  Oxford shirt: #F0EDE8 subtle structure
+  Chinos: #2A2520 dark charcoal
+  Shoes: different geometry (loafer shape)
+
+TIER 4 — Elite (L9-10):
+  Blazer: #1A1A2E dark navy
+  Trousers: #0A0A14 deep black
+  Oxford shoes: #1A0A00 dark leather
+
+Each tier = material color update on 
+outfit mesh groups. No mesh swap needed
+for basic tier changes.
+
+If wardrobe item equipped:
+  Override outfit mesh with equipped item style.
+
+==================================================
+PART 11 — POSTURE STAGES IN 3D
+==================================================
+
+4 posture stages affect bone/mesh transforms:
+
+neutral (Fitness L1-3):
+  shoulderRotation: 0
+  chestForward: 0
+  stanceWidth: 0.8
+
+upright (Fitness L4-6):
+  shoulderRotation: -5° (pulled back)
+  chestForward: 2° tilt
+  stanceWidth: 0.9
+
+athletic (Fitness L7-8):
+  shoulderRotation: -8°
+  chestForward: 4° tilt
+  stanceWidth: 1.0
+  armFlare: 3°
+
+peak (Fitness L9-10):
+  shoulderRotation: -12°
+  chestForward: 6° tilt
+  stanceWidth: 1.1
+  armFlare: 6°
+  headLift: 2° up
+
+Animate transitions between postures:
+useSpring animation, 800ms ease
+
+==================================================
+DO NOT BUILD
+==================================================
+
+- Full animation system (walk/run cycles)
+- Real-time cloth physics
+- Facial expression morphs
+- Multiplayer character display
+- AR/camera integration
+- New gameplay features
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. Character looks semi-realistic matching 
+   KEN prototype reference image
+2. NOT cartoon — adult proportions clearly visible
+3. White tee + indigo denim visible and correct
+4. Dog tag necklace and leather bracelet visible
+5. 360° rotation works on horizontal swipe
+6. Rotation is smooth (no stutter)
+7. Front / side / back all look correct
+8. Skin tone changes work in real-time
+9. Hair style changes work
+10. Hair color changes work
+11. 4 posture stages visibly different
+12. 4 outfit tiers visibly different
+13. Performance: 60fps on mid-range device
+14. Character Status Hub uses new 3D renderer
+15. Customization saves and persists
+16. No existing progression/dimension logic broken
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. 3D character construction approach used
+2. Packages installed
+3. CharacterViewer3D component created
+4. Layer/mesh structure (what geometry used)
+5. Materials and lighting setup
+6. Rotation gesture implementation
+7. Integration with Character Status Hub
+8. Files changed only
+9. Performance metrics (polygon count, fps)
+10. Test results:
+    - 360° rotation works
+    - Skin/hair customization works
+    - Looks like reference image
+    - No existing systems broken
+11. Remaining gaps

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Character Viewer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+  canvas { display: block; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const BASE_URL = window.location.origin + '/api/models/';
+
+const scene = new THREE.Scene();
+scene.background = null;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const camera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 1.45, 2.1);
+camera.lookAt(0, 1.15, 0);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.15, 0);
+controls.enablePan = false;
+controls.enableZoom = false;
+controls.minPolarAngle = Math.PI * 0.25;
+controls.maxPolarAngle = Math.PI * 0.65;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.8;
+controls.update();
+
+const ambientLight = new THREE.AmbientLight(0x101520, 1.5);
+scene.add(ambientLight);
+
+const keyLight = new THREE.DirectionalLight(0xFFF2D0, 3.0);
+keyLight.position.set(-1.8, 2.8, 2.0);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1024, 1024);
+scene.add(keyLight);
+
+const fillLight = new THREE.DirectionalLight(0x6AADFF, 2.5);
+fillLight.position.set(2.5, 2.0, -1.5);
+scene.add(fillLight);
+
+const rimLight = new THREE.DirectionalLight(0xC9A84C, 0.8);
+rimLight.position.set(0, 0.5, 3.0);
+scene.add(rimLight);
+
+const groundLight = new THREE.PointLight(0x9B7030, 1.0);
+groundLight.position.set(0, -0.2, 1.2);
+scene.add(groundLight);
+
+const loader = new GLTFLoader();
+const textureLoader = new THREE.TextureLoader();
+
+let bodyGroup = new THREE.Group();
+let hairGroup = new THREE.Group();
+let outfitGroup = new THREE.Group();
+let watchGroup = new THREE.Group();
+let pivotGroup = new THREE.Group();
+pivotGroup.add(bodyGroup);
+pivotGroup.add(hairGroup);
+pivotGroup.add(outfitGroup);
+pivotGroup.add(watchGroup);
+scene.add(pivotGroup);
+
+let currentBodyScene = null;
+let currentHairScene = null;
+let currentOutfitScene = null;
+let currentWatchScene = null;
+let bodyScale = 1;
+let bodyOffsetY = 0;
+let currentGender = 'male';
+let currentHairModelName = '';
+let currentOutfitGlbName = '';
+let currentWatchGlbName = '';
+
+const OUTFIT_ALIGNMENT = {
+  'shirt_for_men.glb':         { scale: 1.0, yOffset: 0 },
+  'stylized_hoodie_jacket.glb': { scale: 1.0, yOffset: 0 },
+  'elegant_clothing_set.glb':  { scale: 1.0, yOffset: 0 },
+  'black_puffy_jacket.glb':    { scale: 1.0, yOffset: 0 },
+  'mens_clothing_game.glb':    { scale: 1.0, yOffset: 0 },
+};
+
+const BODY_MODELS = {
+  male: 'Superhero_Male_FullBody.gltf',
+  female: 'Superhero_Female_FullBody.gltf',
+};
+const BODY_MATERIALS = {
+  male: 'MI_Superhero_Male',
+  female: 'MI_Superhero_Female',
+};
+
+function loadTexture(url) {
+  return new Promise((resolve, reject) => {
+    textureLoader.load(url, (tex) => {
+      tex.flipY = false;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      resolve(tex);
+    }, undefined, reject);
+  });
+}
+
+function loadGLTF(url) {
+  return new Promise((resolve, reject) => {
+    loader.load(url, resolve, undefined, reject);
+  });
+}
+
+function fixTPose(obj) {
+  obj.traverse((child) => {
+    if (!child.isBone && child.type !== 'Bone') return;
+    const name = child.name;
+    if (name === 'upperarm_l') { child.rotation.z = -1.2; child.rotation.x = 0.1; }
+    else if (name === 'upperarm_r') { child.rotation.z = 1.2; child.rotation.x = 0.1; }
+    else if (name === 'lowerarm_l') { child.rotation.z = 0.15; }
+    else if (name === 'lowerarm_r') { child.rotation.z = -0.15; }
+  });
+  obj.traverse((child) => {
+    if (child.isSkinnedMesh && child.skeleton) {
+      child.skeleton.bones.forEach((b) => b.updateMatrixWorld(true));
+    }
+  });
+}
+
+async function loadBody(skinTextureName, gender) {
+  if (gender) currentGender = gender;
+  try {
+    const modelFile = BODY_MODELS[currentGender] || BODY_MODELS.male;
+    const gltf = await loadGLTF(BASE_URL + modelFile);
+    if (currentBodyScene) bodyGroup.remove(currentBodyScene);
+
+    const s = gltf.scene;
+    const box = new THREE.Box3().setFromObject(s);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const targetHeight = 1.8;
+    bodyScale = targetHeight / size.y;
+    s.scale.setScalar(bodyScale);
+
+    const scaledBox = new THREE.Box3().setFromObject(s);
+    const center = new THREE.Vector3();
+    scaledBox.getCenter(center);
+    bodyOffsetY = -scaledBox.min.y;
+    s.position.set(-center.x, bodyOffsetY, -center.z);
+
+    s.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        // SkinnedMesh bounding spheres are computed from rest-pose vertices and
+        // become stale after bone transforms change (e.g. fixTPose).  The result
+        // is that small meshes like Eyes / Eyebrows get incorrectly frustum-culled
+        // even though they are fully in view.  Disable culling for all skinned parts.
+        if (child.isSkinnedMesh) child.frustumCulled = false;
+        console.log('[body mesh]', child.name, '| material:', child.material?.name, '| visible:', child.visible);
+      }
+    });
+
+    fixTPose(s);
+
+    if (skinTextureName) {
+      await applySkinTexture(s, skinTextureName);
+    }
+
+    bodyGroup.add(s);
+    currentBodyScene = s;
+  } catch (e) {
+    console.error('Failed to load body:', e);
+  }
+}
+
+async function applySkinTexture(obj, textureName) {
+  try {
+    const tex = await loadTexture(BASE_URL + textureName);
+    const matName = BODY_MATERIALS[currentGender] || BODY_MATERIALS.male;
+    obj.traverse((child) => {
+      if (child.isMesh && child.material) {
+        const mat = child.material;
+        if (mat.name === matName) {
+          mat.map = tex;
+          mat.needsUpdate = true;
+        }
+      }
+    });
+  } catch (e) {
+    console.error('Failed to apply skin texture:', e);
+  }
+}
+
+async function loadHair(hairModelName, hairTextureName) {
+  try {
+    if (currentHairScene) {
+      hairGroup.remove(currentHairScene);
+      currentHairScene = null;
+    }
+    if (!hairModelName || hairModelName === 'none') return;
+
+    const gltf = await loadGLTF(BASE_URL + hairModelName);
+    const s = gltf.scene;
+    s.scale.setScalar(bodyScale);
+
+    if (currentBodyScene) {
+      s.position.copy(currentBodyScene.position);
+    } else {
+      s.position.set(0, bodyOffsetY, 0);
+    }
+
+    s.traverse((child) => {
+      if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
+    });
+
+    fixTPose(s);
+
+    if (hairTextureName) {
+      await applyHairTexture(s, hairTextureName);
+    }
+
+    hairGroup.add(s);
+    currentHairScene = s;
+    currentHairModelName = hairModelName;
+  } catch (e) {
+    console.error('Failed to load hair:', e);
+  }
+}
+
+async function applyHairTexture(obj, textureName) {
+  try {
+    const tex = await loadTexture(BASE_URL + textureName);
+    obj.traverse((child) => {
+      if (child.isMesh && child.material) {
+        const mat = child.material;
+        if (mat.name === 'MI_Hair_1' || mat.name.includes('Hair')) {
+          mat.map = tex;
+          mat.needsUpdate = true;
+        }
+      }
+    });
+  } catch (e) {
+    console.error('Failed to apply hair texture:', e);
+  }
+}
+
+async function loadOutfit(glbFile) {
+  try {
+    if (currentOutfitScene) {
+      outfitGroup.remove(currentOutfitScene);
+      currentOutfitScene = null;
+    }
+    if (!glbFile || glbFile === 'none') {
+      currentOutfitGlbName = '';
+      return;
+    }
+
+    const gltf = await loadGLTF(BASE_URL + glbFile);
+    const s = gltf.scene;
+    const align = OUTFIT_ALIGNMENT[glbFile] ?? { scale: 1.0, yOffset: 0 };
+
+    // Apply same scale as the body (+ per-outfit tweak).
+    s.scale.setScalar(bodyScale * align.scale);
+
+    // FIX: compute the outfit's own bounding box AFTER scaling so we can
+    // normalise its pivot independently of the body mesh's pivot.
+    // This places the outfit's lowest point at world y = 0, matching the
+    // body whose feet also land at y = 0 via bodyOffsetY.
+    const scaledBox = new THREE.Box3().setFromObject(s);
+    const scaledCenter = new THREE.Vector3();
+    scaledBox.getCenter(scaledCenter);
+    s.position.set(
+      -scaledCenter.x,
+      -scaledBox.min.y + align.yOffset,
+      -scaledCenter.z
+    );
+
+    s.traverse((child) => {
+      if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
+    });
+
+    fixTPose(s);
+
+    outfitGroup.add(s);
+    currentOutfitScene = s;
+    currentOutfitGlbName = glbFile;
+  } catch (e) {
+    console.error('Failed to load outfit:', e);
+  }
+}
+
+async function loadWatch(glbFile) {
+  try {
+    if (currentWatchScene) {
+      watchGroup.remove(currentWatchScene);
+      currentWatchScene = null;
+    }
+    if (!glbFile || glbFile === 'none') return;
+
+    const gltf = await loadGLTF(BASE_URL + glbFile);
+    const s = gltf.scene;
+
+    s.scale.setScalar(0.08);
+    s.position.set(-0.18, bodyOffsetY + 0.85, 0);
+    s.rotation.z = Math.PI / 2;
+
+    s.traverse((child) => {
+      if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
+    });
+
+    watchGroup.add(s);
+    currentWatchScene = s;
+    currentWatchGlbName = glbFile;
+  } catch (e) {
+    console.error('Failed to load watch:', e);
+  }
+}
+
+async function changeSkinTexture(textureName) {
+  if (currentBodyScene) {
+    await applySkinTexture(currentBodyScene, textureName);
+  }
+}
+
+async function changeHairTexture(textureName) {
+  if (currentHairScene) {
+    await applyHairTexture(currentHairScene, textureName);
+  }
+}
+
+const params = new URLSearchParams(window.location.search);
+const initSkin = params.get('skin') || 'T_Superhero_Male_Dark.png';
+const initHair = params.get('hair') || 'Hair_SimpleParted.gltf';
+const initHairTex = params.get('hairTex') || 'T_Hair_1_BaseColor.png';
+const initGender = params.get('gender') || 'male';
+const initOutfit = params.get('outfit') || '';
+const initWatch = params.get('watch') || '';
+currentGender = initGender;
+
+await loadBody(initSkin, initGender);
+await loadHair(initHair, initHairTex);
+if (initOutfit) await loadOutfit(initOutfit);
+if (initWatch) await loadWatch(initWatch);
+
+window.addEventListener('message', async (event) => {
+  if (event.source !== window.parent) return;
+  const data = event.data;
+  if (!data || !data.type) return;
+
+  if (data.type === 'setHair') {
+    await loadHair(data.hairModel, data.hairTexture);
+  } else if (data.type === 'setSkin') {
+    await changeSkinTexture(data.skinTexture);
+  } else if (data.type === 'setHairTexture') {
+    await changeHairTexture(data.hairTexture);
+  } else if (data.type === 'setOutfit') {
+    await loadOutfit(data.outfitGlb || null);
+  } else if (data.type === 'setGender') {
+    const newGender = data.gender || 'male';
+    if (newGender !== currentGender) {
+      currentGender = newGender;
+      await loadBody(data.skinTexture, newGender);
+      if (data.hairModel) await loadHair(data.hairModel, data.hairTexture);
+    }
+  } else if (data.type === 'setWatch') {
+    await loadWatch(data.watchGlb || null);
+  } else if (data.type === 'setAll') {
+    const newGender = data.gender || currentGender;
+    if (newGender !== currentGender) {
+      currentGender = newGender;
+      await loadBody(data.skinTexture, newGender);
+      if (data.hairModel && data.hairModel !== currentHairModelName) {
+        await loadHair(data.hairModel, data.hairTexture);
+      } else if (data.hairTexture) {
+        await changeHairTexture(data.hairTexture);
+      }
+    } else {
+      if (data.skinTexture) await changeSkinTexture(data.skinTexture);
+      if (data.hairModel && data.hairModel !== currentHairModelName) {
+        await loadHair(data.hairModel, data.hairTexture);
+      } else if (data.hairTexture) {
+        await changeHairTexture(data.hairTexture);
+      }
+    }
+    if (data.outfitGlb !== undefined && data.outfitGlb !== currentOutfitGlbName) {
+      await loadOutfit(data.outfitGlb || null);
+    }
+    if (data.watchGlb !== undefined && data.watchGlb !== currentWatchGlbName) {
+      await loadWatch(data.watchGlb || null);
+    }
+  }
+});
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+window.parent.postMessage({ type: 'viewerReady' }, '*');
+</script>
+</body>
+</html>

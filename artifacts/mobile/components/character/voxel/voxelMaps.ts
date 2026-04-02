@@ -1,0 +1,905 @@
+import type { VoxelMap } from "./VoxelRenderer";
+import type { VoxelPalette } from "./voxelPalette";
+
+function resolve(ch: string, p: VoxelPalette): string | null {
+  switch (ch) {
+    case ".": return null;
+    case "H": return p.hairBase;
+    case "h": return p.hairHighlight;
+    case "S": return p.skinBase;
+    case "s": return p.skinHighlight;
+    case "d": return p.skinShadow;
+    case "w": return p.eyeWhite;
+    case "r": return p.eyeIris;
+    case "E": return p.eyeColor;
+    case "M": return p.mouthColor;
+    case "B": return p.browColor;
+    case "p": return p.noseTip;
+    case "z": return p.jawShadow;
+    case "J": return p.suitBase;
+    case "j": return p.suitMid;
+    case "k": return p.suitLight;
+    case "Z": return p.suitDeep;
+    case "c": return p.suitCheck;
+    case "V": return p.vestBase;
+    case "v": return p.vestLight;
+    case "W": return p.shirtWhite;
+    case "m": return p.shirtShadow;
+    case "T": return p.tieBase;
+    case "t": return p.tiePattern;
+    case "b": return p.beltColor;
+    case "U": return p.beltBuckle;
+    case "L": return p.trouserBase;
+    case "l": return p.trouserLight;
+    case "R": return p.trouserCrease;
+    case "O": return p.shoeBase;
+    case "o": return p.shoeSole;
+    case "P": return p.shoeHighlight;
+    case "Q": return p.pocketSquare;
+    case "G": return p.lapelPin;
+    case "F": return p.briefcaseBase;
+    case "f": return p.briefcaseDark;
+    case "g": return p.briefcaseHardware;
+    case "N": return p.phoneBody;
+    case "n": return p.phoneScreen;
+    case "D": return p.docWhite;
+    case "e": return p.docLine;
+    case "C": return p.coffeeCup;
+    case "i": return p.coffeeLid;
+    case "A": return p.platformBase;
+    case "a": return p.platformLight;
+    case "X": return p.lapelPin;
+    default: return null;
+  }
+}
+
+function parseMap(lines: string[], palette: VoxelPalette): VoxelMap {
+  const maxW = Math.max(...lines.map((l) => l.length));
+  return lines.map((line) => {
+    const padded = line.padEnd(maxW, ".");
+    return padded.split("").map((ch) => resolve(ch, palette));
+  });
+}
+
+const FRONT_ELITE: string[] = [
+  "..........HHhHhHhH...........",
+  ".........HhHhHhHhHH..........",
+  "........HHhHhHhHhHhH.........",
+  "........HHHhHhHhHHHH.........",
+  ".......HHHHHHHHHHHHHH........",
+  ".......HHdSSSSSSSSSdHH.......",
+  ".......HdSSSSSSSSSSdH........",
+  "........dSsSSSSSSsSd.........",
+  "........SSBBSSSSBBSSd........",
+  "........SSSSSSSSSSSSd........",
+  "........SwrESSSSwrESd........",
+  "........SSSSSSSSSSSd.........",
+  ".........SSSSppSSSS..........",
+  ".........SSSSSpSSSS..........",
+  ".........SSdSMMSdSS..........",
+  "..........zzSSSSzz...........",
+  "...........zSSSSz............",
+  "..........mWWWWWWm...........",
+  ".........jmWWTTWWmj..........",
+  "........JjkWWTtWWkjJ.........",
+  ".......JJjkWWTTWWkjJJ........",
+  "......ZJJjkWWTtWWkjJJZ.......",
+  ".....ZZJJjkWWTTWWkjJJZZ......",
+  ".....ZZJJjVVVTtVVVjJJZZ......",
+  ".....ZZJcjVVVTTVVVjcJZZ......",
+  ".....ZJGjjVvVTtVvVjjQJZ......",
+  ".....ZZJcjVVVTTVVVjcJZZ......",
+  ".....ZZJJjVVVTtVVVjJJZZ......",
+  ".....ZZJJjcVVbbVVcjJJZZ......",
+  "....DZZJJjcVbUUbVcjJJZZN.....",
+  "....DDZJJjcLLLLLLcjJJZNN.....",
+  "....DDZJJjLLLLLLLLjJJZNN.....",
+  "....DDZJjjLLLlLLLLjjJZNN.....",
+  "....DdSSjjLLLlLLLLjjSSNN.....",
+  ".....dSS.LLLLlLLLL.SSN.......",
+  ".....SS..LLLRLRLLl..SN.......",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLLRlLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLlRlLLL...........",
+  "..........LLlLlLLL...........",
+  ".........OOOOl.OOOOl.........",
+  ".........OPOOo.OPOOo.........",
+  ".........ooooo.ooooo.........",
+  "..............................",
+  "...FFff..aAAAaAAAa..CCi......",
+  "...FgFf..aAaAaAaAa..Cii.....",
+  "...FFff..aaAaAaAaa...........",
+];
+
+const FRONT_PREMIUM: string[] = [
+  "..........HHhHhHhH...........",
+  ".........HhHhHhHhHH..........",
+  "........HHhHhHhHhHhH.........",
+  "........HHHhHhHhHHHH.........",
+  ".......HHHHHHHHHHHHHH........",
+  ".......HHdSSSSSSSSSdHH.......",
+  ".......HdSSSSSSSSSSdH........",
+  "........dSsSSSSSSsSd.........",
+  "........SSBBSSSSBBSSd........",
+  "........SSSSSSSSSSSSd........",
+  "........SwrESSSSwrESd........",
+  "........SSSSSSSSSSSd.........",
+  ".........SSSSppSSSS..........",
+  ".........SSSSSpSSSS..........",
+  ".........SSdSMMSdSS..........",
+  "..........zzSSSSzz...........",
+  "...........zSSSSz............",
+  "..........mWWWWWWm...........",
+  ".........jmWWTTWWmj..........",
+  "........JjkWWTTWWkjJ.........",
+  ".......JJjkWWTTWWkjJJ........",
+  "......ZJJjkWWTTWWkjJJZ.......",
+  ".....ZZJJjkWWTTWWkjJJZZ......",
+  ".....ZZJJjjWWTTWWjjJJZZ......",
+  ".....ZZJJjjWWTTWWjjJJZZ......",
+  ".....ZZJJjjWWTTWWjjJJZZ......",
+  ".....ZZJJjjWWTTWWjjJJZZ......",
+  ".....ZZJJjjWWTTWWjjJJZZ......",
+  ".....ZZJJjjjjbbbjjjjJJZZ.....",
+  ".....ZZJJjjLbUUbLjjJJZZ......",
+  ".....ZZJJjLLLLLLLLjJJZZ......",
+  "......ZJJjLLLLLLLLjJJZ.......",
+  "......ZJjjLLLlLLLLjjJZ.......",
+  "......SSjjLLLlLLLLjjSS.......",
+  "......SS.LLLLlLLLL.SS........",
+  "..........LLLRLRLLl..........",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLLRlLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLlRlLLL...........",
+  "..........LLlLlLLL...........",
+  ".........OOOOl.OOOOl.........",
+  ".........OPOOo.OPOOo.........",
+  ".........ooooo.ooooo.........",
+  "..............................",
+  ".........aAAAaAAAa...........",
+  ".........aAaAaAaAa...........",
+  ".........aaAaAaAaa...........",
+];
+
+const FRONT_RISING: string[] = [
+  "..........HHhHhHhH...........",
+  ".........HhHhHhHhHH..........",
+  "........HHhHhHhHhHhH.........",
+  "........HHHhHhHhHHHH.........",
+  ".......HHHHHHHHHHHHHH........",
+  ".......HHdSSSSSSSSSdHH.......",
+  ".......HdSSSSSSSSSSdH........",
+  "........dSsSSSSSSsSd.........",
+  "........SSBBSSSSBBSSd........",
+  "........SSSSSSSSSSSSd........",
+  "........SwrESSSSwrESd........",
+  "........SSSSSSSSSSSd.........",
+  ".........SSSSppSSSS..........",
+  ".........SSSSSpSSSS..........",
+  ".........SSdSMMSdSS..........",
+  "..........zzSSSSzz...........",
+  "...........zSSSSz............",
+  "..........mWWWWWWm...........",
+  ".........jmWWWWWWmj..........",
+  "........jjjWWWWWWjjj.........",
+  ".......jjjjWWWWWWjjjj........",
+  "......jjjjjWWWWWWjjjjj.......",
+  ".....jjjjjjWWWWWWjjjjjj......",
+  ".....jjjjjjWWWWWWjjjjjj......",
+  ".....jjjjjjWWWWWWjjjjjj......",
+  ".....jjjjjjWWWWWWjjjjjj......",
+  ".....jjjjjjWWWWWWjjjjjj......",
+  ".....jjjjjjWWWWWWjjjjjj......",
+  ".....jjjjjjjjbbjjjjjjjj......",
+  ".....jjjjjjLbUUbLjjjjjj......",
+  ".....jjjjjLLLLLLLLjjjjj......",
+  "......jjjLLLLLLLLLLjjj.......",
+  "......SSjLLLLlLLLLLjSS.......",
+  "......SS.LLLLlLLLLL.SS.......",
+  "..........LLLLlLLLL..........",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLLRlLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLlRlLLL...........",
+  "..........LLlLlLLL...........",
+  "..........LLlLlLLL...........",
+  ".........OOOOl.OOOOl.........",
+  ".........OPOOo.OPOOo.........",
+  ".........ooooo.ooooo.........",
+  "..............................",
+  ".........aAAAaAAAa...........",
+  ".........aAaAaAaAa...........",
+  ".........aaAaAaAaa...........",
+];
+
+const FRONT_STARTER: string[] = [
+  "..........HHhHhHhH...........",
+  ".........HhHhHhHhHH..........",
+  "........HHhHhHhHhHhH.........",
+  "........HHHhHhHhHHHH.........",
+  ".......HHHHHHHHHHHHHH........",
+  ".......HHdSSSSSSSSSdHH.......",
+  ".......HdSSSSSSSSSSdH........",
+  "........dSsSSSSSSsSd.........",
+  "........SSBBSSSSBBSSd........",
+  "........SSSSSSSSSSSSd........",
+  "........SwrESSSSwrESd........",
+  "........SSSSSSSSSSSd.........",
+  ".........SSSSppSSSS..........",
+  ".........SSSSSpSSSS..........",
+  ".........SSdSMMSdSS..........",
+  "..........zzSSSSzz...........",
+  "...........zSSSSz............",
+  "..........WWWWWWWW...........",
+  ".........WWWWWWWWWW..........",
+  "........WWWWWWWWWWWW.........",
+  ".......WWWWWWWWWWWWWW........",
+  "......WWWWWWWWWWWWWWWW.......",
+  ".....WWWWWWWWWWWWWWWWWW......",
+  ".....WWWWWWWWWWWWWWWWWW......",
+  ".....WWWWWWWWWWWWWWWWWW......",
+  ".....WWWWWWWWWWWWWWWWWW......",
+  ".....WWWWWWWWWWWWWWWWWW......",
+  ".....WWWWWWWWWWWWWWWWWW......",
+  "..........jjjjjjjjjj.........",
+  "..........jjjjjjjjjj.........",
+  "..........jjjjjjjjjj.........",
+  "..........jjjjjjjjjj.........",
+  "......SSjjjjjjljjjjjjSS......",
+  "......SS.jjjjjljjjjj.SS......",
+  "..........jjjjjjjjjj.........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  ".........OOOOl.OOOOl.........",
+  ".........OPOOo.OPOOo.........",
+  ".........ooooo.ooooo.........",
+  "..............................",
+  ".........aAAAaAAAa...........",
+  ".........aAaAaAaAa...........",
+  ".........aaAaAaAaa...........",
+];
+
+const SIDE_ELITE: string[] = [
+  "..........HHhHhH.............",
+  ".........HhHhHhHH............",
+  "........HHhHhHhHhH...........",
+  "........HHHhHhHhHH...........",
+  ".......HHHHHHHHHHH...........",
+  ".......HSSSSSSSSSSd..........",
+  ".......dSSSSSSSSSSd..........",
+  ".......dSsSSSSSSsSd..........",
+  ".......dSSBBSSSSSSd..........",
+  ".......dSSSSSSSSSSd..........",
+  ".......dSwrESSSSSdd..........",
+  "........SSSSSSSSSSd..........",
+  "........SSSSpSSSSS...........",
+  "........SSSSSpSSSS...........",
+  "........SSSdMMdSSS...........",
+  ".........zzSSSSSzz...........",
+  "..........zSSSSz.............",
+  ".........mWWTWWm.............",
+  "........jmWWTWWmj............",
+  ".......JjkWWTWWkjD...........",
+  "......JJjkWWTWWkjDD..........",
+  ".....ZJJjkWWTWWkjDDD.........",
+  "....ZZJJjkWWTWWkjjDD.........",
+  "....ZZJJjVVVTVVVjjSD.........",
+  "....ZZJcjVVVTVVVjjSS.........",
+  "....ZJGjjVvVTVvVjjS..........",
+  "....ZZJcjVVVTVVVjjS..........",
+  "....ZZJJjVVVTVVVjS...........",
+  "....ZZJJjcVVbVVVcS...........",
+  "....ZZJJjcVbUbVVcS...........",
+  "....ZZJJjcLLLLLLcS...........",
+  ".....ZJJjLLLLLLLLS...........",
+  ".....ZJjjLLLlLLLLS...........",
+  ".....ZSSjLLLlLLLSS...........",
+  "......SS.LLLlLLLSS...........",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLRlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLRlLLLL...........",
+  "..........LLlLlLLL...........",
+  "..........LLlLlLLL...........",
+  ".........OOOOl.OOOO..........",
+  ".........OPOOo.OPOO..........",
+  ".........ooooo.oooo..........",
+  "..............................",
+  "...FFff..aAAAaAAAa...........",
+  "...FgFf..aAaAaAaAa...........",
+  "...FFff..aaAaAaAaa...........",
+];
+
+const SIDE_PREMIUM: string[] = [
+  "..........HHhHhH.............",
+  ".........HhHhHhHH............",
+  "........HHhHhHhHhH...........",
+  "........HHHhHhHhHH...........",
+  ".......HHHHHHHHHHH...........",
+  ".......HSSSSSSSSSSd..........",
+  ".......dSSSSSSSSSSd..........",
+  ".......dSsSSSSSSsSd..........",
+  ".......dSSBBSSSSSSd..........",
+  ".......dSSSSSSSSSSd..........",
+  ".......dSwrESSSSSdd..........",
+  "........SSSSSSSSSSd..........",
+  "........SSSSpSSSSS...........",
+  "........SSSSSpSSSS...........",
+  "........SSSdMMdSSS...........",
+  ".........zzSSSSSzz...........",
+  "..........zSSSSz.............",
+  ".........mWWTWWm.............",
+  "........jmWWTWWmj............",
+  ".......JjkWWTWWkjJ...........",
+  "......JJjkWWTWWkjJJ..........",
+  ".....ZJJjkWWTWWkjJJZ.........",
+  "....ZZJJjkWWTWWkjJJZZ........",
+  "....ZZJJjjWWTWWjjJJZZ........",
+  "....ZZJJjjWWTWWjjJJZZ........",
+  "....ZZJJjjWWTWWjjJJZZ........",
+  "....ZZJJjjWWTWWjjJJZZ........",
+  "....ZZJJjjWWTWWjjJJZZ........",
+  "....ZZJJjjjjbjjjjjJJZZ.......",
+  "....ZZJJjjLbUbLjjJJZZ........",
+  "....ZZJJjLLLLLLLjJJZZ........",
+  ".....ZJJjLLLLLLLLjJJZ........",
+  ".....ZSSjLLLlLLLLjSSZ........",
+  "......SS.LLLlLLLLSS..........",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLRlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLRlLLLL...........",
+  "..........LLlLlLLL...........",
+  "..........LLlLlLLL...........",
+  "..........LLlLlLLL...........",
+  ".........OOOOl.OOOO..........",
+  ".........OPOOo.OPOO..........",
+  ".........ooooo.oooo..........",
+  "..............................",
+  ".........aAAAaAAAa...........",
+  ".........aAaAaAaAa...........",
+  ".........aaAaAaAaa...........",
+];
+
+const SIDE_RISING: string[] = [
+  "..........HHhHhH.............",
+  ".........HhHhHhHH............",
+  "........HHhHhHhHhH...........",
+  "........HHHhHhHhHH...........",
+  ".......HHHHHHHHHHH...........",
+  ".......HSSSSSSSSSSd..........",
+  ".......dSSSSSSSSSSd..........",
+  ".......dSsSSSSSSsSd..........",
+  ".......dSSBBSSSSSSd..........",
+  ".......dSSSSSSSSSSd..........",
+  ".......dSwrESSSSSdd..........",
+  "........SSSSSSSSSSd..........",
+  "........SSSSpSSSSS...........",
+  "........SSSSSpSSSS...........",
+  "........SSSdMMdSSS...........",
+  ".........zzSSSSSzz...........",
+  "..........zSSSSz.............",
+  ".........mWWWWWm.............",
+  "........jmWWWWWmj............",
+  ".......jjjWWWWWjjj...........",
+  "......jjjjWWWWWjjjj..........",
+  ".....jjjjjWWWWWjjjjj.........",
+  "....jjjjjjWWWWWjjjjjj........",
+  "....jjjjjjWWWWWjjjjjj........",
+  "....jjjjjjWWWWWjjjjjj........",
+  "....jjjjjjWWWWWjjjjjj........",
+  "....jjjjjjWWWWWjjjjjj........",
+  "....jjjjjjWWWWWjjjjjj........",
+  "....jjjjjjjjbbjjjjjjj........",
+  "....jjjjjLLbUbLLjjjjj........",
+  "....jjjjjLLLLLLLjjjjj........",
+  ".....jjjLLLLLLLLLjjj.........",
+  ".....SSjLLLlLLLLLjSS.........",
+  "......SS.LLLlLLLLSS..........",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLRlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLRlLLLL...........",
+  "..........LLlLlLLL...........",
+  "..........LLlLlLLL...........",
+  "..........LLlLlLLL...........",
+  ".........OOOOl.OOOO..........",
+  ".........OPOOo.OPOO..........",
+  ".........ooooo.oooo..........",
+  "..............................",
+  ".........aAAAaAAAa...........",
+  ".........aAaAaAaAa...........",
+  ".........aaAaAaAaa...........",
+];
+
+const SIDE_STARTER: string[] = [
+  "..........HHhHhH.............",
+  ".........HhHhHhHH............",
+  "........HHhHhHhHhH...........",
+  "........HHHhHhHhHH...........",
+  ".......HHHHHHHHHHH...........",
+  ".......HSSSSSSSSSSd..........",
+  ".......dSSSSSSSSSSd..........",
+  ".......dSsSSSSSSsSd..........",
+  ".......dSSBBSSSSSSd..........",
+  ".......dSSSSSSSSSSd..........",
+  ".......dSwrESSSSSdd..........",
+  "........SSSSSSSSSSd..........",
+  "........SSSSpSSSSS...........",
+  "........SSSSSpSSSS...........",
+  "........SSSdMMdSSS...........",
+  ".........zzSSSSSzz...........",
+  "..........zSSSSz.............",
+  ".........WWWWWWW.............",
+  "........WWWWWWWWW............",
+  ".......WWWWWWWWWWW...........",
+  "......WWWWWWWWWWWWW..........",
+  ".....WWWWWWWWWWWWWWW.........",
+  "....WWWWWWWWWWWWWWWW.........",
+  "....WWWWWWWWWWWWWWWW.........",
+  "....WWWWWWWWWWWWWWWW.........",
+  "....WWWWWWWWWWWWWWWW.........",
+  "....WWWWWWWWWWWWWWWW.........",
+  "....WWWWWWWWWWWWWWWW.........",
+  "..........jjjjbjjjjj.........",
+  "..........jjjjbjjjjj.........",
+  "..........jjjjjjjjjj.........",
+  ".....jjjjjjjjjjjjjj..........",
+  ".....SSjjjjjljjjjjjS.........",
+  "......SS.jjjjljjjjSS.........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  "..........jjjjljjjj...........",
+  ".........OOOOl.OOOO..........",
+  ".........OPOOo.OPOO..........",
+  ".........ooooo.oooo..........",
+  "..............................",
+  ".........aAAAaAAAa...........",
+  ".........aAaAaAaAa...........",
+  ".........aaAaAaAaa...........",
+];
+
+const BACK_ELITE: string[] = [
+  "..........HHhHhHhH...........",
+  ".........HhHhHhHhHH..........",
+  "........HHhHhHhHhHhH.........",
+  "........HHHhHhHhHHHH.........",
+  ".......HHHHHHHHHHHHHH........",
+  ".......HHHHHHHHHHHHH.........",
+  "........HHHHHHHHHHHH.........",
+  "........HHHHHHHHHHH..........",
+  "........HHHHHHHHHHH..........",
+  ".........HHHHHHHHHH..........",
+  ".........HHHHHHHHHH..........",
+  "..........HHHHHHHH...........",
+  "..........dSSSSSSd...........",
+  "..........dSSSSSSd...........",
+  "...........dSSSSd............",
+  "...........dSSSSd............",
+  "..........mWWWWWWm...........",
+  ".........jmWWWWWWmj..........",
+  "........JjkWWWWWWkjJ.........",
+  ".......JJjkWWWWWWkjJJ........",
+  "......ZJJjkJJJJJJkjJJZ.......",
+  ".....ZZJJjkJJJJJJkjJJZZ......",
+  ".....ZZJJjJJJJJJJJjJJZZ......",
+  ".....ZZJJjJJJJJJJJjJJZZ......",
+  ".....ZZJcjJJcJJcJJjcJZZ......",
+  ".....ZZJJjJJJJJJJJjJJZZ......",
+  ".....ZZJJjJJJJJJJJjJJZZ......",
+  ".....ZZJJjJJJJJJJJjJJZZ......",
+  ".....ZZJJjcJJJbbJJJcjJJZZ....",
+  ".....ZZJJjcJJbUUbJJcjJJZZ....",
+  ".....ZZJJjcLLLLLLLLcjJJZZ....",
+  "......ZJJjLLLLLLLLLLjJJZ.....",
+  "......ZJjjLLLLRLLLLLjjJZ.....",
+  "......SSjjLLLLRLLLLLjjSS.....",
+  "......SS.LLLLRLRLLLl.SS......",
+  "..........LLLRLlLLL..........",
+  "..........LLLlLLLL...........",
+  "..........LLLRLlLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLlRLlLL...........",
+  "..........LLlLlLLL...........",
+  "..........LLlLlLLL...........",
+  ".........OOOOl.OOOOl.........",
+  ".........OPOOo.OPOOo.........",
+  ".........ooooo.ooooo.........",
+  "..............................",
+  ".........aAAAaAAAa...........",
+  ".........aAaAaAaAa...........",
+  ".........aaAaAaAaa...........",
+];
+
+const BACK_PREMIUM: string[] = [
+  "..........HHhHhHhH...........",
+  ".........HhHhHhHhHH..........",
+  "........HHhHhHhHhHhH.........",
+  "........HHHhHhHhHHHH.........",
+  ".......HHHHHHHHHHHHHH........",
+  ".......HHHHHHHHHHHHH.........",
+  "........HHHHHHHHHHHH.........",
+  "........HHHHHHHHHHH..........",
+  "........HHHHHHHHHHH..........",
+  ".........HHHHHHHHHH..........",
+  ".........HHHHHHHHHH..........",
+  "..........HHHHHHHH...........",
+  "..........dSSSSSSd...........",
+  "..........dSSSSSSd...........",
+  "...........dSSSSd............",
+  "...........dSSSSd............",
+  "..........mWWWWWWm...........",
+  ".........jmWWWWWWmj..........",
+  "........JjkWWWWWWkjJ.........",
+  ".......JJjkWWWWWWkjJJ........",
+  "......ZJJjkJJJJJJkjJJZ.......",
+  ".....ZZJJjkJJJJJJkjJJZZ......",
+  ".....ZZJJjJJJJJJJJjJJZZ......",
+  ".....ZZJJjJJJJJJJJjJJZZ......",
+  ".....ZZJJjJJcJJcJJjJJZZ......",
+  ".....ZZJJjJJJJJJJJjJJZZ......",
+  ".....ZZJJjJJJJJJJJjJJZZ......",
+  ".....ZZJJjJJJJJJJJjJJZZ......",
+  ".....ZZJJjjjjbbbjjjjJJZZ.....",
+  ".....ZZJJjjLbUUbLjjJJZZ......",
+  ".....ZZJJjLLLLLLLLjJJZZ......",
+  "......ZJJjLLLLLLLLLjJJZ......",
+  "......ZJjjLLLLRLLLLjjJZ......",
+  "......SSjjLLLLRLLLLjjSS......",
+  "......SS.LLLLRLRLLL.SS.......",
+  "..........LLLRLlLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLLRLlLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLlRLlLL...........",
+  "..........LLlLlLLL...........",
+  "..........LLlLlLLL...........",
+  ".........OOOOl.OOOOl.........",
+  ".........OPOOo.OPOOo.........",
+  ".........ooooo.ooooo.........",
+  "..............................",
+  ".........aAAAaAAAa...........",
+  ".........aAaAaAaAa...........",
+  ".........aaAaAaAaa...........",
+];
+
+const BACK_RISING: string[] = [
+  "..........HHhHhHhH...........",
+  ".........HhHhHhHhHH..........",
+  "........HHhHhHhHhHhH.........",
+  "........HHHhHhHhHHHH.........",
+  ".......HHHHHHHHHHHHHH........",
+  ".......HHHHHHHHHHHHH.........",
+  "........HHHHHHHHHHHH.........",
+  "........HHHHHHHHHHH..........",
+  "........HHHHHHHHHHH..........",
+  ".........HHHHHHHHHH..........",
+  ".........HHHHHHHHHH..........",
+  "..........HHHHHHHH...........",
+  "..........dSSSSSSd...........",
+  "..........dSSSSSSd...........",
+  "...........dSSSSd............",
+  "...........dSSSSd............",
+  "..........mWWWWWWm...........",
+  ".........jmWWWWWWmj..........",
+  "........jjjWWWWWWjjj.........",
+  ".......jjjjWWWWWWjjjj........",
+  "......jjjjjWWWWWWjjjjj.......",
+  ".....jjjjjjWWWWWWjjjjjj......",
+  ".....jjjjjjWWWWWWjjjjjj......",
+  ".....jjjjjjWWWWWWjjjjjj......",
+  ".....jjjjjjWWWWWWjjjjjj......",
+  ".....jjjjjjWWWWWWjjjjjj......",
+  ".....jjjjjjWWWWWWjjjjjj......",
+  ".....jjjjjjWWWWWWjjjjjj......",
+  ".....jjjjjjjjbbjjjjjjjj......",
+  ".....jjjjjjLbUUbLjjjjjj......",
+  ".....jjjjjLLLLLLLLjjjjj......",
+  "......jjjLLLLLLLLLLjjj.......",
+  "......SSjLLLLRLLLLLjSS.......",
+  "......SS.LLLLRLLLLL.SS.......",
+  "..........LLLRLlLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLLRLlLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLLlLLLL...........",
+  "..........LLlRLlLL...........",
+  "..........LLlLlLLL...........",
+  "..........LLlLlLLL...........",
+  "..........LLlLlLLL...........",
+  ".........OOOOl.OOOOl.........",
+  ".........OPOOo.OPOOo.........",
+  ".........ooooo.ooooo.........",
+  "..............................",
+  ".........aAAAaAAAa...........",
+  ".........aAaAaAaAa...........",
+  ".........aaAaAaAaa...........",
+];
+
+const BACK_STARTER: string[] = [
+  "..........HHhHhHhH...........",
+  ".........HhHhHhHhHH..........",
+  "........HHhHhHhHhHhH.........",
+  "........HHHhHhHhHHHH.........",
+  ".......HHHHHHHHHHHHHH........",
+  ".......HHHHHHHHHHHHH.........",
+  "........HHHHHHHHHHHH.........",
+  "........HHHHHHHHHHH..........",
+  "........HHHHHHHHHHH..........",
+  ".........HHHHHHHHHH..........",
+  ".........HHHHHHHHHH..........",
+  "..........HHHHHHHH...........",
+  "..........dSSSSSSd...........",
+  "..........dSSSSSSd...........",
+  "...........dSSSSd............",
+  "...........dSSSSd............",
+  "..........WWWWWWWW...........",
+  ".........WWWWWWWWWW..........",
+  "........WWWWWWWWWWWW.........",
+  ".......WWWWWWWWWWWWWW........",
+  "......WWWWWWWWWWWWWWWW.......",
+  ".....WWWWWWWWWWWWWWWWWW......",
+  ".....WWWWWWWWWWWWWWWWWW......",
+  ".....WWWWWWWWWWWWWWWWWW......",
+  ".....WWWWWWWWWWWWWWWWWW......",
+  ".....WWWWWWWWWWWWWWWWWW......",
+  ".....WWWWWWWWWWWWWWWWWW......",
+  ".....WWWWWWWWWWWWWWWWWW......",
+  "..........jjjjjjjjjj.........",
+  "..........jjjjjjjjjj.........",
+  "..........jjjjjjjjjj.........",
+  "..........jjjjjjjjjj.........",
+  "......SSjjjjjjRjjjjjjSS......",
+  "......SS.jjjjRjjjjj.SS......",
+  "..........jjjjjjjjjj.........",
+  "..........jjjjRjjjj...........",
+  "..........jjjjjjjjj...........",
+  "..........jjjjRjjjj...........",
+  "..........jjjjjjjjj...........",
+  "..........jjjjjjjjj...........",
+  "..........jjjjRjjjj...........",
+  "..........jjjjjjjjj...........",
+  "..........jjjjRjjjj...........",
+  ".........OOOOl.OOOOl.........",
+  ".........OPOOo.OPOOo.........",
+  ".........ooooo.ooooo.........",
+  "..............................",
+  ".........aAAAaAAAa...........",
+  ".........aAaAaAaAa...........",
+  ".........aaAaAaAaa...........",
+];
+
+const HAIR_MAPS: Record<string, { front: string[]; side: string[]; back: string[] }> = {
+  textured_crop: {
+    front: [
+      "..........hHhHhHhh...........",
+      ".........hHhHhHhHhh..........",
+      "........HhHhHhHhHhH.........",
+      "........HHHhHhHhHHH.........",
+      ".......HHHHHHHHHHHHH........",
+    ],
+    side: [
+      "..........hHhHhh.............",
+      ".........hHhHhHhh............",
+      "........HhHhHhHhH...........",
+      "........HHHhHhHHH...........",
+      ".......HHHHHHHHHHH...........",
+    ],
+    back: [
+      "..........HhHhHhH...........",
+      ".........HHhHhHhHH..........",
+      "........HHHhHhHhHHH.........",
+      "........HHHHhHHHHHH.........",
+      ".......HHHHHHHHHHHHH........",
+    ],
+  },
+  side_part: {
+    front: [
+      "..........HHhHhHhH...........",
+      ".........HhHhHhHhHH..........",
+      "........HHhHhHhHhHhH.........",
+      "........HHHhHhHhHHHH.........",
+      ".......HHHHHHHHHHHHHH........",
+    ],
+    side: [
+      "..........HHhHhH.............",
+      ".........HhHhHhHH............",
+      "........HHhHhHhHhH...........",
+      "........HHHhHhHhHH...........",
+      ".......HHHHHHHHHHH...........",
+    ],
+    back: [
+      "..........HHhHhHhH...........",
+      ".........HhHhHhHhHH..........",
+      "........HHhHhHhHhHhH.........",
+      "........HHHhHhHhHHHH.........",
+      ".......HHHHHHHHHHHHHH........",
+    ],
+  },
+  slicked_back: {
+    front: [
+      "...........HHHHH.............",
+      "..........HHHHHHH............",
+      ".........HHHHHHHHH...........",
+      ".........HHHHHHHHH...........",
+      "........HHHHHHHHHHH..........",
+    ],
+    side: [
+      "...........HHHH.............",
+      "..........HHHHH.............",
+      ".........HHHHHH.............",
+      ".........HHHHHHH............",
+      "........HHHHHHHH............",
+    ],
+    back: [
+      "...........HHHHH.............",
+      "..........HHHHHHH............",
+      ".........HHHHHHHHH...........",
+      ".........HHHHHHHHH...........",
+      "........HHHHHHHHHHH..........",
+    ],
+  },
+  buzz_cut: {
+    front: [
+      "..............................",
+      "..........HHHHHHH............",
+      ".........HHHHHHHHH...........",
+      ".........HHHHHHHHH...........",
+      "........HHHHHHHHHHH..........",
+    ],
+    side: [
+      "..............................",
+      "..........HHHHH.............",
+      ".........HHHHHH.............",
+      ".........HHHHHHH............",
+      "........HHHHHHHH............",
+    ],
+    back: [
+      "..............................",
+      "..........HHHHHHH............",
+      ".........HHHHHHHHH...........",
+      ".........HHHHHHHHH...........",
+      "........HHHHHHHHHHH..........",
+    ],
+  },
+  medium_natural: {
+    front: [
+      ".........hHhHhHhHh...........",
+      "........hHhHhHhHhHh..........",
+      ".......HhHhHhHhHhHH.........",
+      ".......HHhHhHhHhHHHH........",
+      "......HHHHHHHHHHHHHHHH.......",
+    ],
+    side: [
+      ".........hHhHhHh.............",
+      "........hHhHhHhHh...........",
+      ".......HhHhHhHhHH...........",
+      ".......HHhHhHhHHH...........",
+      "......HHHHHHHHHHHHH..........",
+    ],
+    back: [
+      ".........hHhHhHhHh...........",
+      "........hHhHhHhHhHh..........",
+      ".......HhHhHhHhHhHH.........",
+      ".......HHhHhHhHhHHHH........",
+      "......HHHHHHHHHHHHHHHH.......",
+    ],
+  },
+  bald: {
+    front: ["..............................", "..............................", "..............................", "..............................", ".............................."],
+    side: ["..............................", "..............................", "..............................", "..............................", ".............................."],
+    back: ["..............................", "..............................", "..............................", "..............................", ".............................."],
+  },
+};
+
+function normalizeHairStyle(style: string): string {
+  const aliases: Record<string, string> = {
+    clean_cut: "side_part",
+    slick_back: "slicked_back",
+    slicked_back: "slicked_back",
+    undercut: "slicked_back",
+    textured_crop: "textured_crop",
+    french_crop: "textured_crop",
+    taper: "textured_crop",
+    side_part: "side_part",
+    classic_side_part: "side_part",
+    caesar: "buzz_cut",
+    crew_cut: "buzz_cut",
+    "low-fade": "buzz_cut",
+    pompadour: "textured_crop",
+    man_bun: "slicked_back",
+    natural: "medium_natural",
+    waves: "medium_natural",
+    textured_pixie: "medium_natural",
+    natural_medium: "medium_natural",
+    short_bob: "medium_natural",
+    side_part_long: "medium_natural",
+    medium_natural: "medium_natural",
+    bald: "bald",
+  };
+  return aliases[style] ?? "side_part";
+}
+
+function applyHairToMap(baseLines: string[], hairLines: string[]): string[] {
+  const result = [...baseLines];
+  for (let i = 0; i < Math.min(hairLines.length, result.length); i++) {
+    const hLine = hairLines[i];
+    const bLine = result[i];
+    let merged = "";
+    const maxLen = Math.max(hLine.length, bLine.length);
+    for (let j = 0; j < maxLen; j++) {
+      const hc = j < hLine.length ? hLine[j] : ".";
+      const bc = j < bLine.length ? bLine[j] : ".";
+      merged += hc !== "." ? hc : bc;
+    }
+    result[i] = merged;
+  }
+  return result;
+}
+
+function getBaseMapForTier(tier: number, view: "front" | "side" | "back"): string[] {
+  if (view === "front") {
+    switch (tier) {
+      case 1: return FRONT_STARTER;
+      case 2: return FRONT_RISING;
+      case 3: return FRONT_PREMIUM;
+      default: return FRONT_ELITE;
+    }
+  }
+  if (view === "side") {
+    switch (tier) {
+      case 1: return SIDE_STARTER;
+      case 2: return SIDE_RISING;
+      case 3: return SIDE_PREMIUM;
+      default: return SIDE_ELITE;
+    }
+  }
+  switch (tier) {
+    case 1: return BACK_STARTER;
+    case 2: return BACK_RISING;
+    case 3: return BACK_PREMIUM;
+    default: return BACK_ELITE;
+  }
+}
+
+export function buildVoxelMap(
+  palette: VoxelPalette,
+  view: "front" | "side" | "back",
+  outfitTier: number,
+  hairStyle: string,
+): VoxelMap {
+  const normalizedHair = normalizeHairStyle(hairStyle);
+  const hairData = HAIR_MAPS[normalizedHair] ?? HAIR_MAPS.side_part;
+  const hairLines = hairData[view];
+  const baseLines = getBaseMapForTier(outfitTier, view);
+  const finalLines = applyHairToMap(baseLines, hairLines);
+  return parseMap(finalLines, palette);
+}

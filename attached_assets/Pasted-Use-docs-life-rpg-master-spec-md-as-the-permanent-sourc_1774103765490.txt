@@ -1,0 +1,367 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 23 — Asset Application / Equip / World Connection.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Proof intelligence works
+- Adaptive challenge, quest chains, rarity, identity layer, telemetry, growth, endgame, live-ops, community/accountability, integrations, economy/marketplace, world/room/lifestyle presentation, premium, launch-readiness, character evolution/status visualization, and catalog/admin merchandising systems are complete
+- The next highest-value gap is application:
+  users can now earn, unlock, buy, and browse products properly, but the system still needs a strong “asset application” layer so items affect the character, room/world, profile, and visible identity in a concrete way
+- The product now needs a clean connection between owned items, equipped items, displayed items, status visualization, and world presentation
+
+Your task:
+Build only the smallest high-impact Asset Application / Equip / World Connection layer.
+
+==================================================
+PHASE 23 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Asset application model
+2. Equip / unequip / set-active flows
+3. Slot mapping between item types and display surfaces
+4. Character/status/world/profile connection logic
+5. Asset effect visibility in UI
+6. Minimal admin/internal controls only if strictly needed
+
+Do NOT build:
+- full housing editor
+- freeform drag-and-drop sandbox
+- advanced outfit/fashion simulator
+- open-ended avatar creator
+- player-to-player item trading
+- giant item stats/combat systems
+- redesign of the whole app
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current marketplace, inventory, owned items, product catalog, item detail, room/world presentation, character evolution screen, profile/showcase surfaces, and any equipped/active state already present
+2. identify what item states already exist and what is still disconnected
+3. identify the minimum application/equip system needed to make items feel meaningfully “used”
+4. implement only the minimum systems needed
+5. avoid broad refactors
+
+==================================================
+A. ASSET APPLICATION MODEL
+==================================================
+
+Build a clear model for how owned items are actually applied in the product.
+
+Purpose:
+Make item ownership meaningful by distinguishing between:
+- owned
+- eligible to equip/display
+- currently equipped
+- currently displayed
+- inactive / stored
+- unlock-only / passive
+- profile-only / room-only / status-only / multi-surface
+
+Each item should be able to declare where it can apply, for example:
+- character/status
+- room/world
+- profile/showcase
+- command center
+- prestige display
+- identity header
+- shared showcase if allowed
+
+Requirements:
+- keep the model data-driven
+- not every item needs to be applicable everywhere
+- some items are display-only
+- some are equip-only
+- some are passive markers/unlocks
+- some are multi-surface
+
+Do not overcomplicate item semantics.
+Keep it tactical and extensible.
+
+==================================================
+B. EQUIP / UNEQUIP / SET-ACTIVE FLOWS
+==================================================
+
+Add the real item application actions.
+
+Support at minimum:
+- equip
+- unequip
+- set as active
+- swap active item
+- display in eligible slot
+- remove from display slot
+
+Requirements:
+- all equip/application logic must be server-side validated
+- users cannot equip items they do not own
+- users cannot equip items into invalid slot/surface combinations
+- if an item type is unique-active (such as active title, active watch, active theme), enforce exclusivity
+- if multiple slots of a category are allowed, make the rule explicit and minimal
+- keep state transitions predictable and auditable
+
+Rules:
+- some items should be one-active-only
+- some items may be displayable in multiple surfaces if the product model allows it
+- titles, badges, trophies, accessories, vehicles, room upgrades, and prestige markers may all behave differently
+- avoid building a giant RPG inventory engine
+
+==================================================
+C. SLOT MAPPING / DISPLAY SURFACE SYSTEM
+==================================================
+
+Add a clear slot system that maps item types to where they can appear.
+
+Purpose:
+Ensure items connect cleanly to the character, world, and profile.
+
+Suggested slot families:
+- character/status slots
+  - active title
+  - watch/accessory
+  - jewelry/accent
+  - prestige marker
+  - specialist identity slot
+- room/world slots
+  - centerpiece
+  - trophy shelf
+  - room theme
+  - featured lifestyle item
+  - vehicle display
+  - command center upgrade
+- profile/showcase slots
+  - featured badge
+  - featured title
+  - featured asset
+  - featured milestone marker
+
+Requirements:
+- define which item categories can go into which slot families
+- make slot compatibility server-side enforced
+- keep slot count limited and elegant
+- avoid overbuilding a full decorator or wardrobe manager
+- if some items affect a layer without visible slotting, support that as passive application
+
+==================================================
+D. CHARACTER / STATUS CONNECTION
+==================================================
+
+Connect equipped/applied items directly into the Phase 21 character evolution system.
+
+Requirements:
+- equipped items should affect the computed visual/status representation where appropriate
+- watches/jewelry/accessories should influence accessory or lifestyle layer
+- vehicles or high-status items may affect lifestyle/status backdrop or display state
+- prestige items may affect elite overlays or prestige accents
+- specialist items may affect specialist identity layer
+- do not let items completely override the progression logic — they should enhance, not fake the underlying status
+
+Rules:
+- real progression still matters more than purchased signals
+- items should amplify or refine the visual fantasy, not fabricate mastery the user has not earned
+- keep the result psychologically satisfying and fair
+
+==================================================
+E. ROOM / WORLD CONNECTION
+==================================================
+
+Connect equipped/displayed items into the command center / room / world layer.
+
+Requirements:
+- room-displayable items should actually appear in the room/world presentation
+- active room themes should update the environment state
+- trophies/badges/featured assets should appear in their intended zones
+- premium/exclusive/limited items should visually stand out, but tastefully
+- world state should update when the user changes displayed items
+
+Rules:
+- keep world rendering deterministic
+- avoid giant re-render complexity
+- prioritize elegance and consistency over flashy excess
+
+==================================================
+F. PROFILE / SHOWCASE CONNECTION
+==================================================
+
+Connect item application to identity/profile surfaces.
+
+Requirements:
+- profile/character summary should reflect active/equipped identity items where relevant
+- featured titles/badges/assets should show correctly
+- share/showcase surfaces should be able to draw from active applied items
+- “equipped” and “displayed” states should feel consistent across profile, world, and status surfaces
+
+Do not redesign the share layer.
+Add only the linkage required.
+
+==================================================
+G. INVENTORY / ITEM DETAIL / FEEDBACK UX
+==================================================
+
+Upgrade the inventory and item detail UX so users understand what an item does and where it applies.
+
+Requirements:
+- inventory should clearly show:
+  - owned
+  - equipped
+  - displayed
+  - inactive
+  - slot eligibility
+  - surfaces affected
+- item detail should explain:
+  - where the item can be applied
+  - whether it changes character/status, room/world, profile/showcase, or multiple surfaces
+  - whether it is passive, equip-only, display-only, or multi-use
+- when an item is equipped/applied, the user should get clear confirmation and visible result
+- keep this premium and readable
+
+==================================================
+H. CONSISTENCY / VALIDATION / ANTI-ERROR RULES
+==================================================
+
+Because item application will connect many systems, validation must be strong.
+
+Requirements:
+- server-side validation for all equip/application actions
+- reject invalid slot/category/surface combinations
+- prevent equipping non-owned items
+- prevent duplicate impossible active states
+- preserve consistency between:
+  - inventory
+  - marketplace ownership
+  - room/world display state
+  - character/status visualization
+  - profile/showcase state
+- keep all action responses JSON-only
+- preserve ownership checks
+
+If needed:
+- add small repair/recompute logic so world/status/profile state can be reconciled from item application state
+
+==================================================
+I. MINIMAL ADMIN / INTERNAL CONTROLS
+==================================================
+
+Add only minimal internal controls if strictly needed.
+
+Possible examples:
+- item application eligibility mapping
+- slot eligibility flags
+- visual influence classification
+- recompute/rebuild application state for a user if corrupted
+
+Requirements:
+- admin-only
+- lightweight
+- use existing admin/tuning surfaces where possible
+- avoid building a large item-logic console
+
+==================================================
+J. UI / UX DIRECTION
+==================================================
+
+Design direction:
+- dark premium
+- serious, aspirational, refined
+- application of items should feel satisfying and status-relevant
+- users should feel “my purchases and unlocks now actually shape my world and character”
+
+Possible surfaces:
+- inventory with apply/equip/display actions
+- item detail with “affects” section
+- slot manager lite
+- quick equip/apply controls
+- visible updates on status page and room/world page
+
+Requirements:
+- no clutter
+- no childish paper-doll UI
+- no giant builder complexity
+- make it elegant and easy to understand
+
+==================================================
+K. BACKEND / SECURITY RULES
+==================================================
+
+- all equip/display/application checks must be server-side
+- preserve JSON-only APIs
+- preserve ownership checks
+- do not trust client-provided item ownership, slot eligibility, or applied state
+- keep schema changes additive and minimal
+- preserve existing mission/proof/reward/economy/world/community/premium flows
+- keep applied/equipped/display state recomputable and internally trustworthy
+
+==================================================
+L. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a real asset application/equip system exists
+2. owned items can be equipped/applied/displayed in valid contexts
+3. slot mapping between item types and surfaces exists
+4. equipped items visibly affect the character/status system where appropriate
+5. displayed items visibly affect the room/world layer where appropriate
+6. profile/showcase surfaces reflect active applied identity items
+7. inventory and item detail clearly explain where and how an item applies
+8. server-side validation prevents invalid item application states
+9. existing purchase/inventory/world/status flow still works
+10. no oversized avatar-builder or housing-simulator scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what asset application/equip capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Asset application model added
+- item states
+- surfaces
+- slot compatibility model
+
+4. Equip / unequip / set-active flows added
+- what actions are supported
+- how validation works
+
+5. Character/status linkage added
+- what item types now affect visible character evolution
+- how progression vs item influence is balanced
+
+6. Room/world linkage added
+- what item types now affect room/world presentation
+- how displayed state is represented
+
+7. Profile/showcase linkage added
+- what applied item states now affect profile/show surfaces
+
+8. End-to-end verification results for:
+- equip item
+- display room/world item
+- active title/accessory/profile item
+- item detail “affects” explanation
+- invalid application rejection
+- existing app flow unchanged
+
+9. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

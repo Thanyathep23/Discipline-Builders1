@@ -1,0 +1,202 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Resume Phase 5B only: Adaptive Challenge + Quest Chains + Reward Balance Lite.
+
+Important:
+- Do NOT restart the project from scratch.
+- Do NOT re-implement completed Phase 5B work.
+- Do NOT touch Phase 5A unless strictly required for compatibility.
+- Do NOT broaden scope beyond Phase 5B.
+- First inspect the current codebase and determine exactly which Phase 5B requirements are already complete vs still incomplete.
+- Then implement only the remaining unfinished Phase 5B items.
+- If all Phase 5B acceptance criteria are already met, do NOT make unnecessary changes — only finalize verification, update docs, and return the completion report.
+
+Current context:
+The previous Phase 5B implementation was interrupted by daily quota limits after substantial work was already done, including:
+- schema changes
+- adaptive challenge library
+- quest chains library
+- mission-generator integration
+- ai-missions route updates
+- rarity/chain propagation into accepted missions
+- reward bonus integration in proofs flow
+- active chain route
+- mission card rarity/chain badges
+- home screen active chain card
+- proof result bonus breakdown UI
+- db package rebuild attempt
+
+Treat the current working tree as the source of truth and continue from there.
+
+==================================================
+PHASE 5B SCOPE ONLY
+==================================================
+
+Build / finish only:
+
+1. Adaptive challenge tuning for AI-generated missions
+2. Mission chains / quest chains
+3. Breakthrough / rare mission layer
+4. Reward balance polish for mission difficulty and streak/chain consistency
+5. Minimal UI to support the above
+
+Do NOT build:
+- social/community
+- leaderboard
+- marketplace expansion
+- 3D world
+- deep economy simulation
+- large analytics overhaul
+- new proof systems
+- onboarding changes
+- unrelated UI redesign
+
+==================================================
+STEP 1 — AUDIT BEFORE CODING
+==================================================
+
+Before changing anything:
+1. inspect all current Phase 5B-related files
+2. list which Phase 5B acceptance criteria are already satisfied
+3. identify only the remaining gaps
+4. make the minimum changes needed
+
+Specifically inspect:
+- adaptive-challenge lib / service
+- quest-chains lib / service
+- mission-generator.ts
+- ai-missions route(s)
+- proofs.ts reward/bonus flow
+- rewards-related helpers if any
+- mission schema / db package exports / stale dist declarations
+- missions screen AI mission card UI
+- home screen active chain card UI
+- proof result / verdict bonus explanation UI
+- route ordering conflicts such as /chains/active vs /:missionId
+- docs/replit.md or equivalent project notes
+
+==================================================
+STEP 2 — COMPLETE ONLY THE REMAINING PHASE 5B GAPS
+==================================================
+
+Finish only what is still missing from these requirements:
+
+A. Adaptive Challenge Tuning
+- missions should scale to actual user baseline
+- repeated struggle should soften difficulty
+- repeated success should increase difficulty gradually
+- strictness mode, available time, skill trend, blocked attempts, proof quality, current arc, and recent completion history should influence challenge
+- fallback must work without OpenAI
+
+B. Quest Chains
+- lightweight quest chains of 2-4 related missions
+- chain name, theme, related skill, current step, total steps, chain bonus
+- accepted chain missions must enter the existing mission system
+- chain progress must be visible
+- active chain endpoint and UI must work correctly
+
+C. Rare / Breakthrough Missions
+- rarity types should work correctly
+- rare/breakthrough missions should appear only under meaningful conditions
+- rarity state should persist correctly
+- rarity bonuses should be explainable and controlled
+
+D. Reward Balance Lite
+- chain completion bonus
+- rarity bonus
+- adaptive difficulty bonus if applicable
+- reward logic remains server-side only
+- reward explanations should show bonuses clearly
+- do not create runaway inflation
+
+E. Minimal UI
+- Mission Board shows chain/rarity indicators correctly
+- Home/Character shows active chain if present
+- Proof result view shows bonus explanation cleanly
+- keep UI minimal and aligned with existing style
+
+==================================================
+STEP 3 — CRITICAL TECHNICAL CHECKS
+==================================================
+
+Because the previous run stopped during type/build validation, explicitly verify and fix only if needed:
+
+1. stale @workspace/db dist/type declarations after schema changes
+2. any missing exports for new mission fields
+3. route ordering conflicts:
+   - /chains/active must not be intercepted by /:missionId
+4. proofs reward flow compiles with updated chain advancement return type
+5. mobile hooks/types match backend responses
+6. no newly introduced runtime errors
+7. all new routes return JSON and preserve auth/ownership
+
+If the DB package needs rebuild/regeneration, do only what is necessary and keep scope tight.
+
+==================================================
+STEP 4 — IF EVERYTHING IS ALREADY COMPLETE
+==================================================
+
+If your audit shows all Phase 5B acceptance criteria are already met:
+- do not refactor working code
+- do not add extra scope
+- only:
+  1. run final verification
+  2. update docs/replit.md or equivalent notes
+  3. produce the final Phase 5B completion report
+
+==================================================
+PHASE 5B ACCEPTANCE CRITERIA
+==================================================
+
+Phase 5B is complete only if:
+
+1. AI-generated missions adapt to recent user performance
+2. Difficulty becomes easier after repeated struggle and harder after repeated success
+3. Quest chains exist and can span 2-4 related missions
+4. Chain missions enter the existing mission/task flow correctly
+5. Chain progress is visible in UI
+6. Rare or Breakthrough missions can appear under meaningful conditions
+7. Rare/Breakthrough missions give controlled special rewards
+8. Reward explanations show bonuses clearly
+9. Existing manual mission flow still works
+10. Security and ownership remain intact
+11. All new routes return JSON
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- which Phase 5B criteria were already complete before this run
+- which items were unfinished
+- what was done in this run
+
+2. Files changed in this run only
+
+3. How adaptive difficulty is calculated
+
+4. How quest chains are structured
+
+5. How rare/breakthrough missions are triggered
+
+6. How reward balance was adjusted
+
+7. UI changes made in this run
+
+8. End-to-end test results for:
+- normal AI mission
+- adapted easier mission after struggle
+- adapted harder mission after success
+- quest chain progress
+- rare/breakthrough mission appearance
+- reward bonus explanation
+
+9. Confirmation that no Phase 5A or unrelated scope was touched
+
+Important:
+Preserve the existing working app.
+Do not repeat finished work.
+Do not expand scope.
+Only finish Phase 5B cleanly.

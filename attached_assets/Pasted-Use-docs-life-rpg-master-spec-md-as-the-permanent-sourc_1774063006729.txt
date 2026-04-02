@@ -1,0 +1,137 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Resume Phase 14 only: Live Ops / Content Ops / Experimentation Lite.
+
+Important:
+- Do NOT restart the project.
+- Do NOT re-implement completed Phase 14 work.
+- Do NOT broaden scope beyond Phase 14.
+- First audit the current Phase 14 implementation and determine exactly which acceptance criteria are already fully complete vs only partially implemented.
+- Then implement only the remaining unfinished items.
+- If all remaining items are already implemented, do not change working code unnecessarily — only run final verification and return the completion report.
+
+Current context:
+Phase 14 already appears to have:
+- schema pushed for content_packs, live_events, content_variants, user_variant_assignments
+- admin live ops screen
+- admin nav entry
+- user-facing live content banner on home
+- API server running cleanly
+
+Your job now is to close only the still-unconfirmed/unfinished parts.
+
+==================================================
+STEP 1 — AUDIT BEFORE CODING
+==================================================
+
+Audit the current implementation and explicitly verify whether the following are truly complete:
+
+1. Scheduling / automatic activation
+- Do scheduled content items automatically become active/inactive based on start/end time?
+- Is expired content hidden correctly?
+- Is status logic derived correctly (draft / scheduled / active / expired / archived)?
+
+2. Variant assignment / experimentation flow
+- Are users actually assigned variants?
+- Is assignment sticky/consistent per user?
+- Are variants used on real surfaces?
+- Are exposure/outcome events tracked?
+
+3. Eligibility / targeting enforcement
+- Are content packs/events actually filtered by target user state / eligibility rules?
+- Is targeting explainable and server-side?
+- Does the home screen/banner only show eligible content?
+
+4. End-to-end correctness and safety
+- Does mission pack activation work end to end?
+- Does live event visibility work end to end?
+- Does variant assignment + telemetry work end to end?
+- Does existing mission/proof/reward flow remain unchanged?
+- Are admin/security constraints enforced server-side?
+
+==================================================
+STEP 2 — IMPLEMENT ONLY WHAT IS STILL MISSING
+==================================================
+
+If any of the following are incomplete, implement only the minimum safe changes needed:
+
+A. Scheduling / status resolution
+- automatic activation/deactivation by time window
+- clean status resolution
+- expired content hidden or marked correctly
+
+B. Variant assignment
+- consistent assignment per user
+- assignment persistence
+- use variants on at least one real content surface
+- track variant exposure and at least one meaningful outcome using existing telemetry if possible
+
+C. Eligibility / targeting
+- server-side filtering by simple user state rules
+- keep logic lightweight and explainable
+- ensure banner/content surfaces only show eligible content
+
+D. Final verification
+- prove end-to-end that packs/events/variants work
+- confirm existing core app flow is unchanged
+- confirm admin authorization is enforced
+
+Do NOT add new features beyond these missing closures.
+
+==================================================
+PHASE 14 ACCEPTANCE CRITERIA TO CLOSE
+==================================================
+
+Phase 14 is complete only if:
+
+1. curated mission packs/challenge packs exist
+2. lightweight live events / limited-time content exist
+3. admin/internal can activate and schedule content without code edits
+4. lightweight experimentation/variant testing exists for at least some content surfaces
+5. user-facing active event/pack surfaces exist and feel clean
+6. content can be targeted in a lightweight, explainable way if needed
+7. existing mission/proof/reward flow still works
+8. admin/security constraints are enforced
+9. no oversized CMS/live-service/social scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- which Phase 14 items were already complete
+- which items were partial
+- what was fixed in this run
+
+2. Files changed in this run only
+
+3. Scheduling/status logic
+- how activation/deactivation works
+- how status is resolved
+
+4. Variant system
+- how assignment works
+- where variants are used
+- what telemetry/outcomes are tracked
+
+5. Eligibility/targeting
+- what rules are supported
+- where targeting is enforced
+
+6. End-to-end verification results for:
+- mission pack activation
+- live event visibility
+- scheduled activation
+- variant assignment + telemetry
+- existing app flow unchanged
+- admin/security enforcement
+
+7. Confirmation that no extra scope was added
+
+Important:
+Preserve the existing working app.
+Do not repeat finished work.
+Do not broaden scope.
+Only finish Phase 14 cleanly.

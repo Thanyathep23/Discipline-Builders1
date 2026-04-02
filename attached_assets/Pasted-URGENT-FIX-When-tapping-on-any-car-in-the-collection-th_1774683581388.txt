@@ -1,0 +1,169 @@
+URGENT FIX: When tapping on any car in the collection, the detail screen opens but the car image area is completely blank/dark. I need the car visual to always show up.
+
+## What's broken
+The car detail sheet/modal has an empty box at the top where the car should appear.
+The car name, description, price, stats all show — but the actual car image/visual is missing.
+
+## Step 1 — Find the broken component
+Search for the car detail sheet component. It could be named:
+- `CarDetailSheet`
+- `CarDetailModal`
+- `CarDetail`
+- `car-detail`
+- Inside `app/cars/index.tsx` as a bottom sheet or modal
+
+Look for the section that renders the car visual inside the detail view.
+It probably looks something like:
+```tsx
+<View style={heroContainer}>
+  <CarVisual car={selectedCar} color={selectedColor} />
+  {/* or */}
+  <model-viewer src={...} />
+  {/* or */}
+  {/* EMPTY — this is the bug */}
+</View>
+```
+
+## Step 2 — Fix the car visual rendering
+
+The car visual area in the detail sheet needs to ALWAYS show something.
+Apply this fix:
+```tsx
+{/* Car visual hero area */}
+<View style={{
+  width: '100%',
+  height: 200,
+  alignItems: 'center',
+  justifyContent: 'center',
+  position: 'relative',
+}}>
+  {/* Try to render CarVisual — if it exists */}
+  {CarVisual ? (
+    <CarVisual
+      car={selectedCar}
+      color={selectedColor || selectedCar?.colors?.[0] || '#4A9EFF'}
+      size="large"
+      style={{ opacity: 1 }}
+    />
+  ) : (
+    /* Fallback SVG car shape */
+    <Svg width="220" height="120" viewBox="0 0 220 120">
+      {/* Car body */}
+      <Path
+        d="M15,80 Q20,45 65,35 L90,25 L140,25 L165,35 Q200,45 205,80 Z"
+        fill={selectedColor || '#4A9EFF'}
+        opacity={0.85}
+      />
+      {/* Roof */}
+      <Path
+        d="M70,35 Q85,12 110,12 Q140,12 155,35"
+        fill={selectedColor || '#4A9EFF'}
+        opacity={0.9}
+      />
+      {/* Window */}
+      <Path
+        d="M75,33 Q88,16 110,16 Q135,16 148,33"
+        fill="rgba(255,255,255,0.18)"
+      />
+      {/* Body highlight */}
+      <Path
+        d="M20,65 Q80,55 200,65"
+        stroke="rgba(255,255,255,0.15)"
+        strokeWidth="2"
+        fill="none"
+      />
+      {/* Wheel left */}
+      <Circle cx="65" cy="83" r="18" fill="#0D0F14" stroke={selectedColor || '#4A9EFF'} strokeWidth="3"/>
+      <Circle cx="65" cy="83" r="8" fill={selectedColor || '#4A9EFF'} opacity={0.5}/>
+      {/* Wheel right */}
+      <Circle cx="158" cy="83" r="18" fill="#0D0F14" stroke={selectedColor || '#4A9EFF'} strokeWidth="3"/>
+      <Circle cx="158" cy="83" r="8" fill={selectedColor || '#4A9EFF'} opacity={0.5}/>
+      {/* Ground shadow */}
+      <Ellipse cx="110" cy="105" rx="90" ry="8" fill="rgba(0,0,0,0.3)"/>
+    </Svg>
+  )}
+</View>
+```
+
+## Step 3 — Fix CarVisual opacity (if it exists but is invisible)
+
+The `CarVisual` component probably renders SVG paths with very low opacity that makes them invisible on dark backgrounds. Find `CarVisual.tsx` or `CarVisual` component and change all opacity values:
+
+Find patterns like:
+```tsx
+fill={color + "22"}   // 13% opacity — too low!
+fill={color + "15"}   // 8% opacity — invisible!
+stroke={color + "40"} // 25% opacity — too low!
+```
+
+Replace with higher opacity values:
+```tsx
+fill={color + "CC"}   // 80% opacity — visible
+fill={color + "99"}   // 60% opacity — visible
+stroke={color + "FF"} // 100% opacity — full
+```
+
+Or if using rgba:
+```tsx
+// Before:
+fill={`rgba(${r},${g},${b},0.08)`}
+// After:
+fill={`rgba(${r},${g},${b},0.75)`}
+```
+
+## Step 4 — Fix the car hero background
+
+The hero container background might be matching the car color at near-zero opacity, making everything invisible. Fix it:
+```tsx
+// Find the hero/visual container style — change background to:
+heroContainer: {
+  backgroundColor: 'rgba(255,255,255,0.04)',  // subtle dark glass
+  // NOT: backgroundColor: color + '11'  ← invisible
+  borderRadius: 16,
+  overflow: 'hidden',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: 200,
+}
+```
+
+## Step 5 — For BMW M4 cars specifically
+
+If the selected car is a BMW M4 (check by car name or ID), show the 3D model:
+```tsx
+const BMW_GLB_MAP: Record<string, string> = {
+  'Series M Black': '/api/models/2025_bmw_m4_competition.glb',
+  'Alpine GT': '/api/models/bmw_m4_widebody.glb',
+  // add others if needed
+}
+
+const glbSrc = BMW_GLB_MAP[selectedCar?.name]
+
+// In the hero area:
+{glbSrc && typeof window !== 'undefined' ? (
+  <model-viewer
+    src={glbSrc}
+    camera-controls
+    auto-rotate
+    auto-rotate-delay="2000"
+    rotation-per-second="10deg"
+    camera-orbit="30deg 75deg 3.5m"
+    field-of-view="30deg"
+    environment-image="neutral"
+    shadow-intensity="1.2"
+    exposure="1.1"
+    style={{ width: '100%', height: '200px', background: 'transparent', '--poster-color': 'transparent' } as React.CSSProperties}
+  />
+) : (
+  <CarVisual car={selectedCar} color={selectedColor} />
+)}
+```
+
+## Summary of what should be fixed
+1. ✅ Car visual always shows in detail sheet — never blank
+2. ✅ SVG car shapes are clearly visible (not nearly-transparent)
+3. ✅ BMW M4 cars show 3D model in detail view (with camera controls so user can rotate)
+4. ✅ Hero background is a subtle dark glass, not invisible colored overlay
+5. ✅ Works for ALL cars in the collection (Starter Ride, Series M Black, Alpine GT, Continental S, etc.)
+
+Fix all of this now. Show me which files you changed.

@@ -1,0 +1,268 @@
+Use docs/life-rpg-master-spec.md and the existing Phase 27 QA documentation as the permanent source of truth.
+
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+# Phase 27.5 — Integration Hardening
+Version: 1.0 | Platform: Replit | Scope: Test DB + API integration protection
+
+## 🎯 PROJECT OVERVIEW
+Phase 27 is already complete:
+- QA docs exist
+- smoke command exists
+- pure logic tests exist
+- typecheck is clean
+- 80 automated tests pass
+
+What still remains is the final hardening gap:
+there is not yet a full integration test layer running against a dedicated test database.
+
+This phase exists to close that gap.
+
+Do NOT add new product features.
+Do NOT redesign systems.
+Do NOT change business logic unless a real bug is discovered.
+Do NOT expand beyond testability, fixtures, integration validation, and release safety.
+
+==================================================
+PHASE GOAL
+==================================================
+
+Build a lightweight but real integration testing layer for the highest-risk backend flows using a dedicated test database and deterministic fixtures.
+
+Protect these flows end-to-end at API level:
+
+1. register / login
+2. create mission
+3. start focus / stop session
+4. submit proof
+5. judge verdict processing
+6. reward grant
+7. wallet / coin balance update
+8. purchase item / equip item
+9. switch room / switch car / switch wheel / wardrobe
+10. duplicate reward / duplicate purchase protection
+
+==================================================
+STEP 1 — AUDIT CURRENT TESTING FOUNDATION
+==================================================
+
+Before changing anything, inspect and report:
+
+1. Existing vitest setup
+2. Existing smoke command
+3. Existing QA seed/reset scripts
+4. Current database access pattern
+5. Whether there is already a test database config
+6. How routes are mounted and how API integration tests can be executed
+7. Which critical flows are still covered only by pure logic tests
+
+Report:
+- what already exists
+- what is reusable
+- what is missing
+- what is too brittle
+- the minimum viable integration approach
+
+==================================================
+STEP 2 — CREATE A SAFE TEST DATABASE STRATEGY
+==================================================
+
+Implement the minimum stable test DB strategy.
+
+Requirements:
+- use a dedicated test database or isolated test schema
+- never point integration tests at production/dev user data
+- environment-driven config only
+- easy reset between runs
+- deterministic seeding
+
+Create or standardize:
+
+1. test DB env config
+2. reset script for test DB
+3. seed script for integration scenarios
+4. isolated fixture users and fixture state
+
+At minimum create test fixtures for:
+- fresh_user
+- authenticated_user
+- user_with_mission
+- user_with_focus_session
+- user_with_wallet_balance
+- user_with_owned_items
+- low_balance_user
+- progressed_user
+
+==================================================
+STEP 3 — ADD API INTEGRATION TEST SUITE
+==================================================
+
+Use the current backend route structure.
+Do NOT build a giant E2E framework.
+Use the lightest reliable API integration setup.
+
+Preferred:
+- vitest
+- supertest or equivalent
+- real route handlers
+- real DB writes against test DB
+- deterministic cleanup between tests
+
+Build integration coverage for these flows:
+
+### A. Auth Integration
+- register success
+- duplicate register rejected
+- login success
+- invalid login rejected
+- protected route rejects unauthenticated access
+
+### B. Mission Integration
+- create mission success
+- invalid mission payload rejected
+- mission persists with expected proof requirement fields
+
+### C. Focus Session Integration
+- start session success
+- second active session rejected if product rule says only one active session
+- stop session success
+- invalid stop/end does not corrupt session state
+
+### D. Proof + Judge Integration
+- valid proof submission persists
+- empty proof rejected
+- duplicate proof rejected or flagged per actual rule
+- follow-up path persists correct state
+- judge result shape is valid
+- ambiguous/failed judge does not mint reward
+
+### E. Reward / Wallet Integration
+- approved result grants reward exactly once
+- duplicate processing does not create duplicate reward
+- wallet balance changes by exact expected amount
+- failed transaction rolls back correctly
+
+### F. Purchase / Equip Integration
+- purchase succeeds when level + coin conditions met
+- purchase fails when insufficient balance
+- already-owned behavior follows actual product rule
+- equip succeeds only for owned item
+- non-owned equip rejected
+- room/car/wheel/wardrobe switch endpoints preserve integrity
+
+==================================================
+STEP 4 — ADD CONCURRENCY / INTEGRITY TESTS
+==================================================
+
+Add targeted high-risk integrity tests for:
+
+1. duplicate reward attempts
+2. duplicate purchase attempts
+3. same proof judged twice
+4. two nearly simultaneous wallet-affecting actions
+5. invalid ownership switching
+6. rollback on partial failure
+
+Do NOT over-engineer.
+Only test the highest-risk money / reward / ownership paths.
+
+==================================================
+STEP 5 — UPDATE QA DOCUMENTATION
+==================================================
+
+Update docs/qa/ to reflect the new integration layer.
+
+Must update:
+- qa-inventory.md
+- critical-path-matrix.md
+- release-gate.md
+- known-risks-and-gaps.md
+
+Specifically:
+- mark which flows now have real integration coverage
+- separate pure logic coverage vs API integration coverage
+- call out anything still manual-only
+- tighten release gate accordingly
+
+==================================================
+STEP 6 — UNIFIED PRE-DEPLOY COMMAND
+==================================================
+
+Create one command that runs the release-critical validation stack.
+
+Example:
+pnpm qa:release
+
+This command should run, in sensible order:
+1. typecheck
+2. unit/pure-logic tests
+3. integration tests
+4. smoke tests if still separately useful
+
+It must fail fast and return a clear non-zero exit code when anything critical fails.
+
+==================================================
+STEP 7 — BUG RULES
+==================================================
+
+If integration tests reveal real bugs:
+- fix the bug only if it is directly within scope
+- do not redesign architecture
+- do not add features
+- prefer minimal patch
+- document the bug in known-risks if not fixed
+
+==================================================
+STEP 8 — ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. test DB strategy exists and is safe
+2. reset + seed tooling works for integration scenarios
+3. API integration tests exist for auth, mission, focus, proof, reward, wallet, purchase/equip
+4. duplicate reward/purchase integrity is tested
+5. release gate is updated to include integration requirements
+6. a unified pre-deploy QA command exists
+7. typecheck remains clean
+8. existing Phase 27 smoke coverage still works
+9. no new product scope was added
+10. no production/dev data path is used by tests
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary
+- what already existed
+- what was missing
+- what integration layer was added
+
+2. Files created or changed in this run only
+
+3. Test DB strategy summary
+- environment setup
+- reset/seed flow
+- safety guardrails
+
+4. Integration coverage summary
+- which endpoints/flows are now tested
+- which are still manual only
+
+5. Release command summary
+- exact commands added
+- what each command runs
+
+6. Verification results
+- typecheck
+- logic tests
+- integration tests
+- smoke tests
+- overall pass/fail
+
+7. Remaining gaps
+- only real remaining risks, not hypothetical ones

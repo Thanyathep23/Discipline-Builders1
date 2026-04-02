@@ -1,0 +1,331 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 15 — Controlled Community / Accountability Layer Lite.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Proof intelligence works
+- Adaptive challenge, quest chains, rarity, identity layer, admin tools, shareable layer, telemetry, growth/invite systems, endgame systems, and live-ops/content-ops are complete
+- The next highest-value step is to add a safe, motivating, non-toxic social/accountability layer that increases retention and meaning without turning the product into a noisy social platform
+
+Your task:
+Build only the smallest high-impact controlled community layer.
+
+==================================================
+PHASE 15 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Invite-only accountability circles / pods
+2. Opt-in prestige showcase surfaces
+3. Lightweight shared challenges / group accountability moments
+4. Small social visibility for meaningful progress
+5. Minimal moderation / safety controls for this layer
+6. Minimal UI for the above
+
+Do NOT build:
+- public social feed
+- comments feed
+- likes economy
+- open follower graph
+- giant chat system
+- global leaderboard
+- public-by-default profiles
+- creator marketplace
+- guild/clan MMO systems
+- full community platform
+- redesign of the whole app
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current shareable layer, invite/referral system, identity/profile surfaces, titles/badges, live content systems, admin tools, and telemetry
+2. identify what already exists that can support controlled community/accountability
+3. identify the minimum set of social/accountability features needed to create retention and meaning without toxicity
+4. implement only the minimum systems needed
+5. avoid broad refactors
+
+==================================================
+A. INVITE-ONLY ACCOUNTABILITY CIRCLES / PODS
+==================================================
+
+Add a lightweight private social layer based on small invite-only groups.
+
+Purpose:
+Help users stay consistent by sharing progress with a small trusted set of people, not the whole internet.
+
+Build:
+- circles / pods / groups with small size limits
+- invite-only membership
+- owner/admin role for the circle
+- basic member state
+- ability to join via invite link/code if feasible
+- circle visibility limited to members only
+
+Suggested size:
+- small, intimate groups only (for example 2-8 people max)
+
+Requirements:
+- circles are private by default
+- membership is explicit and controlled
+- no random discovery of users or groups
+- each circle should feel like an accountability pod, not a social feed
+- preserve privacy and user control
+
+Possible data shown inside a circle:
+- active title
+- current arc
+- selected progress cards
+- selected challenge participation
+- optional recent wins
+
+Do NOT expose:
+- sensitive profile answers
+- raw proof files
+- private mission notes
+- exact financial/private data
+- anything not explicitly chosen for visibility
+
+==================================================
+B. OPT-IN PRESTIGE SHOWCASE SURFACES
+==================================================
+
+Add an opt-in way for users to present a curated version of their progress to others.
+
+Purpose:
+Let users feel proud and visible without making the system shallow or toxic.
+
+Build:
+- public-to-circle or shared-to-circle prestige snapshot
+- toggleable profile visibility settings for shareable identity elements
+- selective visibility of:
+  - active title
+  - current arc
+  - top strengths
+  - selected badges/trophies
+  - selected share cards
+  - current mastery/prestige markers if they exist
+
+Requirements:
+- all visibility must be opt-in
+- users should control what is shown
+- showcase should feel premium and aspirational
+- no public-by-default profile exposure
+- no sensitive personal answers by default
+
+==================================================
+C. LIGHTWEIGHT SHARED CHALLENGES / GROUP ACCOUNTABILITY
+==================================================
+
+Add a small shared challenge layer for circles.
+
+Purpose:
+Create community-driven motivation without requiring synchronous play or heavy social features.
+
+Examples:
+- Focus Weekend Challenge
+- 3-Day Momentum Reset
+- Trading Review Sprint
+- Recovery Week
+- Learning Sprint
+
+Build:
+- circle-level challenge participation
+- visible progress at a lightweight level
+- simple participation/completion state
+- challenge completion moments for the group
+- optional circle rewards or symbolic unlocks if appropriate
+
+Requirements:
+- shared challenges should reuse existing mission/pack/event systems where possible
+- do not build separate giant challenge logic if existing systems can power it
+- keep challenge visibility simple and encouraging
+- avoid shame-heavy or public-failure mechanics
+- allow async participation
+
+==================================================
+D. SMALL SOCIAL VISIBILITY FOR MEANINGFUL PROGRESS
+==================================================
+
+Add only a minimal social visibility layer for meaningful moments.
+
+Examples of visible events inside a circle:
+- title unlocked
+- badge earned
+- chain completed
+- comeback mission completed
+- mastery milestone reached
+- live event/challenge completed
+- selected share/result card posted to circle
+
+Rules:
+- only meaningful moments should surface
+- do not spam small/noisy events
+- users should be able to control or mute what is shared
+- visibility should be encouragement-oriented, not addictive feed design
+
+Possible UI surfaces:
+- circle activity panel
+- recent meaningful wins
+- accountability snapshot
+- current shared challenge progress
+- “celebrate” reaction or lightweight acknowledgement if appropriate
+
+Keep this minimal and tasteful.
+
+==================================================
+E. LOW-TOXICITY COMMUNITY DESIGN RULES
+==================================================
+
+This product must avoid the worst patterns of social apps.
+
+Requirements:
+- no global ranking by default
+- no public humiliation mechanics
+- no visible failure wall
+- no manipulative engagement spam
+- no vanity-first design that destroys the self-improvement mission
+- social visibility should emphasize:
+  - effort
+  - consistency
+  - meaningful wins
+  - support
+  - accountability
+not shallow comparison
+
+If comparison is used at all, keep it:
+- private
+- limited
+- opt-in
+- contextual
+- non-toxic
+
+==================================================
+F. MINIMAL MODERATION / SAFETY CONTROLS
+==================================================
+
+Because this introduces user-to-user surfaces, add minimum safety controls.
+
+Build only lightweight essentials:
+- leave circle
+- remove member (owner/admin only)
+- basic report/flag action for inappropriate shared content if any shared surface exists
+- admin/internal visibility for moderation events if feasible
+- audit logging for circle management actions
+
+Requirements:
+- preserve privacy
+- preserve ownership/authorization
+- keep moderation tools minimal but real
+- do not build a full trust-and-safety suite
+
+==================================================
+G. UI / UX MVP
+==================================================
+
+Build only minimal UI needed.
+
+Possible surfaces:
+- circle list / circle detail
+- invite-to-circle flow
+- circle settings lite
+- prestige showcase settings
+- shared challenge card
+- circle activity panel
+- member snapshot cards
+
+Requirements:
+- dark premium
+- command-center prestige
+- serious, supportive, elite-feeling
+- not childish
+- not noisy
+- not feed-addicted
+- should feel like a selective accountability network
+
+==================================================
+H. BACKEND / SECURITY RULES
+==================================================
+
+- all circle membership, role, and visibility enforcement must be server-side
+- preserve ownership checks
+- preserve JSON-only APIs
+- no public-by-default exposure
+- shared content visibility must be explicit and permissioned
+- keep schema changes additive and minimal
+- audit circle membership/admin actions where appropriate
+- do not trust client-side visibility settings alone
+
+==================================================
+I. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. private invite-only accountability circles exist
+2. users can join/share within circles in a controlled way
+3. opt-in prestige showcase surfaces exist
+4. lightweight shared challenges or accountability events exist for circles
+5. meaningful progress can be surfaced inside a circle without becoming a spammy feed
+6. privacy and visibility controls are explicit and safe
+7. minimal moderation/safety controls exist
+8. existing mission/proof/reward flow still works
+9. no oversized public social platform scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what community/accountability capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Accountability circle system added
+- data model
+- invite/join logic
+- visibility model
+
+4. Prestige showcase changes
+- what users can choose to show
+- privacy defaults
+
+5. Shared challenge / social accountability additions
+- what challenge/accountability surfaces exist
+- how they connect to existing mission/event systems
+
+6. Safety / moderation controls added
+- what controls exist
+- what is audit-logged
+
+7. User-facing UI added
+- what members can see
+- what is opt-in vs automatic
+
+8. End-to-end verification results for:
+- create/invite/join circle
+- showcase visibility
+- shared challenge participation
+- meaningful progress surfaced in circle
+- leave/remove/report flows
+- existing app flow unchanged
+
+9. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

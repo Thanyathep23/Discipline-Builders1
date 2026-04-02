@@ -1,0 +1,69 @@
+Fix the session completion / proof submission flow on the active focus session screen only.
+
+Current issue:
+On the active session screen, the button "Done — Submit Proof" appears even when the session is still paused and only 00:40 / 30:00 has elapsed. Pressing it does not properly finish the flow.
+
+Goal:
+Make the Done/Submit Proof flow logically correct, user-clear, and robust.
+
+Likely root cause:
+The frontend CTA is shown too early or the button does not correctly complete the session before navigating to proof submission. The backend likely expects either:
+- minimum duration reached, and/or
+- session status = completed
+before proof submission is valid.
+
+Tasks:
+1. Audit the active session screen button logic and the session completion backend flow.
+2. Determine whether proof submission requires:
+   - minimum duration,
+   - completed status,
+   - or both.
+3. Fix the flow so the CTA matches the real backend rules.
+
+Required behavior:
+- If session is eligible to complete:
+  - tapping Done must first call the complete/stop session API
+  - wait for success
+  - then navigate to the proof submission screen
+- If session is NOT yet eligible:
+  - do not show a misleading "Done — Submit Proof" primary CTA
+  - instead either:
+    a) disable it until eligible, OR
+    b) change it to an "End Early" flow with confirmation
+- If early finish is allowed:
+  - show a clear modal explaining partial completion / reduced reward / partial verdict
+  - provide:
+    - Resume Session
+    - End Early & Submit Proof
+- If backend rejects the action:
+  - show a clear error message, not silent failure
+
+UI requirements:
+- CTA text must match actual state
+- paused state should not pretend the session is already done
+- if only 00:40 / 30:00 is completed, the user should understand why normal completion is not available yet
+- keep styling consistent with the current premium dark UI
+
+Implementation requirements:
+- do not redesign the whole screen
+- do not touch unrelated systems
+- make the smallest safe patch
+- preserve existing proof and reward logic
+
+Acceptance criteria:
+1. Done/Submit Proof only appears when logically valid, or is replaced with a clear End Early flow
+2. Tapping Done first completes the session successfully before navigating
+3. Early finish flow is explicit and understandable
+4. Backend errors are surfaced cleanly
+5. No silent no-op behavior remains
+6. Existing session/proof/reward flow still works
+
+At the end, return:
+1. root cause
+2. files changed
+3. exact CTA/state logic implemented
+4. test results for:
+   - eligible completion
+   - paused but incomplete session
+   - early finish flow
+   - backend rejection handling

@@ -1,0 +1,57 @@
+Fix the character proportions in 
+artifacts/mobile/components/character/CharacterRenderer.tsx.
+The character currently looks wrong — neck too long, shirt too boxy, 
+arms detached from body.
+
+SPECIFIC FIXES REQUIRED:
+
+FIX 1 — NECK TOO LONG:
+The neck must be much shorter. 
+Change neck height from current value to: height=10 (not 18 or more).
+Head bottom is at approximately y=68 (headCY + headRY = 44+24).
+Collar top should start at y=76 — gap of only 8px.
+The neck Rect: x=54 y=68 width=12 height=10 rx=3
+
+FIX 2 — SHIRT TOO WIDE AND BOXY:
+The torso must follow the body silhouette, not be a wide rectangle.
+Replace with a natural tapered shape:
+  Top of shirt at shoulders: width=60 (not 76 or 80), centered at x=60
+  So: left shoulder at x=30, right shoulder at x=90
+  Waist tapers inward: left waist at x=34, right waist at x=86
+  Shirt Path: M 30,88 L 90,88 L 86,188 L 34,188 Z
+  
+The shirt must NOT be wider than the head looks natural.
+Head radius rx=21, so shirt shoulder width of 60px looks proportional.
+
+FIX 3 — ARMS MUST CONNECT TO BODY:
+The arms must start exactly where the torso ends, no gap.
+Left arm: starts at x=30 (same as left shoulder of torso)
+  Path: M 30,88 L 12,92 L 10,172 L 26,176 L 34,110 Z
+  This creates a natural arm that flows out from shoulder, no gap.
+Right arm: starts at x=90
+  Path: M 90,88 L 108,92 L 110,172 L 94,176 L 86,110 Z
+
+FIX 4 — HEAD SIZE relative to body:
+Head rx=21 ry=24 is correct — do NOT change the head size.
+Instead, bring the head DOWN closer to the torso:
+  headCY for "neutral" posture = 50 (not 44 or 46)
+  This makes head feel bigger relative to body, more natural proportion.
+  Update posture headCY values:
+    neutral: 50
+    upright: 48
+    athletic: 46
+    peak: 44
+  All face feature Y coordinates must recalculate relative to headCY.
+
+FIX 5 — COLLAR FIXES THE NECK TRANSITION:
+The collar must bridge head and torso naturally.
+Collar position: y = headCY + headRY - 2 (overlap slightly with neck)
+Collar shape must be WIDER than the neck but narrower than shoulders:
+  Left collar: starts at x=36
+  Right collar: ends at x=84
+  This creates the natural shirt collar spread at the neck base.
+
+Apply ALL 5 fixes together. 
+Do not change colors, gradients, accessories, hair, or any other elements.
+Only fix the geometry/proportions listed above.
+Show the changed coordinate sections only.

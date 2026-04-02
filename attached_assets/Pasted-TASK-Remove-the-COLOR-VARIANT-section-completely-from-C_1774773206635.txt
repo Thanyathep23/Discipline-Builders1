@@ -1,0 +1,112 @@
+TASK: Remove the "COLOR VARIANT" section completely from Cars, Watches, and Clothes/Character screens.
+
+REASON: The 3D models are pre-built GLB files — they cannot change color at runtime.
+Showing color swatches that do nothing is misleading to the user. Remove all color
+variant UI, state, and logic entirely.
+
+════════════════════════════════════════════════════════
+STEP 1 — FIND ALL COLOR VARIANT CODE
+════════════════════════════════════════════════════════
+
+Search for every location where color variants exist:
+
+1. grep -r "color" . --include="*.tsx" --include="*.ts" -l | grep -i "car\|watch\|item\|gear\|collection\|detail"
+2. grep -ri "colorVariant\|color_variant\|COLOR VARIANT\|selectedColor\|colorOptions\|colors\b" . --include="*.tsx" --include="*.ts" -l
+3. grep -ri "COLOR VARIANT\|colorVariant\|color swatch\|colorOptions" . --include="*.tsx" -n
+
+Show me the list of files found before making any changes.
+
+════════════════════════════════════════════════════════
+STEP 2 — REMOVE FROM CAR DETAIL SCREEN
+════════════════════════════════════════════════════════
+
+In the Car detail / CarDetailScreen / CarCollectionDetail component:
+
+A) Remove the entire "COLOR VARIANT" UI section. This includes:
+   - The "COLOR VARIANT" label/heading text
+   - The color swatch row (TouchableOpacity circles / colored dots)
+   - Any "selectedColor" state variable and its setter
+   - Any text showing the selected color name (e.g., "Sapphire Blue")
+   - Any `onPress` handler that changes selectedColor
+
+B) Remove these from the car data type / interface:
+   - `colors?: string[]`
+   - `colorNames?: string[]`
+   - `selectedColor?: string`
+   - Any similar color-related fields
+
+C) Remove from car data arrays (wherever cars are defined):
+   - Delete the `colors: [...]` array from EVERY car entry
+   - Delete any `colorNames: [...]` from every car entry
+
+D) Do NOT remove or change anything else on the car detail screen
+   (keep: model viewer, name, tags, stats, level req, price, prestige, purchase button)
+
+════════════════════════════════════════════════════════
+STEP 3 — REMOVE FROM WATCH DETAIL SCREEN
+════════════════════════════════════════════════════════
+
+In the Watch detail / WatchDetailScreen / WatchCollectionDetail component:
+
+A) Remove the entire "COLOR VARIANT" UI section:
+   - The "COLOR VARIANT" label/heading text
+   - All color swatch circles
+   - `selectedColor` state and setter
+   - Selected color name display
+   - Any `onPress` color selection handler
+
+B) Remove from watch data type / interface:
+   - `colors?: string[]`
+   - `colorNames?: string[]`
+   - Any color-related fields
+
+C) Remove `colors: [...]` from EVERY watch entry in the data array
+
+════════════════════════════════════════════════════════
+STEP 4 — REMOVE FROM CLOTHES / OUTFIT DETAIL SCREEN
+════════════════════════════════════════════════════════
+
+In the Clothes / Outfit / Gear / Item detail component:
+
+A) Same removals as above:
+   - Remove "COLOR VARIANT" label, swatches, state, name display
+   - Remove color-related props from the component
+
+B) Remove `colors: [...]` from every clothing/outfit item in the data array
+
+════════════════════════════════════════════════════════
+STEP 5 — CLEAN UP DEAD CODE
+════════════════════════════════════════════════════════
+
+After removing the UI, clean up any leftover dead code:
+
+1. Remove unused imports related to color (if any were only used for swatches)
+2. Remove unused `useState` for color if nothing else uses it
+3. Remove the `colors` field from TypeScript interfaces/types:
+   - `CarItem`, `WatchItem`, `ClothingItem` (or whatever they are named)
+4. Check if StyleSheet has color-swatch-specific styles and remove them:
+   - `colorSwatch`, `selectedSwatch`, `colorDot`, `colorRow`, `colorLabel`, etc.
+
+════════════════════════════════════════════════════════
+STEP 6 — VERIFY
+════════════════════════════════════════════════════════
+
+Run these checks and confirm all pass:
+
+1. grep -ri "COLOR VARIANT\|colorVariant\|color swatch\|colorOptions\|selectedColor" . --include="*.tsx" --include="*.ts"
+   → Should return 0 results (or only in .md files)
+
+2. The Car detail screen should now show ONLY:
+   ✅ 3D model viewer
+   ✅ Car name + rarity tags
+   ✅ Description text
+   ✅ Level Required / Price / Prestige stats
+   ✅ Purchase / Unlock button
+   ❌ NO color variant section
+
+3. Same clean layout for Watch detail and Clothes detail screens.
+
+4. Make sure the app still compiles with no TypeScript errors after removing
+   the `colors` field from the data type — fix any remaining references.
+
+Do NOT add any other features. Only remove the color variant UI as described.

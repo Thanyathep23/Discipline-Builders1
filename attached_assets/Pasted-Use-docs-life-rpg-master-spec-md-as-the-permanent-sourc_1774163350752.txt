@@ -1,0 +1,391 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Admin / Ops Console Wave 1.
+
+Current context:
+- The user-facing product already has a deep Life RPG structure: missions, proof, rewards, character/game mode, room/world, store/catalog, cars, premium, growth, live-ops, and related systems.
+- The next highest-value gap is not more user-facing features.
+- The next highest-value gap is operational control.
+- The product now needs a real Admin / Ops Console foundation so the team can inspect players, manage core catalog/store surfaces, recover broken states, and operate the game safely.
+
+Your task:
+Build only the smallest high-impact Admin / Ops Console Wave 1 foundation.
+
+==================================================
+WAVE 1 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Admin authentication / RBAC foundation
+2. Admin dashboard
+3. Player inspector
+4. Support / recovery basics
+5. Store admin basics
+6. Audit log foundation
+
+Do NOT build:
+- full economy console
+- full recommendation ops
+- giant live-ops CMS
+- full experiment platform
+- broad BI warehouse
+- full moderation suite
+- full billing operations console
+- redesign of the entire app
+- broad new gameplay systems
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current authentication system, role model, admin-related routes if any, store/catalog system, player state models, inventory/equip/application state, reward/proof state, premium/entitlement state, and current telemetry/admin surfaces
+2. identify what admin capabilities already exist vs what is missing
+3. identify the minimum Wave 1 admin foundation needed
+4. implement only the minimum systems needed
+5. avoid broad refactors
+
+==================================================
+A. ADMIN AUTH / RBAC FOUNDATION
+==================================================
+
+Build a proper server-side admin access foundation.
+
+Requirements:
+- create or extend an admin authorization model
+- use server-side RBAC, not client-only hiding
+- define at minimum these roles:
+  - super_admin
+  - ops_admin
+  - content_admin
+  - support_admin
+- require authenticated admin access for all admin routes/pages
+- preserve the existing user auth model and do not break normal user flows
+- keep implementation practical and secure
+
+Suggested rules:
+- super_admin: full access
+- ops_admin: dashboard, player inspector, support/recovery, core operational views
+- content_admin: store admin basics and content-facing views
+- support_admin: player inspector and limited recovery/support actions only
+
+Requirements:
+- admin routes must be protected server-side
+- admin-only API surfaces must be clearly separated from user APIs
+- preserve JSON-only admin APIs
+- preserve auditability of important admin actions
+
+==================================================
+B. ADMIN DASHBOARD
+==================================================
+
+Build a lightweight admin dashboard that answers:
+“Is the product healthy right now?”
+
+The dashboard must show a concise operational summary, such as:
+- active users today / recent window
+- new signups today / recent window
+- mission completion counts
+- proof approval / rejection / follow-up counts
+- reward transaction counts
+- store purchase counts
+- premium conversion count if easy to expose
+- currently active content/events/packs if already available
+- recent anomalies / warnings if practical
+
+Requirements:
+- keep the dashboard tactical, not bloated
+- use lightweight cards/tables/lists
+- use existing telemetry/admin data where possible
+- prefer actionable visibility over decorative charts
+- support empty/loading/error states cleanly
+
+Do NOT build a full executive BI suite.
+
+==================================================
+C. PLAYER INSPECTOR
+==================================================
+
+Build the Player Inspector as the core admin detail surface.
+
+Purpose:
+Open one player and understand their game/life state quickly.
+
+At minimum, the inspector should show:
+
+1. Basic identity
+- user id
+- display name / username
+- email if allowed in admin context
+- signup date
+- premium state
+- acquisition source if already tracked
+- admin/support notes if practical
+
+2. Progression summary
+- level
+- XP
+- status tier/class
+- current arc
+- prestige state
+- key dimensions if available:
+  - Fitness
+  - Discipline
+  - Finance/Lifestyle
+  - Prestige
+- relevant skills if available
+
+3. Character / world summary
+- current character state summary
+- equipped wearables
+- current room/world theme or room tier
+- featured car if applicable
+- active title / badges / important identity markers
+
+4. Economy summary
+- wallet / coin balance
+- recent purchases
+- recent rewards
+- recent notable unlocks
+
+5. Mission / proof summary
+- active missions
+- recent completed missions
+- recent proof submissions
+- rejected/follow-up proof states
+- active chain / cycle if already available
+
+Requirements:
+- this page should feel like an operational player snapshot
+- do not expose unnecessary sensitive raw data
+- keep sections clean and readable
+- allow linking to key admin actions safely
+
+==================================================
+D. SUPPORT / RECOVERY BASICS
+==================================================
+
+Add only the minimum safe support/recovery tools.
+
+Purpose:
+Allow the team to resolve common broken player-state issues without unsafe manual DB edits.
+
+Allowed examples for Wave 1:
+- recompute / refresh player progression state
+- recompute inventory/equipped/display state
+- retry or repair a stuck reward finalization if already identifiable
+- refresh premium entitlement state if already applicable
+- repair broken featured/showcase item state if already applicable
+- add internal support note
+- flag account for review
+
+Requirements:
+- keep actions small, explicit, and role-gated
+- every recovery action must be audit-logged
+- require a reason/note for impactful actions
+- do not build dangerous bulk mutation tools
+- do not add broad destructive tools in Wave 1
+
+Requirements:
+- prefer safe recompute/rebuild actions over arbitrary mutation
+- if a recovery action is too risky, omit it from Wave 1 and document it as future scope
+
+==================================================
+E. STORE ADMIN BASICS
+==================================================
+
+Build the minimum store/catalog admin operations needed to run the shop.
+
+At minimum, admin should be able to:
+- browse catalog items
+- search/filter items
+- create item
+- edit item
+- activate/deactivate/archive item
+- set category/subcategory/tags
+- set price
+- set level unlock requirement
+- set rarity
+- set premium/limited/exclusive flags
+- set featured visibility/order if already practical
+- set basic media/preview reference if already supported
+- mark whether the item affects:
+  - character
+  - room/world
+  - profile/showcase
+  - car collection if relevant
+- inspect ownership/purchase usage at a lightweight level if already easy
+
+Requirements:
+- validation must be server-side
+- reject invalid product states
+- admin item writes must be audit-logged where appropriate
+- keep the editor practical, not bloated
+- reuse existing catalog/store architecture where possible
+
+Do NOT build a giant merchandising suite in this wave.
+
+==================================================
+F. AUDIT LOG FOUNDATION
+==================================================
+
+Build a real audit log foundation for admin actions.
+
+At minimum, record:
+- admin actor id
+- role
+- timestamp
+- action type
+- target entity type
+- target entity id
+- before snapshot or relevant old value where practical
+- after snapshot or relevant new value where practical
+- reason/note if provided
+- result/success/failure if practical
+
+Actions that must be audit-logged in Wave 1:
+- admin login / access if practical
+- player recovery/support actions
+- store/catalog writes
+- admin role-sensitive mutations
+- any manual override or recompute tool
+
+Requirements:
+- audit logs must be queryable in a basic way
+- keep implementation lightweight and useful
+- do not build a giant forensic system in this wave
+
+==================================================
+G. ADMIN NAVIGATION / UI STRUCTURE
+==================================================
+
+Build only the minimum admin UI structure needed.
+
+Minimum admin sections:
+- Dashboard
+- Players
+- Store
+- Audit Logs
+- Support / Recovery entry points (can be inside Player Inspector if appropriate)
+
+Requirements:
+- admin should feel clearly separate from user-facing game UI
+- keep current design language compatible, but more operational and structured
+- dark premium is acceptable, but prioritize clarity and speed
+- do not redesign the main app
+- do not let user-facing navigation become polluted with admin complexity
+
+==================================================
+H. DATA / SECURITY RULES
+==================================================
+
+Requirements:
+- all admin routes must be protected server-side
+- preserve ownership and entitlement checks for user-facing routes
+- do not leak admin data into user APIs
+- do not expose sensitive data unnecessarily in admin views
+- all admin actions must be permission-checked server-side
+- keep schema changes additive and minimal
+- preserve JSON-only APIs
+- preserve current product behavior for normal users
+
+If an admin action touches player state, ensure:
+- role permission is checked
+- action is logged
+- the mutation is explicit and bounded
+- response is clear and safe
+
+==================================================
+I. UX / PRODUCT RULES FOR ADMIN
+==================================================
+
+The admin console should feel:
+- operational
+- trustworthy
+- fast
+- clear
+- not over-designed
+- easy to inspect and act safely
+
+The admin console should not feel:
+- like a consumer app
+- like a giant enterprise suite
+- like a dangerous raw DB editor
+- like a debug dump
+
+==================================================
+J. ACCEPTANCE CRITERIA
+==================================================
+
+This wave is complete only if:
+
+1. admin auth / RBAC exists and is enforced server-side
+2. an admin dashboard exists with useful operational summary visibility
+3. a player inspector exists and shows the most important player/game state clearly
+4. basic safe support/recovery tools exist
+5. store admin basics exist for item creation/editing/activation and core merchandising fields
+6. audit log foundation exists and records important admin actions
+7. admin navigation is clear and separate from the user-facing experience
+8. existing user-facing app flows still work
+9. no oversized admin/BI/CMS scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what admin/ops capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Admin auth / RBAC foundation added
+- roles
+- how access is enforced
+- what routes/surfaces are protected
+
+4. Admin dashboard added
+- what operational summary blocks exist
+- what data sources they use
+
+5. Player inspector added
+- what sections it includes
+- what player state is visible there
+
+6. Support / recovery basics added
+- what actions exist
+- what roles can perform them
+- how safety/audit logging works
+
+7. Store admin basics added
+- what catalog operations are now possible
+- what validation exists
+
+8. Audit log foundation added
+- what events/actions are recorded
+- how they can be inspected
+
+9. End-to-end verification results for:
+- admin access protection
+- dashboard visibility
+- player inspection
+- support/recovery action
+- store item edit flow
+- audit log creation
+- existing user flow unchanged
+
+10. Remaining gaps for Wave 2
+
+Important:
+Keep this wave focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

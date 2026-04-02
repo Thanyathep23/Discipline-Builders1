@@ -1,0 +1,141 @@
+I have a CHARACTER STATUS screen in my app that currently shows a cartoon/flat 2D character (looks like a simple illustrated figure). I need you to completely replace that cartoon character with a real 3D model I've already uploaded.
+
+## What I've uploaded
+I uploaded these files into my project (find them — they could be in `public/models/`, `models/`, `attached_assets/`, or `client/public/models/`):
+- Superhero_Male_FullBody.gltf
+- Superhero_Male_FullBody.bin
+- T_Superhero_Male_Dark.png
+- T_Superhero_Male_Normal.png
+- T_Superhero_Male_Roughness.png
+- T_Hair_1_BaseColor.png
+- T_Eye_Brown.png
+
+FIRST — search the entire project for these files and tell me exactly where they are.
+SECOND — find the file that renders my CHARACTER STATUS screen (search for "CHARACTER STATUS" or "CharacterStatus" or "character" in the codebase).
+THIRD — make the changes below.
+
+## What to change
+
+Replace the cartoon character view with this 3D model viewer.
+
+### Step 1 — Add model-viewer script
+In the main HTML file (index.html or _document.tsx or wherever the <head> is), add:
+```html
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+```
+
+### Step 2 — Replace the cartoon character component/element
+
+Find whatever renders the cartoon character (it could be a <canvas>, an <img>, an SVG, or a component like <CharacterModel> or <Avatar>). Replace it entirely with:
+```html
+<model-viewer
+  src="[PATH_TO_GLTF]/Superhero_Male_FullBody.gltf"
+  camera-controls
+  auto-rotate
+  auto-rotate-delay="3000"
+  rotation-per-second="6deg"
+  camera-orbit="0deg 82deg auto"
+  min-camera-orbit="auto 50deg auto"
+  max-camera-orbit="auto 120deg auto"
+  field-of-view="36deg"
+  environment-image="neutral"
+  shadow-intensity="1.2"
+  shadow-softness="0.8"
+  exposure="1.1"
+  style="width: 100%; height: 100%; background: transparent; --poster-color: transparent;"
+  alt="3D Character">
+</model-viewer>
+```
+
+Replace [PATH_TO_GLTF] with the correct path you found in Step 1.
+
+### Step 3 — If the project uses React/TypeScript
+
+If the character screen is a .tsx or .jsx file, use this approach instead:
+```tsx
+// Add this TypeScript declaration at the top of the file (or in a global .d.ts file):
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'model-viewer': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
+        src?: string
+        alt?: string
+        'camera-controls'?: boolean | string
+        'auto-rotate'?: boolean | string
+        'auto-rotate-delay'?: string
+        'rotation-per-second'?: string
+        'camera-orbit'?: string
+        'min-camera-orbit'?: string
+        'max-camera-orbit'?: string
+        'field-of-view'?: string
+        'environment-image'?: string
+        'shadow-intensity'?: string
+        'shadow-softness'?: string
+        'exposure'?: string
+      }, HTMLElement>
+    }
+  }
+}
+
+// In the component, replace the cartoon character with:
+useEffect(() => {
+  if (typeof window !== 'undefined' && !document.querySelector('[data-model-viewer-script]')) {
+    const script = document.createElement('script')
+    script.type = 'module'
+    script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js'
+    script.setAttribute('data-model-viewer-script', 'true')
+    document.head.appendChild(script)
+  }
+}, [])
+
+// In the JSX/TSX render:
+<div style={{ width: '100%', height: '100%', position: 'relative' }}>
+  <model-viewer
+    src="/models/Superhero_Male_FullBody.gltf"
+    camera-controls
+    auto-rotate
+    auto-rotate-delay="3000"
+    rotation-per-second="6deg"
+    camera-orbit="0deg 82deg auto"
+    min-camera-orbit="auto 50deg auto"
+    max-camera-orbit="auto 120deg auto"
+    field-of-view="36deg"
+    environment-image="neutral"
+    shadow-intensity="1.2"
+    shadow-softness="0.8"
+    exposure="1.1"
+    style={{ width: '100%', height: '100%', background: 'transparent', '--poster-color': 'transparent' } as React.CSSProperties}
+    alt="3D Character"
+  />
+</div>
+```
+
+### Step 4 — Make sure the container has proper height
+
+The parent container of the model-viewer MUST have an explicit height (not just height: auto). Make sure it has something like:
+```css
+height: 350px;  /* or whatever fits the design */
+/* OR */
+height: 50vh;
+/* OR */
+flex: 1;  /* if in a flex column layout */
+```
+
+### Step 5 — Keep everything else the same
+
+Do NOT change:
+- The "CHARACTER STATUS" header and back button
+- The "Starter" badge
+- Any stat bars, XP bars, or other UI
+- The dark background color scheme
+- Navigation
+
+ONLY replace the cartoon character part with the 3D model-viewer.
+
+## After making changes, verify:
+1. The model files are correctly referenced (check the path is correct)
+2. The model-viewer has explicit height on its container
+3. The TypeScript types are declared if using React/TypeScript
+4. Run the dev server and confirm the 3D character loads instead of the cartoon
+
+If you get any errors, show them to me and fix them.

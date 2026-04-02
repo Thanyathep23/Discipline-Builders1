@@ -1,0 +1,307 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 14 — Live Ops / Content Ops / Experimentation Lite.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Arc system works
+- Proof intelligence works
+- Adaptive challenge, quest chains, rarity, reward balance, identity layer, admin tools, shareable layer, telemetry, growth/invite systems, and long-term retention/endgame systems are complete
+- The next highest-value step is to make the product operable as a living system:
+  able to release curated content, run lightweight experiments, tune content cadence, and manage progression events without requiring code edits every time
+
+Your task:
+Build only the smallest high-impact live-ops/content-ops layer.
+
+==================================================
+PHASE 14 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Curated mission packs / challenge packs
+2. Live event / limited-time content lite
+3. Content scheduling and activation controls
+4. Lightweight experimentation / variant testing for key mission content
+5. Admin/internal content operations tools
+6. Minimal UI/surfaces for the above
+
+Do NOT build:
+- full live-service backend
+- giant CMS
+- MMO-style event calendar
+- social/community systems
+- chat/comments/forums
+- full A/B experimentation platform
+- new onboarding redesign
+- marketplace expansion
+- redesign of the whole app
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current AI mission system, quest chains, rarity/breakthrough logic, arcs, seasons/cycles, admin/tuning tools, telemetry, growth funnels, and endgame/prestige systems
+2. identify what parts are currently dynamic vs what still requires code changes to ship content
+3. identify what small content-ops layer would unlock repeatable releases and lightweight experiments
+4. implement only the minimum set of systems needed
+5. avoid broad refactors
+
+==================================================
+A. CURATED MISSION PACKS / CHALLENGE PACKS
+==================================================
+
+Add a lightweight curated content layer.
+
+Purpose:
+Allow the team/admin to create and activate themed mission packs or challenge packs without changing core logic.
+
+Examples:
+- 7-Day Focus Reset Pack
+- Trading Review Sprint
+- Deep Work Rebuild Pack
+- Recovery Week Pack
+- Proof Quality Upgrade Pack
+- Comeback Challenge Pack
+
+Requirements:
+- packs can contain a curated set of missions/chains/templates
+- packs can target a skill, arc, or player state
+- packs can be manually activated/deactivated
+- packs can be limited-time or evergreen
+- packs can be assigned eligibility rules if feasible
+- accepted pack missions should still use the existing mission/proof/reward flow
+- keep the implementation data-driven and lightweight
+
+Do NOT build a giant narrative campaign engine.
+Keep packs tactical and reusable.
+
+==================================================
+B. LIVE EVENT / LIMITED-TIME CONTENT LITE
+==================================================
+
+Add a lightweight live event layer.
+
+Purpose:
+Create time-bounded motivation without building a huge event system.
+
+Examples:
+- weekend challenge
+- comeback event
+- focus week
+- mastery sprint
+- end-of-month push
+- arc-specific event
+
+Requirements:
+- event has:
+  - name
+  - description
+  - start/end window
+  - content source (pack, chain, missions, bonuses, or visibility)
+  - target user state if applicable
+- event visibility must be time-aware
+- event completion can grant titles, badges, symbolic assets, or limited bonus rewards
+- event logic must remain server-side
+- event content must feel curated and intentional
+
+Rules:
+- keep events lightweight
+- do not overwhelm the user with many simultaneous events
+- events should enhance pacing, not create chaos
+
+==================================================
+C. CONTENT SCHEDULING / ACTIVATION CONTROLS
+==================================================
+
+Add lightweight internal controls for activating content.
+
+Requirements:
+- admin/internal can:
+  - activate/deactivate mission packs
+  - activate/deactivate events
+  - set start/end windows
+  - set visibility/eligibility constraints if already easy to support
+- content status should be inspectable:
+  - draft
+  - active
+  - scheduled
+  - expired
+  - archived
+- content should not require code changes for every activation
+- use existing admin/tuning surfaces where possible
+- keep schema and tooling minimal and additive
+
+==================================================
+D. LIGHTWEIGHT EXPERIMENTATION / VARIANT TESTING
+==================================================
+
+Add a small experimentation layer for key content surfaces.
+
+Purpose:
+Allow the team to test what content framing or pacing works better without building a massive experimentation platform.
+
+Examples of experimentable targets:
+- AI mission framing
+- comeback mission copy
+- pack CTA wording
+- event card positioning
+- reward explanation copy
+- mission difficulty framing
+
+Requirements:
+- support lightweight variants
+- assign a variant consistently per user when needed
+- track variant exposure and key outcomes using existing telemetry if possible
+- keep this simple and tactical
+- do not build a general-purpose experimentation platform
+
+Suggested outcomes to track:
+- mission accept rate
+- completion rate
+- proof submission rate
+- reward conversion
+- share/export click if relevant
+- return/comeback completion
+
+==================================================
+E. ADMIN / INTERNAL CONTENT OPS TOOLS
+==================================================
+
+Add only the minimum internal UI/tools needed.
+
+Possible admin/internal tools:
+- mission pack list + editor lite
+- live event list + editor lite
+- content activation controls
+- experiment/variant list + simple metrics view
+- content performance summary
+
+Requirements:
+- admin-only
+- use current dark premium command-center style
+- keep interfaces tactical, clear, and lightweight
+- do not build a giant CMS
+
+==================================================
+F. USER-FACING SURFACES
+==================================================
+
+Add only minimal user-facing surfaces needed for live content.
+
+Examples:
+- active event banner/card
+- active challenge pack card
+- limited-time mission group section
+- event completion result card
+- pack progress surface if appropriate
+
+Requirements:
+- keep it elegant and non-spammy
+- content should feel like special opportunities, not clutter
+- use existing mission/arc/identity vocabulary
+- preserve privacy and seriousness of the product
+
+==================================================
+G. CONTENT ELIGIBILITY / TARGETING LITE
+==================================================
+
+If practical and lightweight, allow content to target user states such as:
+- current arc
+- weak skill
+- comeback state
+- mastery/prestige readiness
+- proof quality issues
+- recent consistency
+
+Rules:
+- keep targeting simple and explainable
+- avoid black-box complexity
+- if OpenAI is unavailable, targeting should still work with rule-based logic
+- do not create hard-to-debug hidden behavior
+
+==================================================
+H. BACKEND / SECURITY RULES
+==================================================
+
+- all content activation and scheduling must be server-side
+- all admin/content-ops routes must require admin authorization
+- all experiments/variants must be assigned server-side or via safe internal logic
+- preserve ownership checks
+- preserve JSON-only APIs
+- keep schema changes additive and minimal
+- do not expose internal experiment state unnecessarily to normal users
+- preserve existing mission/proof/reward flows
+
+==================================================
+I. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. curated mission packs/challenge packs exist
+2. lightweight live events / limited-time content exist
+3. admin/internal can activate and schedule content without code edits
+4. lightweight experimentation/variant testing exists for at least some content surfaces
+5. user-facing active event/pack surfaces exist and feel clean
+6. content can be targeted in a lightweight, explainable way if needed
+7. existing mission/proof/reward flow still works
+8. admin/security constraints are enforced
+9. no oversized CMS/live-service/social scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what content/live-ops capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Mission pack / challenge pack system added
+- data model
+- activation logic
+- how packs connect to existing missions/chains
+
+4. Live event / limited-time content system added
+- event model
+- scheduling logic
+- reward/unlock handling
+
+5. Content scheduling / activation controls added
+- where admin controls live
+- what statuses and controls exist
+
+6. Experimentation / variant system added
+- what surfaces can vary
+- how assignment works
+- what outcomes are tracked
+
+7. User-facing live content surfaces added
+- what users see
+- when they see it
+
+8. End-to-end verification results for:
+- mission pack activation
+- live event visibility
+- scheduled content activation
+- variant assignment + telemetry
+- existing app flow unchanged
+
+9. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

@@ -1,0 +1,124 @@
+Continue existing codebase. Do NOT restart.
+Only edit VoxelCharacter3D.tsx
+
+Goal: Make lighting look like the reference image.
+The reference has dramatic studio lighting with
+clear highlight, midtone, and deep shadow areas.
+
+LIGHTING SYSTEM OVERHAUL:
+
+1. THREE-POINT LIGHTING SETUP
+   
+   Key light (main):
+   Direction: top-left-front (-0.4, 0.8, 0.6)
+   Intensity: 1.0
+   
+   Fill light (reduces harsh shadows):
+   Direction: right-front (0.6, 0.3, 0.5)
+   Intensity: 0.35
+   
+   Back light (rim/separation):
+   Direction: behind-top (0, 0.5, -0.8)
+   Intensity: 0.25
+   
+   Combined: 
+   totalLight = keyIntensity * dot(normal, keyDir)
+              + fillIntensity * dot(normal, fillDir)  
+              + backIntensity * dot(normal, backDir)
+   Clamp to 0.25 (min) to 1.4 (max)
+
+2. FACE-SPECIFIC SHADING
+   
+   Forehead: +8% brightness (catches light)
+   Cheeks: base brightness
+   Under nose: -12% (nose shadow)
+   Under chin: -18% (chin shadow)
+   Eye sockets: -15% (recessed)
+   
+   Apply by modifying color before rendering
+   based on voxel position in face region.
+
+3. CLOTHING SHADING
+   
+   White tee:
+   - Highlight area (chest center): #F8F8F8
+   - Standard area: #F0F0F0
+   - Side/shadow area: #D8D8D8
+   - Deep fold areas: #C8C8C8
+   - Armpit/underarm: #BCBCBC
+   
+   Black trousers:
+   - Highlight (thigh front): #2A2A3A
+   - Standard: #18181F
+   - Shadow/inner leg: #0C0C12
+   - Deep crease: #060608
+   
+   The difference between highlight and shadow
+   must be clearly visible — this creates the
+   premium voxel sculpture look.
+
+4. VOXEL FACE SHADING (4 faces per cube)
+   
+   Current multipliers are too similar.
+   New values:
+   - Top face:    baseColor × 1.40  (brightest)
+   - Front face:  baseColor × 1.00  (base)
+   - Left face:   baseColor × 0.78
+   - Right face:  baseColor × 0.62  (darker)
+   - Bottom face: baseColor × 0.40  (darkest)
+   
+   This 1.4x to 0.4x range (3.5x contrast)
+   creates the dramatic voxel cube appearance.
+
+5. AMBIENT OCCLUSION SIMULATION
+   
+   Add darker voxels at concave joints:
+   
+   Neck-shoulder junction: darken 20%
+   Armpit area: darken 25%
+   Elbow inner: darken 15%
+   Trouser crotch: darken 20%
+   Behind knee: darken 18%
+   Ankle-shoe join: darken 15%
+   
+   These "contact shadows" make the character
+   feel grounded and 3-dimensional.
+
+6. BACKGROUND ENHANCEMENT
+   
+   Current background is too plain.
+   
+   Add three visual elements:
+   
+   a) Main spotlight (top center):
+      Large soft oval gradient
+      rgba(255,255,255,0.06) at center
+      Fades to transparent over 200px radius
+      Position: character chest height
+   
+   b) Ground reflection:
+      Subtle ellipse directly below character
+      rgba(255,255,255,0.04)
+      Width: character width × 1.2
+      Height: 20px, heavy blur
+   
+   c) Rim light suggestion:
+      Thin vertical gradient on right edge of canvas
+      rgba(100,140,255,0.04) → transparent
+      Creates subtle studio depth
+
+7. SHADOW CONSISTENCY
+   
+   The light direction must be consistent.
+   If light comes from top-left:
+   - ALL shadows fall to bottom-right
+   - No voxel should be lighter than its neighbor
+     if that neighbor is between it and the light
+   
+   Check and fix any voxels that violate this.
+
+After changes:
+- Character should look like a lit sculpture
+- Clear light/shadow separation visible
+- Not flat or uniformly colored
+- Works in Expo Go

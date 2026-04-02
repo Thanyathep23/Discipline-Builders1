@@ -1,0 +1,250 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 9 — Admin / Tuning Tools Lite.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Arc system works
+- Skill suggestions work
+- Proof intelligence works
+- Adaptive challenge, quest chains, rarity, and reward balance exist
+- Identity layer and asset progression lite are complete
+- The next highest-value step is to give the system basic internal control and tuning visibility
+
+Your task:
+Build only the smallest high-impact admin/tuning layer needed to inspect, tune, and safely operate the game systems.
+
+==================================================
+PHASE 9 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Admin tuning dashboard lite
+2. Reward / economy inspection tools
+3. Mission generation inspection tools
+4. Arc / skill / chain state inspection tools
+5. Minimal moderation / override actions
+6. Minimal UI for the above
+
+Do NOT build:
+- social/community
+- leaderboard
+- viral sharing layer
+- marketplace expansion
+- large analytics overhaul
+- full BI dashboards
+- customer support systems
+- multi-admin workflow complexity
+- redesign of the user-facing app
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect current admin routes, audit logs, reward logic, mission generation logic, arc logic, skill logic, chain logic, and inventory/unlock systems
+2. identify what internal visibility is missing
+3. implement only the minimum set of admin/tuning tools needed
+4. avoid broad refactors
+
+==================================================
+A. ADMIN TUNING DASHBOARD LITE
+==================================================
+
+Create or extend a lightweight admin-only dashboard for operating the system.
+
+Minimum capabilities:
+- view system health summary for game logic
+- see counts or recent entries for:
+  - AI-generated missions
+  - approved/rejected proofs
+  - reward transactions
+  - active quest chains
+  - recent title/badge unlocks
+- identify suspicious or extreme patterns at a glance
+
+Keep this lightweight.
+Do not build a giant analytics system.
+
+==================================================
+B. REWARD / ECONOMY INSPECTION TOOLS
+==================================================
+
+Add minimal admin visibility into reward balance.
+
+Requirements:
+- inspect recent reward transactions
+- inspect why a reward was granted:
+  - base reward
+  - rarity bonus
+  - difficulty bonus
+  - chain bonus
+  - any other meaningful bonus
+- inspect wallet deltas for a user
+- make reward reasoning easier to audit
+
+If needed:
+- improve reward transaction metadata to make audit easier
+- but keep schema changes minimal and additive
+
+Do NOT redesign the economy in this phase.
+
+==================================================
+C. MISSION GENERATION INSPECTION TOOLS
+==================================================
+
+Give admin visibility into AI-generated missions.
+
+Requirements:
+- inspect generated missions and their source/context
+- see:
+  - category
+  - difficulty color
+  - rarity
+  - related skill
+  - current arc influence if applicable
+  - challenge/adaptive profile summary if already available
+- inspect whether a mission came from AI or fallback rules
+- inspect accepted/rejected/postponed rates for generated missions if easy to expose
+
+Do not build a huge analytics warehouse.
+Keep this tactical and lightweight.
+
+==================================================
+D. ARC / SKILL / CHAIN STATE INSPECTION
+==================================================
+
+Add admin inspection for user progression state.
+
+Requirements:
+- inspect a user's:
+  - current arc
+  - 6 core skills
+  - active chain
+  - recent chain progress
+  - active title / recent badge unlocks
+- make it possible to understand why the user is in their current state
+- if useful, show recent reasons affecting skills or arc stability
+
+Do not expose sensitive data unnecessarily.
+Keep access admin-only.
+
+==================================================
+E. MODERATION / OVERRIDE ACTIONS LITE
+==================================================
+
+Add only minimal safe override tools.
+
+Allowed examples:
+- manually re-run or refresh AI mission generation for a user
+- manually mark a generated mission as expired/inactive if needed
+- reverse a reward transaction only if the system already supports safe reversal
+- grant or revoke a badge/title only if there is a safe audited path
+- manually reset or repair a broken active chain if state is corrupted
+
+Rules:
+- every override must create an audit log
+- admin actions must be explicit and confirmed
+- do not silently mutate important user progression state
+- do not add dangerous bulk admin actions in this phase
+
+==================================================
+F. UI / UX MVP
+==================================================
+
+Build only the minimum admin UI needed.
+
+Possible admin screens:
+- admin dashboard summary
+- admin rewards audit view
+- admin mission generation view
+- admin user progression inspector
+
+Requirements:
+- admin-only access
+- clean table/list/card views
+- easy filtering/search if already cheap to add
+- keep styling aligned with the current dark premium command-center design
+- do not redesign the main app
+
+==================================================
+G. BACKEND / SECURITY RULES
+==================================================
+
+- all admin routes must require admin authorization, not just authenticated user
+- all override actions must write audit logs
+- preserve ownership checks for user-facing routes
+- preserve JSON-only APIs
+- do not expose proof files or sensitive user data more broadly than needed
+- keep schema changes minimal and additive
+- do not trust client-side admin UI alone for protection
+
+==================================================
+H. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. admin can inspect recent reward transactions and bonus breakdowns
+2. admin can inspect AI-generated missions and key generation context
+3. admin can inspect a user’s progression state:
+   - arc
+   - skills
+   - active chain
+   - titles/badges
+4. at least one or more minimal safe override actions exist
+5. all admin actions are audit-logged
+6. admin-only authorization is enforced server-side
+7. existing user-facing mission/proof/reward flow still works
+8. no unrelated systems were changed
+9. no oversized analytics or support tools were added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what admin/tuning visibility already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. New admin inspection tools added
+- rewards
+- mission generation
+- user progression
+- chains/arcs/skills
+- unlocks
+
+4. Override actions added
+- what they do
+- what audit logs they create
+
+5. Security notes
+- how admin authorization is enforced
+- what sensitive data remains protected
+
+6. End-to-end verification results for:
+- admin dashboard access
+- admin rewards inspection
+- admin mission generation inspection
+- admin user progression inspection
+- override action + audit log
+- normal user flow unchanged
+
+7. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

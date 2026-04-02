@@ -1,0 +1,243 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Current status:
+- Core loop works
+- Life RPG layer works
+- Arc system works
+- Skill suggestions work
+- File upload proof types work
+- The next major opportunity is to deepen engagement and progression without making the app bloated
+
+Your task in this phase:
+Implement Adaptive Challenge + Quest Chains + Reward Balance Lite.
+
+==================================================
+PHASE 5B SCOPE
+==================================================
+
+Build only:
+
+1. Adaptive challenge tuning for AI-generated missions
+2. Mission chains / quest chains
+3. Breakthrough / rare mission layer
+4. Reward balance polish for mission difficulty and streak consistency
+5. Minimal UI to support the above
+
+Do NOT build:
+- social/community
+- leaderboard
+- marketplace expansion
+- 3D world
+- deep economy simulation
+- large analytics overhaul
+- new proof systems beyond what already exists
+- large redesign of existing screens
+
+==================================================
+A. ADAPTIVE CHALLENGE TUNING
+==================================================
+
+Make AI-generated missions smarter about difficulty.
+
+Goals:
+- missions should scale to the user’s actual baseline
+- the system should push slightly above current ability, not overwhelm
+- repeated failure should soften difficulty
+- repeated success should gradually increase difficulty
+- strictness and available time should influence challenge
+
+Use signals such as:
+- recent mission completion rate
+- abandonment rate
+- proof quality
+- blocked attempts
+- skill trend
+- available daily time
+- current arc
+- recent fatigue / overload indicators if available
+
+Rules:
+- do not generate missions that are clearly unrealistic
+- do not keep missions too easy forever
+- challenge should feel fair and personal
+- challenge tuning must work even if OpenAI is unavailable
+
+==================================================
+B. QUEST CHAINS
+==================================================
+
+Add a lightweight quest chain system.
+
+Definition:
+A quest chain is a short sequence of related missions that build toward a theme.
+
+For MVP:
+- 2 to 4 missions per chain
+- chain should be tied to a skill or arc
+- chain completion should feel more meaningful than one-off missions
+
+Example chains:
+- Focus Recovery Chain
+- Trading Apprentice Chain
+- Learning Momentum Chain
+- Discipline Reset Chain
+
+Each chain should include:
+- chain name
+- theme
+- related skill
+- current step
+- total steps
+- chain completion bonus
+- optional expiry or recommended pacing
+
+Rules:
+- keep it lightweight and data-driven
+- accepted chain missions should still enter the existing mission system
+- users should see that a mission belongs to a chain
+- partial progress should be visible
+- do not build a giant RPG storyline system yet
+
+==================================================
+C. BREAKTHROUGH / RARE MISSIONS
+==================================================
+
+Add a small high-emotion mission layer.
+
+Mission rarity types for MVP:
+- Normal
+- Rare
+- Breakthrough
+
+Rules:
+- Rare and Breakthrough missions should appear sparingly
+- they should be tied to real moments:
+  - improved skill momentum
+  - profile/arc context
+  - consistent recent performance
+- they should feel exciting but believable
+- they should offer:
+  - extra reward
+  - title/badge potential
+  - stronger identity progression
+
+Examples:
+- first 3-day focus streak breakthrough
+- first serious trading review chain completion
+- recovery mission after a slump
+- “prove your level” challenge after strong consistency
+
+==================================================
+D. REWARD BALANCE LITE
+==================================================
+
+Polish reward balance without rewriting the whole economy.
+
+Goals:
+- important and harder missions should feel more rewarding
+- AI-generated chain missions should have meaningful but controlled bonuses
+- streak/consistency should matter, but not overpower proof quality
+- breakthrough missions should feel special
+- reward inflation should stay controlled
+
+Requirements:
+- keep reward logic server-side only
+- keep bonuses explainable
+- do not create runaway growth
+- ensure proof quality and mission difficulty still matter more than mere repetition
+
+Suggested additions:
+- chain completion bonus
+- rarity bonus
+- adaptive difficulty bonus
+- soft anti-inflation caps if needed
+
+==================================================
+E. UI / UX MVP
+==================================================
+
+Add only the minimum UI needed.
+
+Requirements:
+- Mission Board should show:
+  - if a mission is part of a chain
+  - chain step progress
+  - rarity if applicable
+  - adaptive difficulty cues if useful
+- Character/Profile or Home should show:
+  - one active chain if present
+  - one highlighted rare/breakthrough mission if present
+- Rewards/result view should explain:
+  - chain bonus
+  - rarity bonus
+  - difficulty bonus if awarded
+
+Do not redesign the whole app.
+
+==================================================
+F. FALLBACK STRATEGY
+==================================================
+
+If OpenAI is unavailable:
+- adaptive difficulty must still work using rule-based logic
+- chain generation must still work using templates + user state
+- rare/breakthrough mission triggers must still work using rules
+
+The app must remain fully usable without API dependency.
+
+==================================================
+G. BACKEND / SECURITY RULES
+==================================================
+
+- keep all mission generation persistence server-side
+- keep all reward computation server-side
+- keep all acceptance/progression updates server-side
+- preserve ownership checks
+- preserve JSON-only API responses
+- do not trust client-provided chain progress or rarity state
+
+==================================================
+H. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. AI-generated missions adapt to recent user performance
+2. Difficulty becomes easier after repeated struggle and harder after repeated success
+3. Quest chains exist and can span 2-4 related missions
+4. Chain missions enter the existing mission/task flow correctly
+5. Chain progress is visible in UI
+6. Rare or Breakthrough missions can appear under meaningful conditions
+7. Rare/Breakthrough missions give controlled special rewards
+8. Reward explanations show bonuses clearly
+9. Existing manual mission flow still works
+10. Security and ownership remain intact
+11. All new routes return JSON
+
+==================================================
+I. DELIVERABLE FORMAT
+==================================================
+
+At the end report:
+1. files changed
+2. how adaptive difficulty is calculated
+3. how quest chains are structured
+4. how rare/breakthrough missions are triggered
+5. how reward balance was adjusted
+6. UI changes made
+7. end-to-end test results for:
+   - normal AI mission
+   - adapted easier mission after struggle
+   - adapted harder mission after success
+   - quest chain progress
+   - rare/breakthrough mission appearance
+   - reward bonus explanation
+8. remaining TODOs for the next phase
+
+Important:
+Do not expand scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

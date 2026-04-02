@@ -1,0 +1,172 @@
+The 3D character model has disappeared from the CHARACTER STATUS screen.
+The screen now shows a blank/dark area where the character should be.
+The previous fix attempt broke the character viewer — I need it restored.
+
+## Step 1 — Diagnose what happened
+
+Search the project for the CHARACTER STATUS screen component:
+- Search for file containing "CHARACTER STATUS" text
+- Search for "CharacterStatus", "character-status", "character_status"
+- Check git diff or recent changes to find what was deleted/broken
+
+Also search for:
+- "Character3DViewer" component
+- "CharacterViewer"
+- "Superhero_Male_FullBody"
+- Any reference to the GLTF model path
+
+Tell me: what files were recently changed and what did the character viewer look like before?
+
+## Step 2 — Restore the character viewer
+
+In the CHARACTER STATUS screen file, find the hero/viewer area (the large empty dark box).
+It should have had a character rendered in it. Restore it using model-viewer:
+
+### Add the script to the HTML head (if web):
+```html
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+```
+
+### In the CHARACTER STATUS screen, put the viewer back:
+
+**If React Native / Expo (using WebView):**
+```tsx
+import { WebView } from 'react-native-webview'
+
+const characterHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: transparent; width: 100vw; height: 100vh; overflow: hidden; }
+  model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
+</style>
+</head>
+<body>
+<model-viewer
+  src="/api/models/Superhero_Male_FullBody.gltf"
+  camera-controls
+  auto-rotate
+  auto-rotate-delay="3000"
+  rotation-per-second="8deg"
+  camera-orbit="0deg 82deg auto"
+  field-of-view="36deg"
+  environment-image="neutral"
+  shadow-intensity="1.2"
+  exposure="1.1"
+></model-viewer>
+</body>
+</html>
+`
+
+// In the component JSX, where the character viewer should appear:
+<View style={{ width: '100%', height: 320, borderRadius: 16, overflow: 'hidden' }}>
+  <WebView
+    source={{ html: characterHtml, baseUrl: 'http://localhost:5000' }}
+    style={{ flex: 1, backgroundColor: 'transparent' }}
+    scrollEnabled={false}
+    allowsInlineMediaPlayback
+    mediaPlaybackRequiresUserAction={false}
+  />
+</View>
+```
+
+**If React web component:**
+```tsx
+// Add TypeScript declaration
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'model-viewer': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
+        src?: string
+        alt?: string
+        'camera-controls'?: boolean | string
+        'auto-rotate'?: boolean | string
+        'auto-rotate-delay'?: string
+        'rotation-per-second'?: string
+        'camera-orbit'?: string
+        'field-of-view'?: string
+        'environment-image'?: string
+        'shadow-intensity'?: string
+        'exposure'?: string
+      }, HTMLElement>
+    }
+  }
+}
+
+// Inject script once
+useEffect(() => {
+  if (typeof window === 'undefined') return
+  if (!document.querySelector('[data-model-viewer-script]')) {
+    const s = document.createElement('script')
+    s.type = 'module'
+    s.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js'
+    s.setAttribute('data-model-viewer-script', 'true')
+    document.head.appendChild(s)
+  }
+}, [])
+
+// In JSX where character should appear:
+<div style={{ width: '100%', height: 320, borderRadius: 16, overflow: 'hidden' }}>
+  <model-viewer
+    src="/api/models/Superhero_Male_FullBody.gltf"
+    camera-controls
+    auto-rotate
+    auto-rotate-delay="3000"
+    rotation-per-second="8deg"
+    camera-orbit="0deg 82deg auto"
+    field-of-view="36deg"
+    environment-image="neutral"
+    shadow-intensity="1.2"
+    exposure="1.1"
+    style={{ width: '100%', height: '100%', background: 'transparent', '--poster-color': 'transparent' } as React.CSSProperties}
+    alt="Character"
+  />
+</div>
+```
+
+## Step 3 — Fix the GLTF model path
+
+The model files are already uploaded. Check which path works:
+- `/api/models/Superhero_Male_FullBody.gltf`  ← most likely
+- `/models/Superhero_Male_FullBody.gltf`
+- `/attached_assets/Superhero_Male_FullBody.gltf`
+
+To verify, open browser and navigate to that URL — if you see JSON text starting with `{"asset":`, the path is correct.
+
+Also verify ALL 7 files are in the same folder as the .gltf:
+- Superhero_Male_FullBody.bin
+- T_Superhero_Male_Dark.png
+- T_Superhero_Male_Normal.png
+- T_Superhero_Male_Roughness.png
+- T_Hair_1_BaseColor.png
+- T_Eye_Brown.png
+
+## Step 4 — DO NOT touch the T-pose issue right now
+
+⚠️ IMPORTANT: Do NOT try to fix the arm T-pose in this task.
+Just restore the model-viewer so the 3D character is visible again.
+We will fix the arm pose in a separate step after the character is visible.
+The model showing in T-pose is better than no model at all.
+
+## Step 5 — Also make sure the "Customize" tap works
+
+The user says tapping into the character also shows the old cartoon version.
+Check if there's a separate "detail" or "customize" screen that opens when tapping.
+If so, add the same model-viewer there too, replacing the cartoon SVG.
+
+Search for the screen that opens when tapping the character — it may be named:
+"Customize", "CharacterCustomize", "appearance" etc.
+Add the same model-viewer code there.
+
+## Expected result
+1. ✅ CHARACTER STATUS screen shows the 3D character model (not blank)
+2. ✅ Character auto-rotates slowly
+3. ✅ User can drag to rotate the character
+4. ✅ Tapping into the character also shows 3D model (not old cartoon)
+5. Arms may still be in T-pose — that is OK for now
+
+Show me which files you changed and confirm the character is visible again.

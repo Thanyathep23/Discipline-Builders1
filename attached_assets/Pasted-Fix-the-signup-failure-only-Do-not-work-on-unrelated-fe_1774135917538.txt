@@ -1,0 +1,44 @@
+Fix the signup failure only. Do not work on unrelated features.
+
+Current error:
+Failed query: select "id", "email", "username", "password_hash", "role", "coin_balance", "level", "xp", "current_streak", "longest_streak", "trust_score", "is_active", "last_active_at", "last_streak_date", "acquisition_source", "invited_by_code", "invited_by", "prestige_tier", "prestige_ready_at", "is_premium", "premium_granted_at", "premium_expires_at", "created_at", "updated_at" from "users" where "users"."email" = $1 limit $2
+
+Goal:
+Make signup work again with the smallest safe change set.
+
+Strict instructions:
+- Do NOT redesign the app
+- Do NOT add new features
+- Do NOT touch unrelated UI
+- Do NOT refactor broadly
+- Focus only on the auth/signup failure and the users table schema mismatch
+
+Tasks:
+1. Audit the real database schema for the users table
+2. Compare the real DB columns against the current Drizzle schema and auth code
+3. Find exactly which users-table columns are missing or mismatched
+4. Apply the minimum safe schema fix so signup/login queries work
+5. Make sure the app is connected to the intended database
+6. Run the correct migration / schema push against the active database
+7. Restart the API server if needed
+8. Verify signup works end-to-end
+
+Also:
+- Check if the app is pointing at the wrong DATABASE_URL
+- Check if migrations were created but never applied
+- Check if Drizzle schema and the actual Postgres schema are out of sync
+- If there are missing columns, add them safely instead of removing fields from app logic unless absolutely necessary
+- Keep existing auth flow intact
+
+Deliverables:
+1. Root cause in simple terms
+2. Exact columns that were missing or mismatched
+3. Exact files changed
+4. Exact migration or schema push applied
+5. Confirmation that signup now works
+
+Acceptance criteria:
+- Signup no longer throws the users-table query error
+- Login still works
+- The users table includes all columns expected by the current auth code
+- No unrelated systems were changed

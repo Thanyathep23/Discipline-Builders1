@@ -1,0 +1,378 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 24 — UX Guidance / Smart Onboarding / App Coach.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Proof intelligence works
+- Adaptive challenge, quest chains, rarity, identity layer, telemetry, growth, endgame, live-ops, community/accountability, integrations, economy/marketplace, world/room/lifestyle presentation, premium, launch-readiness, character evolution/status visualization, catalog/admin merchandising, and asset application/equip/world connection are complete
+- The next highest-value gap is usability and guided clarity:
+  the product is now powerful and layered, but it needs a smart guidance layer so users understand what to do, why it matters, and where to go next without feeling overwhelmed
+- The product now needs an intelligent “coach-like UX” that reduces confusion, improves activation, and makes the system feel approachable despite its depth
+
+Your task:
+Build only the smallest high-impact UX Guidance / Smart Onboarding / App Coach layer.
+
+==================================================
+PHASE 24 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Smart onboarding guidance layer
+2. Contextual in-app guidance
+3. Next-best-action / “what to do next” system
+4. Empty-state / first-time-user / stuck-state UX upgrades
+5. Lightweight app coach surfaces
+6. Minimal admin/internal controls only if strictly needed
+
+Do NOT build:
+- a giant chatbot experience
+- full conversational AI companion
+- total redesign of the app
+- long tutorial campaign
+- intrusive pop-up overload
+- a huge notification engine
+- complex behavior trees for coaching
+- social/community expansion
+- new gameplay systems
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current onboarding, profile flows, home screen, mission board, status/character screen, store, world/room screen, proof flows, result views, growth surfaces, and identity/community/share systems
+2. identify where users are likely to get confused, stuck, or overwhelmed
+3. identify what already acts as guidance vs what is missing
+4. implement only the minimum systems needed to make the app feel much easier and smarter to use
+5. avoid broad refactors
+
+==================================================
+A. SMART ONBOARDING GUIDANCE LAYER
+==================================================
+
+Upgrade onboarding from “profile setup” into “guided entry into the game.”
+
+Purpose:
+Help users understand:
+- what this product is
+- what they should do first
+- what matters right now
+- why the system is asking for certain actions
+- how progress will change their character/life/game state
+
+Build guidance for these key moments:
+1. first app entry
+2. first Quick Start completion
+3. first mission creation
+4. first AI mission appearance
+5. first focus session
+6. first proof submission
+7. first reward/result
+8. first store/world/status interaction
+9. first circle/community/invite interaction if relevant
+
+Requirements:
+- keep onboarding progressive, not overwhelming
+- do not dump all instructions at once
+- make guidance contextual and stage-based
+- preserve existing onboarding/profile data structures where possible
+- keep copy clear, premium, and non-corporate
+
+==================================================
+B. CONTEXTUAL IN-APP GUIDANCE
+==================================================
+
+Add smart contextual guidance across the app.
+
+Purpose:
+Reduce friction exactly where the user needs help.
+
+Examples of surfaces that should get contextual guidance:
+- Home / Command Center
+- Mission Board
+- AI mission cards
+- Focus session screen
+- Proof submission screen
+- Reward/result screen
+- Character evolution/status screen
+- Marketplace/storefront
+- Inventory/equip/apply flow
+- Room/world screen
+- Circle/community or showcase surfaces if already present
+
+Possible forms of guidance:
+- concise tip blocks
+- contextual helper cards
+- “why this matters” microcopy
+- next action CTA
+- explanation of what changed after an action
+- beginner hint vs advanced hint modes if appropriate
+
+Requirements:
+- guidance should appear when useful, not constantly
+- do not create noisy tutorial spam
+- users should be able to dismiss or move past guidance
+- guidance should adapt to user state where practical
+
+==================================================
+C. NEXT-BEST-ACTION SYSTEM
+==================================================
+
+Add a simple but intelligent “what to do next” layer.
+
+Purpose:
+Prevent users from feeling lost in a system with many surfaces.
+
+Build a lightweight recommendation system for next actions.
+
+Examples:
+- complete Quick Start
+- accept your first AI mission
+- finish your first focus session
+- submit proof for your completed mission
+- equip your new identity item
+- view your status evolution
+- start your first room/world upgrade
+- continue Standard/Deep Profile
+- complete your active chain step
+- claim or review a reward/unlock
+- return via a comeback mission after inactivity
+
+Requirements:
+- next-best-action should be based on current user state, not static rules only
+- at minimum, use clear rule-based logic if that is the safest path
+- next action should be shown in one or more high-value surfaces:
+  - home screen
+  - profile/status
+  - post-reward/result
+  - onboarding continuation areas
+- recommendations should feel useful, not generic filler
+
+==================================================
+D. EMPTY-STATE / FIRST-TIME / STUCK-STATE UX
+==================================================
+
+Upgrade UX for situations where users do not naturally know what to do.
+
+Handle states such as:
+- no missions yet
+- no AI missions accepted yet
+- no proof submitted yet
+- no purchases yet
+- no displayed items yet
+- no room/world customization yet
+- no circles joined yet
+- partially completed onboarding
+- failed or abandoned focus attempt
+- rejected proof
+- reward disappointment
+- skill not growing
+- user inactive / comeback state
+
+Requirements:
+- empty states should teach, not just say “nothing here”
+- stuck states should help recovery, not shame the user
+- low-momentum states should encourage the next viable action
+- use the existing design language and identity of the product
+
+==================================================
+E. LIGHTWEIGHT APP COACH SURFACES
+==================================================
+
+Add a minimal “app coach” layer.
+
+Purpose:
+Make the product feel intelligently supportive without becoming a giant chat-first AI system.
+
+Possible coach surfaces:
+- Today’s Guidance card
+- Why this matters panel
+- Next evolution hint
+- “You are close to…” card
+- Recovery suggestion card
+- Suggested first step for new feature areas
+- Smart reminder to finish an incomplete flow
+
+Requirements:
+- the coach should feel calm, sharp, and useful
+- not like a nagging assistant
+- not like a toy chatbot
+- ideally reuse existing data:
+  - arc
+  - skills
+  - current mission state
+  - onboarding depth
+  - world/status evolution
+  - reward state
+  - comeback state
+- coach guidance should reinforce the product fantasy:
+  “your real-life actions are shaping your character and world”
+
+==================================================
+F. GUIDANCE INTELLIGENCE / RULES
+==================================================
+
+Build the guidance layer using the lightest reliable intelligence model.
+
+Preferred logic order:
+1. deterministic rule-based guidance based on current user state
+2. optional AI-generated micro-guidance only where low-risk and already practical
+3. preserve graceful fallback if AI is unavailable
+
+The guidance system should consider signals such as:
+- onboarding completion stage
+- whether the user has created a mission
+- whether the user has finished a focus session
+- whether a proof is pending
+- whether a reward is unclaimed or unexplored
+- skill weak zones
+- active arc
+- active chain
+- inventory/world/status inactivity
+- comeback/inactivity state
+
+Keep this practical and explainable.
+
+==================================================
+G. PROGRESSIVE DISCLOSURE / COMPLEXITY CONTROL
+==================================================
+
+The app is now deep. Add UX structure so users are not overwhelmed.
+
+Requirements:
+- avoid showing every system at equal priority all the time
+- create clearer “what matters now” hierarchy
+- advanced systems should open when relevant, not all at once
+- preserve product depth, but stage user exposure intelligently
+
+Examples:
+- basic user sees essential actions first
+- deeper systems such as world, prestige, cycles, or advanced store/item logic can be introduced at the right time
+- use subtle unlock/explanation patterns, not giant info dumps
+
+==================================================
+H. MINIMAL INTERNAL / ADMIN CONTROLS
+==================================================
+
+Add only minimal internal controls if strictly needed.
+
+Possible examples:
+- guidance flags/toggles
+- onboarding step activation
+- feature visibility state for new-user guidance
+- coach card enable/disable states
+- debug view of current next-best-action state
+
+Requirements:
+- admin-only
+- lightweight
+- use existing admin/tuning surfaces where possible
+- do not build a large personalization console
+
+==================================================
+I. UI / UX DIRECTION
+==================================================
+
+Design direction:
+- dark premium
+- calm, intelligent, high-end guidance
+- serious but approachable
+- elegant “coach” feel, not loud tutorial energy
+- every hint should feel useful and deliberate
+
+The experience should feel like:
+- a premium command center that understands where the user is
+- a system that quietly helps the user move forward
+- an app that becomes easier as it becomes deeper
+
+Do NOT make the UI:
+- noisy
+- childish
+- popup-heavy
+- over-explanatory
+- generic SaaS onboarding
+
+==================================================
+J. BACKEND / SECURITY RULES
+==================================================
+
+- any guidance state that depends on user progression must be derived server-side or from trusted internal state
+- preserve JSON-only APIs
+- preserve ownership checks
+- do not trust client-provided “completion” state blindly
+- keep schema changes additive and minimal
+- preserve existing mission/proof/reward/economy/world/community/premium flows
+- if guidance is cached/persisted, keep it recomputable and safe
+
+==================================================
+K. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. smart onboarding guidance exists for the most important first-run flows
+2. contextual in-app guidance exists across key high-friction screens
+3. a next-best-action system exists and helps users know what to do next
+4. empty-state / stuck-state UX is improved meaningfully
+5. lightweight app coach surfaces exist and feel useful
+6. progressive disclosure reduces overwhelm in a practical way
+7. guidance is driven by real user/app state, not just static filler
+8. existing app flow still works
+9. no oversized chatbot/tutorial-engine scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what guidance/onboarding/help capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Smart onboarding guidance added
+- what key moments are now guided
+- how guidance appears
+
+4. Contextual in-app guidance added
+- what screens now have guidance
+- what type of guidance each gets
+
+5. Next-best-action system added
+- what signals it uses
+- where it appears
+- how it decides what to recommend
+
+6. Empty-state / stuck-state UX improvements added
+- what cases are now handled better
+- what recovery/help text or CTAs now exist
+
+7. App coach surfaces added
+- what cards/panels/surfaces were introduced
+- how they stay useful without becoming noisy
+
+8. End-to-end verification results for:
+- first-run guidance
+- mission/focus/proof/reward flow guidance
+- status/store/world guidance
+- next-best-action visibility
+- stuck-state recovery
+- existing app flow unchanged
+
+9. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

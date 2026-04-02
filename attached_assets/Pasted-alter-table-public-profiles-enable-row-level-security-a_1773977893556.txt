@@ -1,0 +1,429 @@
+alter table public.profiles enable row level security;
+alter table public.missions enable row level security;
+alter table public.mission_schedules enable row level security;
+alter table public.focus_sessions enable row level security;
+alter table public.session_heartbeats enable row level security;
+alter table public.blocked_domains enable row level security;
+alter table public.blocked_attempts enable row level security;
+alter table public.time_entries enable row level security;
+alter table public.proof_submissions enable row level security;
+alter table public.proof_files enable row level security;
+alter table public.proof_followups enable row level security;
+alter table public.ai_reviews enable row level security;
+alter table public.wallets enable row level security;
+alter table public.reward_transactions enable row level security;
+alter table public.shop_items enable row level security;
+alter table public.inventory_items enable row level security;
+alter table public.sleep_logs enable row level security;
+alter table public.streaks enable row level security;
+alter table public.penalties enable row level security;
+alter table public.strictness_profiles enable row level security;
+alter table public.audit_logs enable row level security;
+
+-- =========================================================
+-- PROFILES
+-- =========================================================
+create policy "profiles_select_own_or_admin"
+on public.profiles
+for select
+using (id = auth.uid() or public.is_admin());
+
+create policy "profiles_update_own_limited"
+on public.profiles
+for update
+using (id = auth.uid())
+with check (
+  id = auth.uid()
+  and role = (select p.role from public.profiles p where p.id = auth.uid())
+);
+
+-- no direct insert/delete from client
+
+-- =========================================================
+-- MISSIONS
+-- =========================================================
+create policy "missions_select_own_or_admin"
+on public.missions
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+create policy "missions_insert_own"
+on public.missions
+for insert
+with check (user_id = auth.uid());
+
+create policy "missions_update_own"
+on public.missions
+for update
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+create policy "missions_delete_own"
+on public.missions
+for delete
+using (user_id = auth.uid());
+
+-- =========================================================
+-- MISSION SCHEDULES
+-- =========================================================
+create policy "mission_schedules_select_own_or_admin"
+on public.mission_schedules
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+create policy "mission_schedules_insert_own"
+on public.mission_schedules
+for insert
+with check (user_id = auth.uid());
+
+create policy "mission_schedules_update_own"
+on public.mission_schedules
+for update
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+create policy "mission_schedules_delete_own"
+on public.mission_schedules
+for delete
+using (user_id = auth.uid());
+
+-- =========================================================
+-- FOCUS SESSIONS
+-- =========================================================
+create policy "focus_sessions_select_own_or_admin"
+on public.focus_sessions
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+create policy "focus_sessions_insert_own"
+on public.focus_sessions
+for insert
+with check (user_id = auth.uid());
+
+create policy "focus_sessions_update_own_non_sensitive"
+on public.focus_sessions
+for update
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+-- delete disabled from client
+
+-- =========================================================
+-- SESSION HEARTBEATS
+-- =========================================================
+create policy "session_heartbeats_select_own_or_admin"
+on public.session_heartbeats
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+create policy "session_heartbeats_insert_own"
+on public.session_heartbeats
+for insert
+with check (user_id = auth.uid());
+
+-- =========================================================
+-- BLOCKED DOMAINS
+-- =========================================================
+create policy "blocked_domains_select_own_or_admin"
+on public.blocked_domains
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+create policy "blocked_domains_insert_own"
+on public.blocked_domains
+for insert
+with check (user_id = auth.uid());
+
+create policy "blocked_domains_update_own"
+on public.blocked_domains
+for update
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+create policy "blocked_domains_delete_own"
+on public.blocked_domains
+for delete
+using (user_id = auth.uid());
+
+-- =========================================================
+-- BLOCKED ATTEMPTS
+-- user can read own, but write should come from authenticated extension/user flow only
+-- =========================================================
+create policy "blocked_attempts_select_own_or_admin"
+on public.blocked_attempts
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+create policy "blocked_attempts_insert_own"
+on public.blocked_attempts
+for insert
+with check (user_id = auth.uid());
+
+-- no update/delete from client
+
+-- =========================================================
+-- TIME ENTRIES
+-- =========================================================
+create policy "time_entries_select_own_or_admin"
+on public.time_entries
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+create policy "time_entries_insert_own"
+on public.time_entries
+for insert
+with check (user_id = auth.uid());
+
+create policy "time_entries_update_own"
+on public.time_entries
+for update
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+create policy "time_entries_delete_own"
+on public.time_entries
+for delete
+using (user_id = auth.uid());
+
+-- =========================================================
+-- PROOF SUBMISSIONS
+-- =========================================================
+create policy "proof_submissions_select_own_or_admin"
+on public.proof_submissions
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+create policy "proof_submissions_insert_own"
+on public.proof_submissions
+for insert
+with check (user_id = auth.uid());
+
+create policy "proof_submissions_update_own_before_finalized"
+on public.proof_submissions
+for update
+using (
+  user_id = auth.uid()
+  and status in ('submitted','followup_required','under_review')
+)
+with check (
+  user_id = auth.uid()
+);
+
+-- no delete from client
+
+-- =========================================================
+-- PROOF FILES
+-- =========================================================
+create policy "proof_files_select_own_or_admin"
+on public.proof_files
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+create policy "proof_files_insert_own"
+on public.proof_files
+for insert
+with check (user_id = auth.uid());
+
+-- no update/delete from client
+
+-- =========================================================
+-- PROOF FOLLOWUPS
+-- =========================================================
+create policy "proof_followups_select_own_or_admin"
+on public.proof_followups
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+create policy "proof_followups_insert_own_answer_context"
+on public.proof_followups
+for insert
+with check (user_id = auth.uid());
+
+create policy "proof_followups_update_own_answer"
+on public.proof_followups
+for update
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+-- =========================================================
+-- AI REVIEWS
+-- sensitive: read own/admin, no direct client insert/update/delete
+-- =========================================================
+create policy "ai_reviews_select_own_or_admin"
+on public.ai_reviews
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+-- =========================================================
+-- WALLETS
+-- read only for user/admin
+-- =========================================================
+create policy "wallets_select_own_or_admin"
+on public.wallets
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+-- no client insert/update/delete
+
+-- =========================================================
+-- REWARD TRANSACTIONS
+-- read only
+-- =========================================================
+create policy "reward_transactions_select_own_or_admin"
+on public.reward_transactions
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+-- =========================================================
+-- SHOP ITEMS
+-- public authenticated read, admin write
+-- =========================================================
+create policy "shop_items_select_all_authenticated"
+on public.shop_items
+for select
+using (auth.uid() is not null);
+
+create policy "shop_items_admin_insert"
+on public.shop_items
+for insert
+with check (public.is_admin());
+
+create policy "shop_items_admin_update"
+on public.shop_items
+for update
+using (public.is_admin())
+with check (public.is_admin());
+
+create policy "shop_items_admin_delete"
+on public.shop_items
+for delete
+using (public.is_admin());
+
+-- =========================================================
+-- INVENTORY
+-- =========================================================
+create policy "inventory_items_select_own_or_admin"
+on public.inventory_items
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+-- no client insert/update/delete; purchases should go through server
+
+-- =========================================================
+-- SLEEP LOGS
+-- =========================================================
+create policy "sleep_logs_select_own_or_admin"
+on public.sleep_logs
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+create policy "sleep_logs_insert_own"
+on public.sleep_logs
+for insert
+with check (user_id = auth.uid());
+
+create policy "sleep_logs_update_own"
+on public.sleep_logs
+for update
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+create policy "sleep_logs_delete_own"
+on public.sleep_logs
+for delete
+using (user_id = auth.uid());
+
+-- =========================================================
+-- STREAKS
+-- read only for user; server only writes
+-- =========================================================
+create policy "streaks_select_own_or_admin"
+on public.streaks
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+-- =========================================================
+-- PENALTIES
+-- read only
+-- =========================================================
+create policy "penalties_select_own_or_admin"
+on public.penalties
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+-- =========================================================
+-- STRICTNESS PROFILES
+-- user can read own/user scope, admin can read all
+-- user can update only their own custom profile
+-- =========================================================
+create policy "strictness_profiles_select_own_or_admin"
+on public.strictness_profiles
+for select
+using (
+  public.is_admin()
+  or (scope = 'user' and user_id = auth.uid())
+  or (scope = 'system')
+);
+
+create policy "strictness_profiles_update_own_custom_only"
+on public.strictness_profiles
+for update
+using (
+  scope = 'user'
+  and user_id = auth.uid()
+  and mode = 'custom'
+)
+with check (
+  scope = 'user'
+  and user_id = auth.uid()
+  and mode = 'custom'
+);
+
+-- =========================================================
+-- AUDIT LOGS
+-- admin read only
+-- =========================================================
+create policy "audit_logs_admin_select_only"
+on public.audit_logs
+for select
+using (public.is_admin());
+
+-- =========================================================
+-- STORAGE POLICIES FOR proofs BUCKET
+-- =========================================================
+
+create policy "proof_storage_select_own"
+on storage.objects
+for select
+using (
+  bucket_id = 'proofs'
+  and owner = auth.uid()::text
+);
+
+create policy "proof_storage_insert_own"
+on storage.objects
+for insert
+with check (
+  bucket_id = 'proofs'
+  and owner = auth.uid()::text
+);
+
+create policy "proof_storage_update_own"
+on storage.objects
+for update
+using (
+  bucket_id = 'proofs'
+  and owner = auth.uid()::text
+)
+with check (
+  bucket_id = 'proofs'
+  and owner = auth.uid()::text
+);
+
+create policy "proof_storage_delete_own"
+on storage.objects
+for delete
+using (
+  bucket_id = 'proofs'
+  and owner = auth.uid()::text
+);

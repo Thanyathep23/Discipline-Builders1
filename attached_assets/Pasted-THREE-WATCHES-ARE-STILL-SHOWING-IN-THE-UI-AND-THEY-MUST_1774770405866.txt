@@ -1,0 +1,161 @@
+THREE WATCHES ARE STILL SHOWING IN THE UI AND THEY MUST BE COMPLETELY DESTROYED.
+This has been attempted before and failed because they exist in MULTIPLE places.
+You MUST check and purge ALL of the following locations — do not stop after finding one.
+
+THE 3 WATCHES TO PERMANENTLY DELETE:
+  - "Classic Watch"
+  - "Refined Timepiece"
+  - "Elite Chronograph"
+
+════════════════════════════════════════════════════════
+STEP 1 — FULL CODEBASE SEARCH (do all of these, not just one)
+════════════════════════════════════════════════════════
+
+Run these searches and show me what you find in each:
+
+1. grep -r "Classic Watch" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json" -l
+2. grep -r "Refined Timepiece" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json" -l
+3. grep -r "Elite Chronograph" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json" -l
+4. grep -ri "classic\|refined\|elite\|chronograph\|timepiece" server/ -l
+5. grep -ri "classic\|refined\|elite\|chronograph\|timepiece" client/ -l
+6. grep -ri "classic\|refined\|elite\|chronograph\|timepiece" shared/ -l
+7. grep -ri "classic\|refined\|elite\|chronograph\|timepiece" app/ -l
+
+════════════════════════════════════════════════════════
+STEP 2 — DELETE FROM EVERY LOCATION FOUND
+════════════════════════════════════════════════════════
+
+After finding every file, DELETE the 3 watch entries from each one:
+
+A) SERVER CATALOG / SEED FILE (server/data/*.ts, server/storage.ts, server/seed*.ts, db/seed*.ts, etc.)
+   - Find the array or object where watches are defined
+   - Remove the entire object/entry for Classic Watch, Refined Timepiece, Elite Chronograph
+   - Do NOT leave any orphaned commas or brackets
+
+B) DATABASE (if using PostgreSQL / SQLite / Drizzle / Prisma):
+   - Run this SQL to permanently delete them:
+     DELETE FROM watches WHERE name IN ('Classic Watch', 'Refined Timepiece', 'Elite Chronograph');
+   - Also check if there is a seed/init function that re-inserts them on server start — remove those entries too
+   - If using Drizzle: check db/schema.ts and any migrate/seed scripts
+
+C) SHARED SCHEMA / TYPES (shared/schema.ts, shared/types.ts, shared/watches.ts):
+   - Remove any entries defining these 3 watches
+
+D) COMPONENT HARDCODED ARRAYS (app/watches/*, client/screens/watches/*, components/WatchCard*, etc.):
+   - Search for any array like: `const watches = [...]` or `const WATCHES = [...]`
+   - Remove the 3 entries from those arrays
+
+E) MOCK DATA / FALLBACK DATA:
+   - Search for any mockWatches, fallbackWatches, defaultWatches, sampleWatches arrays
+   - Remove the 3 entries
+
+F) ANY .json DATA FILES:
+   - Check if watches are stored in a .json file (data/watches.json, assets/watches.json, etc.)
+   - Delete the 3 entries from those files
+
+════════════════════════════════════════════════════════
+STEP 3 — ADD RUNTIME SAFETY FILTER (belt AND suspenders)
+════════════════════════════════════════════════════════
+
+Even after deleting from all sources, add this runtime filter wherever watches are
+fetched or displayed. This is the final safety net so they CANNOT appear even if
+something re-seeds them:
+
+Find the component or hook that loads the watch list (useWatches, fetchWatches,
+getWatches, WatchesScreen, etc.) and add this filter:
+```ts
+const BANNED_WATCHES = ['Classic Watch', 'Refined Timepiece', 'Elite Chronograph']
+
+// Apply this filter to the watch array before rendering:
+const watches = rawWatches.filter(w => !BANNED_WATCHES.includes(w.name))
+```
+
+Add this filter in BOTH places:
+1. Where watches are fetched from the server / API
+2. Where watches are rendered in the UI component
+
+════════════════════════════════════════════════════════
+STEP 4 — ALSO DO THESE WHILE YOU ARE IN THE FILE
+════════════════════════════════════════════════════════
+
+A) Replace "Apple Watch Ultra" with "Apple Watch Ultra 2":
+   - name: "Apple Watch Ultra 2"
+   - glbFile: "apple_watch_ultra_2.glb"
+   - brand: Apple
+   - price: 4,500 GP
+   - rarity: COMMON
+   - category: Smart Watch
+   - requiredLevel: 2
+   - prestige: +3
+   - description: "The most rugged Apple Watch ever. Built for those who push limits."
+   - colors: ['#1A1A1A', '#F5F5F5', '#4A9EFF']
+
+B) Fix watch model-viewer camera so ALL watches show at the same size.
+   Replace any existing camera-orbit with this per-watch override map:
+```ts
+const WATCH_CAMERA_OVERRIDES: Record<string, { orbit: string; fov: string }> = {
+  'apple_watch_ultra_2.glb':                       { orbit: '0deg 70deg 105%', fov: '28deg' },
+  'apple_watch.glb':                               { orbit: '0deg 70deg 105%', fov: '28deg' },
+  'timex_expedition_watch.glb':                    { orbit: '30deg 70deg 105%', fov: '32deg' },
+  'seiko_watch.glb':                               { orbit: '0deg 75deg 105%', fov: '28deg' },
+  'chronograph_watch.glb':                         { orbit: '20deg 75deg 105%', fov: '30deg' },
+  'hand_watch__free_model.glb':                    { orbit: '0deg 80deg 105%', fov: '30deg' },
+  'breitling_superocean_automatic_44_-_watch.glb': { orbit: '0deg 70deg 105%', fov: '28deg' },
+  'rolex_datejust.glb':                            { orbit: '10deg 75deg 105%', fov: '28deg' },
+  'patek_philippe.glb':                            { orbit: '0deg 70deg 105%', fov: '28deg' },
+  'richard_mille_rm011_low_poly.glb':              { orbit: '20deg 72deg 105%', fov: '30deg' },
+}
+
+// Usage in JSX:
+const cam = WATCH_CAMERA_OVERRIDES[watch.glbFile] ?? { orbit: '0deg 75deg 105%', fov: '30deg' }
+```
+
+Set these attributes on EVERY watch model-viewer:
+```html
+<model-viewer
+  src={`/api/models/${watch.glbFile}`}
+  camera-orbit={cam.orbit}
+  field-of-view={cam.fov}
+  min-camera-orbit="auto auto 90%"
+  max-camera-orbit="auto auto 130%"
+  min-field-of-view="20deg"
+  max-field-of-view="45deg"
+  auto-rotate
+  auto-rotate-delay="2000"
+  rotation-per-second="10deg"
+  environment-image="neutral"
+  shadow-intensity="1.0"
+  exposure="1.1"
+  style={{ width: '100%', height: '100%', background: 'transparent', '--poster-color': 'transparent' }}
+/>
+```
+
+════════════════════════════════════════════════════════
+STEP 5 — VERIFY BEFORE YOU FINISH
+════════════════════════════════════════════════════════
+
+Run these checks and show me the results:
+
+1. grep -r "Classic Watch" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json"
+   → Must return 0 results (or only in .md documentation files)
+
+2. grep -r "Refined Timepiece" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json"
+   → Must return 0 results
+
+3. grep -r "Elite Chronograph" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json"
+   → Must return 0 results
+
+4. Show the final watch list — it must contain EXACTLY these 9 watches in this order:
+   1. Apple Watch Ultra 2      (level 2)
+   2. Timex Expedition         (level 3)
+   3. Seiko Prospex            (level 8)
+   4. Chronograph Sport        (level 12)
+   5. Classic Dress Watch      (level 15)
+   6. Breitling Superocean 44  (level 28)
+   7. Rolex Datejust           (level 45)
+   8. Patek Philippe Calatrava (level 60)
+   9. Richard Mille RM 011     (level 70)
+
+If grep still finds any of the 3 banned watches in .ts/.tsx/.js/.json files after you
+think you've deleted them — GO BACK AND DELETE THEM AGAIN. Do not stop until grep
+returns 0 results for all 3 names.

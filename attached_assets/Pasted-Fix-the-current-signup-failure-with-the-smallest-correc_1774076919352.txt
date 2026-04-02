@@ -1,0 +1,165 @@
+Fix the current signup failure with the smallest correct change set.
+
+Current production symptom:
+Signup fails with a DB query error when checking users by email.
+
+Observed error:
+Failed query: select "id", "email", "username", "password_hash", "role", "coin_balance", "level", "xp", "current_streak", "longest_streak", "trust_score", "is_active", "last_active_at", "last_streak_date", "acquisition_source", "invited_by_code", "invited_by", "prestige_tier", "prestige_ready_at", "created_at", "updated_at" from "users" where "users"."email" = $1 limit $2
+
+Interpret this as a likely schema mismatch between:
+- the current backend/Drizzle users schema
+- and the actual live database table
+
+Your task:
+Diagnose and fix only this signup/login schema mismatch issue correctly.
+Do NOT broaden scope.
+Do NOT redesign auth.
+Do NOT touch unrelated gameplay systems unless required for auth compatibility.
+
+==================================================
+STRICT GOAL
+==================================================
+
+Make signup work again safely and consistently.
+
+At the end, these must work:
+1. signup
+2. login
+3. duplicate email check
+4. existing users query by email
+5. no DB query failure caused by missing columns in users table
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+
+1. Inspect the current users schema in code (Drizzle schema / model)
+2. Inspect the real database users table structure
+3. Compare them field-by-field
+4. Identify exactly which columns used in the signup/auth flow are missing or mismatched
+5. Confirm whether the failure is caused by:
+   - missing DB columns
+   - stale migration state
+   - stale generated schema/types
+   - query selecting fields that should not exist
+   - code reading fields before migration was applied
+
+Do NOT guess.
+Do a real comparison.
+
+==================================================
+STEP 2 — FIX THE REAL ROOT CAUSE
+==================================================
+
+Apply the minimum correct fix.
+
+Preferred order:
+1. If code schema is correct and DB is behind:
+   - create/apply the correct migration or schema push
+2. If code is selecting columns that should not yet exist:
+   - fix the query/schema usage to match the intended stable auth model
+3. If generated artifacts are stale:
+   - rebuild/regenerate only what is necessary
+4. If both schema and query usage drifted:
+   - bring them back into sync with the smallest safe patch
+
+Important:
+- Keep the auth flow compatible with the current product
+- Do not remove important user progression fields if they are intended to exist
+- Do not silently drop fields from code unless they are clearly accidental
+- Prefer syncing the DB to the intended schema if that is the real issue
+
+==================================================
+STEP 3 — VERIFY AUTH FLOW
+==================================================
+
+After the fix, verify all of the following:
+
+1. query users by email no longer fails
+2. signup works for a new user
+3. duplicate email signup returns a clean error
+4. login works for an existing user
+5. created user row includes all expected auth/user columns
+6. app returns JSON errors, not raw SQL crash output
+7. no unrelated routes are broken
+
+==================================================
+STEP 4 — HARDEN ERROR HANDLING
+==================================================
+
+If not already present, make auth failure safer and clearer:
+- DB/schema failures should return clean JSON
+- do not expose raw SQL/internal stack traces to the frontend in production-like flows
+- but preserve enough server logs for debugging
+
+Keep this minimal.
+Do not redesign the whole error system.
+
+==================================================
+FILES / AREAS TO CHECK
+==================================================
+
+Check only the relevant areas:
+- users schema / Drizzle schema
+- auth routes
+- DB migration files / schema push state
+- any generated DB types if used
+- app/server startup if schema generation is stale
+- login/signup query code
+- JSON error handling around auth
+
+Do NOT refactor:
+- missions
+- rewards
+- skills
+- arcs
+- chains
+- live ops
+- integrations
+unless absolutely necessary for auth compatibility
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+This fix is complete only if:
+
+1. signup succeeds without DB query failure
+2. login succeeds
+3. users-by-email lookup works
+4. missing column/schema mismatch is resolved at the root
+5. duplicate signup returns a clean JSON error
+6. frontend no longer shows raw failed query output for this case
+7. no unrelated gameplay scope was touched
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Root cause
+- what column(s) or schema mismatch caused the failure
+- whether the DB or code was out of sync
+
+2. Files changed in this run only
+
+3. DB fix applied
+- migration created/applied OR schema push OR query/schema correction
+- exact columns added/changed if any
+
+4. Verification results
+- signup
+- login
+- duplicate email check
+- users query by email
+
+5. Confirmation that no unrelated scope was changed
+
+Important:
+Audit first.
+Do not guess.
+Do not patch around the symptom.
+Fix the real schema mismatch cleanly.

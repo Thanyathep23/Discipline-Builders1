@@ -1,0 +1,183 @@
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope.
+
+Problem:
+When the user taps "Wardrobe" from the Game Mode section on the 
+Rewards screen, the app crashes with "Something went wrong / 
+Please reload the app to continue."
+
+This means the Wardrobe screen has a runtime error — either:
+- the screen file does not exist or has a broken import
+- a component inside it throws on mount
+- a hook or API call fails without error boundary
+- a missing dependency or undefined variable on first render
+
+==================================================
+STEP 1 — DIAGNOSE FIRST
+==================================================
+
+Before changing anything:
+
+1. Find exactly where Wardrobe navigation points to:
+   - check the Game Mode button handler in the Rewards screen
+   - find the router path for Wardrobe
+   - confirm the target screen file exists at that path
+
+2. Open the Wardrobe screen file and check:
+   - are all imports resolvable?
+   - are there any components imported that do not exist yet?
+   - are there any SVG files or visual components imported 
+     that have not been created yet?
+   - is there any code that runs on mount that could throw?
+
+3. Check all hooks used in the Wardrobe screen:
+   - do they exist in useApi.ts?
+   - do they return safe defaults before data loads?
+   - is there any hook that could throw on first call?
+
+4. Check if the API server is running and returning valid JSON
+   for the wearables endpoint
+
+5. Check Expo/Metro logs for the exact error message and stack trace
+
+Report the exact root cause before making any changes.
+
+==================================================
+STEP 2 — FIX THE CRASH
+==================================================
+
+Apply the minimum fix needed to stop the crash.
+
+Fix rules:
+- fix only what is broken
+- do not rewrite the whole screen unless it is entirely missing
+- do not change working screens or routes
+- do not add new features in this fix
+
+Common fixes to apply based on diagnosis:
+
+FIX A — Screen file missing:
+If the wardrobe screen file does not exist at the routed path,
+create a minimal safe screen that renders without crashing:
+
+  export default function WardrobeScreen() {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#0d0d14' }}>
+        <Text style={{ color: '#fff', padding: 24 }}>
+          Wardrobe loading...
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+Then confirm it loads without crash before building further.
+
+FIX B — Broken import:
+If the crash is caused by importing a component or SVG file
+that does not exist yet, either:
+- comment out the broken import temporarily
+- replace with a safe placeholder component
+- create the missing file with a minimal safe export
+
+FIX C — Hook throwing on mount:
+If a hook throws because the API returns an error or 
+undefined data, add safe defaults:
+- ensure all hook return values have fallback defaults
+- wrap data access with optional chaining
+- add try/catch or error handling in the hook
+
+FIX D — API endpoint not found:
+If the wearables API route does not exist or returns HTML
+instead of JSON:
+- confirm /api/wearables route exists on the Express server
+- confirm the server is running
+- fix the route if it is broken
+
+FIX E — Missing navigation route:
+If the router does not have a wardrobe route registered:
+- add the route in the navigation/router config
+- point it to the correct screen file
+
+==================================================
+STEP 3 — VERIFY THE FIX
+==================================================
+
+After applying the fix:
+
+1. Confirm the app no longer crashes when tapping Wardrobe
+2. Confirm the Wardrobe screen renders something visible
+3. Confirm no other existing screens were broken
+4. Confirm the Rewards screen Game Mode buttons still work
+
+==================================================
+STEP 4 — CONTINUE WARDROBE BUILD
+==================================================
+
+Once the crash is fixed and the screen renders safely,
+continue building the full Wardrobe UI as specified:
+
+PRIORITY ORDER:
+
+1. Tab bar: Watches | Clothing | Accessories | Equipped
+2. Item grid with CollectionCard for each item
+3. Item states: Locked / Available / Owned / Equipped
+4. Item detail bottom sheet (T003)
+5. Equipped tab with 5 slots (T004)
+6. SVG item visuals (T002)
+7. Character connection (T005)
+
+For each step, build the minimum working version first,
+then polish — do not attempt to build everything at once.
+
+==================================================
+API VERIFICATION
+==================================================
+
+Confirm these endpoints return valid JSON:
+
+GET /api/wearables
+- should return array of catalog items with:
+  id, name, series, category, wearableSlot, rarity,
+  minLevel, price, styleEffect, colorVariants, isActive
+
+GET /api/wearables/equipped  
+- should return currently equipped items per slot
+
+POST /api/marketplace/buy
+- body: { itemId, colorVariant }
+- should deduct coins and add to inventory
+
+POST /api/marketplace/equip
+- body: { itemId, colorVariant }
+- should set item as equipped in slot
+
+POST /api/marketplace/unequip
+- body: { itemId }
+- should clear the item's slot
+
+If any of these are missing or broken, fix them first
+before building the UI.
+
+==================================================
+ACCEPTANCE CRITERIA FOR THIS FIX SESSION
+==================================================
+
+1. Tapping Wardrobe does NOT crash the app
+2. Wardrobe screen renders without error
+3. At minimum a tab bar and item list is visible
+4. API returns valid data for wearables catalog
+5. No other existing screens were broken
+6. Expo logs show no unhandled errors
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end return exactly:
+
+1. Root cause of the crash (exact error + file/line)
+2. Fix applied (what was changed and why)
+3. Files changed in this run only
+4. Current state of Wardrobe screen
+5. What still needs to be built (remaining T002-T005 gaps)
+6. Verification: app no longer crashes on Wardrobe tap

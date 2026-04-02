@@ -1,0 +1,64 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this pass.
+
+Goal:
+Make the Character Status Hub feel world-class.
+
+Current context:
+The Character Status Hub already exists.
+The next highest-value step is to make it the strongest identity surface in the product.
+
+Your task:
+Upgrade only the Character Status Hub so it becomes the emotional and strategic center of the app.
+
+Focus only on:
+1. Character hero presence
+2. Status clarity
+3. Status tier/class presentation
+4. “Why I look like this” explanation
+5. “What should I do next” clarity
+6. Mobile-first readability and premium polish
+
+The Character Status Hub must answer instantly:
+- Who am I now?
+- What is my current status?
+- What is driving my look and state?
+- What should I do next to visibly evolve?
+
+Requirements:
+- character must be the hero of the screen
+- the 4 key dimensions must be clear:
+  - Fitness
+  - Discipline
+  - Finance/Lifestyle
+  - Prestige
+- visible progression must feel emotionally satisfying
+- explanation copy must be concise and premium
+- next evolution hint must be strong and obvious
+- reduce clutter and competing cards
+- improve mobile hierarchy and readability
+- do not add unrelated systems
+
+Do NOT build:
+- new progression systems
+- full avatar editor
+- new economy systems
+- new social systems
+
+Acceptance criteria:
+1. The Character Status Hub is understandable in 3 seconds
+2. The character feels like the clear hero
+3. The user can tell why the character looks this way
+4. The next best progression move is obvious
+5. The screen feels premium, aspirational, and mobile-friendly
+6. Existing app flow remains unchanged
+
+At the end, return exactly:
+1. What was weak before
+2. What was improved
+3. Files changed in this run only
+4. What hierarchy/clarity changes were made
+5. What emotional/visual improvements were made
+6. End-to-end verification results

@@ -1,0 +1,548 @@
+Use docs/life-rpg-master-spec.md and the Design System / UI System Blueprint v1 as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement the Design System / UI System as real, reusable code tokens and components that the entire app can share.
+
+Current context:
+- The product already has many screens built across character, reward, store, room, cars, missions, admin, and community systems.
+- The design direction has been conceptually frozen as: dark premium, mobile-first, serious and aspirational, one visual language across all surfaces.
+- The next highest-value step is to formalize the design language into actual code so every surface becomes consistent, coherent, and feels like one product.
+
+Your task:
+Implement only the minimum design system foundation needed to unify the product.
+
+==================================================
+PHASE SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Color token system
+2. Typography token system
+3. Spacing token system
+4. Radius / elevation token system
+5. Button component system
+6. Card component families
+7. Chip / badge / state tag system
+8. Progress / stat bar components
+9. Loading / skeleton states
+10. Empty state components
+11. Error state components
+12. Icon usage guidelines in code
+
+Do NOT build:
+- new screens
+- new gameplay systems
+- new economy features
+- redesign of entire navigation
+- new admin features
+- new store features
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before writing any code:
+1. Inspect the current component structure, existing style files, current color usage, typography usage, spacing patterns, button variants, and card patterns across the codebase.
+2. Identify what is already reasonably consistent vs what is fragmented or duplicated.
+3. Identify the minimum token/component set needed to unify the product.
+4. Implement only what is necessary.
+5. Avoid breaking existing screens while standardizing.
+
+==================================================
+A. COLOR TOKEN SYSTEM
+==================================================
+
+Create a central color token file.
+
+Use semantic roles, not raw hex names.
+
+Required semantic tokens at minimum:
+
+Background roles:
+- colors.bg.app
+- colors.bg.surface
+- colors.bg.surfaceElevated
+- colors.bg.surfaceSubtle
+- colors.bg.overlay
+
+Text roles:
+- colors.text.primary
+- colors.text.secondary
+- colors.text.tertiary
+- colors.text.inverse
+- colors.text.disabled
+
+Border roles:
+- colors.border.subtle
+- colors.border.default
+- colors.border.strong
+
+Accent roles:
+- colors.accent.primary
+- colors.accent.secondary
+- colors.accent.success
+- colors.accent.warning
+- colors.accent.danger
+- colors.accent.premium
+- colors.accent.progression
+
+Status tier accent roles:
+- colors.tier.starter
+- colors.tier.hustle
+- colors.tier.rising
+- colors.tier.refined
+- colors.tier.elite
+
+Requirements:
+- tokens must work in dark mode as the default
+- all tokens must be importable from a single source
+- no raw hex values should appear in components directly
+- existing screens should be migrated to use tokens where practical without breaking anything
+
+==================================================
+B. TYPOGRAPHY TOKEN SYSTEM
+==================================================
+
+Create a central typography token file.
+
+Required type scale at minimum:
+
+- typography.display
+- typography.h1
+- typography.h2
+- typography.h3
+- typography.title
+- typography.body
+- typography.bodySmall
+- typography.label
+- typography.micro
+
+Each scale item should define:
+- fontSize
+- lineHeight
+- fontWeight
+- letterSpacing where relevant
+
+Requirements:
+- use one font family consistently across the app
+- no arbitrary font sizes outside the token scale in components
+- keep the scale small enough to remain manageable
+- tokens must be importable from a single source
+
+==================================================
+C. SPACING TOKEN SYSTEM
+==================================================
+
+Create a central spacing token file.
+
+Required spacing scale at minimum:
+
+- spacing.xs = 4
+- spacing.sm = 8
+- spacing.md = 12
+- spacing.base = 16
+- spacing.lg = 20
+- spacing.xl = 24
+- spacing.xxl = 32
+- spacing.xxxl = 40
+
+Requirements:
+- components should use spacing tokens, not arbitrary numbers
+- all padding, margin, and gap values in new/updated components must reference tokens
+- keep the scale practical and minimal
+
+==================================================
+D. RADIUS / ELEVATION TOKEN SYSTEM
+==================================================
+
+Create radius and elevation/shadow tokens.
+
+Required radius tokens:
+- radius.sm
+- radius.md
+- radius.lg
+- radius.xl (for hero cards, modals, character containers)
+
+Required elevation/shadow tokens:
+- elevation.none
+- elevation.low
+- elevation.medium
+- elevation.hero
+
+Requirements:
+- cards, sheets, modals, and panels must use radius tokens
+- shadow/elevation should be applied consistently
+- avoid mixing raw shadow values in components
+
+==================================================
+E. BUTTON COMPONENT SYSTEM
+==================================================
+
+Create a standardized Button component.
+
+Required button variants:
+- primary (main CTA, highest emphasis)
+- secondary (supporting action)
+- tertiary (text-only, lowest emphasis)
+- destructive (dangerous/delete actions)
+- premium (upgrade/purchase emphasis)
+
+Each variant must support:
+- default state
+- pressed / active state
+- disabled state
+- loading state (spinner inside button)
+- full-width option
+- icon-left option
+
+Requirements:
+- button hierarchy must be enforced visually
+- only one primary button should dominate any given section
+- disabled state must remain legible, not invisible
+- premium variant should use the accent.premium token
+- all buttons must use color, spacing, radius, and typography tokens
+- do not create new one-off button styles for individual screens
+
+==================================================
+F. CARD COMPONENT FAMILIES
+==================================================
+
+Create a standardized set of card components.
+
+Required card types:
+
+1. HeroCard
+Use for: character hero block, reward result hero block, featured item, featured car.
+Highest surface elevation, hero radius, strong visual presence.
+
+2. SummaryCard
+Use for: stat summaries, progression summaries, dashboard sections.
+Standard surface, readable hierarchy.
+
+3. ActionCard
+Use for: recommendation card, next-best-action, quick upgrade prompt, comeback prompt.
+Clear CTA emphasis.
+
+4. CollectionCard
+Use for: product card, wearable card, room item card, car card.
+Image/media area, state chip, price, lock/owned/equipped state.
+
+5. StatusCard
+Use for: proof result state, active chain state, live event state, premium state.
+Strong state visibility.
+
+6. AdminMetricCard
+Use for: dashboard KPIs, anomaly counters, health summaries in admin.
+Denser, faster to scan.
+
+Requirements:
+- all card types must use color, spacing, radius, and elevation tokens
+- card families must look related but distinct
+- media/image areas must handle loading, placeholder, and error states cleanly
+- do not create one-off card variants for every screen
+
+==================================================
+G. CHIP / BADGE / STATE TAG SYSTEM
+==================================================
+
+Create a standardized Chip/Badge/Tag component.
+
+Required state variants at minimum:
+
+Ownership / usage:
+- locked
+- unlockable
+- owned
+- equipped
+- displayed
+- featured
+- premium
+- limited
+- exclusive
+
+Progression / mission:
+- active
+- completed
+- approved
+- partial
+- followup
+- rejected
+
+Rarity:
+- common
+- rare
+- epic
+- legendary
+- breakthrough
+
+Status tiers:
+- starter
+- hustle
+- rising
+- refined
+- elite
+
+Requirements:
+- one chip component must support all variants via a type/variant prop
+- colors must come from the token system
+- the same state must use the same chip variant everywhere in the app
+- do not invent different chip styles for different screens that represent the same concept
+
+==================================================
+H. PROGRESS / STAT BAR COMPONENTS
+==================================================
+
+Create standardized progress and stat components.
+
+Required components:
+
+1. ProgressBar
+- value (0 to 1)
+- accent color token
+- optional label
+- optional trailing value display
+
+2. StatBlock
+- label
+- value
+- optional sub-label or trend indicator
+- optional icon
+
+3. SkillBar
+- skill name
+- current level / rank
+- xp progress
+- trend indicator
+- brief explanation text
+
+Requirements:
+- use spacing and color tokens
+- bars must not be purely decorative
+- pair bars with plain-language context where meaningful
+- consistent thickness and label placement
+
+==================================================
+I. LOADING / SKELETON STATE SYSTEM
+==================================================
+
+Create standardized loading/skeleton components.
+
+Required components:
+
+1. SkeletonBlock
+- configurable width, height, radius
+- animated pulse effect
+
+2. SkeletonCard (wraps SkeletonBlocks)
+- matches the shape of CollectionCard, SummaryCard, HeroCard
+
+3. SkeletonList
+- repeating skeleton rows for list/table loading
+
+4. LoadingScreen
+- full-screen loading state for initial navigation
+
+Requirements:
+- skeleton treatment must feel premium and calm
+- avoid bright white flickering in dark mode
+- match the shape of the actual content where possible
+- hero surfaces must have premium skeleton treatment
+
+==================================================
+J. EMPTY STATE COMPONENT SYSTEM
+==================================================
+
+Create standardized empty state components.
+
+Required EmptyState component props:
+- icon or illustration reference
+- title
+- subtitle/body
+- optional primary CTA button
+- optional secondary CTA
+
+Required empty state instances to build or standardize:
+- no missions yet
+- no proof yet
+- no purchases yet
+- no room items yet
+- no car owned yet
+- no active chain
+- no inventory items
+- no recommendations
+- admin: no players found
+- admin: no content items
+- admin: no audit log entries
+
+Requirements:
+- empty states must teach and motivate, not just say "nothing here"
+- use the product's aspirational language
+- do not make empty states feel like errors
+- use the token system for spacing, typography, and color
+
+==================================================
+K. ERROR STATE COMPONENT SYSTEM
+==================================================
+
+Create standardized error state components.
+
+Required ErrorState component props:
+- type (network, validation, server, permission, not-found)
+- title
+- description
+- optional retry action
+- optional fallback CTA
+
+Required behaviors:
+- network error: offer retry
+- validation error: show what is wrong inline
+- permission error: explain why and what to do
+- not found: offer navigation back
+- degraded state: show reduced functionality without full crash
+
+Requirements:
+- error states must be clear and calm, not alarming
+- use correct accent.danger token where appropriate
+- never strand the user in a dead end
+- keep mobile layout safe and readable
+
+==================================================
+L. MIGRATION RULES
+==================================================
+
+While implementing the design system:
+
+1. Replace only what you can migrate safely without breaking screens.
+2. Start with shared/common components used across many screens.
+3. Prioritize the 5 hero surfaces for token migration:
+   - Character Status Hub
+   - Reward Result
+   - Store
+   - Room
+   - Car Collection
+4. Admin screens can be migrated at standard priority.
+5. Do not do a full global find-and-replace in one pass if it risks breaking runtime behavior.
+6. Keep a migration note if some screens remain partially migrated.
+
+==================================================
+M. FILE STRUCTURE RECOMMENDATION
+==================================================
+
+Suggested file structure:
+
+/design-system/
+  tokens/
+    colors.ts
+    typography.ts
+    spacing.ts
+    radius.ts
+    elevation.ts
+  components/
+    Button/
+      Button.tsx
+      Button.types.ts
+    Card/
+      HeroCard.tsx
+      SummaryCard.tsx
+      ActionCard.tsx
+      CollectionCard.tsx
+      StatusCard.tsx
+      AdminMetricCard.tsx
+    Chip/
+      Chip.tsx
+      Chip.types.ts
+    Progress/
+      ProgressBar.tsx
+      StatBlock.tsx
+      SkillBar.tsx
+    Skeleton/
+      SkeletonBlock.tsx
+      SkeletonCard.tsx
+      SkeletonList.tsx
+    EmptyState/
+      EmptyState.tsx
+    ErrorState/
+      ErrorState.tsx
+  index.ts (barrel export)
+
+Requirements:
+- all tokens and components must be importable from the design-system index
+- keep component files focused and not bloated
+
+==================================================
+N. QUALITY RULES
+==================================================
+
+Every component built in this phase must:
+
+1. Use only design tokens for colors, spacing, typography, radius, elevation.
+2. Support at minimum: default, disabled, loading states where applicable.
+3. Not contain hardcoded hex values or arbitrary spacing numbers.
+4. Be documented with at minimum a comment describing its purpose and variants.
+5. Be mobile-friendly and thumb-safe.
+6. Not break any existing screen when imported.
+
+==================================================
+O. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. A central color token file exists and is used.
+2. A central typography token file exists and is used.
+3. A central spacing token file exists and is used.
+4. Radius and elevation tokens exist and are used.
+5. A standardized Button component exists with all required variants.
+6. All 6 card families exist as reusable components.
+7. A standardized Chip component exists covering all required state variants.
+8. ProgressBar, StatBlock, and SkillBar components exist.
+9. Skeleton loading components exist.
+10. EmptyState component exists with all major instances covered.
+11. ErrorState component exists with all required types.
+12. The 5 hero surfaces have been migrated to use design tokens where practical.
+13. No existing screen was broken by the migration.
+14. No hardcoded hex, font size, or spacing values remain in the new/migrated components.
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+   - what was already consistent
+   - what was fragmented
+   - what was created or standardized
+
+2. Files created or changed in this run only
+
+3. Token system summary:
+   - colors
+   - typography
+   - spacing
+   - radius/elevation
+
+4. Component summary:
+   - what components were built
+   - what variants each supports
+
+5. Migration summary:
+   - which screens were migrated to use tokens
+   - which screens remain partially migrated
+
+6. End-to-end verification results:
+   - all 5 hero surfaces render correctly
+   - no existing flows broken
+   - design system exports work correctly
+
+7. Remaining gaps or known partial migrations
+
+Important:
+Keep this phase focused.
+Do not add new features.
+Do not restart the project.
+Preserve all existing working functionality.

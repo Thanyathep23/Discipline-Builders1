@@ -1,0 +1,77 @@
+FIX: Update the WATCH_CAMERA_OVERRIDES keys to match actual filenames:
+```ts
+const WATCH_CAMERA_OVERRIDES: Record<string, { orbit: string; fov: string }> = {
+  "apple_watch_ultra_2.glb":                       { orbit: "0deg 70deg 105%", fov: "28deg" },
+  "apple_watch.glb":                               { orbit: "0deg 70deg 105%", fov: "28deg" },
+  "timex_expedition_watch.glb":                    { orbit: "30deg 70deg 105%", fov: "32deg" },
+  "seiko_watch.glb":                               { orbit: "0deg 75deg 105%", fov: "28deg" },
+  "chronograph_watch.glb":                         { orbit: "20deg 75deg 105%", fov: "30deg" },
+  "hand_watch__free_model.glb":                    { orbit: "0deg 80deg 105%", fov: "30deg" },
+  "breitling_superocean_automatic_44_-_watch.glb": { orbit: "0deg 70deg 105%", fov: "28deg" },
+  "rolex_datejust.glb":                            { orbit: "10deg 75deg 105%", fov: "28deg" },
+  "patek_philippe.glb":                            { orbit: "0deg 70deg 105%", fov: "28deg" },
+  "richard_mille_rm011_low_poly.glb":              { orbit: "20deg 72deg 105%", fov: "30deg" },
+};
+```
+
+Also verify the glbFile field in wearables.ts matches these exact filenames.
+
+
+════════════════════════════════════════════════════════
+BUG #8 — SERVE 3D MODEL STATIC FILES
+════════════════════════════════════════════════════════
+
+FILE: artifacts/api-server/src/app.ts (or src/index.ts)
+
+The API server needs static routes to serve ALL 3D model folders.
+Ensure ALL of these exist:
+```ts
+const webAppPath = path.join(process.cwd(), '..', '..', 'web app');
+// If this path doesn't work, try: path.join(process.cwd(), 'web app')
+// Or use __dirname to resolve correctly
+
+// Male character model
+app.use('/api/models', express.static(path.join(webAppPath, 'models')));
+
+// Female character model
+app.use('/api/models/female', express.static(path.join(webAppPath, 'models_female')));
+
+// Watch 3D models
+app.use('/api/models/watches', express.static(path.join(webAppPath, 'watches_v1')));
+
+// Car 3D models
+app.use('/api/models/cars', express.static(path.join(webAppPath, 'cars_v1')));
+
+// Outfit 3D models
+app.use('/api/outfits', express.static(path.join(webAppPath, 'outfits')));
+
+// Customization assets (hair styles etc.)
+app.use('/api/models/customize', express.static(path.join(webAppPath, 'customize v.1')));
+```
+
+Test by visiting these URLs after the server starts:
+- /api/models/Superhero_Male_FullBody.gltf → must return the file
+- /api/models/female/Superhero_Female_FullBody.gltf → must return the file
+- /api/models/watches/rolex_datejust.glb → must return the file
+- /api/models/cars/2025_bmw_m4_competition.glb → must return the file
+- /api/outfits/shirt_for_men.glb → must return the file
+
+
+════════════════════════════════════════════════════════
+FINAL VERIFICATION CHECKLIST
+════════════════════════════════════════════════════════
+
+After fixing ALL 8 bugs, verify each one:
+
+1. ✅ Login/signup → goes to HOME tab (not cars)
+2. ✅ Character screen → shows 3D model (not SVG cartoon)
+3. ✅ Equip a watch → character shows watch on wrist
+4. ✅ Customize → select Female → 3D model switches to female
+5. ✅ Dev Mode toggle in Profile → all items unlockable
+6. ✅ Outfit GLBs render in wardrobe collection
+7. ✅ All 10 watch models display at correct zoom level (no tiny/giant)
+8. ✅ Static file routes all return 200 OK
+9. ✅ No TypeScript compilation errors
+10. ✅ No runtime crashes
+
+Fix them IN ORDER from #1 to #8. Show me git diff after all fixes are done.

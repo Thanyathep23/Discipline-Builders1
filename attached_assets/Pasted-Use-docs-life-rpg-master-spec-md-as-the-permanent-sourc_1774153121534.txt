@@ -1,0 +1,421 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 30 — Room Progression / Workspace Decor.
+
+Current context:
+- Phase 27 is complete: Game Mode / Character Status Hub exists.
+- Phase 28 is complete: Character Evolution Renderer exists and visually evolves based on real progression.
+- Phase 29 is complete: Wearables / Style / Identity Application exists, and wearable items can be purchased/equipped and affect the character visually.
+- The next highest-value step is environmental progression:
+  the user now needs a room/workspace layer that starts minimal and evolves into a more premium, aspirational command-center environment over time.
+- This phase must make the user feel:
+  “my room is changing because my life is changing.”
+
+Your task:
+Build only the smallest high-impact Room Progression / Workspace Decor layer.
+
+==================================================
+PHASE 30 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Room progression state engine
+2. Workspace / room zone system
+3. Room decor / workspace item application
+4. Theme / environment tier progression
+5. Room screen / room progression UI
+6. Lightweight connection to character/status and marketplace systems
+7. Minimal internal/admin controls only if strictly needed
+
+Do NOT build:
+- full interior design simulator
+- freeform drag-anywhere builder
+- advanced physics placement
+- huge housing game
+- full 3D walkable room
+- social room visiting system
+- giant decoration editor
+- redesign of the whole app
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current room/world presentation from earlier phases, marketplace/catalog, inventory/equip/application logic, character status hub, premium themes, identity layer, and current world/display state
+2. identify what room/world capabilities already exist vs what is still too shallow
+3. identify the minimum room progression system needed to make the room feel like a real evolving workspace
+4. implement only the minimum systems needed
+5. avoid broad refactors
+
+==================================================
+A. CORE PRODUCT FANTASY FOR THIS PHASE
+==================================================
+
+This phase must make the user feel:
+
+“My environment is leveling up with me.”
+
+The room/workspace should communicate:
+- where the user is in life progression
+- how disciplined/refined they are becoming
+- whether their lifestyle/status is improving
+- whether their command center feels basic, improving, premium, or elite
+
+The room should begin from:
+- an intentionally simple, empty/basic starter workspace
+- not ugly or broken
+- just minimal and humble
+
+And it should evolve into:
+- more complete
+- more premium
+- more organized
+- more aspirational
+- more aligned with the user’s status and purchases
+
+==================================================
+B. ROOM PROGRESSION STATE ENGINE
+==================================================
+
+Build a data-driven room progression engine.
+
+Purpose:
+Convert real progression + owned/applied room items into a structured room state.
+
+The engine should consider trusted signals such as:
+- Finance / Lifestyle progression
+- Discipline progression
+- Prestige state
+- owned room/workspace items
+- active room theme
+- selected displayed room items
+- possibly current arc or season if already useful and cheap to support
+
+The engine should output a compact room state model such as:
+- roomTier
+- roomBaseVariant
+- deskState
+- chairState
+- monitor/workstationState
+- decorDensityState
+- organizationState
+- ambianceState
+- prestigeAccentState
+- themeState
+- featuredDisplayState
+
+Requirements:
+- keep the room state deterministic and explainable
+- keep it recomputable from trusted data
+- avoid overcomplicating the model
+- keep it small and maintainable
+
+==================================================
+C. WORKSPACE / ROOM ZONE SYSTEM
+==================================================
+
+Build a clear room/workspace zone system.
+
+Purpose:
+Give room progression structure without building a freeform builder.
+
+Suggested room zones:
+1. Desk / Workstation zone
+2. Seating zone
+3. Background / wall / ambiance zone
+4. Trophy / display shelf zone
+5. Featured lifestyle item zone
+6. Theme / room-skin zone
+7. Prestige accent zone
+
+Requirements:
+- room-displayable items should map cleanly to one or more valid zones
+- users should be able to apply eligible owned room items to valid zones
+- not every item needs a visible zone in this phase
+- keep zones elegant and limited
+- avoid overbuilding a detailed placement system
+
+Rules:
+- slot-based / zone-based only
+- deterministic layout
+- stable rendering
+- premium, not cluttered
+
+==================================================
+D. ROOM DECOR / WORKSPACE ITEM APPLICATION
+==================================================
+
+Add the real room item application layer.
+
+At minimum, support room-related item types such as:
+- desk/workstation upgrades
+- chair or seating upgrades
+- decor/accent pieces
+- display/trophy pieces
+- room lifestyle objects
+- command-center upgrades
+- room themes / background states
+
+Requirements:
+- users can display/apply valid owned room items
+- users can remove/swap room items in supported zones
+- all room item application must be server-side validated
+- users cannot apply non-owned items
+- incompatible zone/item combinations must be rejected
+- the result must visibly affect the room preview/screen
+
+Rules:
+- not every item needs to be both character- and room-applicable
+- room items should clearly state where they apply
+- keep actions predictable and understandable
+
+==================================================
+E. THEME / ENVIRONMENT TIER PROGRESSION
+==================================================
+
+Add lightweight environment progression tiers.
+
+Purpose:
+Make the room itself visibly evolve, even beyond individual items.
+
+Recommended progression direction:
+- Basic
+- Improving
+- Premium
+- Refined
+- Elite Command Center
+
+Requirements:
+- room environment can improve through:
+  - progression
+  - room item ownership/application
+  - premium themes if already supported
+  - prestige/mastery markers if appropriate
+- themes or room tiers should feel like a serious lifestyle/status upgrade
+- users should be able to activate/select a theme if they own multiple
+- keep implementation lightweight and modular
+
+Do NOT build a giant skin engine.
+Keep it elegant and practical.
+
+==================================================
+F. ROOM SCREEN / ROOM PROGRESSION UI
+==================================================
+
+Build or upgrade the dedicated room/workspace screen.
+
+The screen should show at minimum:
+- current room/workspace visual scene
+- current room tier or environment class
+- what currently contributes to the room state
+- quick controls for:
+  - apply/swap room items
+  - change theme (if available)
+  - view eligible room items
+  - open store for room upgrades
+- next room evolution hint
+
+Requirements:
+- mobile-first
+- premium visual hierarchy
+- room scene is the hero
+- keep controls understandable and not cluttered
+- make the room feel like part of the same game mode universe as the character screen
+
+==================================================
+G. CHARACTER / ROOM LINKAGE
+==================================================
+
+Connect room progression to the character and status systems.
+
+Requirements:
+- room should feel like the external environment of the same character
+- room state should harmonize with:
+  - character status tier
+  - finance/lifestyle progression
+  - discipline/refinement signals
+  - prestige markers
+- character and room should feel like one identity fantasy, not separate screens
+- if the user upgrades room-related items, the status/game mode experience should feel more complete
+
+Do not deeply merge the two screens.
+Just make them coherent and mutually reinforcing.
+
+==================================================
+H. MARKETPLACE / INVENTORY LINKAGE
+==================================================
+
+Connect room progression to the store and inventory.
+
+Requirements:
+- room-applicable items should be identifiable in the store
+- inventory should clearly show which items affect the room
+- item detail should explain:
+  - what room zone it affects
+  - whether it changes room tier, ambiance, prestige, or display quality
+- room screen should have clear CTA to relevant room items in store
+- room item ownership/application should stay consistent with marketplace and inventory state
+
+==================================================
+I. ROOM EVOLUTION / NEXT UPGRADE HINTS
+==================================================
+
+Add lightweight room-focused guidance.
+
+Examples:
+- “Upgrade your workspace to move beyond the basic room tier.”
+- “Your current lifestyle progress is ready for a better command-center theme.”
+- “A stronger display item will improve your prestige zone.”
+- “Your Discipline progress is starting to justify a cleaner, more refined room class.”
+
+Requirements:
+- hints must be based on real state
+- keep them concise
+- make the room feel like a living goal
+- do not over-explain or spam
+
+==================================================
+J. CONSISTENCY / VALIDATION / ANTI-ERROR RULES
+==================================================
+
+Because this phase connects room state across many systems, validation must be strong.
+
+Requirements:
+- server-side validation for room item application
+- reject invalid zone/category/item combinations
+- reject non-owned item application
+- preserve consistency between:
+  - catalog
+  - ownership
+  - applied room state
+  - room renderer
+  - inventory/store UI
+  - premium/theme state
+- keep JSON-only APIs
+- preserve ownership checks
+
+If needed:
+- add small recompute/rebuild helpers for room state
+- keep them safe and minimal
+
+==================================================
+K. MINIMAL INTERNAL / ADMIN CONTROLS
+==================================================
+
+Add only minimal internal controls if strictly needed.
+
+Possible examples:
+- mark items as room-displayable
+- assign default room zone compatibility
+- define room tier thresholds
+- define theme availability
+- debug room state snapshot
+
+Requirements:
+- admin-only
+- lightweight
+- use existing admin/tuning/catalog surfaces where possible
+- do not build a giant room-ops console
+
+==================================================
+L. UI / UX DIRECTION
+==================================================
+
+Design direction:
+- dark premium
+- aspirational workspace / command-center fantasy
+- serious, stylish, elegant
+- not childish
+- not a chaotic decorating game
+- should feel like a premium life/work base
+
+The user should feel:
+- “my room is improving with me”
+- “my workspace reflects my level now”
+- “my purchases matter”
+- “my life looks more upgraded now”
+
+==================================================
+M. BACKEND / SECURITY RULES
+==================================================
+
+- all room application, theme activation, and display checks must be server-side
+- preserve JSON-only APIs
+- preserve ownership checks
+- do not trust client-provided room state
+- keep schema changes additive and minimal
+- preserve existing mission/proof/reward/economy/world/community/premium flows
+- if room state is cached/persisted, it must remain recomputable from trusted data
+
+==================================================
+N. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a real room/workspace progression layer exists
+2. the room begins from a basic/humble starter state and can visibly improve
+3. room zones/slots exist in a clean, limited way
+4. eligible owned room items can be applied/displayed in valid room zones
+5. room themes/environment tiers exist in a lightweight but meaningful form
+6. room screen clearly shows current room state and next upgrade direction
+7. room progression feels linked to character/status and marketplace state
+8. server-side validation protects ownership and room application state
+9. existing app flow still works
+10. no oversized housing/decorator-simulator scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what room/workspace capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Room progression engine added
+- input signals used
+- output room state model
+- how room state is computed
+
+4. Room zone / slot system added
+- what zones exist
+- what room item types map to them
+
+5. Room item application flows added
+- what actions are supported
+- how validation works
+
+6. Theme / environment progression added
+- what room tiers/themes now exist
+- how they are activated or unlocked
+
+7. Room screen integration added
+- what the user now sees
+- how next-upgrade hints appear
+
+8. End-to-end verification results for:
+- room starter state visibility
+- room item application
+- room theme activation
+- room progression change
+- marketplace/inventory linkage
+- existing app flow unchanged
+
+9. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

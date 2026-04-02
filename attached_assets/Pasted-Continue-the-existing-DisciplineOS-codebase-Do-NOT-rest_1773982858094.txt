@@ -1,0 +1,116 @@
+Continue the existing DisciplineOS codebase. Do NOT restart the project from scratch.
+
+Goal:
+Add the first Life RPG layer on top of the already working core loop.
+
+Current working loop already exists:
+login -> create mission -> start focus session -> stop focus session -> submit proof -> judge -> reward -> wallet
+
+Your task is to extend this existing product into an MVP "Life RPG with AI Game Master" without breaking the current flow.
+
+IMPORTANT:
+- Keep the current stack and architecture.
+- Keep the existing auth, missions, sessions, proof, judge, and wallet flow working.
+- Make additive changes only.
+- Avoid large refactors unless absolutely necessary.
+- Preserve current routes where possible.
+- Do not work on Chrome extension, admin expansion, leaderboard, social, deep analytics, sleep overhaul, or 3D/world rendering in this step.
+
+==================================================
+PRODUCT DIRECTION
+==================================================
+
+Turn the app from a productivity system into a life progression game.
+
+The user should feel:
+- real life actions are upgrading a real character,
+- AI acts like a strict but fair Game Master,
+- skills reflect actual behavior,
+- AI missions are personalized and achievable,
+- proof requirements are generated intelligently,
+- progress feels visible, meaningful, and game-like.
+
+This is NOT a cosmetic game layer.
+This is a real progression layer tied to real actions.
+
+==================================================
+STRICT MVP SCOPE
+==================================================
+
+Build only these systems in this phase:
+
+1. AI Life Profile (layered onboarding)
+2. Skill System
+3. AI Mission Generator
+4. Proof Requirement Engine
+5. Mission Board UI
+6. Skill Tree / Skill Summary UI
+7. Inventory Lite / Assets Lite
+8. AI Mission Acceptance Flow
+
+Do NOT build:
+- social/community
+- leaderboard
+- multiplayer
+- real-money systems
+- complicated world map
+- houses/cities rendering
+- long personality chat simulation
+- deep relationship simulation
+- OS-level phone blocking
+- deep sleep/scientific biometrics integration
+
+==================================================
+A. AI LIFE PROFILE
+==================================================
+
+Add a new layered onboarding/profile system that maps real life into the game.
+
+The onboarding must be split into 3 layers:
+
+1. Quick Start
+Used to start the game fast.
+Collect only:
+- current main goal
+- main life problem right now
+- work/study status
+- available time per day
+- areas the user wants to improve
+- strictness preference
+
+2. Standard Profile
+Can be completed after starting.
+Collect:
+- daily routine
+- weak points
+- distraction triggers
+- current habits
+- sleep pattern (basic)
+- health/fitness status (basic)
+- money/finance situation as RANGE only, not exact balance
+- confidence in different life areas
+
+3. Deep Profile
+Optional and resumable later.
+Collect:
+- longer-term goals
+- constraints
+- environment/support system
+- self-described strengths/weaknesses
+- life context useful for personalized mission generation
+
+Requirements:
+- User can pause and continue later
+- Each question should explain why it is being asked
+- User can skip optional questions
+- User can edit profile answers later
+- Do NOT require exact bank balance, exact address, or invasive relationship history by default
+- Keep privacy-safe defaults
+
+Suggested new tables / schema additions if missing:
+- life_profiles
+- life_profile_sections
+- life_profile_answers
+- onboarding_progress
+
+Need backend ownership checks for all profile data.

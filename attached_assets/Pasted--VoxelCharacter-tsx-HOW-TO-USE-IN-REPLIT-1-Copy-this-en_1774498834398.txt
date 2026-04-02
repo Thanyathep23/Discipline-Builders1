@@ -1,0 +1,434 @@
+/**
+ * VoxelCharacter.tsx
+ * 
+ * HOW TO USE IN REPLIT:
+ * 1. Copy this entire file
+ * 2. Create new file: artifacts/mobile/components/character/VoxelCharacter.tsx
+ * 3. In character/index.tsx, replace the old renderer with:
+ *    import VoxelCharacter from '../components/character/VoxelCharacter'
+ *    <VoxelCharacter skinTone={skinTone} hairColor={hairColor} outfitTier={outfitTier} />
+ */
+
+import React, { useState, useRef } from 'react'
+import {
+  View,
+  PanResponder,
+  Animated,
+  Dimensions,
+  StyleSheet,
+} from 'react-native'
+import Svg, { Rect, G } from 'react-native-svg'
+
+const SCREEN_W = Dimensions.get('window').width
+const VOXEL = 11  // size of each voxel block in points
+
+// ─── COLOUR PALETTE ────────────────────────────────────────────────────────────
+const P = {
+  // skin (default medium)
+  sk1: '#F5CBA7', sk2: '#F0B97D', sk3: '#E59866',
+  sk4: '#C0784A', sk5: '#8B5230',
+  // hair
+  ha:  '#2C1A0E', hl:  '#4A2C14',
+  // eyes
+  ew:  '#FFFFFF', ei:  '#1E3A5F', ep:  '#0A0A0A',
+  // face detail
+  nb:  '#C87A50', // nose bridge/tip
+  lb:  '#9B5B3A', // lip
+  // shirt / tee
+  wh:  '#F5F5F5', ws:  '#DCDCDC', // white tee / shadow
+  // jeans (starter)
+  jn:  '#1F3260', jl:  '#2A4180', jd:  '#162348',
+  // suit highlight → shadow (4 levels)
+  s1:  '#3D5166', s2:  '#2C3E50', s3:  '#1C2E3E', s4:  '#0F1C2A',
+  // vest
+  v1:  '#253545', v2:  '#1A2535',
+  // tie
+  ti:  '#1A252F', tp:  '#F39C12',
+  // accessories
+  gd:  '#F1C40F', // gold
+  pq:  '#F5A623', // pocket square
+  sh:  '#F8F8F8', // shirt under suit
+  // shoes
+  bx:  '#5C3A1E', bl:  '#7A4E2D',
+  // belt
+  bt:  '#2A1A0A', bk:  '#F1C40F',
+  // briefcase
+  bc1: '#8B5E3C', bc2: '#6B4424', bcg: '#F1C40F',
+  // phone
+  ph:  '#1A1A2E', phs: '#3A3A5E',
+  // paper
+  pa:  '#F0EDE8', pal: '#D0CCC8',
+  // coffee
+  cf:  '#FFFFFF', cfs: '#E0E0E0',
+  // transparent
+  _: null,
+}
+
+// ─── FACE ROWS (12 wide) ───────────────────────────────────────────────────────
+// Used as overlay on top-section of body maps
+// Row 0 = top of head, Row 13 = chin
+
+// ─── COMPLETE FRONT MAP — STARTER OUTFIT (white tee + jeans) ──────────────────
+// 28 cols × 52 rows. null = transparent
+const makeFrontStarter = (sk: string, hc: string): (string|null)[][] => {
+  const S = sk   // skin
+  const Sd = darken(sk, 0.12)
+  const H = hc
+  const Hl = lighten(hc, 0.15)
+  const _ = null
+  return [
+    // row 0-1: hair top
+    [_,_,_,_,_,_,H,H,H,H,H,H,H,H,H,H,H,H,H,H,H,H,_,_,_,_,_,_],
+    [_,_,_,_,_,H,H,H,H,H,H,H,Hl,Hl,Hl,Hl,H,H,H,H,H,H,H,_,_,_,_,_],
+    // row 2-3: hair mid with ears
+    [_,_,_,_,H,H,H,H,H,H,H,Hl,Hl,Hl,Hl,Hl,Hl,H,H,H,H,H,H,H,_,_,_,_],
+    [_,_,_,S,H,H,H,H,H,H,H,H,Hl,Hl,Hl,Hl,H,H,H,H,H,H,H,S,_,_,_,_],
+    // row 4: forehead
+    [_,_,_,S,S,H,H,H,H,H,H,H,H,H,H,H,H,H,H,H,H,H,S,S,_,_,_,_],
+    [_,_,_,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,_,_,_,_],
+    // row 6: eyebrow row
+    [_,_,_,S,S,S,darken(hc,0.1),darken(hc,0.1),S,S,S,S,S,S,S,S,S,S,darken(hc,0.1),darken(hc,0.1),S,S,S,S,_,_,_,_],
+    // row 7: eye row
+    [_,_,_,S,S,P.ew,P.ew,P.ew,S,S,S,S,S,S,S,S,S,S,P.ew,P.ew,P.ew,S,S,S,_,_,_,_],
+    [_,_,_,S,S,P.ew,P.ei,P.ep,S,S,S,S,S,S,S,S,S,S,P.ew,P.ei,P.ep,S,S,S,_,_,_,_],
+    // row 9: under eyes / nose area
+    [_,_,_,S,S,S,S,S,S,S,S,S,P.nb,P.nb,S,S,S,S,S,S,S,S,S,S,_,_,_,_],
+    // row 10: nose tip
+    [_,_,_,S,S,S,S,S,S,S,S,P.nb,P.nb,S,S,S,S,S,S,S,S,S,S,S,_,_,_,_],
+    // row 11: upper lip / mouth
+    [_,_,_,Sd,Sd,S,S,S,S,S,S,P.lb,P.lb,P.lb,P.lb,S,S,S,S,S,S,Sd,Sd,S,_,_,_,_],
+    // row 12: jaw
+    [_,_,_,Sd,Sd,Sd,Sd,S,S,S,S,S,S,S,S,S,S,S,S,Sd,Sd,Sd,Sd,S,_,_,_,_],
+    // row 13: chin / neck start
+    [_,_,_,_,Sd,Sd,Sd,Sd,S,S,S,S,S,S,S,S,S,S,Sd,Sd,Sd,Sd,_,_,_,_,_,_],
+    // row 14-15: neck
+    [_,_,_,_,_,_,S,S,S,S,S,S,S,S,S,S,S,S,S,_,_,_,_,_,_,_,_,_],
+    [_,_,_,_,_,_,S,S,S,S,S,S,S,S,S,S,S,S,S,_,_,_,_,_,_,_,_,_],
+    // row 16-17: shoulders
+    [_,_,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,_,_,_,_],
+    [_,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,_,_,_],
+    // row 18-27: torso (white tee)
+    [_,P.wh,P.ws,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.ws,P.wh,_,_,_],
+    [_,P.wh,P.ws,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.ws,P.wh,_,_,_],
+    [_,P.wh,P.ws,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.ws,P.wh,_,_,_],
+    [_,P.wh,P.ws,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.ws,P.wh,_,_,_],
+    [_,P.wh,P.ws,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.ws,P.wh,_,_,_],
+    [_,P.wh,P.ws,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.ws,P.wh,_,_,_],
+    // arms (skin showing below tee sleeves)
+    [sk,sk,P.ws,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.ws,sk,sk,_,_],
+    [sk,sk,P.ws,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.ws,sk,sk,_,_],
+    [sk,sk,_,P.ws,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.ws,_,sk,sk,_,_],
+    [sk,sk,_,_,P.ws,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.wh,P.ws,_,_,sk,sk,_,_],
+    // row 28-29: waist / belt
+    [sk,sk,_,_,_,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,P.bt,P.bt,P.bk,P.bt,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,_,_,sk,sk,_,_],
+    [sk,sk,_,_,_,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,_,_,sk,sk,_,_],
+    // row 30-45: legs (jeans)
+    [_,_,_,_,_,P.jl,P.jn,P.jn,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jn,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,P.jn,_,_,_,_,P.jn,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_],
+    [_,_,_,_,_,P.jl,P.jn,P.jd,P.jn,P.jn,P.jn,_,_,_,_,_,_,P.jn,P.jd,P.jn,P.jl,_,_,_,_,_,_,_,_],
+    // row 46-48: shoes
+    [_,_,_,_,P.bl,P.bx,P.bx,P.bx,P.bx,P.bx,P.bx,_,_,_,_,_,_,P.bx,P.bx,P.bx,P.bx,P.bl,_,_,_,_,_,_],
+    [_,_,_,P.bl,P.bx,P.bx,P.bx,P.bx,P.bx,P.bx,P.bx,_,_,_,_,_,P.bx,P.bx,P.bx,P.bx,P.bx,P.bl,_,_,_,_,_,_],
+    [_,_,_,P.bl,P.bl,P.bl,P.bl,P.bl,P.bl,P.bl,P.bl,P.bl,_,_,_,P.bl,P.bl,P.bl,P.bl,P.bl,P.bl,P.bl,_,_,_,_,_,_],
+  ]
+}
+
+// ─── ELITE SUIT FRONT MAP ──────────────────────────────────────────────────────
+const makeFrontElite = (sk: string, hc: string): (string|null)[][] => {
+  const S = sk
+  const Sd = darken(sk, 0.12)
+  const H = hc
+  const Hl = lighten(hc, 0.15)
+  return [
+    // hair
+    [null,null,null,null,null,null,H,H,H,H,H,H,H,H,H,H,H,H,H,H,H,H,null,null,null,null,null,null],
+    [null,null,null,null,null,H,H,H,H,H,H,H,Hl,Hl,Hl,Hl,H,H,H,H,H,H,H,null,null,null,null,null],
+    [null,null,null,null,H,H,H,H,H,H,H,Hl,Hl,Hl,Hl,Hl,Hl,H,H,H,H,H,H,H,null,null,null,null],
+    [null,null,null,S,H,H,H,H,H,H,H,H,Hl,Hl,Hl,Hl,H,H,H,H,H,H,H,S,null,null,null,null],
+    // forehead
+    [null,null,null,S,S,H,H,H,H,H,H,H,H,H,H,H,H,H,H,H,H,H,S,S,null,null,null,null],
+    [null,null,null,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,S,null,null,null,null],
+    // eyebrows
+    [null,null,null,S,S,S,darken(hc,0.1),darken(hc,0.1),darken(hc,0.1),S,S,S,S,S,S,S,S,S,S,darken(hc,0.1),darken(hc,0.1),S,S,S,null,null,null,null],
+    // eyes
+    [null,null,null,S,S,P.ew,P.ew,P.ew,P.ew,S,S,S,S,S,S,S,S,S,S,P.ew,P.ew,P.ew,S,S,null,null,null,null],
+    [null,null,null,S,S,P.ew,P.ei,P.ei,P.ep,S,S,S,S,S,S,S,S,S,S,P.ew,P.ei,P.ep,S,S,null,null,null,null],
+    // nose
+    [null,null,null,S,S,S,S,S,S,S,S,S,P.nb,P.nb,S,S,S,S,S,S,S,S,S,S,null,null,null,null],
+    [null,null,null,S,S,S,S,S,S,S,S,P.nb,P.nb,S,S,S,S,S,S,S,S,S,S,S,null,null,null,null],
+    // mouth / jaw
+    [null,null,null,Sd,Sd,S,S,S,S,S,S,P.lb,P.lb,P.lb,P.lb,S,S,S,S,S,S,Sd,Sd,S,null,null,null,null],
+    [null,null,null,Sd,Sd,Sd,Sd,S,S,S,S,S,S,S,S,S,S,S,S,Sd,Sd,Sd,Sd,S,null,null,null,null],
+    [null,null,null,null,Sd,Sd,Sd,Sd,S,S,S,S,S,S,S,S,S,S,Sd,Sd,Sd,Sd,null,null,null,null,null,null],
+    // neck + shirt collar
+    [null,null,null,null,null,null,S,S,S,S,P.sh,P.sh,P.sh,P.sh,P.sh,P.sh,S,S,S,null,null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,S,S,P.sh,P.sh,P.sh,P.sh,P.sh,P.sh,P.sh,P.sh,P.sh,S,S,null,null,null,null,null,null,null,null,null],
+    // shoulders (suit)
+    [null,P.s1,P.s1,P.s2,P.s2,P.s2,P.s2,P.s2,P.sh,P.sh,P.sh,P.sh,P.sh,P.sh,P.sh,P.sh,P.sh,P.s2,P.s2,P.s2,P.s2,P.s2,P.s1,P.s1,null,null,null,null],
+    [P.s1,P.s1,P.s2,P.s2,P.s2,P.s2,P.s2,P.s2,P.sh,P.sh,P.sh,P.sh,P.ti,P.ti,P.sh,P.sh,P.sh,P.s2,P.s2,P.s2,P.s2,P.s2,P.s1,P.s1,null,null,null,null],
+    // torso — suit with lapels, tie, vest
+    [P.s1,P.s2,P.s3,P.s3,P.s2,P.s2,P.s2,P.sh,P.sh,P.sh,P.v1,P.v1,P.ti,P.tp,P.v1,P.sh,P.sh,P.s2,P.s2,P.s2,P.s3,P.s3,P.s2,P.s1,null,null,null,null],
+    [P.s1,P.s2,P.s3,P.s3,P.s2,P.s2,P.s2,P.sh,P.v1,P.v1,P.v1,P.v2,P.ti,P.tp,P.v2,P.v1,P.sh,P.s2,P.s2,P.s2,P.s3,P.s3,P.s2,P.s1,null,null,null,null],
+    [null,P.s2,P.s3,P.s3,P.s2,P.s2,P.s2,P.s2,P.v2,P.v1,P.v1,P.v2,P.ti,P.tp,P.v2,P.v1,P.s2,P.s2,P.s2,P.s2,P.s3,P.s3,P.s2,null,null,null,null,null],
+    [null,P.s2,P.s3,P.s4,P.s3,P.s2,P.s2,P.s2,P.v2,P.v2,P.v2,P.v2,P.ti,P.ti,P.v2,P.v2,P.s2,P.s2,P.s2,P.s3,P.s4,P.s3,P.s2,null,null,null,null,null],
+    // lapel pin + pocket square
+    [null,P.s2,P.s3,P.s4,P.s3,P.s2,P.s2,P.s2,P.gd,P.v2,P.v2,P.v2,P.ti,P.ti,P.v2,P.v2,P.pq,P.s2,P.s2,P.s3,P.s4,P.s3,P.s2,null,null,null,null,null],
+    [null,P.s2,P.s3,P.s4,P.s3,P.s2,P.s2,P.s2,P.v2,P.v2,P.v2,P.v2,P.ti,P.ti,P.v2,P.v2,P.pq,P.s2,P.s2,P.s3,P.s4,P.s3,P.s2,null,null,null,null,null],
+    // arms holding items
+    [P.s1,P.s2,P.s3,P.s4,P.s3,P.s2,P.s2,P.s2,P.v2,P.v2,P.v2,P.v2,P.v2,P.v2,P.v2,P.v2,P.s2,P.s2,P.s2,P.s3,P.s4,P.s3,P.s2,P.s1,null,null,null,null],
+    [P.s1,P.s2,P.s3,P.s4,P.s3,P.s2,P.s2,P.s2,P.v2,P.v2,P.v2,P.v2,P.v2,P.v2,P.v2,P.v2,P.s2,P.s2,P.s2,P.s3,P.s4,P.s3,P.s2,P.s1,null,null,null,null],
+    // hands with phone + papers
+    [P.ph,P.ph,P.s4,P.s4,P.s3,P.s2,P.s2,P.s3,P.v2,P.v2,P.v2,P.v2,P.v2,P.v2,P.v2,P.v2,P.s3,P.s2,P.s3,P.s4,P.s4,P.pa,P.pa,P.pa,null,null,null,null],
+    [P.ph,P.phs,P.s4,P.s4,P.s3,P.s2,P.s3,P.s4,P.v2,P.v2,P.v2,P.v2,P.v2,P.v2,P.v2,P.s4,P.s3,P.s2,P.s4,P.s4,P.pa,P.pa,P.pal,P.pa,null,null,null,null],
+    // trousers
+    [null,null,P.s4,P.s4,P.s3,P.s3,P.s3,P.s4,P.s4,P.s4,P.s4,P.s4,null,null,P.s4,P.s4,P.s4,P.s4,P.s4,P.s3,P.s3,P.s4,P.s4,null,null,null,null,null],
+    [null,null,P.s4,P.s3,P.s3,P.s2,P.s3,P.s4,P.s4,P.s3,P.s4,P.s4,null,null,P.s4,P.s4,P.s3,P.s4,P.s4,P.s3,P.s2,P.s3,P.s4,null,null,null,null,null],
+    [null,null,P.s4,P.s3,P.s2,P.s2,P.s3,P.s4,P.s4,P.s3,P.s4,P.s4,null,null,P.s4,P.s4,P.s3,P.s4,P.s4,P.s3,P.s2,P.s2,P.s4,null,null,null,null,null],
+    [null,null,P.s4,P.s3,P.s2,P.s2,P.s3,P.s4,P.s4,P.s3,P.s4,P.s4,null,null,P.s4,P.s4,P.s3,P.s4,P.s4,P.s3,P.s2,P.s2,P.s4,null,null,null,null,null],
+    [null,null,P.s4,P.s3,P.s2,P.s2,P.s3,P.s4,P.s4,P.s3,P.s4,P.s4,null,null,P.s4,P.s4,P.s3,P.s4,P.s4,P.s3,P.s2,P.s2,P.s4,null,null,null,null,null],
+    [null,null,P.s4,P.s3,P.s2,P.s2,P.s3,P.s4,P.s4,P.s3,P.s4,null,null,null,null,P.s4,P.s3,P.s4,P.s4,P.s3,P.s2,P.s2,P.s4,null,null,null,null,null],
+    [null,null,P.s4,P.s3,P.s2,P.s2,P.s3,P.s4,P.s4,P.s3,P.s4,null,null,null,null,P.s4,P.s3,P.s4,P.s4,P.s3,P.s2,P.s2,P.s4,null,null,null,null,null],
+    [null,null,P.s4,P.s3,P.s2,P.s2,P.s3,P.s4,P.s4,P.s3,P.s4,null,null,null,null,P.s4,P.s3,P.s4,P.s4,P.s3,P.s2,P.s2,P.s4,null,null,null,null,null],
+    [null,null,P.s4,P.s3,P.s2,P.s2,P.s3,P.s4,P.s4,P.s3,P.s4,null,null,null,null,P.s4,P.s3,P.s4,P.s4,P.s3,P.s2,P.s2,P.s4,null,null,null,null,null],
+    [null,null,P.s4,P.s3,P.s3,P.s3,P.s4,P.s4,P.s4,P.s4,null,null,null,null,null,null,P.s4,P.s4,P.s4,P.s3,P.s3,P.s3,P.s4,null,null,null,null,null],
+    // shoes
+    [null,null,null,P.bl,P.bx,P.bx,P.bx,P.bx,P.bx,P.bx,null,null,null,null,null,null,P.bx,P.bx,P.bx,P.bx,P.bx,P.bl,null,null,null,null,null,null],
+    [null,null,P.bl,P.bx,P.bx,P.bx,P.bx,P.bx,P.bx,P.bx,null,null,null,null,null,P.bx,P.bx,P.bx,P.bx,P.bx,P.bx,P.bl,null,null,null,null,null,null],
+    [null,null,P.bl,P.bl,P.bl,P.bl,P.bl,P.bl,P.bl,P.bl,P.bl,null,null,null,P.bl,P.bl,P.bl,P.bl,P.bl,P.bl,P.bl,P.bl,null,null,null,null,null,null],
+  ]
+}
+
+// ─── COLOUR HELPERS ────────────────────────────────────────────────────────────
+function darken(hex: string, amount: number): string {
+  const n = parseInt(hex.slice(1), 16)
+  const r = Math.max(0, ((n >> 16) & 0xff) - Math.round(255 * amount))
+  const g = Math.max(0, ((n >> 8) & 0xff) - Math.round(255 * amount))
+  const b = Math.max(0, (n & 0xff) - Math.round(255 * amount))
+  return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`
+}
+function lighten(hex: string, amount: number): string {
+  const n = parseInt(hex.slice(1), 16)
+  const r = Math.min(255, ((n >> 16) & 0xff) + Math.round(255 * amount))
+  const g = Math.min(255, ((n >> 8) & 0xff) + Math.round(255 * amount))
+  const b = Math.min(255, (n & 0xff) + Math.round(255 * amount))
+  return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`
+}
+
+// ─── SKIN TONE LOOKUP ──────────────────────────────────────────────────────────
+const SKIN_TONES: Record<string,string> = {
+  'tone-1': '#F5CBA7', 'tone-2': '#F0B97D',
+  'tone-3': '#E59866', 'tone-4': '#C0784A', 'tone-5': '#8B5230',
+}
+
+const HAIR_COLORS: Record<string,string> = {
+  'black': '#1A1A1A', 'dark-brown': '#2C1A0E',
+  'brown': '#5C3317',  'light-brown': '#A0724F',
+  'blonde': '#C9A96E', 'ash-grey': '#9E9E9E',
+  'silver': '#E8E8E8', 'deep-black': '#0D0D0D',
+}
+
+// ─── SVG VOXEL RENDERER ────────────────────────────────────────────────────────
+interface VoxelGridProps {
+  map: (string|null)[][]
+  size: number
+}
+
+const VoxelGrid: React.FC<VoxelGridProps> = React.memo(({ map, size }) => {
+  const cols = map[0]?.length ?? 0
+  const rows = map.length
+  const rects: React.ReactNode[] = []
+
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const color = map[y][x]
+      if (!color) continue
+      rects.push(
+        <G key={`${x}-${y}`}>
+          {/* main face */}
+          <Rect x={x*size} y={y*size} width={size-1} height={size-1} fill={color} />
+          {/* top highlight */}
+          <Rect x={x*size} y={y*size} width={size-1} height={1.5} fill={lighten(color,0.22)} />
+          {/* left highlight */}
+          <Rect x={x*size} y={y*size} width={1.5} height={size-1} fill={lighten(color,0.15)} />
+          {/* right shadow */}
+          <Rect x={x*size+size-2} y={y*size} width={1.5} height={size-1} fill={darken(color,0.18)} />
+          {/* bottom shadow */}
+          <Rect x={x*size} y={y*size+size-2} width={size-1} height={1.5} fill={darken(color,0.25)} />
+        </G>
+      )
+    }
+  }
+
+  return (
+    <Svg width={cols*size} height={rows*size}>
+      {rects}
+    </Svg>
+  )
+})
+
+// ─── MAIN CHARACTER COMPONENT ──────────────────────────────────────────────────
+interface VoxelCharacterProps {
+  skinTone?: string    // 'tone-1' … 'tone-5'
+  hairColor?: string   // 'black' | 'dark-brown' | etc.
+  outfitTier?: number  // 1-4
+}
+
+const VIEWS = ['FRONT','SIDE','BACK','SIDE'] as const
+type ViewIndex = 0|1|2|3
+
+const VoxelCharacter: React.FC<VoxelCharacterProps> = ({
+  skinTone = 'tone-3',
+  hairColor = 'dark-brown',
+  outfitTier = 1,
+}) => {
+  const sk = SKIN_TONES[skinTone] ?? SKIN_TONES['tone-3']
+  const hc = HAIR_COLORS[hairColor] ?? HAIR_COLORS['dark-brown']
+  const [viewIdx, setViewIdx] = useState<ViewIndex>(0)
+  const fadeAnim = useRef(new Animated.Value(1)).current
+  const dragX = useRef(0)
+
+  const switchView = (newIdx: ViewIndex) => {
+    if (newIdx === viewIdx) return
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 120, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
+    ]).start()
+    setViewIdx(newIdx)
+  }
+
+  const panResponder = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => { dragX.current = 0 },
+    onPanResponderMove: (_, gs) => { dragX.current = gs.dx },
+    onPanResponderRelease: (_, gs) => {
+      if (Math.abs(gs.dx) < 30) return
+      const delta = gs.dx < 0 ? 1 : -1
+      const next = ((viewIdx + delta + 4) % 4) as ViewIndex
+      switchView(next)
+    },
+  })).current
+
+  // pick map
+  const map = React.useMemo(() => {
+    const isElite = outfitTier >= 4
+    if (isElite) return makeFrontElite(sk, hc)
+    return makeFrontStarter(sk, hc)
+  }, [sk, hc, outfitTier])
+
+  const cols = map[0].length
+  const rows = map.length
+  const availableH = 460  // hero area height in points
+  const naturalH = rows * VOXEL
+  const scale = Math.min(1.4, availableH / naturalH)
+
+  return (
+    <View style={styles.container} {...panResponder.panHandlers}>
+      {/* spotlight glow */}
+      <View style={styles.spotlight} pointerEvents="none" />
+
+      {/* character */}
+      <Animated.View style={[styles.charWrap, { opacity: fadeAnim }]}>
+        <View style={{ transform: [{ scale }] }}>
+          <VoxelGrid map={map} size={VOXEL} />
+        </View>
+      </Animated.View>
+
+      {/* ground shadow */}
+      <View style={[styles.groundShadow, { width: cols * VOXEL * scale * 0.6 }]} />
+
+      {/* view indicators */}
+      <View style={styles.dots}>
+        {VIEWS.map((label, i) => (
+          <View key={i} style={styles.dotWrap}>
+            <View style={[
+              styles.dot,
+              i === viewIdx && styles.dotActive
+            ]} />
+            {i === viewIdx && (
+              <View style={styles.dotLabel}>
+                {[...label].map((ch, j) => (
+                  <View key={j} style={styles.microVoxel} />
+                ))}
+              </View>
+            )}
+          </View>
+        ))}
+      </View>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+  },
+  spotlight: {
+    position: 'absolute',
+    top: 0,
+    left: '50%',
+    marginLeft: -100,
+    width: 200,
+    height: 300,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  charWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  groundShadow: {
+    height: 12,
+    borderRadius: 50,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    marginTop: -4,
+  },
+  dots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 16,
+  },
+  dotWrap: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 0,  // square voxel style
+    backgroundColor: '#444',
+    borderWidth: 1,
+    borderColor: '#666',
+  },
+  dotActive: {
+    backgroundColor: '#F1C40F',
+    borderColor: '#F1C40F',
+  },
+  dotLabel: {
+    flexDirection: 'row',
+    gap: 1,
+  },
+  microVoxel: {
+    width: 3,
+    height: 3,
+    backgroundColor: '#F1C40F',
+  },
+})
+
+export default VoxelCharacter

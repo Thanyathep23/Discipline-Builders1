@@ -1,0 +1,109 @@
+Now that auth routing and JSON responses are fixed, build only the core MVP vertical slice for DisciplineOS.
+
+Strict scope:
+Implement only this end-to-end flow:
+login -> create mission -> start focus session -> stop focus session -> submit proof -> judge proof -> grant reward -> show updated wallet balance
+
+Do NOT work on:
+- Chrome extension
+- admin panel
+- analytics beyond one simple summary
+- sleep tracking
+- streak system
+- penalties beyond minimal placeholder support
+- inventory/shop UI beyond wallet/reward transaction support
+- strictness customization beyond using the existing user strictness mode value
+- large refactors
+- unrelated styling changes
+
+Priority tasks:
+
+1. Mission CRUD (minimal)
+- create mission
+- list my missions
+- view mission detail
+- archive mission
+Fields:
+- title
+- description
+- category
+- priority
+- impactLevel
+- targetDurationMinutes
+- purpose
+- proofRequired
+
+2. Focus session flow
+- start session from a mission
+- only one active focus session per user
+- active session page
+- stop/complete session
+- persist total active seconds
+- minimal pause/resume only if already easy, otherwise skip pause for now
+
+3. Proof submission
+- submit proof for a completed focus session
+- support:
+  - text summary
+  - optional link
+  - optional file/image upload if upload system already exists
+- store proof submission linked to mission and session
+
+4. Judge flow
+- implement the smallest working judge flow
+- use either:
+  A. existing AI judge route if already wired and stable
+  or
+  B. a temporary strict rule-based judge if AI route is not yet stable
+Rules:
+- no reward if summary is empty or too vague
+- higher reward for high priority + higher impact
+- do not auto-approve based only on time
+- persist verdict as approved / partial / rejected
+
+5. Reward finalization
+- server-side only
+- create reward transaction
+- update wallet balance
+- expose wallet balance on dashboard or mission result screen
+
+6. Minimal UI
+Build only the pages/components needed for this flow:
+- missions list page
+- new mission form
+- mission detail page
+- active focus session page
+- proof submission form
+- result state after proof review
+- wallet summary card on dashboard
+
+Implementation rules:
+- Keep changes minimal and focused
+- Reuse existing auth/session logic
+- Keep all reward logic server-side
+- Keep proof verdict persistence server-side
+- All routes must return JSON for API responses
+- Add ownership checks so users can only access their own missions/sessions/proofs/wallet
+- If a database table is missing, add only the minimum schema needed for this flow
+
+Deliverables:
+1. Short summary of files changed
+2. End-to-end flow status
+3. Exact test results for:
+   - create mission
+   - start session
+   - stop session
+   - submit proof
+   - approve/reject proof
+   - wallet balance update
+
+Acceptance criteria:
+- I can log in
+- I can create a mission
+- I can start one focus session
+- I can stop it
+- I can submit proof
+- The system returns a verdict
+- Approved proof updates wallet balance
+- No client-side reward calculation
+- No unrelated feature work

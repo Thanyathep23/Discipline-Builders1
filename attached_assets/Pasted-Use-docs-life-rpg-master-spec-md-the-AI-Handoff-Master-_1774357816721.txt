@@ -1,0 +1,736 @@
+Use docs/life-rpg-master-spec.md, the AI Handoff Master Brief, the existing Replit codebase, and all completed Phase 27–29 artifacts as the permanent source of truth.
+
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+# Phase 30 — Support / Incident Playbook
+Version: 1.0 | Platform: Replit | Scope: Incident handling, support workflows, operational triage, recovery playbooks
+
+## 🎯 PROJECT OVERVIEW
+Build the first real Support / Incident Playbook foundation for the existing Life RPG app.
+
+This phase is NOT about adding new gameplay.
+This phase is NOT about building a giant customer support platform.
+This phase is about making the app operationally survivable when real users start hitting problems.
+
+The system must be able to handle:
+- proof disputes
+- reward not received
+- coin balance mismatch
+- purchase issues
+- owned item not usable
+- room / car / wheel / wardrobe switch issues
+- character progression mismatch
+- login / auth issues
+- judge provider failures
+- telemetry gaps
+- partial outages
+- rollback / hotfix scenarios
+
+The target outcome:
+1. the team has clear incident severity rules
+2. the team knows exactly how to triage common failures
+3. support responses become standardized
+4. critical operational actions are documented
+5. known failure modes have recovery steps
+6. launch readiness improves because incidents are no longer handled ad hoc
+
+==================================================
+PHASE SCOPE ONLY
+==================================================
+
+Build only the minimum strong support and incident foundation needed for launch and early live operations.
+
+Required outputs for this phase:
+1. incident taxonomy
+2. severity model
+3. support issue categories
+4. triage workflow
+5. incident playbooks for major failure types
+6. user-facing response templates
+7. internal ops/admin action checklist
+8. escalation rules
+9. incident log template
+10. known issue registry
+11. repo documentation for support and incident handling
+12. lightweight support/admin surfaces only if necessary for resolution
+
+Do NOT build:
+- a full CRM
+- a ticketing SaaS replacement
+- a live chat system
+- new gameplay features
+- major admin console redesign
+- complex on-call automation
+- pager systems unless trivial and already supported
+- giant moderation systems beyond what is needed for this phase
+- new analytics platform
+
+If the app already has admin/ops surfaces, reuse them.
+If support actions require small admin utilities, add only the minimum safe utilities.
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything, inspect and report the current operational state across:
+
+A. Existing support/ops infrastructure
+- admin console
+- audit logs
+- wallet/reward logs
+- proof/judge logs
+- ownership/purchase records
+- auth/account records
+- existing repair/admin actions
+- existing telemetry and metrics from prior phases
+
+B. Current failure surfaces
+- register/login failures
+- mission/session state issues
+- proof submission issues
+- judge/provider issues
+- reward grant failures
+- wallet delta mismatches
+- purchase ownership mismatches
+- equip/switch failures
+- room/car/wheel/wardrobe inconsistency
+- character progression inconsistencies
+
+C. Current operational gaps
+- no standard triage flow
+- no severity model
+- no runbook
+- no response templates
+- no known issue registry
+- no standard rollback/hotfix decision logic
+- no clean internal checklist for investigating user reports
+
+D. Existing data visibility
+- what support staff can inspect
+- what is invisible
+- what can be verified from logs
+- what cannot be confirmed yet
+- what requires safer admin tooling
+
+E. Existing risk points
+- reward duplication risk
+- broken ownership state
+- stale client/server mismatch
+- impossible progression state
+- false judge outcome disputes
+- auth failures that look like product bugs
+- manual fixes that could cause more damage
+
+Your audit must identify:
+1. what already exists
+2. what can be reused
+3. what is missing
+4. what is risky to fix manually
+5. what support absolutely needs before launch
+
+Do not guess.
+Audit first, then build the playbook.
+
+==================================================
+STEP 2 — DEFINE THE INCIDENT TAXONOMY
+==================================================
+
+Create a clean incident/support taxonomy.
+
+At minimum define these incident families:
+
+### A. Auth / Access
+- cannot register
+- cannot login
+- invalid credentials loop
+- session/token issues
+- access denied to protected flow
+
+### B. Mission / Session
+- mission creation failure
+- session start failure
+- session stop failure
+- session stuck active
+- session ended incorrectly
+- proof allowed/disallowed at wrong time
+
+### C. Proof / Judge
+- proof submission failed
+- proof missing after submit
+- follow-up confusion
+- unfair reject dispute
+- judge timeout / provider outage
+- judge returned malformed or empty result
+
+### D. Reward / Wallet
+- reward not granted
+- duplicate reward suspicion
+- wrong reward amount
+- wallet balance mismatch
+- unexpected coin drop/gain
+
+### E. Store / Ownership / Status Assets
+- item purchase failed
+- charged but item missing
+- already owned but cannot equip
+- room/car/wheel/wardrobe switch failed
+- ownership state inconsistent
+
+### F. Character / Progression
+- progression not updated after approved proof
+- progression updated incorrectly
+- character visuals inconsistent with backend state
+- milestone not reflected
+- prestige/status mismatch
+
+### G. System / Operational
+- provider outage
+- DB issue
+- telemetry failure
+- release regression
+- partial outage
+- major production incident
+
+For each incident family define:
+- category name
+- typical user symptom
+- likely root causes
+- affected systems
+- required logs/data to inspect
+- severity potential
+- standard first action
+
+==================================================
+STEP 3 — DEFINE THE SEVERITY MODEL
+==================================================
+
+Create a strict severity model.
+
+Use at minimum:
+
+### P0 — Critical Production Failure
+Examples:
+- app unusable for many users
+- auth broken broadly
+- reward duplication / economy corruption
+- purchase charging wrong / widespread financial integrity issue
+- core loop fully broken
+- DB outage / total provider failure with no fallback
+- data corruption risk
+
+### P1 — Major User Harm / Core Flow Broken
+Examples:
+- proof submit broken for significant users
+- reward not granted for approved proofs
+- owned items unusable
+- session flow broken
+- progression wrong in a meaningful way
+- launch-blocking regression
+
+### P2 — Partial Degradation / Workaround Exists
+Examples:
+- some purchase paths broken
+- some dashboard/support data missing
+- switch/equip failures with workaround
+- non-critical inconsistencies
+- delayed updates recoverable with manual refresh/repair
+
+### P3 — Minor / Cosmetic / Low-Risk
+Examples:
+- copy issues
+- minor UI mismatch
+- non-critical logging gaps
+- small admin friction
+- cosmetic state lag with no actual data corruption
+
+For each severity define:
+- business impact
+- user impact
+- response urgency
+- who must be involved
+- release-blocking or not
+- whether hotfix is required
+
+==================================================
+STEP 4 — DEFINE THE TRIAGE WORKFLOW
+==================================================
+
+Create one standard support/incident triage workflow.
+
+At minimum the workflow must answer:
+
+1. What is the reported symptom?
+2. Is the issue reproducible?
+3. Is it single-user, cohort-level, or system-wide?
+4. What severity is it?
+5. What logs/data must be checked first?
+6. Can support safely resolve it?
+7. Does it require engineering escalation?
+8. Does it require rollback/hotfix?
+9. What user response should be sent?
+10. What post-incident documentation is required?
+
+Create a clear flow like:
+
+report received
+→ classify category
+→ assign severity
+→ check logs/state
+→ determine scope
+→ resolve / escalate / mitigate
+→ send user response
+→ document incident
+→ log follow-up action
+
+Also define:
+- first 5 minutes actions
+- first 15 minutes actions for P0/P1
+- when to stop guessing and escalate
+- when to freeze releases
+- when to block deploys
+
+==================================================
+STEP 5 — CREATE THE PLAYBOOK DOCUMENTS
+==================================================
+
+Create a clear docs structure.
+
+Recommended structure:
+
+/docs/support/
+  support-audit.md
+  incident-taxonomy.md
+  severity-model.md
+  triage-workflow.md
+  playbook-auth.md
+  playbook-proof-judge.md
+  playbook-reward-wallet.md
+  playbook-store-ownership.md
+  playbook-character-progression.md
+  playbook-system-outages.md
+  user-response-templates.md
+  internal-investigation-checklists.md
+  escalation-rules.md
+  incident-log-template.md
+  known-issues-registry.md
+  rollback-hotfix-rules.md
+
+If the repo already has a docs pattern, adapt to it.
+Keep docs easy to find and usable by humans under stress.
+
+==================================================
+STEP 6 — BUILD THE INCIDENT PLAYBOOKS
+==================================================
+
+Create practical, step-by-step playbooks.
+
+### Playbook A — Auth / Access Issues
+Handle:
+- user cannot register
+- user cannot login
+- invalid credential loop
+- token/session invalidation issues
+- protected route denial confusion
+
+Must include:
+- what to verify
+- what logs to inspect
+- whether this is user error, data issue, or system issue
+- when to escalate
+- user-safe resolution steps
+- response template
+
+### Playbook B — Proof / Judge Issues
+Handle:
+- proof submit failed
+- proof missing
+- follow-up confusion
+- provider outage
+- malformed judge result
+- unfair reject complaint
+
+Must include:
+- proof id/session id/user id inspection checklist
+- judge provider/fallback inspection
+- whether reward should or should not exist yet
+- dispute-safe language
+- when manual review is allowed
+- when engineering must investigate
+
+### Playbook C — Reward / Wallet Issues
+Handle:
+- approved proof but no reward
+- wrong reward amount
+- duplicate reward suspicion
+- wallet mismatch
+
+Must include:
+- transaction/order of operations checks
+- reward record lookup
+- wallet delta verification
+- safe manual correction rules
+- anti-double-grant protection
+- escalation triggers
+
+### Playbook D — Store / Ownership / Status Asset Issues
+Handle:
+- charged but item missing
+- cannot equip owned item
+- switch failed for room/car/wheel/wardrobe
+- inconsistent ownership state
+
+Must include:
+- purchase record verification
+- ownership verification
+- equip/switch verification
+- client/server mismatch handling
+- safe repair steps
+- when refunds/credits/manual fixes are allowed
+
+### Playbook E — Character / Progression Issues
+Handle:
+- approved proof but no progression update
+- progression advanced incorrectly
+- visual mismatch
+- milestone missing
+
+Must include:
+- approved verdict verification
+- progression record verification
+- character state render-safe verification
+- whether issue is data, caching, or UI state
+- safe repair process
+- escalation rules
+
+### Playbook F — System / Operational Incidents
+Handle:
+- provider outage
+- DB instability
+- telemetry failure
+- release regression
+- partial outage
+
+Must include:
+- incident commander role for serious issues
+- mitigation-first actions
+- rollback/hotfix criteria
+- temporary user messaging
+- postmortem trigger conditions
+
+Every playbook must contain:
+1. symptom
+2. likely causes
+3. data to inspect
+4. exact investigation steps
+5. safe resolution options
+6. escalation threshold
+7. user response guidance
+8. post-resolution logging requirements
+
+==================================================
+STEP 7 — DEFINE INTERNAL INVESTIGATION CHECKLISTS
+==================================================
+
+Create reusable investigation checklists for support/admin.
+
+At minimum include:
+- user identity verification checklist
+- proof/reward investigation checklist
+- purchase/ownership investigation checklist
+- progression investigation checklist
+- auth investigation checklist
+- release regression investigation checklist
+
+Each checklist must include:
+- required ids/records
+- queries/logs to inspect
+- expected healthy state
+- dangerous actions to avoid
+- resolution options
+- when to escalate to engineering
+
+==================================================
+STEP 8 — DEFINE USER RESPONSE TEMPLATES
+==================================================
+
+Create user-facing response templates that are clear, calm, and professional.
+
+At minimum include templates for:
+- issue acknowledged
+- under investigation
+- resolved
+- unable to reproduce
+- manual correction applied
+- provider/system delay
+- reward review in progress
+- purchase issue being checked
+- progression update delay
+- known incident affecting multiple users
+
+Rules:
+- do not blame the user
+- do not expose internal details
+- do not promise what is not confirmed
+- keep tone calm and trustworthy
+- clearly state next step when possible
+- support Thai-first if the product is Thai-facing, while keeping templates easy to adapt
+
+==================================================
+STEP 9 — DEFINE ESCALATION RULES
+==================================================
+
+Create a clean escalation policy.
+
+At minimum define:
+- what support can resolve directly
+- what requires ops/admin approval
+- what requires engineering
+- what requires release freeze
+- what requires rollback/hotfix
+- what requires founder visibility
+
+Examples:
+- P0 always escalates immediately
+- reward duplication suspicion escalates immediately
+- system-wide login failures escalate immediately
+- missing cosmetic equip for one user may start as support/ops
+- progression mismatch after approved proof may need engineering if not trivially repairable
+
+For each escalation path define:
+- trigger
+- owner
+- maximum delay before escalation
+- required investigation notes before escalation
+
+==================================================
+STEP 10 — INCIDENT LOG + KNOWN ISSUES REGISTRY
+==================================================
+
+Create:
+1. incident log template
+2. known issues registry
+
+### Incident log template must include:
+- incident id
+- date/time detected
+- reporter/source
+- category
+- severity
+- affected scope
+- summary
+- timeline
+- investigation steps taken
+- mitigation
+- resolution
+- follow-up action
+- owner
+- status
+- links to relevant logs / records / PRs if applicable
+
+### Known issues registry must include:
+- issue title
+- category
+- severity
+- symptom
+- scope
+- workaround if any
+- permanent fix status
+- owner
+- last updated
+
+This registry should help support avoid treating known issues as new mysteries every time.
+
+==================================================
+STEP 11 — ROLLBACK / HOTFIX RULES
+==================================================
+
+Create practical rollback/hotfix guidance.
+
+At minimum define:
+- what types of incidents justify immediate rollback
+- what types justify hotfix without rollback
+- what requires release freeze
+- what requires temporary feature disable / kill-switch if available
+- what must be verified after rollback/hotfix
+- who signs off before re-opening deploy flow
+
+Examples that likely justify stronger action:
+- reward duplication
+- broken purchase charging logic
+- major auth failure
+- proof/judge pipeline collapse
+- corrupted wallet updates
+
+Keep this practical, not theoretical.
+
+==================================================
+STEP 12 — MINIMAL ADMIN/OPS SUPPORT UTILITIES (ONLY IF NECESSARY)
+==================================================
+
+Only if the current admin/ops tooling is insufficient, add minimal safe utilities.
+
+Allowed examples:
+- search user by id/email
+- inspect recent proof / reward / purchase / wallet records
+- inspect ownership state
+- inspect current progression state
+- inspect recent incident-relevant logs
+
+If absolutely necessary, add very limited repair actions, but only if:
+- they are permission-protected
+- they are auditable
+- they are safe/idempotent where possible
+- they are narrow in scope
+
+Do NOT add dangerous generic mutation tools.
+Do NOT add “edit anything” admin panels.
+Do NOT create support tools that can silently corrupt state.
+
+==================================================
+STEP 13 — SECURITY, PRIVACY, ERROR HANDLING, EDGE CASES
+==================================================
+
+## 🔐 SECURITY / PRIVACY
+- restrict all support/admin incident surfaces appropriately
+- do not expose raw private proof content unless already allowed and necessary
+- do not expose secrets/tokens
+- do not allow unsafe manual state edits
+- all admin/support actions must be auditable
+- support investigation tools must be read-first, mutate-last
+
+## 🛡️ ERROR HANDLING
+- if support data is incomplete, say so explicitly
+- partial log visibility must not crash support surfaces
+- incident docs should distinguish confirmed vs suspected root cause
+- user response templates must avoid overpromising
+- repair flows must fail safely
+
+## ⚠️ EDGE CASES
+- one-user issue that looks system-wide
+- stale client cache mistaken for data corruption
+- delayed reward mistaken for missing reward
+- follow-up mistaken for reject
+- approved proof with delayed progression update
+- already-owned item re-purchase attempt
+- purchase success but client not refreshed
+- outage resolved before investigation completes
+- multiple overlapping incidents during launch window
+
+==================================================
+STEP 14 — DOCUMENT DAILY / WEEKLY OPS RHYTHM
+==================================================
+
+Define simple ops rhythm for launch readiness.
+
+At minimum specify:
+
+### Daily review
+- open incidents
+- new support reports
+- reward/wallet anomalies
+- judge/provider anomalies
+- auth issues
+- purchase/ownership issues
+- unresolved P1/P2 issues
+- known issue updates
+
+### Weekly review
+- recurring incident categories
+- top support burden areas
+- false-positive user complaints vs real bugs
+- incident response quality
+- unresolved known issues
+- candidate fixes that should be prioritized next
+
+Keep this operational and useful.
+
+==================================================
+STEP 15 — DO NOT OVER-ENGINEER
+==================================================
+
+Important implementation rules:
+
+1. Do NOT build a full support platform.
+2. Do NOT add huge admin mutation powers.
+3. Prefer clear runbooks over clever tooling.
+4. Prefer safe read-only inspection tools first.
+5. Only add repair tools if truly necessary and safe.
+6. Keep the playbook usable under pressure.
+7. Optimize for launch support and first live incidents.
+8. Preserve trust-critical and economy-critical integrity above convenience.
+
+==================================================
+STEP 16 — ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a support/incident audit exists
+2. an incident taxonomy exists
+3. a severity model exists
+4. a triage workflow exists
+5. major incident playbooks exist for auth, proof/judge, reward/wallet, store/ownership, character/progression, and system incidents
+6. user response templates exist
+7. escalation rules exist
+8. incident log template exists
+9. known issues registry exists
+10. rollback/hotfix rules exist
+11. any added support utilities are minimal, safe, and auditable
+12. no new gameplay scope was added
+13. the team can investigate and respond to launch issues more consistently than before
+14. the app is operationally safer after this phase than before
+
+==================================================
+STEP 17 — DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary
+- what ops/support surfaces already existed
+- what was missing
+- what was reused
+- what was added in this phase
+
+2. Files created or changed in this run only
+
+3. Documentation summary
+- incident taxonomy
+- severity model
+- triage workflow
+- playbooks
+- response templates
+- escalation rules
+- incident log template
+- known issues registry
+- rollback/hotfix rules
+
+4. Support tooling summary
+- what admin/ops utilities exist
+- what was added
+- what remains manual
+
+5. Verification results
+- typecheck/build status
+- tests status if applicable
+- admin/support surface load status
+- any remaining non-blocking operational gaps
+
+6. Launch recommendation
+- SUPPORT READY or NOT READY
+- if NOT READY, list the exact blockers
+
+==================================================
+IMPORTANT OPERATING RULES
+==================================================
+
+- Audit before building
+- Keep scope narrow
+- Do not restart the project
+- Do not invent a new product direction
+- Do not build a full ticketing platform
+- Do not add dangerous manual mutation powers
+- Prefer operational clarity over complexity
+- Preserve trust-critical and economy-critical integrity at all costs

@@ -1,0 +1,658 @@
+Use docs/life-rpg-master-spec.md, the AI Handoff Master Brief, and the existing Replit codebase as the permanent source of truth.
+
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+# Phase 28 — Economy Tuning v1
+Version: 1.0 | Platform: Replit | Scope: Coin economy, pricing, reward pacing, affordability, progression balance
+
+## 🎯 PROJECT OVERVIEW
+Build the first real economy tuning layer for the existing Life RPG app.
+
+This phase is NOT about adding new fantasy systems.
+This phase is about making the current product economy feel:
+- fair
+- motivating
+- aspirational
+- sustainable
+- hard to exploit
+- ready for real users
+
+The economy already has active surfaces:
+- missions
+- proof/judge/reward
+- coin balance
+- wardrobe purchases
+- car purchases
+- wheel customization
+- room environment purchases
+- progression-linked identity/status rewards
+
+This phase must turn that into a coherent economy.
+
+The target outcome:
+1. users feel meaningful progress early
+2. premium/status items still feel aspirational
+3. users cannot inflate too fast
+4. sinks and sources are balanced
+5. the economy can be tuned from centralized config instead of scattered magic numbers
+6. the repo gains economy documentation, tuning logic, and simulation tooling
+
+==================================================
+PHASE SCOPE ONLY
+==================================================
+
+Build only the economy tuning foundation for the systems that already exist.
+
+Required outputs for this phase:
+1. economy audit
+2. economy source/sink map
+3. centralized reward bands
+4. centralized price bands
+5. affordability targets for Day 1 / Day 7 / Day 30
+6. progression economy model (early / mid / advanced)
+7. anti-inflation guardrails
+8. economy docs inside the repo
+9. lightweight simulation / balancing script
+10. tuning recommendations applied to existing reward and purchase values
+11. launch-safe validation notes for the economy
+
+Do NOT build:
+- new store categories
+- new premium subscriptions
+- new currencies
+- loot boxes / gambling systems
+- new live ops features
+- new missions
+- redesigns
+- social trading systems
+- marketplace resale systems
+- major backend architecture rewrites
+
+If the app currently uses hardcoded numbers in multiple places, refactor only enough to centralize economy constants/config safely.
+Do NOT refactor unrelated systems.
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything, inspect and report the current state of the economy across:
+
+A. Reward sources
+- mission completion rewards
+- proof-approved rewards
+- streak bonuses
+- multipliers
+- any daily/weekly bonuses
+- any level-up rewards
+- any admin/manual grants if they exist
+
+B. Coin sinks
+- wardrobe item prices
+- watch/accessory prices
+- car prices
+- wheel style prices
+- room environment prices
+- any decorations if relevant to active v1
+- any customization fees if they exist
+
+C. Progression dependency
+- level gates on purchases
+- progression requirements for rooms/cars/items
+- how approved proof affects character/progression
+- whether visual prestige and economic prestige are aligned or mismatched
+
+D. Risk points
+- duplicate reward minting protection
+- price inconsistency across categories
+- items that are too cheap for their perceived prestige
+- items that are too expensive for reachable progression
+- dead zones where users earn but cannot buy anything meaningful
+- places where users can buy too much too early
+- any economy-breaking loopholes
+
+E. Current data shape
+- where prices live
+- where reward values live
+- where rarity/tier metadata lives
+- where level gates live
+- whether values are scattered across code / DB seed / route logic / frontend UI
+
+F. Existing telemetry
+- whether purchase/reward events are already tracked
+- whether wallet delta history exists
+- whether item ownership and reward transactions can be audited cleanly
+
+Your audit must identify:
+1. what already works
+2. what is inconsistent
+3. what is too generous
+4. what is too punitive
+5. what is not measurable
+6. what must be centralized in this phase
+
+Do not guess blindly.
+Audit first, then tune.
+
+==================================================
+STEP 2 — DEFINE THE ECONOMY DESIGN GOALS
+==================================================
+
+Create a clear design doctrine for v1 economy.
+
+The economy must satisfy all of these simultaneously:
+
+### Goal A — Early Progress Feels Real
+A new user should feel first ownership momentum quickly.
+They must not be stuck earning coins with nothing meaningful to buy.
+
+### Goal B — Premium Status Still Feels Earned
+Cars, premium outfits, better rooms, and prestige-feeling assets must retain aspirational value.
+They cannot become trivial after a few sessions.
+
+### Goal C — Identity Progress and Economic Progress Must Align
+If character progression and store/status progression move at radically different speeds, the fantasy breaks.
+The user should feel:
+"I am becoming more disciplined, and my world/status is evolving with me."
+
+### Goal D — The Economy Must Be Tunable
+The team must be able to adjust:
+- reward values
+- price values
+- level gates
+- rarity bands
+- affordability targets
+without hunting through random files.
+
+### Goal E — The Economy Must Resist Inflation
+Highly active users should advance faster, but not so fast that room/car/status rewards collapse in meaning.
+There must be guardrails for runaway earnings.
+
+### Goal F — The Economy Must Support Launch Readiness
+The economy should be understandable, documented, and reviewable before release.
+
+==================================================
+STEP 3 — BUILD THE ECONOMY ARTIFACTS IN THE REPO
+==================================================
+
+Create a clear docs structure for economy.
+
+Recommended structure:
+
+/docs/economy/
+  economy-audit.md
+  source-sink-map.md
+  reward-bands.md
+  price-bands.md
+  affordability-targets.md
+  progression-economy-map.md
+  anti-inflation-rules.md
+  launch-balance-review.md
+  known-economy-risks.md
+
+Create or standardize code/config structure such as:
+
+/shared/economy/
+  economyConfig.ts
+  rewardBands.ts
+  priceBands.ts
+  affordabilityTargets.ts
+  economyUtils.ts
+  economySimulation.ts
+
+You may adapt paths to fit the repo structure,
+but keep docs and config discoverable and centralized.
+
+==================================================
+STEP 4 — CREATE THE SOURCE / SINK MAP
+==================================================
+
+Document every active coin source and sink.
+
+### 4A. Source map
+For each source define:
+- source name
+- route/service/function
+- trigger
+- base reward
+- bonus logic
+- repeatability
+- abuse risk
+- telemetry coverage
+- confidence level in balance quality
+
+### 4B. Sink map
+For each sink define:
+- sink name
+- category
+- item examples
+- current price
+- target band
+- prestige role
+- intended unlock stage
+- whether sink is one-time or repeatable
+- whether sink is cosmetic, identity, or prestige-signaling
+
+### 4C. Output
+The source/sink map must clearly answer:
+- where coins enter the system
+- where coins leave the system
+- which sinks are strong enough
+- which areas are likely underpriced
+- which areas are likely overpriced
+- whether the economy currently trends inflationary or stagnant
+
+==================================================
+STEP 5 — DEFINE REWARD BANDS
+==================================================
+
+Centralize reward tuning into a real reward model.
+
+At minimum define reward bands by:
+- mission difficulty / effort
+- mission impact level
+- proof quality / judge result
+- session duration or validated effort band if applicable
+- streak multiplier or consistency bonus
+- any trust/fairness modifiers that already exist
+
+Build a reward doctrine like this:
+- trivial / low-effort approved work should not mint high rewards
+- meaningful consistent work should feel rewarded
+- follow-up_required never grants full reward
+- rejected proof grants zero reward
+- approved proof grants exactly one reward path
+- bonuses should feel good but not explode the economy
+
+Create a centralized reward band table with fields like:
+- band id
+- label
+- intended use
+- min reward
+- target reward
+- max reward
+- allowed modifiers
+- notes
+
+Do NOT create an overcomplicated formula if the product does not need it yet.
+Prefer a clear bounded system over fancy math.
+
+==================================================
+STEP 6 — DEFINE PRICE BANDS
+==================================================
+
+Centralize pricing into category-aware price bands.
+
+At minimum define price bands for:
+- starter wearables
+- mid-tier wearables
+- prestige wearables
+- entry car
+- mid car
+- premium car
+- wheel styles
+- basic room
+- aspirational room
+- high-status room
+
+Each band must define:
+- category
+- target price range
+- intended progression stage
+- rarity/prestige meaning
+- whether the item is a first purchase, identity purchase, or luxury/status purchase
+
+The pricing system must enforce:
+- first meaningful purchase happens early enough
+- not everything is affordable too soon
+- the most visually/status-significant assets are protected from trivialization
+- level gates and coin prices feel coherent together
+
+==================================================
+STEP 7 — SET AFFORDABILITY TARGETS
+==================================================
+
+Define practical affordability targets for real player progression.
+
+At minimum define targets for:
+
+### New user / Day 1
+- first meaningful item
+- first upgrade moment
+- how many approved missions/sessions it should roughly take
+
+### Engaged user / Day 7
+- one or more wardrobe upgrades
+- maybe one stronger status item
+- progress toward car/room aspiration
+- no feeling of stagnation
+
+### Active user / Day 30
+- clear ownership history
+- meaningful room/car/status progression
+- not total completion
+- still has aspirational goals left
+
+Create explicit target questions such as:
+- How fast should a new user earn their first non-free wearable?
+- How long should the first car take?
+- How long should a premium room take?
+- Can a highly active user buy too many rooms in one week?
+- Can a casual user buy nothing meaningful for too long?
+
+Output an affordability table that answers these directly.
+
+==================================================
+STEP 8 — BUILD THE PROGRESSION ECONOMY MAP
+==================================================
+
+Build a progression economy map across 3 stages:
+
+### Early Stage
+- first 1–3 days
+- fast reinforcement
+- first purchase
+- first visual ownership moment
+- first emotional attachment to identity/status
+
+### Mid Stage
+- repeat engagement loop
+- better cosmetic/status options
+- some tension between spend now vs save for better status asset
+- users should feel strategy, not confusion
+
+### Advanced Stage
+- aspirational items
+- selective premium/status expression
+- not infinite abundance
+- room/car/elite visuals remain meaningful
+
+For each stage define:
+- typical coin inflow band
+- typical sink opportunities
+- target save/spend tension
+- target emotional outcome
+- biggest risk if balance is wrong
+
+==================================================
+STEP 9 — ADD ANTI-INFLATION RULES
+==================================================
+
+Create a lightweight anti-inflation ruleset.
+
+At minimum evaluate and document:
+- duplicate reward protections already in place
+- how often the same mission category can mint large rewards
+- streak bonus caps
+- multiplier caps
+- whether high-trust or high-performing users scale too fast
+- whether premium items need stronger price separation
+- whether one-time purchases remove enough coins from the economy
+
+Add guardrails that fit existing architecture:
+- bounded reward ranges
+- capped multipliers
+- category-aware reward ceilings
+- clear separation between entry, mid, and luxury tiers
+- no accidental double-minting paths
+
+Do NOT invent punitive systems that make the app feel stingy.
+The goal is controlled aspiration, not frustration.
+
+==================================================
+STEP 10 — IMPLEMENT CENTRALIZED ECONOMY CONFIG
+==================================================
+
+Create one centralized economy config layer and migrate the current relevant values into it.
+
+At minimum centralize:
+- reward base bands
+- reward modifiers
+- streak multiplier bands
+- item price bands
+- category price defaults
+- level gates used for active store/status surfaces
+- affordability targets metadata
+- optional category-specific guardrails
+
+Requirements:
+1. keep naming clear and non-magical
+2. avoid duplicated numeric constants
+3. preserve existing behavior unless intentionally tuned
+4. make tuning safe for future phases
+5. document every changed value clearly
+
+If some prices must remain DB-driven, define clear seed/config sources of truth and remove silent divergence between code and seed data.
+
+==================================================
+STEP 11 — APPLY TUNING TO ACTIVE V1 SURFACES
+==================================================
+
+Apply tuning to the currently active economy surfaces only.
+
+At minimum review and tune:
+- mission reward values
+- approved proof reward values
+- follow-up/reject reward handling
+- starter wearable prices
+- better wearable prices
+- car prices
+- wheel style prices
+- room environment prices
+- any obvious mismatch between level requirement and price
+
+When tuning, optimize for:
+- satisfying first purchase
+- visible aspiration ladder
+- meaningful save/spend decisions
+- status items that feel earned
+- protection against economy collapse
+
+Do NOT make every item cheaper just to feel generous.
+Do NOT make everything expensive just to feel premium.
+Aim for progression tension with emotional payoff.
+
+==================================================
+STEP 12 — ADD A LIGHTWEIGHT ECONOMY SIMULATION TOOL
+==================================================
+
+Create a lightweight simulation or balancing script.
+
+Example command:
+- pnpm economy:simulate
+or equivalent
+
+The simulation should model simple user archetypes such as:
+1. casual user
+2. engaged user
+3. power user
+
+For each archetype, simulate approximately:
+- approved work frequency
+- average reward band
+- streak behavior
+- spend behavior
+- ownership milestones over Day 1 / Day 7 / Day 30
+
+The script does NOT need advanced game theory.
+It just needs to show whether the tuned economy is obviously broken.
+
+Simulation output should help answer:
+- who can afford what, and when
+- whether inflation is too high
+- whether casual users get stuck
+- whether active users trivialize prestige
+
+==================================================
+STEP 13 — UPDATE METRICS READINESS FOR ECONOMY
+==================================================
+
+Without building the full dashboard in this phase, define the economy metrics that must exist.
+
+At minimum document these:
+- coins minted per day
+- coins spent per day
+- wallet delta per user cohort
+- reward approval rate
+- average reward by category
+- purchase conversion by item category
+- time-to-first-purchase
+- time-to-first-status-asset
+- item ownership distribution
+- room/car purchase distribution
+- inflation watch signals
+- suspicious mint/spend anomalies
+
+If event tracking is missing for these, document exactly what must be added later.
+Do NOT overbuild analytics here.
+Just make the economy measurable.
+
+==================================================
+STEP 14 — SECURITY, ERROR HANDLING, EDGE CASES
+==================================================
+
+## 🔐 SECURITY
+Explicitly review and preserve or strengthen:
+- duplicate reward mint prevention
+- duplicate purchase prevention
+- insufficient funds protection
+- already-owned purchase protection
+- invalid item/category/environment/wheel purchase protection
+- race conditions around wallet updates
+- transaction integrity for reward and spend paths
+- admin/manual grant misuse risk if such routes exist
+
+## 🛡️ ERROR HANDLING
+Define and validate behavior for:
+- failed reward transaction
+- failed purchase transaction
+- inconsistent wallet state
+- item price/config missing
+- level gate mismatch
+- stale client price display vs server-authoritative price
+- simulation/config loading failure
+- partially migrated old economy values
+
+## ⚠️ EDGE CASES
+Handle/document:
+- user has exactly enough coins
+- user has zero coins
+- user buys multiple low-tier items quickly
+- user saves for premium item without intermediate purchases
+- user has high activity but many follow-ups instead of approvals
+- user hits level gate before price gate
+- user hits price gate before level gate
+- ownership switch should not charge when already owned if that is the rule
+- wheel/environment re-selection should not double charge
+- economy config drift between backend and frontend display
+
+==================================================
+STEP 15 — DOCUMENT KNOWN RISKS
+==================================================
+
+Create /docs/economy/known-economy-risks.md and log:
+- areas still tuned by estimation rather than live data
+- places where telemetry is insufficient
+- price bands that may need real-user correction
+- surfaces not yet simulated
+- any economy assumptions that should be revisited after launch
+
+Be honest and specific.
+
+==================================================
+STEP 16 — DO NOT OVER-ENGINEER
+==================================================
+
+Important implementation rules:
+
+1. Do NOT invent a second currency.
+2. Do NOT build a giant economy engine.
+3. Do NOT add monetization systems not already in plan.
+4. Do NOT create complex formulas that the team cannot understand.
+5. Prefer bounded bands and clear configs over black-box math.
+6. Prefer launch-safe pragmatism over theoretical perfection.
+7. Use documentation + simulation + centralized config as the core deliverables.
+8. Keep every change easy to inspect.
+
+==================================================
+STEP 17 — ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. an economy audit exists
+2. a complete source/sink map exists
+3. reward bands are centralized and documented
+4. price bands are centralized and documented
+5. Day 1 / Day 7 / Day 30 affordability targets exist
+6. progression economy map exists
+7. anti-inflation rules exist
+8. active economy values are tuned or re-seeded coherently
+9. a lightweight simulation script exists
+10. economy metrics readiness is documented
+11. known economy risks are documented
+12. no new product scope was added
+13. existing purchase/reward flows still work
+14. economy-related values are easier to tune after this phase than before
+
+==================================================
+STEP 18 — DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary
+- what reward sources existed
+- what sinks existed
+- what was inconsistent
+- what was tuned
+
+2. Files created or changed in this run only
+
+3. Economy documentation summary
+- source/sink map
+- reward bands
+- price bands
+- affordability targets
+- progression economy map
+- anti-inflation rules
+- launch balance review
+- known risks
+
+4. Centralized config summary
+- which values were centralized
+- where they now live
+- what old scattered values were replaced
+
+5. Simulation summary
+- archetypes modeled
+- Day 1 / Day 7 / Day 30 outputs
+- major balance findings
+
+6. Metrics readiness summary
+- economy metrics that must be tracked
+- any instrumentation still missing
+
+7. Verification results
+- typecheck/build status
+- tests status
+- economy simulation command result
+- any remaining non-blocking economy concerns
+
+8. Launch recommendation
+- ECONOMY READY or NOT READY
+- if NOT READY, list the exact blockers
+
+==================================================
+IMPORTANT OPERATING RULES
+==================================================
+
+- Audit before tuning
+- Keep scope narrow
+- Do not restart the project
+- Do not invent a new product direction
+- Do not add new currencies
+- Do not silently leave pricing scattered everywhere
+- Prefer understandable balance over clever complexity
+- Preserve trust-critical behavior at all costs

@@ -1,0 +1,391 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing Replit codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this wave.
+
+Goal:
+Implement Admin / Ops Console Wave 3.
+
+Current context:
+- Wave 1 is complete:
+  - admin auth / RBAC foundation exists
+  - admin dashboard exists
+  - player inspector exists
+  - support / recovery basics exist
+  - store admin basics exist
+  - audit log foundation exists
+- Wave 2 is complete:
+  - Content Ops Console exists
+  - Economy Console exists
+  - Recommendation / AI Ops Console exists
+  - Feature Flags / Kill Switches exist
+  - Live Ops controls exist
+  - deeper funnel / telemetry views exist
+- The next highest-value step is operational maturity:
+  the product now needs stronger operator-grade tooling for incident detection, anomaly review, advanced repair/reconciliation, controlled experiments, support workflow depth, and practical runbooks.
+- This wave should turn the admin system from a capable console into a reliable day-to-day operating surface for a live premium product.
+
+Your task:
+Build only the smallest high-impact Admin / Ops Console Wave 3 layer.
+
+==================================================
+WAVE 3 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Anomaly / incident management layer
+2. Advanced repair / reconciliation tooling
+3. Experiment controls lite
+4. Operator runbooks / operational guidance
+5. Alerting / diagnostics views
+6. Deeper support workflow
+7. Minimal admin UX improvements required for the above
+
+Do NOT build:
+- giant SRE platform
+- full observability vendor replacement
+- enterprise ticketing suite
+- full experimentation platform
+- broad ML-ops system
+- giant moderation/backoffice suite
+- redesign of the user-facing app
+- new gameplay systems
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current Wave 1 and Wave 2 admin implementation, current alert/anomaly visibility, support/recovery actions, content/economy/recommendation controls, telemetry, audit logs, feature flags, and any current failure diagnostics
+2. identify what operator workflows are still too manual, too fragile, or too opaque
+3. identify the minimum Wave 3 systems needed to operate incidents and recover state safely
+4. implement only the minimum systems needed
+5. avoid broad refactors
+
+==================================================
+A. ANOMALY / INCIDENT MANAGEMENT LAYER
+==================================================
+
+Build a lightweight operational incident layer.
+
+Purpose:
+Give operators a place to see unusual patterns, investigate them, and track status.
+
+At minimum, support anomaly/incident visibility for:
+- signup/login failure spikes
+- proof submission or approval failure spikes
+- reward transaction anomalies
+- upload failure spikes
+- premium entitlement mismatches
+- unusual store purchase anomalies
+- car unlock/showcase anomalies
+- room/application state anomalies
+- recommendation failure/anomaly spikes
+- integration/webhook issues if already present
+
+Each incident/anomaly item should support fields like:
+- type
+- severity
+- first seen / last seen
+- current status
+- affected area
+- affected count if available
+- short summary
+- possible linked entities (user/content/system)
+- owner if practical
+- notes if practical
+
+Incident statuses can include:
+- new
+- investigating
+- mitigated
+- resolved
+- ignored/known issue
+
+Requirements:
+- keep this tactical and lightweight
+- operators should be able to see what matters now
+- use existing telemetry/admin data where possible
+- do not build a giant ITSM system
+
+==================================================
+B. ADVANCED REPAIR / RECONCILIATION TOOLING
+==================================================
+
+Build safer, deeper recovery tools than Wave 1 basics.
+
+Purpose:
+Allow operators to recover broken state in high-value systems without manual DB editing.
+
+Focus on safe recompute/reconcile actions rather than arbitrary mutation.
+
+Support only bounded, explicit actions such as:
+- recompute player progression snapshot
+- reconcile wallet/reward transaction state
+- reconcile owned vs equipped/displayed item state
+- reconcile room/world applied state
+- reconcile featured car/showcase state
+- reconcile premium entitlement state
+- retry failed content entitlement or unlock propagation if already applicable
+- repair recommendation cache/state if already needed
+- retry safe failed downstream integration jobs if already applicable
+
+Requirements:
+- each repair action must:
+  - be role-gated
+  - require a reason/note
+  - be audit-logged
+  - clearly show target scope
+  - avoid unsafe bulk mutation
+- prefer recomputation from trusted canonical data
+- if a repair action is too risky, omit it and document it as future scope
+
+==================================================
+C. EXPERIMENT CONTROLS LITE
+==================================================
+
+Build a lightweight experimentation control layer.
+
+Purpose:
+Allow the team to safely compare a small number of product/content variants without a giant experimentation platform.
+
+Possible experiment targets:
+- onboarding copy
+- next-best-action framing
+- recommendation card emphasis
+- store featured layout
+- premium upgrade copy
+- comeback mission framing
+- content/event card variants
+- room/car showcase CTA variants
+
+Requirements:
+- support lightweight experiment definitions
+- support a small number of variants
+- support assignment logic that is stable/consistent enough for the experiment
+- track key outcomes using existing telemetry where possible
+- allow operators to:
+  - create/start/pause/stop experiment
+  - inspect variant exposure
+  - inspect basic outcome metrics
+- keep this tactical and explainable
+
+Do NOT build:
+- a giant experimentation platform
+- automated winner-pick logic
+- advanced stats platform
+
+==================================================
+D. OPERATOR RUNBOOKS / OPERATIONAL GUIDANCE
+==================================================
+
+Build practical runbook surfaces inside admin.
+
+Purpose:
+Help operators know what to do when issues happen.
+
+Add lightweight runbook / playbook support for common operational situations such as:
+- proof pipeline failure spike
+- reward mismatch issue
+- premium entitlement mismatch
+- broken live event or content pack
+- broken catalog item visibility
+- recommendation anomaly
+- stuck player progression state
+- upload/media failure cluster
+- store purchase inconsistency
+- car/room display mismatch
+
+Requirements:
+- runbooks should be short, practical, and tied to the real system
+- each runbook can include:
+  - what this issue means
+  - what to check first
+  - what tools to use
+  - what safe actions exist
+  - escalation note if appropriate
+- keep it embedded or linked from relevant admin surfaces where possible
+- do not build a giant documentation portal
+
+==================================================
+E. ALERTING / DIAGNOSTICS VIEWS
+==================================================
+
+Build a lightweight diagnostics surface for operators.
+
+Purpose:
+Make it easier to see failures and trace what is going wrong.
+
+At minimum, support views for:
+- recent admin/system warnings
+- recent failed or degraded operations
+- recent failed support/recovery actions
+- recent failed integrations/webhooks if applicable
+- recent failed content activations if applicable
+- recent high-severity anomalies
+
+Diagnostics should help answer:
+- what failed
+- when it failed
+- how often it is happening
+- what area it affects
+- whether it is getting worse
+
+Requirements:
+- keep this concise and actionable
+- use current telemetry/logging infrastructure where possible
+- do not build a giant centralized logging product
+- make diagnostics easy for operators to scan quickly
+
+==================================================
+F. DEEPER SUPPORT WORKFLOW
+==================================================
+
+Expand support operations from basic repair into a more useful workflow.
+
+Purpose:
+Help the team work through player issues systematically.
+
+At minimum, support:
+- support case / support issue note model lite, or an equivalent structured support thread
+- status for support issues such as:
+  - open
+  - investigating
+  - waiting
+  - resolved
+- link support cases to player inspector
+- ability to attach notes/history to a player issue
+- record what support/recovery actions were taken
+- quick access to recent issues for the same player if practical
+
+Requirements:
+- keep this lightweight
+- do not build a full ticketing platform
+- use player-centric workflow
+- keep support state admin-only
+- preserve privacy and auditability
+
+==================================================
+G. ADMIN IA / WORKFLOW IMPROVEMENTS
+==================================================
+
+Refine the admin information architecture enough to support Wave 3.
+
+Possible additions:
+- Incidents / Alerts section
+- Experiments section
+- Runbooks section
+- Diagnostics section
+- Support queue section or support-state filters inside Players/Support
+
+Requirements:
+- admin navigation must remain clear
+- do not create a sprawling maze
+- prioritize common operator workflows
+- keep the console usable under pressure
+
+==================================================
+H. VALIDATION / SECURITY / AUDIT RULES
+==================================================
+
+Requirements:
+- all Wave 3 admin routes must be protected server-side
+- role permissions must be enforced server-side
+- all impactful actions must be audit-logged, especially:
+  - repair/reconcile actions
+  - experiment start/pause/stop
+  - incident status changes if tracked
+  - runbook-linked operator actions if practical
+- preserve JSON-only admin APIs
+- do not expose sensitive raw data unnecessarily
+- preserve user-facing ownership, entitlement, progression, economy, and visibility rules
+
+If a Wave 3 action is potentially dangerous:
+- require elevated role
+- require reason/note
+- make the action explicit and bounded
+- avoid bulk destructive behavior
+
+==================================================
+I. UX / PRODUCT RULES FOR ADMIN
+==================================================
+
+Wave 3 admin should feel:
+- operator-grade
+- calm under pressure
+- trustworthy
+- legible
+- fast to navigate
+- useful during incidents
+
+It should not feel:
+- like a raw log dump
+- like a giant enterprise maze
+- like a debug toy
+- like a place where powerful actions are unclear
+
+==================================================
+J. ACCEPTANCE CRITERIA
+==================================================
+
+This wave is complete only if:
+
+1. an anomaly / incident management layer exists
+2. advanced repair / reconciliation tooling exists for key broken-state classes
+3. lightweight experiment controls exist for important product/content surfaces
+4. runbooks / operational guidance exist for common incidents
+5. diagnostics/alerts views exist and help operators identify problems quickly
+6. deeper support workflow exists beyond basic one-off fixes
+7. all impactful admin actions are protected and audit-logged
+8. admin navigation remains usable
+9. existing user-facing flows still work
+10. no oversized enterprise/SRE/ticketing scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what Wave 3 operational capabilities already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Anomaly / incident layer added
+- what anomaly/incident types are visible
+- what statuses/actions exist
+
+4. Advanced repair / reconciliation tooling added
+- what repair actions exist
+- what systems they cover
+- how safety/audit logging works
+
+5. Experiment controls lite added
+- what can be experimented on
+- what controls/metrics are supported
+
+6. Runbooks / diagnostics / support workflow added
+- what runbooks exist
+- what diagnostics are visible
+- how support workflow improved
+
+7. End-to-end verification results for:
+- admin access protection
+- incident visibility
+- repair/reconcile action
+- experiment start/pause/stop
+- diagnostics visibility
+- support workflow
+- existing user flow unchanged
+
+8. Remaining gaps after Wave 3
+
+Important:
+Keep this wave focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

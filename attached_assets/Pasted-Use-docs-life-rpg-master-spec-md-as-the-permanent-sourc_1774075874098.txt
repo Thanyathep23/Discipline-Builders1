@@ -1,0 +1,204 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Resume Phase 16 only: Platformization / API / Automation / Integrations Lite.
+
+Important:
+- Do NOT restart the project from scratch.
+- Do NOT re-implement completed Phase 16 work.
+- Do NOT broaden scope beyond Phase 16.
+- First audit the current codebase and determine exactly which Phase 16 requirements are already complete vs still incomplete.
+- Then implement only the remaining unfinished items.
+- If all Phase 16 acceptance criteria are already met, do NOT make unnecessary changes — only run verification, update docs, and return the completion report.
+
+Current context:
+The previous Phase 16 implementation was interrupted by monthly quota limits after substantial work was already done, including:
+- schema/migration work
+- webhook dispatcher
+- platform/API routes
+- calendar export routes
+- import/export routes
+- admin integration controls
+- router wiring
+- webhook dispatch integration into key product events
+- mobile Integrations screen
+- Profile screen entry to Integrations
+
+Treat the current working tree as the source of truth and continue from there.
+
+==================================================
+PHASE 16 SCOPE ONLY
+==================================================
+
+Build / finish only:
+
+1. Controlled API surface lite
+2. Automation hooks / event triggers lite
+3. Calendar integration lite
+4. Import / export utilities lite
+5. Integration management UI
+6. Minimal admin/internal integration controls
+7. Verification, hardening, and documentation for this phase
+
+Do NOT build:
+- giant public developer platform
+- open app marketplace
+- full automation builder
+- deep enterprise admin suite
+- broad CRM/inbox replacement
+- full plugin SDK
+- large redesign
+- any Phase 17+ scope
+
+==================================================
+STEP 1 — AUDIT BEFORE CODING
+==================================================
+
+Before changing anything:
+1. inspect all current Phase 16-related files
+2. list which acceptance criteria are already satisfied
+3. identify only the remaining gaps
+4. make the minimum changes needed
+
+Specifically inspect:
+- schema / migration files
+- controlled API routes
+- any token/key/auth model for integrations
+- webhook dispatcher and event trigger points
+- calendar export integration
+- import/export routes and validators
+- admin/internal integration routes and screens
+- mobile Integrations screen and profile navigation
+- router registration/order
+- failure handling and JSON error behavior
+- docs/replit.md or equivalent notes
+
+==================================================
+STEP 2 — COMPLETE ONLY REMAINING PHASE 16 GAPS
+==================================================
+
+Finish only what is still missing from these requirements:
+
+A. Controlled API surface
+- selected mature capabilities exposed safely
+- auth and ownership enforced
+- sensitive/private data not exposed by default
+- JSON-only responses
+- scoped/revocable access model if implemented
+
+B. Automation hooks / event triggers
+- event hooks for key milestones work
+- dispatch happens safely
+- downstream failure does not break core product flow
+- trigger behavior is auditable enough for MVP
+
+C. Calendar integration
+- at least one practical calendar-adjacent flow works
+- export/import/sync mode is clear and safe
+- privacy preserved
+
+D. Import / export utilities
+- useful export/import flows work
+- validation is strict
+- ownership/security preserved
+
+E. Integration management UI
+- Integrations screen works
+- profile entry works
+- admin/internal controls work if built
+- UX is minimal but functional
+
+==================================================
+STEP 3 — VERIFICATION / HARDENING
+==================================================
+
+After auditing and finishing any missing pieces, verify all of the following:
+
+1. API server restarts cleanly with all new Phase 16 routes registered
+2. Controlled API routes return JSON and enforce auth/ownership
+3. Webhook dispatch triggers on key events without breaking core flows
+4. Webhook failures degrade gracefully
+5. Calendar export flow works
+6. Import/export flows work and invalid input returns clean JSON errors
+7. Integrations screen opens correctly from Profile
+8. Existing mission/proof/reward/community flows remain unchanged
+9. No new runtime errors introduced
+
+==================================================
+STEP 4 — IF EVERYTHING IS ALREADY COMPLETE
+==================================================
+
+If your audit shows all Phase 16 acceptance criteria are already met:
+- do not refactor working code
+- do not add extra scope
+- only:
+  1. run final verification
+  2. update docs/replit.md or equivalent notes
+  3. produce the final Phase 16 completion report
+
+==================================================
+PHASE 16 ACCEPTANCE CRITERIA
+==================================================
+
+Phase 16 is complete only if:
+
+1. a controlled API surface exists for selected mature capabilities
+2. auth/ownership/security are enforced on all exposed surfaces
+3. lightweight automation hooks/events exist for key product milestones
+4. at least one practical calendar-adjacent integration exists
+5. useful import/export utilities exist
+6. users/admin can manage integrations in a lightweight way
+7. integration failures do not break the core product flow
+8. existing mission/proof/reward/community flows still work
+9. no oversized public platform scope was added
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- which Phase 16 criteria were already complete before this run
+- which items were unfinished
+- what was done in this run
+
+2. Files changed in this run only
+
+3. Controlled API surface status
+- endpoints/surfaces added or verified
+- auth/scoping model
+- sensitive data protections
+
+4. Automation hook/event system status
+- what events trigger
+- what actions/endpoints they call
+- failure handling model
+
+5. Calendar integration status
+- exact integration mode
+- what can be exported/imported/synced
+
+6. Import/export utilities status
+- formats supported
+- validation/security rules
+
+7. Integration management UI status
+- what users/admin can manage
+- where it lives
+
+8. End-to-end verification results for:
+- API access
+- auth/ownership enforcement
+- automation trigger flow
+- calendar flow
+- import/export flow
+- integrations screen/profile entry
+- existing app flow unchanged
+
+9. Confirmation that no Phase 17 or unrelated scope was touched
+
+Important:
+Preserve the existing working app.
+Do not repeat finished work.
+Do not expand scope.
+Only finish Phase 16 cleanly.

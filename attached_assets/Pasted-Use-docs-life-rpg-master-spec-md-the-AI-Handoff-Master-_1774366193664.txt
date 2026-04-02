@@ -1,0 +1,770 @@
+Use docs/life-rpg-master-spec.md, the AI Handoff Master Brief, the existing Replit codebase, and all completed Phase 27–35 artifacts as the permanent source of truth.
+
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+# Phase 36 — Prestige / Social Status Layer
+Version: 1.0 | Platform: Replit | Scope: Prestige profile, status signaling, limited recognition, social-safe showcase, elite progression visibility
+
+## 🎯 PROJECT OVERVIEW
+Build Prestige / Social Status Layer v1 for the existing Life RPG app.
+
+This phase is NOT about building a full social network.
+This phase is NOT about adding random vanity badges everywhere.
+This phase is about making status inside the product feel meaningful, visible, aspirational, and socially relevant.
+
+The prestige/status layer must make users feel:
+- their effort shows
+- their identity has weight
+- their milestones mean something
+- their room / wardrobe / car / visual progression are part of a real status system
+- their growth can be showcased in a controlled, premium, non-cringe way
+
+The target outcome:
+1. users gain a prestige surface that reflects meaningful progress and status
+2. status assets and identity history become socially legible
+3. recognition feels earned, not fake
+4. prestige can be shown safely without turning the app into a noisy social feed
+5. the product gains stronger aspiration, emotional gravity, and switching cost
+6. this phase creates a reusable foundation for future circles recognition, showcase sharing, and elite progression systems
+
+==================================================
+PHASE SCOPE ONLY
+==================================================
+
+Build only the minimum strong Prestige / Social Status Layer foundation needed for post-launch moat building and social identity weight.
+
+Required outputs for this phase:
+1. prestige/status audit
+2. prestige doctrine
+3. prestige profile model
+4. status signal taxonomy
+5. prestige scoring/banding rules (bounded and explainable)
+6. prestige showcase surface
+7. limited recognition / featured status system
+8. social-safe visibility/privacy rules
+9. circles/group recognition integration if already feasible
+10. status config centralization
+11. prestige logging and metrics definitions
+12. repo documentation for prestige/social status and known limitations
+
+Do NOT build:
+- a full social feed
+- public comments
+- a follower graph
+- real-time chat
+- toxic leaderboards
+- complex PvP systems
+- creator economy systems
+- infinite rarity/token systems
+- giant social moderation platform
+- new gameplay pillars
+
+If the app already has:
+- profile/showcase screens
+- circles/accountability groups
+- titles/badges
+- room/wardrobe/car assets
+- rank/skill/progression states
+- identity history
+- trust/proof systems
+reuse those as prestige signals.
+
+Do NOT replace working systems blindly.
+Upgrade them into a clearer Prestige / Social Status Layer v1.
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything, inspect and report the current prestige/social-status-relevant system across:
+
+A. Existing identity/status surfaces
+- profile/showcase screens
+- character/progression screens
+- room/world views
+- wardrobe views
+- garage/car views
+- title/badge displays
+- milestone/history surfaces
+- circles/group surfaces if present
+- any share/export or showcase UI
+
+B. Existing status signals
+- level/rank
+- skill levels
+- trust score or trust-adjacent quality indicators
+- streaks/consistency signals
+- prestige tier if present
+- mastery/milestone states
+- rare/limited items if any
+- room/car/wardrobe ownership depth
+- identity history milestones
+- proof quality / consistency signals if appropriate and safe
+
+C. Existing social/group surfaces
+- circles/private groups
+- group challenges
+- prestige showcase settings if any
+- shared challenge completion
+- recognition or activity feed if any
+- admin/live ops status spotlights if any
+
+D. Existing risks
+- status being too shallow
+- status being too easy to fake
+- status being too dependent on spending only
+- status being too dependent on grind only
+- social layer becoming cringe/noisy
+- public comparison becoming demotivating/toxic
+- no privacy control
+- too many weak badges devaluing everything
+
+E. Existing architecture risks
+- status signals scattered across code/data
+- no single prestige profile object
+- no clear separation between current state and showcased state
+- no prioritization of status-worthy signals
+- no bounded prestige logic
+- no explainable reason why one user looks more “prestigious” than another
+
+Your audit must identify:
+1. what status-relevant signals already exist
+2. what current surfaces can be reused
+3. what is already socially legible
+4. what is currently weak or fake-feeling
+5. what must be centralized in this phase
+6. what must remain intentionally private or limited
+
+Do not guess blindly.
+Audit first, then build the prestige layer.
+
+==================================================
+STEP 2 — DEFINE THE PRESTIGE DOCTRINE
+==================================================
+
+Create a clear Prestige / Social Status v1 doctrine.
+
+The prestige layer must satisfy all of these simultaneously:
+
+### Goal A — Prestige Must Feel Earned
+Status cannot feel like empty decoration.
+It must come from meaningful combinations of:
+- proof-backed progress
+- consistency
+- visible identity development
+- status asset ownership/use
+- milestone history
+- recovery and transformation arcs where relevant
+
+### Goal B — Prestige Must Be Socially Legible
+A user looking at another user’s showcase should understand:
+- this person has built something
+- this person has progressed
+- this person has style/status/discipline identity
+without needing to decode a thousand numbers.
+
+### Goal C — Prestige Must Stay Premium
+Do not dilute everything with constant low-value recognition.
+Recognition should feel selective and meaningful.
+
+### Goal D — Prestige Must Stay Safe
+The system must avoid:
+- shame-heavy comparison
+- pay-to-win-only status
+- toxic public ranking pressure
+- privacy overexposure
+- easy status inflation
+
+### Goal E — Prestige Must Strengthen Identity
+Status should connect:
+real effort
+→ visible progress
+→ meaningful identity
+→ social signaling
+
+### Goal F — Prestige Must Be Extendable
+This phase should create a foundation for:
+- future circles recognition
+- future elite seasonal status
+- future social-safe sharing
+- future prestige history and live ops spotlighting
+
+==================================================
+STEP 3 — DEFINE THE PRESTIGE PROFILE MODEL
+==================================================
+
+Create a clear prestige profile model.
+
+At minimum define a structured prestige profile object such as:
+- user_id
+- prestige_profile_version
+- current_prestige_band
+- prestige_signals_summary
+- discipline_signal
+- growth_signal
+- status_asset_signal
+- identity_history_signal
+- consistency_signal
+- showcase_highlights[]
+- featured_title
+- featured_badge
+- featured_room
+- featured_car
+- featured_look
+- featured_milestones[]
+- private_vs_public_visibility_config
+- last_updated_at
+
+The prestige profile should be a curated/status-readable representation,
+not just a dump of all user data.
+
+Rules:
+1. keep it bounded and explainable
+2. use named prestige bands over hidden giant scores where possible
+3. preserve room for future extension
+4. avoid exposing sensitive/internal-only signals
+5. make the prestige profile useful for UI, metrics, and future recognition logic
+
+==================================================
+STEP 4 — DEFINE THE STATUS SIGNAL TAXONOMY
+==================================================
+
+Create a taxonomy of what contributes to prestige/status.
+
+At minimum define these families:
+
+### A. Discipline Signals
+Examples:
+- meaningful consistency
+- session follow-through
+- streak quality
+- comeback stability after setbacks
+- trust-safe proof behavior
+
+### B. Growth Signals
+Examples:
+- level/rank progress
+- skill milestones
+- progression stage
+- transformation milestones
+- proof-backed growth history
+
+### C. Identity Signals
+Examples:
+- curated look / wardrobe coherence
+- room identity
+- car/wheel identity
+- visible character evolution
+- identity history richness
+
+### D. Status Asset Signals
+Examples:
+- owned premium-feeling assets
+- rare/limited-feeling items if already supported
+- first major status unlocks
+- prestige room/car combinations
+- polished showcase composition
+
+### E. Recognition Signals
+Examples:
+- featured titles
+- meaningful badges
+- milestone distinctions
+- group/circle recognition
+- seasonal/live-ops-earned distinctions if supported later
+
+For each signal family define:
+- source signals
+- why it matters
+- whether it is foundational or decorative
+- whether it should influence prestige banding
+- false-positive/dilution risk
+- whether it is visible to others, self-only, or both
+
+Do NOT let pure spending alone define prestige.
+Do NOT let pure grind alone define prestige.
+Use a balanced prestige doctrine.
+
+==================================================
+STEP 5 — DEFINE THE PRESTIGE BANDING / STATUS MODEL
+==================================================
+
+Create a bounded prestige band system.
+
+Do NOT create a giant opaque score as the primary user-facing truth.
+Prefer explainable prestige bands such as:
+- emerging
+- rising
+- established
+- elite
+- iconic
+
+You may rename these if a better brand fit exists,
+but the system must feel premium and aspirational.
+
+For each prestige band define:
+- meaning
+- minimum signal mix
+- what it should feel like
+- what it unlocks visually/showcase-wise if anything
+- what should NOT qualify
+- how easy it is to lose or maintain if dynamic
+
+Also define:
+- internal support scores or weighted logic if needed
+- how heavily different signal families matter
+- how to avoid pay-to-win distortion
+- how to avoid prestige inflation
+
+Rules:
+1. prestige must come from signal combination, not one variable
+2. prestige should be hard enough to matter
+3. new users should still see a path upward
+4. the model must be understandable to the team
+5. the model must be tunable in future phases
+
+==================================================
+STEP 6 — BUILD THE PRESTIGE SHOWCASE SURFACE
+==================================================
+
+Create or upgrade a prestige showcase surface.
+
+At minimum the showcase should surface:
+- current prestige band
+- featured title / badge / milestone
+- current visual identity
+- room / world identity
+- car/status identity where relevant
+- selected highlights from identity history
+- selected proof-backed growth signals
+- optional featured consistency or comeback moment
+- optional “current chapter” / “identity summary” framing
+
+Priority:
+- make it aspirational
+- make it premium
+- make it readable
+- make it feel earned
+- avoid clutter
+
+Do NOT turn this into a noisy social feed.
+This is a curated prestige surface, not an activity dump.
+
+If there is already a profile/showcase screen, upgrade it rather than rebuilding everything.
+
+==================================================
+STEP 7 — BUILD THE LIMITED RECOGNITION SYSTEM
+==================================================
+
+Create a limited recognition framework.
+
+At minimum define:
+- featured titles
+- featured badges
+- milestone distinctions
+- comeback distinctions
+- consistency distinctions
+- status asset distinctions
+- rare/elite recognition slots if appropriate
+
+Recognition must be:
+- selective
+- meaningful
+- limited in number shown at once
+- coherent with prestige doctrine
+- resistant to badge spam
+
+For each recognition type define:
+- trigger/source
+- permanence or temporary nature
+- whether self-only or visible
+- whether earned automatically or curated from existing achievements
+- whether it belongs in profile/showcase/history
+
+Do NOT show too many recognitions at once.
+Prestige requires scarcity of attention.
+
+==================================================
+STEP 8 — BUILD SOCIAL-SAFE VISIBILITY / PRIVACY RULES
+==================================================
+
+Create visibility and privacy rules for prestige surfaces.
+
+At minimum define visibility scopes such as:
+- self_only
+- circle_only
+- approved_showcase
+- private_hidden
+- future_shareable but not public by default
+
+Define what can be shown safely:
+- prestige band
+- titles/badges
+- room/look/car showcases
+- selected milestone highlights
+- selected identity history highlights
+
+Define what should stay more protected:
+- detailed trust internals
+- raw proof content
+- sensitive setbacks/failures
+- internal behavioral state labels
+- private progress not meant for comparison
+
+Rules:
+1. prestige should be visible enough to matter
+2. privacy must be respected
+3. public-by-default exposure is risky
+4. sharing should feel intentional, not forced
+5. group/circle visibility should stay socially safe
+
+==================================================
+STEP 9 — BUILD CIRCLES / GROUP RECOGNITION INTEGRATION
+==================================================
+
+If circles/group systems already exist, integrate prestige lightly.
+
+At minimum evaluate and implement if feasible:
+- circle-visible prestige cards
+- circle-visible featured milestone highlights
+- circle-visible consistency/comeback recognition
+- private group recognition surfaces
+- group-safe showcase preview
+
+Rules:
+- do not turn circles into toxic ranking boards
+- recognition should motivate, not shame
+- private groups may see more than public/self-only surfaces if already aligned with product privacy model
+- comparison should be soft and identity-based, not harsh leaderboard obsession
+
+If circles integration is not yet technically ready,
+define and document the integration points clearly without overbuilding.
+
+==================================================
+STEP 10 — DEFINE SOCIAL-SAFE STATUS COMPARISON RULES
+==================================================
+
+Create careful comparison rules.
+
+At minimum define:
+- what kinds of comparison are allowed
+- what kinds are not
+- whether prestige bands are visible
+- whether raw scores are hidden
+- whether exact ranking is hidden
+- whether “featured highlights” are better than “top list” presentation
+
+The system should prefer:
+- curated identity/status showcases
+- milestone highlights
+- qualitative prestige bands
+- limited recognition
+
+Over:
+- exact public scores
+- toxic leaderboards
+- raw grind-based comparison
+- spend-only flexing
+
+Document why this is safer and more brand-coherent.
+
+==================================================
+STEP 11 — BUILD THE CENTRALIZED PRESTIGE CONFIG
+==================================================
+
+Create a centralized prestige config structure.
+
+Recommended structure:
+
+/shared/prestige/
+  prestigeConfig.ts
+  prestigeTypes.ts
+  prestigeBands.ts
+  statusSignals.ts
+  recognitionRules.ts
+  showcaseRules.ts
+  visibilityRules.ts
+  prestigeUtils.ts
+
+/server/prestige/
+  prestigeProfileService.ts
+  prestigeEvaluator.ts
+  recognitionService.ts
+  prestigeLogging.ts
+  prestigeRoutes.ts if needed
+  circlePrestigeService.ts if needed and lightweight
+
+Adapt to repo conventions if needed.
+
+At minimum centralize:
+- prestige bands
+- signal families
+- weighting/qualification rules
+- recognition types
+- showcase slot rules
+- visibility scopes
+- prestige versioning
+
+Requirements:
+1. avoid scattered prestige logic
+2. avoid duplicated status semantics
+3. one clear source of truth
+4. easy future tuning
+5. explainable and auditable structure
+
+==================================================
+STEP 12 — BUILD PRESTIGE LOGGING / AUDITABILITY
+==================================================
+
+Upgrade logging so prestige changes are inspectable.
+
+At minimum log:
+- user id
+- prestige band changes
+- signal family contributions
+- recognition granted/removed
+- showcase state updates
+- visibility config changes
+- circle/group prestige visibility events if applicable
+- timestamp
+- version
+
+Rules:
+- logs must be structured and compact
+- logs must support future metrics and support/debug flows
+- avoid noisy logging for every tiny cosmetic change unless meaningful
+- reuse existing audit infrastructure where possible
+
+==================================================
+STEP 13 — DEFINE PRESTIGE METRICS
+==================================================
+
+Without building a huge analytics system, define metrics that Phase 29 can consume.
+
+At minimum define:
+- prestige showcase open/view rate
+- profile/showcase revisit rate
+- featured recognition engagement rate
+- prestige band distribution
+- first prestige-band advancement rate
+- circle prestige visibility engagement if implemented
+- room/car/wardrobe showcase engagement
+- identity-history-to-showcase usage rate
+- first featured-title/badge adoption rate
+- status asset display rate
+- correlation between prestige engagement and retention if measurable
+
+For each metric define:
+- formula
+- event/log dependencies
+- why it matters
+- what threshold may be concerning
+- whether launch-critical or directional only
+
+Also define a watchlist for:
+- prestige surface ignored at very high rate
+- too many users stuck in lowest prestige state
+- prestige driven mostly by spend-only behavior
+- recognition spam/dilution
+- showcase clutter reducing clarity
+- circle comparison causing negative behavior if detectable
+
+==================================================
+STEP 14 — USER-FACING PRESTIGE MESSAGING
+==================================================
+
+Create or refine user-facing copy where prestige appears.
+
+At minimum improve messaging for:
+- prestige band descriptions
+- why a user has progressed in prestige
+- featured recognition text
+- showcase section headers
+- room/car/wardrobe status framing
+- comeback-to-prestige framing
+- earned-not-given tone
+
+Tone rules:
+- premium
+- aspirational
+- calm
+- earned
+- not arrogant
+- not juvenile
+- not manipulative
+- not pay-to-win sounding
+
+Avoid:
+- fake luxury language
+- shallow flex messaging
+- toxic comparison framing
+- cringe “grind harder than everyone” tone
+- overclaiming status significance
+
+==================================================
+STEP 15 — SECURITY, PRIVACY, FAIRNESS, ERROR HANDLING, EDGE CASES
+==================================================
+
+## 🔐 SECURITY / PRIVACY
+Explicitly protect against:
+- exposing private trust/proof internals
+- exposing setback/recovery moments without proper visibility rules
+- unsafe admin access to personal prestige/history surfaces
+- visibility config bypass
+- status surfaces leaking restricted identity data
+
+## ⚖️ FAIRNESS / PRODUCT SAFETY
+Explicitly review for:
+- prestige not being pure spending
+- prestige not being pure grind
+- comeback/recovery still being able to contribute meaningfully
+- early users seeing a path forward
+- raw exact ranking not dominating user psychology
+- circles comparison staying socially safe
+
+## 🛡️ ERROR HANDLING
+Handle:
+- missing prestige profile data
+- incomplete historical reconstruction
+- prestige recalculation mismatch
+- duplicate recognition generation
+- showcase slot conflicts
+- visibility configuration failure
+- missing linked room/car/item entities
+- fallback to safe default showcase state
+
+## ⚠️ EDGE CASES
+Document and handle:
+- new user with little status data
+- strong discipline but little spending
+- strong spending but weak trust/progress
+- user with rich identity history but minimal status assets
+- user with major comeback but low current prestige
+- multiple competing featured milestones
+- circles enabled for some users but not others
+- owned assets no longer available/displayable
+- prestige band shifts due to updated rules/versioning
+
+==================================================
+STEP 16 — CREATE THE PRESTIGE DOCS
+==================================================
+
+Create a clear docs structure.
+
+Recommended structure:
+
+/docs/prestige/
+  prestige-audit.md
+  prestige-doctrine.md
+  prestige-profile-model.md
+  status-signal-taxonomy.md
+  prestige-bands.md
+  prestige-showcase.md
+  recognition-system.md
+  visibility-and-privacy.md
+  circles-integration.md
+  prestige-metrics.md
+  known-prestige-risks.md
+
+Document:
+- what counts as prestige
+- what does not
+- what signals are used
+- what is visible and to whom
+- what is intentionally not social/public yet
+- what future phases should extend
+
+==================================================
+STEP 17 — DO NOT OVER-ENGINEER
+==================================================
+
+Important implementation rules:
+
+1. Do NOT build a full social network.
+2. Do NOT add toxic raw-score leaderboards.
+3. Do NOT make prestige easy and noisy.
+4. Prefer curated showcase and limited recognition over endless badge clutter.
+5. Reuse existing identity/history/status surfaces where possible.
+6. Keep prestige logic explainable and premium-feeling.
+7. Optimize for aspiration, identity weight, and safe visibility first.
+8. Make future social/data/live-ops prestige phases easier, not harder.
+
+==================================================
+STEP 18 — ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a prestige/status audit exists
+2. a prestige doctrine exists
+3. a prestige profile model exists
+4. a status signal taxonomy exists
+5. prestige banding rules exist
+6. a prestige showcase surface exists or is clearly upgraded
+7. a limited recognition system exists
+8. social-safe visibility/privacy rules exist
+9. circles/group integration points exist or are clearly defined
+10. prestige config is centralized
+11. prestige logging is improved
+12. prestige metrics are defined
+13. user-facing prestige messaging is improved where needed
+14. no new gameplay scope was added
+15. the app makes earned status feel more meaningful than before
+
+==================================================
+STEP 19 — DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary
+- what prestige/status-relevant logic already existed
+- what was missing
+- what was reused
+- what was added/upgraded in this phase
+
+2. Files created or changed in this run only
+
+3. Prestige documentation summary
+- doctrine
+- prestige profile model
+- status signal taxonomy
+- prestige bands
+- showcase
+- recognition system
+- visibility/privacy
+- circles integration
+- metrics
+- known risks
+
+4. Prestige system summary
+- what was centralized
+- how prestige is now evaluated
+- how recognition/showcase now work
+- how privacy/visibility now work
+- how status became more socially legible and meaningful
+
+5. Verification results
+- typecheck/build status
+- tests status
+- prestige/showcase flow validation status
+- any remaining non-blocking prestige gaps
+
+6. Launch recommendation
+- PRESTIGE / SOCIAL STATUS LAYER READY or NOT READY
+- if NOT READY, list the exact blockers
+
+==================================================
+IMPORTANT OPERATING RULES
+==================================================
+
+- Audit before upgrading
+- Keep scope narrow
+- Do not restart the project
+- Do not invent a new product direction
+- Do not build a giant social network
+- Do not create toxic or noisy comparison systems
+- Prefer premium safe social signaling over gamified clutter
+- Preserve trust integrity, progression integrity, identity credibility, and privacy at all costs

@@ -1,0 +1,241 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Implement Phase 11 — Beta Launch + Telemetry + Feedback Loop.
+
+Current context:
+- Core loop works
+- Life RPG layer works
+- Arc, proof intelligence, adaptive challenge, identity layer, admin tools, and shareable layer are complete
+- The next highest-value step is to make the product measurable, tuneable, and ready for real beta users
+
+Your task:
+Build only the smallest high-impact telemetry, feedback, and beta-readiness layer.
+
+==================================================
+PHASE 11 SCOPE ONLY
+==================================================
+
+Build only:
+
+1. Product telemetry / event tracking
+2. Funnel visibility for key user journeys
+3. In-app feedback / friction capture
+4. Feature flags / tuning controls lite
+5. Beta readiness polish for critical flows
+
+Do NOT build:
+- new gameplay systems
+- new progression systems
+- social/community
+- leaderboard
+- marketplace
+- large analytics warehouse
+- support center
+- redesign of the app
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current onboarding, mission, focus, proof, reward, AI mission, chain, share, and profile flows
+2. identify the minimum event set needed to understand user behavior
+3. identify the minimum feedback/tuning tools needed
+4. avoid broad refactors
+
+==================================================
+A. PRODUCT TELEMETRY
+==================================================
+
+Add event tracking for the most important user actions.
+
+Minimum events:
+- signup_started
+- signup_completed
+- login_completed
+- quick_start_completed
+- standard_profile_completed
+- deep_profile_completed
+- mission_created
+- ai_mission_shown
+- ai_mission_accepted
+- ai_mission_rejected
+- ai_mission_not_now
+- focus_started
+- focus_completed
+- focus_abandoned
+- proof_submitted
+- proof_approved
+- proof_rejected
+- proof_followup_required
+- file_upload_success
+- file_upload_failed
+- reward_granted
+- chain_completed
+- title_unlocked
+- badge_unlocked
+- share_card_viewed
+- share_card_exported
+- comeback_mission_shown
+- comeback_mission_completed
+
+Requirements:
+- keep implementation lightweight
+- use existing backend where possible
+- ensure events are tied to real user actions
+- avoid excessive noisy tracking
+- preserve privacy
+
+==================================================
+B. FUNNEL VISIBILITY
+==================================================
+
+Add lightweight visibility into key funnels.
+
+Minimum funnels:
+1. Onboarding funnel
+2. First mission loop funnel
+3. First AI mission funnel
+4. Proof submission funnel
+5. Return/comeback funnel
+6. Share/export funnel
+
+Requirements:
+- allow admin/internal viewing of basic counts and conversion steps
+- do not build a huge BI dashboard
+- keep this tactical and lightweight
+
+==================================================
+C. IN-APP FEEDBACK / FRICTION CAPTURE
+==================================================
+
+Add a simple in-app feedback mechanism.
+
+Requirements:
+- allow users to submit quick feedback from key friction points
+- suggested categories:
+  - confusing
+  - too hard
+  - too easy
+  - proof annoying
+  - reward feels unfair
+  - bug/problem
+  - favorite part
+- allow optional free-text note
+- keep it lightweight and low-friction
+- preserve ownership and privacy
+- admin/internal side should be able to review feedback
+
+==================================================
+D. FEATURE FLAGS / TUNING CONTROLS LITE
+==================================================
+
+Add minimal internal controls for tuning without code edits.
+
+Examples:
+- AI mission count per day
+- comeback mission threshold
+- reward tuning multipliers
+- proof strictness multiplier
+- rarity frequency multiplier
+- share card visibility toggles
+
+Requirements:
+- keep this admin/internal only
+- keep implementation minimal
+- avoid building a huge config framework
+- audit any changes if possible
+
+==================================================
+E. BETA READINESS POLISH
+==================================================
+
+Improve only critical beta-readiness issues.
+
+Examples:
+- better empty states
+- better error states
+- recovery from partial onboarding
+- recovery from interrupted proof flow
+- clear fallback messaging when AI is unavailable
+- seed/test account cleanup if needed
+- basic privacy/help text where critical
+
+Do not redesign the app.
+
+==================================================
+F. BACKEND / SECURITY RULES
+==================================================
+
+- keep telemetry privacy-safe
+- do not log sensitive raw data unnecessarily
+- keep admin/tuning routes admin-only
+- preserve ownership checks
+- preserve JSON-only APIs
+- keep schema changes additive and minimal
+
+==================================================
+G. ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. key product events are tracked
+2. critical funnels are visible internally
+3. users can send lightweight feedback from the app
+4. internal/admin tuning controls exist for key balance levers
+5. beta-readiness issues in critical flows are improved
+6. privacy and security remain intact
+7. no unrelated gameplay scope was added
+8. existing mission/proof/reward flow still works
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what visibility already existed
+- what was missing
+- what was added
+
+2. Files changed in this run only
+
+3. Events added
+- exact event list
+- where each is triggered
+
+4. Funnel visibility added
+- which funnels are now visible
+- where they can be inspected
+
+5. Feedback system added
+- where users can submit feedback
+- what categories exist
+- how it is reviewed
+
+6. Feature flags / tuning controls added
+- exact controls added
+- who can edit them
+
+7. Beta-readiness improvements made
+
+8. End-to-end verification results for:
+- event tracking
+- feedback submission
+- funnel visibility
+- tuning controls
+- existing core flow unchanged
+
+9. Remaining gaps for the next phase
+
+Important:
+Keep this phase focused.
+Do not broaden scope.
+Do not restart the project.
+Preserve the existing working app and extend it carefully.

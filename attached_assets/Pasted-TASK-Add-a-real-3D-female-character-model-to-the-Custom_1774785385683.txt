@@ -1,0 +1,259 @@
+TASK: Add a real 3D female character model to the Customize screen and improve
+the Body Type selection UI to look clean and modern.
+
+════════════════════════════════════════════════════════
+CONTEXT — FILES ALREADY UPLOADED
+════════════════════════════════════════════════════════
+
+The following female model files are in the project folder "web app/models_female/":
+  - Superhero_Female_FullBody.gltf
+  - Superhero_Female_FullBody.bin
+  - T_Superhero_Female_Dark_BaseColor.png    ← dark skin texture
+  - T_Superhero_Female_Light_BaseColor.png   ← light skin texture
+  - T_Superhero_Female_Normal.png
+  - T_Superhero_Female_Roughness.png
+
+The male model is in "web app/models/" (already working).
+
+════════════════════════════════════════════════════════
+STEP 1 — SERVE THE FEMALE MODEL FILES
+════════════════════════════════════════════════════════
+
+In the server (server/index.ts or server/routes.ts), add a static file route
+to serve the female model folder, the same way male models are served:
+```ts
+app.use('/api/models/female', express.static(path.join(process.cwd(), 'web app/models_female')))
+```
+
+Verify: /api/models/female/Superhero_Female_FullBody.gltf must be accessible.
+
+════════════════════════════════════════════════════════
+STEP 2 — UPDATE character_v7.html (THE THREE.JS WEBVIEW)
+════════════════════════════════════════════════════════
+
+The Customize screen uses character_v7.html (a WebView with Three.js GLTFLoader).
+Update it to support switching between male and female models.
+
+A) Add a `gender` variable at the top:
+```js
+let currentGender = 'male'  // 'male' | 'female'
+
+const MODEL_PATHS = {
+  male:   '/api/models/Superhero_Male_FullBody.gltf',
+  female: '/api/models/female/Superhero_Female_FullBody.gltf'
+}
+```
+
+B) Add a `loadCharacter(gender)` function that:
+   1. Clears the current scene of any existing character mesh
+   2. Calls GLTFLoader to load the correct .gltf path for the given gender
+   3. Applies the correct skin texture based on gender and current skin tone:
+      - Female dark: T_Superhero_Female_Dark_BaseColor.png
+      - Female light: T_Superhero_Female_Light_BaseColor.png
+      - (Male textures remain as before)
+   4. Positions and scales the model correctly in the scene
+   5. Rotates arms to natural position (upperarm bones rotation.z = ±1.2 rad)
+
+C) Add a `window.setGender` bridge function:
+```js
+window.setGender = function(gender) {
+  currentGender = gender
+  loadCharacter(gender)
+}
+```
+
+D) Update `window.updateCharacter` to also accept gender changes:
+```js
+window.updateCharacter = function({ gender, skinTone, hairStyle, hairColor }) {
+  if (gender && gender !== currentGender) {
+    currentGender = gender
+    loadCharacter(gender)
+    return
+  }
+  // handle skin/hair updates as before
+}
+```
+
+════════════════════════════════════════════════════════
+STEP 3 — REDESIGN THE BODY TYPE SELECTOR UI
+════════════════════════════════════════════════════════
+
+Replace the current Body Type selector with a clean modern toggle-style design.
+
+The new Body Type section should look like this:
+
+┌─────────────────────────────────────────────┐
+│  BODY TYPE                                  │
+│  ┌──────────────────┐  ┌──────────────────┐ │
+│  │   👤  Male       │  │   👤  Female     │ │
+│  │   (silhouette)   │  │   (silhouette)   │ │
+│  └──────────────────┘  └──────────────────┘ │
+└─────────────────────────────────────────────┘
+
+Implementation using React Native:
+```tsx
+// Body Type state
+const [bodyType, setBodyType] = useState<'male' | 'female'>('male')
+
+// In JSX — replace the old Body Type section with:
+<View style={styles.sectionContainer}>
+  <Text style={styles.sectionLabel}>BODY TYPE</Text>
+  <View style={styles.bodyTypeRow}>
+    {(['male', 'female'] as const).map(type => (
+      <TouchableOpacity
+        key={type}
+        style={[
+          styles.bodyTypeCard,
+          bodyType === type && styles.bodyTypeCardActive
+        ]}
+        onPress={() => {
+          setBodyType(type)
+          sendToWebView({ gender: type })
+        }}
+      >
+        <Text style={styles.bodyTypeIcon}>{type === 'male' ? '♂' : '♀'}</Text>
+        <Text style={[
+          styles.bodyTypeLabel,
+          bodyType === type && styles.bodyTypeLabelActive
+        ]}>
+          {type === 'male' ? 'Male' : 'Female'}
+        </Text>
+        {bodyType === type && (
+          <View style={styles.bodyTypeCheckmark}>
+            <Text style={styles.checkmarkText}>✓</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    ))}
+  </View>
+</View>
+```
+
+Styles:
+```ts
+bodyTypeRow: {
+  flexDirection: 'row',
+  gap: 12,
+  marginTop: 8,
+},
+bodyTypeCard: {
+  flex: 1,
+  backgroundColor: '#1A1A2E',
+  borderRadius: 14,
+  borderWidth: 1.5,
+  borderColor: '#2A2A4A',
+  paddingVertical: 16,
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 6,
+  position: 'relative',
+},
+bodyTypeCardActive: {
+  borderColor: '#8B5CF6',
+  backgroundColor: '#1F1640',
+},
+bodyTypeIcon: {
+  fontSize: 28,
+  color: '#9CA3AF',
+},
+bodyTypeLabel: {
+  fontSize: 13,
+  fontWeight: '600',
+  color: '#6B7280',
+  textTransform: 'capitalize',
+  letterSpacing: 0.5,
+},
+bodyTypeLabelActive: {
+  color: '#A78BFA',
+},
+bodyTypeCheckmark: {
+  position: 'absolute',
+  top: 8,
+  right: 8,
+  width: 20,
+  height: 20,
+  borderRadius: 10,
+  backgroundColor: '#8B5CF6',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+checkmarkText: {
+  color: '#FFFFFF',
+  fontSize: 11,
+  fontWeight: '700',
+},
+```
+
+════════════════════════════════════════════════════════
+STEP 4 — SKIN TONE: SEPARATE TEXTURES FOR FEMALE
+════════════════════════════════════════════════════════
+
+Female skin tones map to different texture files than male.
+Update the skin tone logic so when gender = female:
+```ts
+const FEMALE_SKIN_TEXTURES = {
+  ivory:   '/api/models/female/T_Superhero_Female_Light_BaseColor.png',
+  fair:    '/api/models/female/T_Superhero_Female_Light_BaseColor.png',
+  medium:  '/api/models/female/T_Superhero_Female_Dark_BaseColor.png',
+  brown:   '/api/models/female/T_Superhero_Female_Dark_BaseColor.png',
+  deep:    '/api/models/female/T_Superhero_Female_Dark_BaseColor.png',
+}
+
+const MALE_SKIN_TEXTURES = {
+  // existing male textures (keep unchanged)
+}
+```
+
+When skin tone is changed in the Customize screen, use the correct texture set
+based on the currently selected gender.
+
+════════════════════════════════════════════════════════
+STEP 5 — HAIR STYLES: AVAILABLE FOR BOTH GENDERS
+════════════════════════════════════════════════════════
+
+Keep the existing hair styles (from web app/customize v.1/) available for both
+male and female characters. The hairstyle meshes are layered on top of the body
+model, so they work for both.
+
+If female hair styles are separate, add a note but don't block the feature —
+use the existing hair styles for now.
+
+════════════════════════════════════════════════════════
+STEP 6 — SAVE & RESTORE GENDER PREFERENCE
+════════════════════════════════════════════════════════
+
+When the user presses "Save Look", save the gender preference along with other
+appearance settings (skin tone, hair style, etc.) so it persists on next open.
+
+When the Customize screen opens:
+1. Load saved gender preference (default: 'male')
+2. Send it to the WebView on load via `window.updateCharacter({ gender: savedGender, ... })`
+3. Set the Body Type selector to match
+
+════════════════════════════════════════════════════════
+STEP 7 — CHARACTER STATUS SCREEN (sync gender)
+════════════════════════════════════════════════════════
+
+The CHARACTER STATUS screen also shows the 3D model.
+After saving gender in Customize, the CHARACTER STATUS screen must also load
+the correct gender model on next open.
+
+Use the same saved preference — read it when CHARACTER STATUS initializes.
+
+════════════════════════════════════════════════════════
+STEP 8 — VERIFY
+════════════════════════════════════════════════════════
+
+Check all of the following work:
+
+1. ✅ Customize screen opens → shows current gender 3D model (default: Male)
+2. ✅ Tap "Female" body type card → 3D viewer switches to female model in real-time
+3. ✅ Tap "Male" body type card → switches back to male model
+4. ✅ Body type cards show purple border + checkmark on active selection
+5. ✅ Skin tone change applies female texture when female is selected
+6. ✅ Hair style change works on female model
+7. ✅ Press "Save Look" → gender is persisted
+8. ✅ Reopen Customize → correct gender model shown
+9. ✅ CHARACTER STATUS screen → shows correct gender model
+10. ✅ No TypeScript errors
+11. ✅ No crashes on model switch

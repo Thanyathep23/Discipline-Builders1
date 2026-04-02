@@ -1,0 +1,411 @@
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+Goal:
+Replace the current SVG character renderer with a 
+premium semi-realistic character system based on 
+the KEN prototype character design reference.
+
+The new character must match this exact aesthetic:
+- Semi-realistic illustration style
+- Adult proportions (NOT cartoon)
+- Clean confident neutral expression
+- Starter outfit: white cotton tee + raw indigo denim
+- Dog tag necklace detail
+- Leather wrist bracelet
+- Casual sneakers (footwear)
+- Available in both Male and Female body type
+
+==================================================
+REFERENCE SPEC FROM CONCEPT ART
+==================================================
+
+The character must support:
+
+BODY TYPES:
+- Male: broader shoulders, defined chest, 
+  slim athletic build
+- Female: feminine proportions, same height band,
+  athletic but not exaggerated
+
+HEIGHT: approximately 5ft10 proportions
+HEAD RATIO: ~1:7 (realistic adult, not chibi)
+
+STARTER OUTFIT (default loadout):
+- Top: white cotton crew neck tee
+  clean, fitted but not skin-tight
+- Bottom: raw indigo denim jeans
+  slim straight cut, subtle distressing
+- Footwear: grey/beige casual canvas sneakers
+- Accessory: thin dog tag chain necklace
+- Wrist: brown leather bracelet
+
+VIEWS REQUIRED:
+- Front view (primary — used in Character Hub)
+- Side view (used in Room scene, Garage photo mode)
+
+==================================================
+PART 1 — CHARACTER ASSET STRATEGY
+==================================================
+
+Since this is a React Native / Expo mobile app,
+use this approach for premium character rendering:
+
+RECOMMENDED APPROACH: Layered PNG assets
+(NOT SVG paths — semi-realistic style needs 
+raster textures to look premium)
+
+Asset structure per character:
+/assets/character/
+  male/
+    base/
+      body-base-front.png
+      body-base-side.png
+    posture/
+      neutral-front.png
+      upright-front.png
+      athletic-front.png
+      peak-front.png
+    outfit/
+      starter-tee-front.png
+      starter-tee-side.png
+      starter-jeans-front.png
+      starter-jeans-side.png
+    accessory/
+      dog-tag.png
+      leather-bracelet.png
+    hair/
+      (per style variant)
+    face/
+      base-male.png
+  female/
+    (same structure)
+
+For v1 MVP, build with these views only:
+- front view (primary)
+- side view (secondary)
+
+==================================================
+PART 2 — CHARACTER RENDERER COMPONENT
+==================================================
+
+Update CharacterRenderer to use PNG layer system:
+
+File: artifacts/mobile/components/character/CharacterRenderer.tsx
+
+Props remain the same:
+{
+  visualState: CharacterVisualState
+  size: 'small'|'medium'|'large'|'full'
+  bodyType: 'male'|'female'
+  showShadow?: boolean
+  view?: 'front'|'side' (default: 'front')
+}
+
+Render using React Native Image layers
+stacked with absolute positioning:
+
+LAYER ORDER (bottom to top):
+1. Shadow/ground (ellipse blur below feet)
+2. Body base (skin tone applied via tint)
+3. Posture layer (changes with fitness level)
+4. Bottom/jeans layer
+5. Top/shirt layer  
+6. Outerwear layer (if equipped)
+7. Accessories layer (necklace, bracelet)
+8. Watch layer (wrist, if equipped)
+9. Hair layer
+10. Face layer
+
+Each layer is a PNG with transparency.
+Layers stack using absolute positioning
+within a fixed-size container.
+
+==================================================
+PART 3 — GENERATE CHARACTER ASSETS
+==================================================
+
+Since we need actual visual assets, use this approach:
+
+OPTION A — AI-Generated Reference PNGs (Recommended for MVP)
+
+Use the KEN prototype concept art as style reference.
+Generate layered character PNGs using:
+
+Style prompt for generation:
+"semi-realistic game character illustration,
+adult male/female, white tee + indigo jeans,
+front view, full body, transparent background,
+premium lifestyle app aesthetic, flat lighting,
+clean edges, 512x1024px resolution"
+
+Each layer generated separately:
+- body base with skin
+- outfit top
+- outfit bottom
+- accessories
+
+OPTION B — High Quality SVG 
+(if PNG generation is not feasible)
+
+Build detailed SVG at much higher fidelity than current:
+- Use gradients for fabric texture
+- Use multiple path layers for depth
+- Shade muscles/fabric with subtle gradients
+- Add fabric fold details to clothing
+- Add hair texture via gradient fills
+- Realistic face features (not cartoon dots)
+
+For v1, build Option B as fallback if PNG
+asset pipeline is not ready.
+
+==================================================
+PART 4 — SKIN TONE SYSTEM
+==================================================
+
+Apply skin tone via React Native Image tint
+or via SVG fill replacement:
+
+5 skin tones:
+  skinToneLight: '#F5D5B8'
+  skinToneMediumLight: '#E8B48A'
+  skinToneMedium: '#C68A5E'  
+  skinToneMediumDark: '#8D5524'
+  skinToneDark: '#4A2C0A'
+
+The base character body is drawn in neutral tone.
+Skin tone tint applied at render time.
+
+==================================================
+PART 5 — HAIR STYLES (6 options per gender)
+==================================================
+
+MALE hair styles:
+1. clean_cut: short textured, professional
+2. side_part: classic business side part
+3. textured_crop: modern textured quiff
+4. buzz_cut: very short all over
+5. medium_natural: slightly longer natural
+6. slicked_back: premium entrepreneur look
+
+FEMALE hair styles:
+1. short_bob: clean jawline bob
+2. side_part_long: shoulder length
+3. textured_pixie: short textured
+4. ponytail_sleek: pulled back
+5. natural_medium: shoulder natural
+6. bun_top: professional top bun
+
+Hair color props (8 colors as before):
+same color tokens as current system
+
+==================================================
+PART 6 — POSTURE STAGES (4 levels)
+==================================================
+
+The posture system from existing CharacterEngine
+must now drive WHICH base pose PNG is used:
+
+'neutral' (Fitness L1-3):
+  Relaxed standing, slight weight shift
+  Shoulders at rest
+
+'upright' (Fitness L4-6):
+  Straight confident stance
+  Chest forward, shoulders back
+
+'athletic' (Fitness L7-8):
+  More open chest width
+  Slightly wider stance
+  Energetic presence
+
+'peak' (Fitness L9-10):
+  Commanding open stance
+  Maximum presence
+  Subtle V-taper visible through shirt
+
+Each posture stage = different base body PNG
+OR different transform/pose modifier on same base.
+
+==================================================
+PART 7 — OUTFIT TIER PROGRESSION
+==================================================
+
+As Finance dimension levels up,
+outfit quality visually upgrades:
+
+Tier 1 (L1-3): STARTER
+  White cotton tee + raw indigo denim
+  Casual canvas sneakers
+  → current reference concept art
+
+Tier 2 (L4-6): RISING
+  Better cut white shirt (slight structure)
+  Darker premium denim (no distress)
+  Clean white sneakers
+
+Tier 3 (L7-8): PREMIUM
+  Oxford/OCBD shirt (crisp)
+  Premium chinos or dark slim trousers
+  Leather sneakers or clean loafers
+
+Tier 4 (L9-10): ELITE
+  Premium casual blazer or cashmere
+  Tailored dark trousers
+  Leather Oxford shoes
+
+Each tier uses different outfit layer PNGs
+OR equipped wardrobe items override.
+
+==================================================
+PART 8 — BODY TYPE SELECTION
+==================================================
+
+User selects body type during:
+- Onboarding (first time)
+- Character customization sheet
+
+Body type options:
+  Male / Female
+
+Both body types share:
+- same posture stages
+- same outfit tiers
+- same accessory layers
+- same skin tone options
+- same hair system (gender-appropriate styles)
+
+Body type is stored in user customization settings
+(same API endpoint as skin/hair customization).
+
+==================================================
+PART 9 — CHARACTER STATUS HUB UPDATE
+==================================================
+
+Update Character Status Hub to show
+the new premium character properly:
+
+Character hero area:
+- Full body, front view
+- Minimum height: 280px in the hub
+- Slight upward parallax on scroll
+- Character centered with breathing room
+- Subtle shadow at feet
+
+When dimension tier changes:
+- Crossfade between old and new appearance
+- 800ms transition as spec'd
+- Small particles/sparkle on tier-up
+
+Character should feel like a premium
+lifestyle avatar, not a game sprite.
+
+==================================================
+PART 10 — ROOM AND GARAGE INTEGRATION
+==================================================
+
+In Room scene:
+- Character uses SIDE VIEW if available
+- Scale appropriately to room proportions
+- Same layered rendering system
+- Stands on floor with proper shadow
+
+In Garage photo mode:
+- Character uses FRONT VIEW
+- Positioned beside/in front of car
+- Same quality as Status Hub render
+
+==================================================
+PART 11 — TRANSITION FROM CURRENT SVG
+==================================================
+
+Migration path:
+
+1. Keep existing CharacterVisualState interface
+   (posture, outfit tier, skin, hair etc. unchanged)
+
+2. Replace only the rendering layer:
+   Old: SVG path rendering
+   New: PNG/high-fidelity SVG layer stacking
+
+3. All existing dimension/progression logic
+   remains completely unchanged
+
+4. Character customization API unchanged
+
+5. All screens using CharacterRenderer will
+   automatically get the new look
+
+==================================================
+TECHNICAL REQUIREMENTS
+==================================================
+
+- React Native Image for PNG layers
+- absolute positioning within fixed container
+- All layers must have transparent backgrounds
+- Smooth crossfade on visual state change (800ms)
+- Must render well at: 80px (small), 
+  160px (medium), 280px (large), full screen
+- Performance: memoize per visualState hash
+- No janky re-renders on prop changes
+- Must work on iOS and Android
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+1. Character looks semi-realistic, NOT cartoon
+2. Adult proportions matching KEN prototype
+3. White tee + indigo denim starter outfit visible
+4. Dog tag necklace and leather bracelet visible
+5. Male and female body types both work
+6. 5 skin tones apply correctly
+7. 6 hair styles per gender work
+8. 4 posture stages visibly different
+9. 4 outfit tiers visibly different
+10. Character renders correctly in:
+    - Character Status Hub (front, large)
+    - Room scene (side or front)
+    - Garage photo mode (front)
+11. Crossfade animation works on tier change
+12. No existing progression/dimension logic broken
+13. Customization saves and persists
+14. Performance: smooth 60fps on mid-range device
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. Asset strategy chosen (PNG vs high-fidelity SVG)
+   and rationale
+
+2. Character assets created or specified:
+   - which layers exist
+   - which views (front/side)
+   - which posture stages
+   - which outfit tiers
+
+3. CharacterRenderer updated:
+   - layer stack implemented
+   - skin tone system
+   - hair system
+   - body type system
+
+4. All integration points updated:
+   - Character Status Hub
+   - Room scene
+   - Garage photo mode
+
+5. Files changed in this run only
+
+6. Test results:
+   - Male character renders correctly
+   - Female character renders correctly
+   - Posture stages visible
+   - Outfit tiers visible
+   - Customization works
+   - No existing systems broken
+
+7. Remaining gaps (if assets need
+   external generation)

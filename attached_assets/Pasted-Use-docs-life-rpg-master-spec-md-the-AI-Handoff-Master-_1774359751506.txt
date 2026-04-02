@@ -1,0 +1,682 @@
+Use docs/life-rpg-master-spec.md, the AI Handoff Master Brief, the existing Replit codebase, and all completed Phase 27–31 artifacts as the permanent source of truth.
+
+Continue the existing Replit codebase.
+Do NOT restart the project.
+Do NOT broaden scope beyond this phase.
+
+# Phase 32 — Launch Package
+Version: 1.0 | Platform: Replit | Scope: App store positioning, launch messaging, onboarding copy, screenshot system, landing/marketing assets, launch readiness package
+
+## 🎯 PROJECT OVERVIEW
+Build the first real Launch Package for the existing Life RPG app.
+
+This phase is NOT about adding new gameplay.
+This phase is NOT about redesigning the product.
+This phase is about making the product legible, desirable, and launch-ready from the outside.
+
+The goal is to turn the current app into something that:
+- people immediately understand
+- people want to try
+- people can trust
+- people can explain to others
+- the founder can launch with confidence
+
+This phase must package the product clearly across:
+- app store positioning
+- launch narrative
+- screenshot/storyboard system
+- title / subtitle / keywords
+- onboarding messaging
+- tagline options
+- short and long descriptions
+- launch checklists
+- first audience definition
+- founder/operator launch-ready documents
+
+The target outcome:
+1. the app has a clear public-facing positioning
+2. store assets and launch copy are coherent
+3. onboarding communicates the value instantly
+4. launch-day messaging is ready
+5. the team has a real launch checklist
+6. the product is easier to present, market, and test with real users
+
+==================================================
+PHASE SCOPE ONLY
+==================================================
+
+Build only the minimum strong launch package needed for a serious initial launch.
+
+Required outputs for this phase:
+1. launch audit
+2. positioning doctrine
+3. ICP / first audience definition
+4. core messaging hierarchy
+5. title / subtitle / tagline options
+6. app store short and long descriptions
+7. screenshot / preview storyboard
+8. onboarding messaging refinement
+9. landing / hero copy package
+10. launch checklist
+11. founder launch script / pitch
+12. FAQ / objection handling copy
+13. lightweight launch asset structure inside the repo
+
+Do NOT build:
+- new gameplay features
+- major UI redesign
+- giant marketing site
+- influencer platform
+- ad campaign manager
+- deep ASO automation tools
+- new monetization systems
+- full brand redesign
+- huge public CMS
+- large growth stack integrations
+
+If there is already a landing or promo surface, reuse it.
+If there is already onboarding copy, refine and unify it.
+If store assets do not exist, create the system/specification for them and implement only what is necessary inside the current repo.
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything, inspect and report the current public-facing product presentation across:
+
+A. Product understanding
+- what the app currently appears to be from the UI
+- whether the value proposition is obvious
+- whether the app looks like a generic productivity app
+- whether the “proof-based identity evolution” concept is visible enough
+
+B. Existing launch surfaces
+- app icon if present
+- splash/loading text
+- onboarding flow
+- welcome screen
+- auth entry screens
+- home/hero surfaces
+- any landing page or marketing page
+- any app store draft copy
+- any screenshots/promotional images already present
+
+C. Existing messaging
+- current titles
+- current subtitles
+- current CTAs
+- current onboarding copy
+- current feature labels
+- current explanations of missions / proof / rewards / identity / room / wardrobe / garage / world
+
+D. Current positioning risks
+- product feels too complicated
+- fantasy is not obvious
+- app sounds like just another to-do app
+- reward/status value unclear
+- trust/proof system unclear
+- room/car/avatar/store feels superficial or confusing
+- launch messaging lacks emotional hook
+
+E. Current audience clarity
+- who the product seems built for
+- who should be the first launch audience
+- which audience is too broad for v1
+- what promise is most believable for launch
+
+Your audit must identify:
+1. what public-facing surfaces already exist
+2. what message is currently strongest
+3. what message is confusing or weak
+4. what must be clarified before launch
+5. what should be emphasized vs deprioritized in launch messaging
+
+Do not guess blindly.
+Audit first, then package the launch.
+
+==================================================
+STEP 2 — DEFINE THE POSITIONING DOCTRINE
+==================================================
+
+Create a clear launch-stage positioning doctrine.
+
+The launch package must satisfy all of these simultaneously:
+
+### Goal A — Instant Clarity
+A new person should understand the app quickly.
+They should not need a long explanation to grasp:
+- what it is
+- why it is different
+- why it matters
+
+### Goal B — Strong Category Framing
+The app must not sound like a generic task app.
+It must feel like a system where:
+real progress
+→ proof
+→ reward
+→ identity/status/world evolution
+
+### Goal C — Emotional Pull
+The launch message must sell not just productivity,
+but transformation, momentum, status, and visible self-progress.
+
+### Goal D — Launch-Stage Credibility
+Promises must be ambitious but believable.
+Do NOT promise superhuman outcomes or vague hype.
+
+### Goal E — Focused Audience
+The launch package must be designed around a clear first audience, not “everyone.”
+
+### Goal F — Reusability
+The launch package should generate reusable assets:
+- store copy
+- screenshots
+- onboarding
+- landing hero copy
+- launch post copy
+- founder pitch
+
+==================================================
+STEP 3 — DEFINE THE FIRST AUDIENCE / ICP
+==================================================
+
+Define the launch-stage ideal first audience.
+
+At minimum document:
+- who this product is best for first
+- who it is not for yet
+- what pain/state they are in
+- what transformation they want
+- what emotional hook matters most to them
+- what feature they care about first
+- what objection they are most likely to have
+
+Examples of possible audience frames to evaluate:
+- ambitious self-improvement users
+- students who want discipline structure
+- early-career builders/operators
+- gym/productivity/status-oriented users
+- people who fail at habit apps because nothing feels real
+- users who want visible momentum, not just checkbox completion
+
+Choose a primary launch audience and optionally one secondary audience only.
+Do NOT target everyone.
+
+For each audience define:
+- pain
+- desire
+- trigger to try
+- reason to stay
+- likely objection
+- best messaging angle
+
+==================================================
+STEP 4 — BUILD THE MESSAGING HIERARCHY
+==================================================
+
+Create the messaging stack from top to bottom.
+
+At minimum define:
+
+### Layer A — Core Promise
+One sentence answer to:
+“What is this app?”
+
+### Layer B — Why It’s Different
+One sentence answer to:
+“Why not use a normal habit/to-do app?”
+
+### Layer C — Emotional Payoff
+One sentence answer to:
+“What does the user get to feel?”
+
+### Layer D — Functional Proof
+One sentence answer to:
+“How does it actually work?”
+
+### Layer E — Status/Identity Hook
+One sentence answer to:
+“Why does the world/avatar/status layer matter?”
+
+Then turn this into:
+- 3 positioning versions
+- 5 tagline options
+- 3 short elevator pitches
+- 1 recommended launch narrative
+
+All messaging must stay coherent with the product:
+proof-based progress, rewards, coin economy, evolving identity, room/world/status surfaces.
+
+==================================================
+STEP 5 — CREATE TITLE / SUBTITLE / TAGLINE OPTIONS
+==================================================
+
+Create launch-ready naming and store copy candidates.
+
+At minimum produce:
+
+### A. App title options
+- conservative / clear option
+- balanced option
+- stronger premium/identity option
+
+### B. Subtitle options
+Should communicate:
+- discipline / productivity angle
+- RPG / identity / evolution angle
+- proof/reward angle where relevant
+
+### C. Tagline options
+Need:
+- concise
+- memorable
+- not cringe
+- not overhyped
+- app-store friendly
+
+Create at least:
+- 5 tagline options
+- 5 subtitle options
+- 3 title+subtitle pair recommendations
+
+Also define the best recommended combination for launch.
+
+==================================================
+STEP 6 — WRITE THE APP STORE PACKAGE
+==================================================
+
+Create a complete app store copy package.
+
+At minimum include:
+
+### A. Short description
+Very clear, high-conversion, concise
+
+### B. Full description
+Structure:
+1. opening hook
+2. what the app is
+3. how the core loop works
+4. why it feels different
+5. key feature highlights
+6. status/world/identity progression
+7. trust/proof angle
+8. closing CTA
+
+### C. Keyword/ASO direction
+Do NOT over-engineer ASO.
+Define:
+- core keyword themes
+- what not to over-index on
+- terms that fit the real product promise
+
+### D. Feature bullets
+Write clean, benefit-first bullets for:
+- missions
+- focus sessions
+- proof submission
+- rewards and coin system
+- character progression
+- wardrobe / garage / room / status
+- comeback / momentum / consistency angle if appropriate
+
+Rules:
+- clear first
+- benefit-led
+- not spammy
+- not vague hype
+- do not misrepresent unbuilt features
+- do not sound like a fake game ad
+
+==================================================
+STEP 7 — BUILD THE SCREENSHOT / PREVIEW STORYBOARD
+==================================================
+
+Create a screenshot and launch-preview storytelling system.
+
+At minimum create:
+- screenshot plan
+- screenshot order
+- headline for each screenshot
+- supporting subtext for each screenshot
+- target user emotion for each frame
+- what UI screen/content should appear in each frame
+
+Recommended screenshot narrative structure:
+
+### Screenshot 1 — The Big Promise
+Communicate the core identity of the app instantly
+
+### Screenshot 2 — The Core Loop
+Mission → focus → proof → reward
+
+### Screenshot 3 — Real Progress Feels Visible
+Character progression / evolution
+
+### Screenshot 4 — Build Your Status
+Wardrobe / room / car / world
+
+### Screenshot 5 — Stay Consistent
+Momentum / streak / comeback / next-step angle
+
+### Screenshot 6 — Why It’s Different
+Proof-based progress, not fake checkbox productivity
+
+For each screenshot define:
+- exact purpose
+- headline
+- subheadline
+- preferred UI state
+- design notes
+- what not to show
+- launch priority (must-have or optional)
+
+Also define a preview video/storyboard concept if light enough for launch.
+
+==================================================
+STEP 8 — REFINE ONBOARDING MESSAGE SYSTEM
+==================================================
+
+Refine the onboarding and first-use messaging.
+
+At minimum review and improve:
+- welcome copy
+- what the app is
+- how the first mission works
+- how proof works
+- what rewards mean
+- why identity/world/status exists
+- first action CTA
+- empty-state guidance
+- comeback-safe phrasing
+
+The onboarding must:
+- reduce intimidation
+- reduce confusion
+- explain proof without sounding heavy
+- make the world/status layer feel meaningful
+- get the user to a first meaningful win quickly
+
+Create:
+- onboarding headline options
+- onboarding subcopy options
+- first-mission explanation copy
+- first-proof explanation copy
+- first-reward explanation copy
+- first-status/world explanation copy
+
+If the current onboarding UI already exists, refine copy rather than redesigning the whole flow.
+
+==================================================
+STEP 9 — CREATE THE LANDING / HERO COPY PACKAGE
+==================================================
+
+Create a minimal but strong hero copy system for:
+- landing page
+- launch post
+- beta invite page
+- app intro section
+- founder pitch deck opening if needed
+
+At minimum include:
+- hero headline options
+- hero subheadline options
+- primary CTA options
+- secondary CTA options
+- social-proof placeholder copy
+- feature-section intro copy
+- “how it works” section copy
+- why-it’s-different section copy
+
+Also create:
+- 3 launch post captions
+- 3 product announcement versions
+- 1 short founder intro paragraph about the product
+
+Keep it sharp, premium, and believable.
+
+==================================================
+STEP 10 — CREATE FAQ / OBJECTION HANDLING COPY
+==================================================
+
+Create a lightweight FAQ and objection system.
+
+At minimum address:
+- Is this just a to-do app?
+- Why do I need proof?
+- Is this too much work to use daily?
+- What do rewards actually do?
+- Why do avatar / room / status matter?
+- What happens if I miss a day?
+- Is this for students, builders, or everyone?
+- Is this a game or a productivity app?
+- How is this different from habit trackers?
+
+For each objection define:
+- user concern
+- best short response
+- longer response if needed
+- where that response should appear (FAQ / onboarding / store copy / landing)
+
+==================================================
+STEP 11 — CREATE THE LAUNCH CHECKLIST
+==================================================
+
+Create a serious launch checklist.
+
+At minimum include:
+
+### Product readiness
+- core loop verified
+- QA gate passed
+- economy gate passed
+- metrics dashboard ready
+- support playbook ready
+- live ops starter cadence ready
+
+### Store readiness
+- title/subtitle chosen
+- descriptions finalized
+- screenshots finalized
+- icon/splash checked
+- onboarding copy checked
+
+### Operations readiness
+- support contact path ready
+- incident response flow ready
+- launch monitoring metrics chosen
+- first week operator schedule ready
+- rollback/hotfix owner identified
+
+### Messaging readiness
+- launch post ready
+- FAQ ready
+- landing hero ready
+- founder pitch ready
+- first audience defined
+
+### Post-launch readiness
+- day 1 / day 3 / day 7 review plan ready
+- first known-risk watchlist ready
+- first retention review plan ready
+- first economy review plan ready
+
+The checklist must be actionable, not vague.
+
+==================================================
+STEP 12 — CREATE THE FOUNDER LAUNCH SCRIPT
+==================================================
+
+Create a founder-facing launch communication package.
+
+At minimum include:
+- 30-second product pitch
+- 60-second product pitch
+- 1-paragraph founder pitch
+- 1 longer launch thread/post outline
+- launch-day internal focus note
+- “what we are / what we are not” positioning statement
+
+This script must help the founder explain the app simply and consistently.
+
+==================================================
+STEP 13 — CREATE THE ASSET STRUCTURE IN THE REPO
+==================================================
+
+Create a clean launch docs structure.
+
+Recommended structure:
+
+/docs/launch/
+  launch-audit.md
+  positioning-doctrine.md
+  first-audience.md
+  messaging-hierarchy.md
+  store-copy.md
+  screenshot-storyboard.md
+  onboarding-copy.md
+  landing-hero-copy.md
+  faq-objections.md
+  founder-launch-script.md
+  launch-checklist.md
+  known-launch-risks.md
+
+If a marketing/landing surface already exists in the repo, update or create only the minimum necessary files/components to support this phase.
+
+If a simple launch preview/admin review page helps internal validation, it may be added only if lightweight and clearly useful.
+
+==================================================
+STEP 14 — DEFINE KNOWN LAUNCH RISKS
+==================================================
+
+Create /docs/launch/known-launch-risks.md and document:
+- what the product still may confuse users about
+- what features may need simpler explanation
+- what promises should not be overemphasized yet
+- what audience mismatch risks exist
+- what screenshot/copy claims must remain honest
+- what parts should be re-tested after launch feedback
+- what launch assumptions are still unvalidated
+
+Be honest and specific.
+
+==================================================
+STEP 15 — SECURITY, TRUST, ERROR HANDLING, EDGE CASES
+==================================================
+
+## 🔐 TRUST / CLAIM SAFETY
+- do not promise features not fully working
+- do not overclaim outcomes
+- do not market unverified systems as magic
+- do not misrepresent proof/judge fairness
+- do not fake scarcity or fake prestige messaging
+
+## 🛡️ ERROR HANDLING
+- if some launch surfaces do not yet exist, create docs/spec instead of fake implementation
+- if screenshots require assets not ready yet, specify them clearly
+- if onboarding copy depends on screens not finalized, keep copy modular
+- if landing page surface is partial, prioritize doc/package quality first
+
+## ⚠️ EDGE CASES
+- product is powerful but too complex for first impression
+- user only cares about productivity, not status/world
+- user only cares about status/world, not proof
+- launch audience misreads the app as a game only
+- launch audience misreads the app as a strict work tracker only
+- screenshots overemphasize one part and bury the core loop
+- onboarding explains too much too early
+- taglines sound cool but unclear
+- store copy sounds unique but not credible
+
+==================================================
+STEP 16 — DO NOT OVER-ENGINEER
+==================================================
+
+Important implementation rules:
+
+1. Do NOT redesign the entire app for launch.
+2. Do NOT create giant marketing infrastructure.
+3. Focus on clarity, coherence, and launch readiness.
+4. Prefer strong messaging systems over flashy but vague copy.
+5. Keep all claims grounded in the actual product.
+6. Make the product easy to understand in seconds.
+7. Optimize for launch-stage conversion and clarity.
+8. Keep the deliverables easy for the founder to use immediately.
+
+==================================================
+STEP 17 — ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. a launch audit exists
+2. a positioning doctrine exists
+3. a first audience / ICP definition exists
+4. a messaging hierarchy exists
+5. title / subtitle / tagline options exist
+6. app store copy exists
+7. screenshot/storyboard system exists
+8. onboarding copy package exists
+9. landing / hero copy exists
+10. FAQ / objection handling exists
+11. founder launch script exists
+12. launch checklist exists
+13. known launch risks are documented
+14. no new gameplay scope was added
+15. the product is easier to explain, present, and launch than before
+
+==================================================
+STEP 18 — DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary
+- what launch/public-facing surfaces already existed
+- what was missing
+- what was reused
+- what was added in this phase
+
+2. Files created or changed in this run only
+
+3. Launch documentation summary
+- positioning doctrine
+- first audience
+- messaging hierarchy
+- store copy
+- screenshot storyboard
+- onboarding copy
+- landing/hero copy
+- FAQ
+- founder script
+- launch checklist
+- known risks
+
+4. Messaging summary
+- recommended title/subtitle/tagline
+- recommended launch narrative
+- recommended first audience
+- recommended core promise
+
+5. Verification results
+- typecheck/build status if any code changed
+- landing/launch surfaces load status if applicable
+- any remaining non-blocking launch gaps
+
+6. Launch recommendation
+- LAUNCH PACKAGE READY or NOT READY
+- if NOT READY, list the exact blockers
+
+==================================================
+IMPORTANT OPERATING RULES
+==================================================
+
+- Audit before packaging
+- Keep scope narrow
+- Do not restart the project
+- Do not invent a new product direction
+- Do not create fake marketing claims
+- Do not promise unbuilt features
+- Prefer clarity and credibility over hype
+- Preserve trust-critical product truth at all costs

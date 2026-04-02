@@ -1,0 +1,186 @@
+Use docs/life-rpg-master-spec.md as the permanent source of truth.
+
+Continue the existing codebase. Do NOT restart the project.
+Do NOT broaden scope.
+Do NOT add new gameplay systems in this phase.
+
+Goal:
+Finish the next smartest low-credit phase: Stability + QA + Hardening only.
+
+Current context:
+- Core loop is working
+- Life RPG layer is working
+- Arc system is working
+- Skill suggestions are working
+- File upload proof exists
+- Adaptive challenge, quest chains, rarity, and reward bonuses exist
+- The next highest-value step is not new features, but making the current system reliable, clean, and safe
+
+==================================================
+PHASE 6 SCOPE ONLY
+==================================================
+
+Work only on:
+
+1. Final audit of Phase 5A + Phase 5B completeness
+2. Regression testing across the full main flow
+3. Edge-case hardening
+4. Cleanup / consistency / abuse protection only where still missing
+5. Documentation of real remaining gaps
+
+Do NOT build:
+- social/community
+- leaderboard
+- marketplace
+- new onboarding layers
+- new skill systems
+- new reward systems
+- new world/asset systems
+- analytics overhaul
+- UI redesign
+- feature expansion beyond bug fixes / hardening
+
+==================================================
+STEP 1 — AUDIT FIRST
+==================================================
+
+Before changing anything:
+1. inspect the current implementation of Phase 5A and Phase 5B
+2. list what is already complete
+3. identify only the remaining unstable, broken, unsafe, or incomplete items
+4. do not change anything unnecessary
+
+Specifically audit:
+- proof upload flow
+- proof extraction / file-aware judging
+- orphan file handling
+- upload abuse/rate limiting
+- adaptive challenge logic
+- quest chain progression
+- rarity / reward bonus flow
+- route ordering conflicts
+- mobile proof screen and result screen
+- any DB/schema mismatches
+- any stale generated types/build issues
+- JSON-only error handling
+- auth/ownership protection on all new routes
+
+==================================================
+STEP 2 — HARDEN ONLY WHAT IS STILL WEAK
+==================================================
+
+Implement only high-value fixes if they are still missing.
+
+Examples of allowed work:
+- finalize orphan cleanup logic
+- tighten upload abuse protection
+- fix edge cases in proof submission
+- fix reward duplication risk
+- prevent repeated chain advancement bugs
+- fix inconsistent bonus explanation data
+- fix route conflicts
+- fix missing ownership checks
+- fix missing JSON error responses
+- fix stale DB/type generation issues
+- add small guardrails for invalid or repeated requests
+
+Examples of disallowed work:
+- new gameplay loops
+- new progression systems
+- new mission categories
+- social systems
+- cosmetic redesign
+- large refactors
+
+==================================================
+STEP 3 — REGRESSION TESTING
+==================================================
+
+Run and verify the main product flows end to end:
+
+1. login
+2. create user mission
+3. start focus session
+4. stop focus session
+5. submit proof:
+   - text proof
+   - link proof
+   - file upload proof
+6. judge proof
+7. reward granted or rejected correctly
+8. wallet updates correctly
+9. skill XP updates correctly
+10. AI-generated mission appears
+11. accept AI mission
+12. AI mission enters normal mission flow
+13. quest chain progress updates if applicable
+14. rarity/difficulty/bonus explanation remains correct
+15. security checks:
+   - cross-user file access denied
+   - unauthenticated upload denied
+   - ownership preserved
+
+==================================================
+STEP 4 — DOCUMENT ONLY TRUE REMAINING GAPS
+==================================================
+
+If some gaps remain after hardening:
+- document them clearly
+- classify them as:
+  - must-fix before production
+  - nice-to-have
+  - next-phase feature
+- do not expand scope to solve everything in one run
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+This phase is complete only if:
+
+1. No major regression is introduced
+2. Main mission -> focus -> proof -> judge -> reward loop still works
+3. AI mission -> accept -> complete -> reward flow still works
+4. File upload proof flow is stable
+5. JSON errors remain clean
+6. Ownership/auth protections remain intact
+7. Any remaining hardening gaps are documented clearly
+8. No unrelated systems were changed
+9. No broad refactor was introduced
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end, return exactly:
+
+1. Audit summary:
+- what was already solid
+- what was weak
+- what was fixed in this run
+
+2. Files changed in this run only
+
+3. Regression test results for:
+- manual mission flow
+- AI mission flow
+- text proof
+- link proof
+- file upload proof
+- wallet / reward flow
+- chain / rarity / bonus flow
+- ownership/security checks
+
+4. Remaining gaps, categorized as:
+- must-fix before production
+- nice-to-have
+- next-phase feature
+
+5. Confirmation that no new major feature scope was added
+
+Important:
+This is a low-credit hardening phase.
+Be conservative.
+Audit first.
+Change only what is necessary.
+Do not broaden scope.
