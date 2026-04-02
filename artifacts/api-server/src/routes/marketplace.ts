@@ -344,7 +344,6 @@ router.post("/:itemId/buy", requireAuth, async (req: any, res) => {
 
     const beforeBalance = user.coinBalance;
     const newBalance = devMode ? user.coinBalance : (user.coinBalance - item.cost);
-    console.log(`[Purchase] item=${item.name} user=${userId} before=${beforeBalance} after=${newBalance} cost=${item.cost}`);
 
     await db.transaction(async (tx) => {
       await tx.update(usersTable)
@@ -380,6 +379,7 @@ router.post("/:itemId/buy", requireAuth, async (req: any, res) => {
       });
     });
 
+    console.log(`[Purchase] item=${item.name} user=${userId} before=${beforeBalance} after=${newBalance} cost=${item.cost}`);
     trackEvent(Events.ITEM_PURCHASED, userId, { itemId: item.id, cost: item.cost, category: item.category, store: "marketplace" }).catch(() => {});
 
     return res.json({

@@ -247,14 +247,14 @@ export default function WardrobeScreen() {
   function handleBuy(itemId: string) {
     const beforeCoins = coinBalance;
     buyMut.mutate({ itemId, devMode: isDevMode }, {
-      onSuccess: (data: any) => {
-        const afterCoins = data?.newBalance ?? "unknown";
+      onSuccess: (data) => {
+        const afterCoins = (data as Record<string, unknown>)?.newBalance ?? "unknown";
         console.log(`[Wardrobe] Purchase complete: itemId=${itemId} before=${beforeCoins} after=${afterCoins}`);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setSheetVisible(false);
       },
-      onError: (err: any) => {
-        console.log(`[Wardrobe] Purchase failed: itemId=${itemId} balance=${beforeCoins} error=${err?.message ?? err}`);
+      onError: (err) => {
+        console.log(`[Wardrobe] Purchase failed: itemId=${itemId} balance=${beforeCoins} error=${err instanceof Error ? err.message : String(err)}`);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       },
     });
