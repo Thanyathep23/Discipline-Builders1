@@ -98,8 +98,9 @@ const RARITY_ICON: Record<string, string> = {
 };
 
 function buildWatchList(wearableData: any): WatchEntry[] {
-  if (!wearableData?.watch) return [];
-  const items: any[] = wearableData.watch;
+  const watchItems = wearableData?.grouped?.watch ?? wearableData?.watch ?? [];
+  if (!watchItems || watchItems.length === 0) return [];
+  const items: any[] = watchItems;
   return items
     .map((item: any) => {
       const slug = item.slug || item.id;
@@ -163,7 +164,8 @@ export default function CustomizeScreen() {
   const cars = React.useMemo(() => buildCarList(carData), [carData]);
 
   const featuredCarId = carData?.featuredCar?.id ?? null;
-  const equippedWatchItems = wearableData?.watch?.filter((w: any) => w.isEquipped) ?? [];
+  const watchItems = wearableData?.grouped?.watch ?? wearableData?.watch ?? [];
+  const equippedWatchItems = watchItems?.filter((w: any) => w.isEquipped) ?? [];
   const equippedWatchId = equippedWatchItems.length > 0 ? equippedWatchItems[0].id : null;
 
   useEffect(() => {
