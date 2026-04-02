@@ -260,7 +260,7 @@ async function ensureWardrobeSeeded() {
   }
 
   for (const item of WARDROBE_ITEMS) {
-    const { glbFile: _glb, ...dbFields } = item;
+    const { glbFile: _glb, prestigeRequired: _prestige, ...dbFields } = item;
     if (!existingIds.has(item.id)) {
       await db.insert(shopItemsTable).values({
         ...dbFields,
