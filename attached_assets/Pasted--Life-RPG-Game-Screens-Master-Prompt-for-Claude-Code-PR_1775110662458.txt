@@ -1,0 +1,69 @@
+# Life RPG — Game Screens Master Prompt for Claude Code
+
+## PROJECT CONTEXT
+Project: Life RPG / Discipline-Builders
+Stack: TypeScript · React Native · Expo · Convex backend
+3D Engine: Three.js via WebView (3-layer architecture)
+Platform: iOS + Android (Expo managed workflow)
+Repo: github.com/umerlaongdao-rgb/Discipline-Builders77
+
+## TASK
+Complete all game screens for the Life RPG app. The app is a gamified discipline-builder with:
+- Character customization (3D model with outfit layers)
+- Wardrobe system (buy/equip clothing, Prestige-gated)
+- Room (Command Center) with furniture slots and tier progression
+- Garage screen
+- Rewards/coins system
+
+## IMPLEMENTATION ORDER
+1. Update convex/schema.ts (add wardrobeItems, userWardrobe, roomItems, userRoom tables)
+2. Create convex/wardrobe.ts + convex/room.ts (mutations: purchaseItem, equipItem, getEquippedOutfit)
+3. Create src/components/CharacterViewer.tsx (Three.js WebView, r128, OrbitControls, postMessage API)
+4. Create src/screens/CharacterStatusScreen.tsx
+5. Create src/screens/WardrobeScreen.tsx (tabs: All/Tops/Bottoms/Shoes/Accessories, 2-col grid, PrestigeLock)
+6. Create src/screens/RoomScreen.tsx (isometric canvas, furniture slots, tier progress)
+7. Wire navigation in AppNavigator.tsx
+8. Seed starter items in Convex
+
+## CHARACTER VIEWER (Three.js WebView)
+- THREE version r128 (CDN compatible)
+- Do NOT use CapsuleGeometry
+- Three layers: Layer 0 = body, Layer 1 = underwear, Layer 2 = outfit
+- React Native ↔ WebView via postMessage:
+  EQUIP_ITEM { layer, meshName }
+  SET_HAIR { style, color }
+  SET_SKIN { color }
+
+## WARDROBE SCHEMA
+wardrobeItems: { itemId, name, category (top/bottom/shoes/accessory), price, prestigeRequired (0=all), modelLayer, thumbnailUrl, isDefault }
+userWardrobe: { userId, itemId, isEquipped, purchasedAt }
+
+## ROOM SCHEMA  
+roomItems: { slot (DESK/SHELF/MONITOR/TROPHY/PLANTS/AUDIO/COFFEE), name, price, points, prestigeRequired, imageUrl }
+userRoom: { userId, themeId, equippedItems [{slot, itemId}], totalPoints, currentTier }
+
+## ROOM TIER SYSTEM
+Standard Base (0-29) → Emerging Workspace (30-79) → Professional Hub (80-149) → Elite Command (150-299) → Legend HQ (300+)
+
+## PRESTIGE GATE
+const isLocked = item.prestigeRequired > userPrestige
+Show lock overlay: "Unlock at Prestige {N}"
+
+## STARTER KIT (free defaults)
+- White Button Shirt (layer 2)
+- Black Boxer Briefs (layer 1)  
+- No furniture (Standard Base)
+
+## DESIGN SYSTEM
+Background: #0A0A12 | Cards: #12121F | Border: #2A2A40
+Purple accent: #7B6FE8 | Gold/coins: #F5A623
+Text primary: white | Secondary: #9898B8
+
+## TESTING CHECKLIST
+- 3D character loads in WebView
+- Equip updates mesh
+- Purchase deducts coins
+- Prestige lock shows on gated items
+- Room points update on equip
+- Tier badge updates at thresholds
+- All navigation routes work
