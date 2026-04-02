@@ -21,6 +21,8 @@ if (Platform.OS !== "web") {
   GLTFLoader = require("three/examples/jsm/loaders/GLTFLoader").GLTFLoader;
 }
 
+const gltfSceneCache = new Map<string, any>();
+
 export interface GLBViewerProps {
   modelFile: string;
   width: number;
@@ -57,32 +59,23 @@ function AutoFitModel({
     t0Ref.current = Date.now();
     onLoadStart?.();
 
+    const cached = gltfSceneCache.get(url);
+    if (cached) {
+      const cloned = cached.clone();
+      applyScene(cloned, camera);
+      setScene(cloned);
+      onLoadEnd?.(Date.now() - t0Ref.current);
+      return;
+    }
+
     const loader = new GLTFLoader();
     loader.load(
       url,
       (gltf: any) => {
         const s = gltf.scene;
-        const box = new THREE.Box3().setFromObject(s);
-        const center = new THREE.Vector3();
-        const size = new THREE.Vector3();
-        box.getCenter(center);
-        box.getSize(size);
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const fitScale = 1.8 / maxDim;
+        gltfSceneCache.set(url, s.clone());
 
-        s.scale.setScalar(fitScale);
-        s.position.sub(center.multiplyScalar(fitScale));
-
-        s.traverse((child: any) => {
-          if (child.isMesh) {
-            child.castShadow = false;
-            child.receiveShadow = false;
-          }
-        });
-
-        camera.position.set(0, size.y * fitScale * 0.2, maxDim * fitScale * 2.4);
-        camera.lookAt(0, 0, 0);
-
+        applyScene(s, camera);
         setScene(s);
         onLoadEnd?.(Date.now() - t0Ref.current);
       },
@@ -105,6 +98,29 @@ function AutoFitModel({
       <primitive object={scene} />
     </group>
   );
+}
+
+function applyScene(s: any, camera: any) {
+  const box = new THREE.Box3().setFromObject(s);
+  const center = new THREE.Vector3();
+  const size = new THREE.Vector3();
+  box.getCenter(center);
+  box.getSize(size);
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const fitScale = 1.8 / maxDim;
+
+  s.scale.setScalar(fitScale);
+  s.position.sub(center.multiplyScalar(fitScale));
+
+  s.traverse((child: any) => {
+    if (child.isMesh) {
+      child.castShadow = false;
+      child.receiveShadow = false;
+    }
+  });
+
+  camera.position.set(0, size.y * fitScale * 0.2, maxDim * fitScale * 2.4);
+  camera.lookAt(0, 0, 0);
 }
 
 function NativeGLBViewer({
@@ -169,7 +185,6 @@ function WebGLBViewer({
         <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
         <style>body{margin:0;background:transparent;overflow:hidden}model-viewer{width:100%;height:100%}</style>
         <script>
-          window.addEventListener('message', function(e) {});
           document.addEventListener('DOMContentLoaded', function() {
             var mv = document.querySelector('model-viewer');
             if (mv) {
@@ -228,20 +243,31 @@ const GLBViewer: React.FC<GLBViewerProps> = (props) => {
 
 export default GLBViewer;
 
-const modelPreloadCache = new Set<string>();
-
 export async function preloadGLBModels(modelFiles: string[]) {
+  if (Platform.OS === "web") return;
+
+  const loader = GLTFLoader ? new GLTFLoader() : null;
+  if (!loader) return;
+
   const promises = modelFiles
-    .filter((file) => !modelPreloadCache.has(file))
-    .map(async (file) => {
-      try {
-        const url = `${MODELS_BASE}/${file}`;
-        const res = await fetch(url);
-        if (res.ok) {
-          await res.arrayBuffer();
-          modelPreloadCache.add(file);
-        }
-      } catch {}
-    });
+    .filter((file) => {
+      const url = `${MODELS_BASE}/${file}`;
+      return !gltfSceneCache.has(url);
+    })
+    .map(
+      (file) =>
+        new Promise<void>((resolve) => {
+          const url = `${MODELS_BASE}/${file}`;
+          loader.load(
+            url,
+            (gltf: any) => {
+              gltfSceneCache.set(url, gltf.scene.clone());
+              resolve();
+            },
+            undefined,
+            () => resolve()
+          );
+        })
+    );
   await Promise.allSettled(promises);
 }
