@@ -18,6 +18,7 @@ interface WardrobeItemDef {
   itemType: string;
   wearableSlot: string;
   minLevel: number;
+  prestigeRequired: number;
   styleEffect: string;
   series: string;
   glbFile?: string;
@@ -29,7 +30,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-watch-apple-ultra", slug: "apple-watch-ultra", name: "Apple Watch Ultra 2",
     description: "The most rugged Apple Watch ever. Built for those who push limits.",
     cost: 4500, category: "fashion", icon: "watch-outline", rarity: "common", itemType: "cosmetic",
-    wearableSlot: "watch", minLevel: 2,
+    wearableSlot: "watch", minLevel: 2, prestigeRequired: 0,
     styleEffect: "Prestige +3",
     series: "Smart Watch",
     glbFile: "apple_watch_ultra_2.glb",
@@ -38,7 +39,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-watch-timex", slug: "timex-expedition", name: "Timex Expedition",
     description: "Built for those who show up. Rain or shine. Every single day.",
     cost: 5000, category: "fashion", icon: "watch-outline", rarity: "common", itemType: "cosmetic",
-    wearableSlot: "watch", minLevel: 3,
+    wearableSlot: "watch", minLevel: 3, prestigeRequired: 0,
     styleEffect: "Prestige +3",
     series: "Field Watch",
     glbFile: "timex_expedition_watch.glb",
@@ -47,7 +48,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-watch-seiko", slug: "seiko-prospex", name: "Seiko Prospex",
     description: "Japanese precision. The diver's choice since 1965. Earned, not bought.",
     cost: 12000, category: "fashion", icon: "watch-outline", rarity: "rare", itemType: "cosmetic",
-    wearableSlot: "watch", minLevel: 8,
+    wearableSlot: "watch", minLevel: 8, prestigeRequired: 1,
     styleEffect: "Prestige +7",
     series: "Diver's Watch",
     glbFile: "seiko_watch.glb",
@@ -56,7 +57,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-watch-chrono-sport", slug: "chronograph-sport", name: "Chronograph Sport",
     description: "Measure every second. In business and in life, timing is everything.",
     cost: 18000, category: "fashion", icon: "watch-outline", rarity: "rare", itemType: "cosmetic",
-    wearableSlot: "watch", minLevel: 12,
+    wearableSlot: "watch", minLevel: 12, prestigeRequired: 1,
     styleEffect: "Prestige +9",
     series: "Sport Chronograph",
     glbFile: "chronograph_watch.glb",
@@ -65,7 +66,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-watch-dress", slug: "classic-dress-watch", name: "Classic Dress Watch",
     description: "The boardroom demands refinement. This watch opens doors.",
     cost: 22000, category: "fashion", icon: "watch-outline", rarity: "rare", itemType: "cosmetic",
-    wearableSlot: "watch", minLevel: 15,
+    wearableSlot: "watch", minLevel: 15, prestigeRequired: 1,
     styleEffect: "Prestige +11",
     series: "Dress Watch",
     glbFile: "hand_watch.glb",
@@ -74,7 +75,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-watch-breitling", slug: "breitling-superocean-44", name: "Breitling Superocean 44",
     description: "Instruments for professionals. Swiss-made for those who mean business.",
     cost: 45000, category: "fashion", icon: "watch-outline", rarity: "epic", itemType: "cosmetic",
-    wearableSlot: "watch", minLevel: 28,
+    wearableSlot: "watch", minLevel: 28, prestigeRequired: 2,
     styleEffect: "Prestige +20",
     series: "Professional Diver",
     glbFile: "breitling_superocean_automatic_44.glb",
@@ -83,7 +84,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-watch-rolex", slug: "rolex-datejust", name: "Rolex Datejust",
     description: "The most recognised watch in the world. A symbol of achievement since 1945.",
     cost: 85000, category: "fashion", icon: "watch-outline", rarity: "legendary", itemType: "cosmetic",
-    wearableSlot: "watch", minLevel: 45,
+    wearableSlot: "watch", minLevel: 45, prestigeRequired: 3,
     styleEffect: "Prestige +38",
     series: "Luxury Icon",
     glbFile: "rolex_datejust.glb",
@@ -92,7 +93,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-watch-patek", slug: "patek-philippe-calatrava", name: "Patek Philippe Calatrava",
     description: "You never actually own a Patek Philippe. You merely look after it for the next generation.",
     cost: 150000, category: "fashion", icon: "watch-outline", rarity: "legendary", itemType: "cosmetic",
-    wearableSlot: "watch", minLevel: 60,
+    wearableSlot: "watch", minLevel: 60, prestigeRequired: 3,
     styleEffect: "Prestige +55",
     series: "Haute Horlogerie",
     glbFile: "patek_philippe.glb",
@@ -101,7 +102,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-watch-rm", slug: "richard-mille-rm011", name: "Richard Mille RM 011",
     description: "The ultimate flex. $1M on your wrist. Reserved for those who've truly made it.",
     cost: 220000, category: "fashion", icon: "watch-outline", rarity: "legendary", itemType: "cosmetic",
-    wearableSlot: "watch", minLevel: 70,
+    wearableSlot: "watch", minLevel: 70, prestigeRequired: 3,
     styleEffect: "Prestige +70",
     series: "Ultra Luxury",
     glbFile: "richard_mille_rm011.glb",
@@ -112,7 +113,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-top-starter", slug: "starter-white-shirt", name: "Starter White Shirt",
     description: "Every story starts somewhere.",
     cost: 0, category: "fashion", icon: "shirt-outline", rarity: "common", itemType: "cosmetic",
-    wearableSlot: "top", minLevel: 1,
+    wearableSlot: "top", minLevel: 1, prestigeRequired: 0,
     styleEffect: "Default starter appearance",
     series: "Starter Collection",
     glbFile: "shirt_for_men.glb",
@@ -121,7 +122,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-top-hoodie", slug: "premium-hoodie-s1", name: "Premium Hoodie — Series 1",
     description: "Elevated casual. Never basic.",
     cost: 800, category: "fashion", icon: "shirt-outline", rarity: "uncommon", itemType: "cosmetic",
-    wearableSlot: "top", minLevel: 8,
+    wearableSlot: "top", minLevel: 8, prestigeRequired: 0,
     styleEffect: "Casual tier outfit",
     series: "Elevated Essentials",
     glbFile: "stylized_hoodie_jacket.glb",
@@ -130,7 +131,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-top-silk", slug: "silk-business-shirt", name: "Silk Business Shirt",
     description: "Cut for the boardroom. Worn for the life.",
     cost: 2800, category: "fashion", icon: "shirt-outline", rarity: "rare", itemType: "cosmetic",
-    wearableSlot: "top", minLevel: 18,
+    wearableSlot: "top", minLevel: 18, prestigeRequired: 1,
     styleEffect: "Outfit tier upgrade",
     series: "Executive Line",
     glbFile: "elegant_clothing_set.glb",
@@ -141,7 +142,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-outer-cashmere", slug: "milano-cashmere-coat", name: "Milano Cashmere Coat",
     description: "The coat that doesn't need a logo.",
     cost: 6000, category: "fashion", icon: "shirt-outline", rarity: "epic", itemType: "cosmetic",
-    wearableSlot: "outerwear", minLevel: 30,
+    wearableSlot: "outerwear", minLevel: 30, prestigeRequired: 2,
     styleEffect: "Outfit tier upgrade to Refined",
     series: "Milano Collection",
     glbFile: "black_puffy_jacket.glb",
@@ -150,7 +151,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-suit-exec", slug: "executive-suit-midnight", name: "Executive Suit — Midnight",
     description: "The uniform of those who close.",
     cost: 9000, category: "fashion", icon: "shirt-outline", rarity: "epic", itemType: "cosmetic",
-    wearableSlot: "outerwear", minLevel: 40,
+    wearableSlot: "outerwear", minLevel: 40, prestigeRequired: 2,
     styleEffect: "Strongest outfit upgrade, prestige signal",
     series: "Executive Line",
     glbFile: "mens_clothing_game.glb",
@@ -161,7 +162,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-bottom-starter", slug: "dark-denim-premium", name: "Dark Denim Premium",
     description: "The foundation.",
     cost: 0, category: "fashion", icon: "shirt-outline", rarity: "common", itemType: "cosmetic",
-    wearableSlot: "bottom", minLevel: 1,
+    wearableSlot: "bottom", minLevel: 1, prestigeRequired: 0,
     styleEffect: "Default starter appearance",
     series: "Starter Collection",
   },
@@ -169,7 +170,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-bottom-trouser", slug: "technical-slim-trouser", name: "Technical Slim Trouser",
     description: "Precision tailoring. Zero compromise.",
     cost: 1500, category: "fashion", icon: "shirt-outline", rarity: "uncommon", itemType: "cosmetic",
-    wearableSlot: "bottom", minLevel: 12,
+    wearableSlot: "bottom", minLevel: 12, prestigeRequired: 0,
     styleEffect: "Lower outfit refinement upgrade",
     series: "Tailored Series",
   },
@@ -179,7 +180,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-acc-bifold", slug: "leather-bifold-milano", name: "Leather Bifold — Milano",
     description: "Slim. Black. No logo needed.",
     cost: 600, category: "fashion", icon: "diamond-outline", rarity: "uncommon", itemType: "cosmetic",
-    wearableSlot: "accessory", minLevel: 10,
+    wearableSlot: "accessory", minLevel: 10, prestigeRequired: 0,
     styleEffect: "Subtle lifestyle signal",
     series: "Milano Collection",
   },
@@ -187,7 +188,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-acc-pocket", slug: "silk-pocket-square", name: "Silk Pocket Square — Midnight",
     description: "The 10% that makes 100% of the impression.",
     cost: 400, category: "fashion", icon: "diamond-outline", rarity: "uncommon", itemType: "cosmetic",
-    wearableSlot: "accessory", minLevel: 15,
+    wearableSlot: "accessory", minLevel: 15, prestigeRequired: 0,
     styleEffect: "Outfit detail upgrade on suited looks",
     series: "Executive Line",
   },
@@ -195,7 +196,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-acc-cardcase", slug: "carbon-fiber-card-case", name: "Carbon Fiber Card Case",
     description: "Details signal status before you speak.",
     cost: 1200, category: "fashion", icon: "diamond-outline", rarity: "rare", itemType: "cosmetic",
-    wearableSlot: "accessory", minLevel: 22,
+    wearableSlot: "accessory", minLevel: 22, prestigeRequired: 1,
     styleEffect: "Lifestyle signal upgrade",
     series: "Carbon Atelier",
   },
@@ -203,7 +204,7 @@ const WARDROBE_ITEMS: WardrobeItemDef[] = [
     id: "wardrobe-acc-ring", slug: "titanium-ring-zero", name: "Titanium Ring — Zero",
     description: "Unmarked. Immovable.",
     cost: 3500, category: "fashion", icon: "diamond-outline", rarity: "epic", itemType: "cosmetic",
-    wearableSlot: "accessory", minLevel: 38,
+    wearableSlot: "accessory", minLevel: 38, prestigeRequired: 2,
     styleEffect: "Prestige signal on hands layer",
     series: "Atelier Collection",
   },
@@ -221,6 +222,10 @@ export const WATCH_GLB_MAP: Record<string, string> = Object.fromEntries(
 
 export const WARDROBE_GLB_MAP = new Map(
   WARDROBE_ITEMS.filter((i): i is WardrobeItemDef & { glbFile: string } => !!i.glbFile).map((i) => [i.id, i.glbFile])
+);
+
+export const WARDROBE_PRESTIGE_MAP = new Map(
+  WARDROBE_ITEMS.map((i) => [i.id, i.prestigeRequired])
 );
 
 const DEPRECATED_WATCH_IDS = [
@@ -297,12 +302,13 @@ router.get("/", requireAuth, async (req: any, res) => {
     const userId = req.user.id;
 
     const [user] = await db
-      .select({ level: usersTable.level, coinBalance: usersTable.coinBalance })
+      .select({ level: usersTable.level, coinBalance: usersTable.coinBalance, prestigeTier: usersTable.prestigeTier })
       .from(usersTable)
       .where(eq(usersTable.id, userId))
       .limit(1);
     const userLevel = user?.level ?? 1;
     const coinBalance = user?.coinBalance ?? 0;
+    const userPrestigeTier = user?.prestigeTier ?? 0;
 
     const BANNED_WATCH_NAMES = ["Classic Watch", "Refined Timepiece", "Elite Chronograph"];
     const rawItems = await db
@@ -320,6 +326,9 @@ router.get("/", requireAuth, async (req: any, res) => {
 
     const result = items.map((item) => {
       const inv = ownedMap.get(item.id) ?? null;
+      const prestigeReq = WARDROBE_PRESTIGE_MAP.get(item.id) ?? 0;
+      const levelLocked = userLevel < (item.minLevel ?? 0);
+      const prestigeLocked = userPrestigeTier < prestigeReq;
       return {
         id: item.id,
         slug: item.slug,
@@ -330,12 +339,14 @@ router.get("/", requireAuth, async (req: any, res) => {
         rarity: item.rarity,
         wearableSlot: item.wearableSlot,
         minLevel: item.minLevel,
+        prestigeRequired: prestigeReq,
         icon: item.icon,
         series: item.series ?? null,
         glbFile: WARDROBE_GLB_MAP.get(item.id) ?? null,
         isOwned: inv !== null,
         isEquipped: inv?.isEquipped ?? false,
-        isLocked: userLevel < (item.minLevel ?? 0),
+        isLocked: levelLocked || prestigeLocked,
+        isPrestigeLocked: prestigeLocked,
         canAfford: coinBalance >= item.cost,
         isPremiumOnly: item.isPremiumOnly,
       };
@@ -349,7 +360,7 @@ router.get("/", requireAuth, async (req: any, res) => {
       accessory: result.filter((i) => i.wearableSlot === "accessory").sort((a, b) => a.cost - b.cost),
     };
 
-    return res.json({ items: result, grouped, userLevel, coinBalance });
+    return res.json({ items: result, grouped, userLevel, coinBalance, userPrestigeTier });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

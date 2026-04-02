@@ -202,8 +202,10 @@ function NativeOutfitModelInner({
     if (bodyRef.current) {
       s.scale.copy(bodyRef.current.scale);
       s.scale.multiplyScalar(align.scale);
-      s.position.copy(bodyRef.current.position);
-      s.position.y += align.yOffset;
+      const scaledBox = new THREE.Box3().setFromObject(s);
+      const center = new THREE.Vector3();
+      scaledBox.getCenter(center);
+      s.position.set(-center.x, -scaledBox.min.y + align.yOffset, -center.z);
       alignedRef.current = true;
     } else {
       const box = new THREE.Box3().setFromObject(s);
@@ -227,8 +229,10 @@ function NativeOutfitModelInner({
     if (!alignedRef.current && gltf?.scene && bodyRef.current) {
       gltf.scene.scale.copy(bodyRef.current.scale);
       gltf.scene.scale.multiplyScalar(align.scale);
-      gltf.scene.position.copy(bodyRef.current.position);
-      gltf.scene.position.y += align.yOffset;
+      const scaledBox = new THREE.Box3().setFromObject(gltf.scene);
+      const center = new THREE.Vector3();
+      scaledBox.getCenter(center);
+      gltf.scene.position.set(-center.x, -scaledBox.min.y + align.yOffset, -center.z);
       alignedRef.current = true;
     }
   });
@@ -343,11 +347,10 @@ function SuperheroModel({
       gltf.scene.traverse((child: any) => {
         if (child.isMesh && child.material) {
           const mat = child.material;
-          const matName = BODY_MATERIALS[gender] ?? BODY_MATERIALS.male;
-          if (mat.name === matName) {
-            mat.map = tex;
-            mat.needsUpdate = true;
-          }
+          const n = (mat.name || "").toLowerCase();
+          if (n.includes("hair") || n.includes("eye") || n.includes("eyelash") || n.includes("brow")) return;
+          mat.map = tex;
+          mat.needsUpdate = true;
         }
       });
     });
@@ -480,7 +483,7 @@ function WebModelViewer({
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
-      if (event.source !== iframeRef.current?.contentWindow) return;
+      if (iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) return;
       if (event.data?.type === "viewerReady") {
         readyRef.current = true;
         if (pendingRef.current) {

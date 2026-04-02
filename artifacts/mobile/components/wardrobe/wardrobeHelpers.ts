@@ -55,12 +55,14 @@ export type WardrobeItem = {
   rarity: string;
   wearableSlot: string;
   minLevel: number;
+  prestigeRequired: number;
   icon: string;
   series: string | null;
   glbFile: string | null;
   isOwned: boolean;
   isEquipped: boolean;
   isLocked: boolean;
+  isPrestigeLocked: boolean;
   canAfford: boolean;
   isPremiumOnly: boolean;
 };

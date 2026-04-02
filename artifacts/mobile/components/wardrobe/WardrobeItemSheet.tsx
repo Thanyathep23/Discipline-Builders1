@@ -131,11 +131,15 @@ export function WardrobeItemSheet({
 
   function renderCTA() {
     if (itemLocked) {
+      const lockText = item!.isPrestigeLocked
+        ? `Reach Prestige ${item!.prestigeRequired} to Unlock`
+        : `Reach Level ${item!.minLevel} to Unlock`;
+      const lockIcon = item!.isPrestigeLocked ? "shield-outline" : "lock-closed-outline";
       return (
         <View>
           <Pressable style={[st.ctaBtn, st.ctaDisabled]} disabled>
-            <Ionicons name="lock-closed-outline" size={14} color={colors.text.tertiary} />
-            <Text style={st.ctaDisabledText}>Reach Level {item!.minLevel} to Unlock</Text>
+            <Ionicons name={lockIcon as any} size={14} color={colors.text.tertiary} />
+            <Text style={st.ctaDisabledText}>{lockText}</Text>
           </Pressable>
           {userXp != null && xpForNextLevel != null && (
             <View style={st.xpRow}>
@@ -244,6 +248,15 @@ export function WardrobeItemSheet({
               <Text style={st.statValue}>{item.minLevel}</Text>
             </View>
             <View style={st.statDivider} />
+            {item.prestigeRequired > 0 && (
+              <>
+                <View style={st.statItem}>
+                  <Text style={st.statLabel}>PRESTIGE</Text>
+                  <Text style={st.statValue}>{item.prestigeRequired}</Text>
+                </View>
+                <View style={st.statDivider} />
+              </>
+            )}
             <View style={st.statItem}>
               <Text style={st.statLabel}>COIN COST</Text>
               <Text style={st.statValue}>{item.cost === 0 ? "Free" : item.cost.toLocaleString()}</Text>

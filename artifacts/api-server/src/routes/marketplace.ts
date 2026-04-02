@@ -8,6 +8,7 @@ import { eq, and, asc, desc, or, ilike, inArray, isNull, sql } from "drizzle-orm
 import { requireAuth, requireAdmin, generateId } from "../lib/auth.js";
 import { trackEvent, Events } from "../lib/telemetry.js";
 import { isKilled } from "../lib/kill-switches.js";
+import { WARDROBE_PRESTIGE_MAP } from "./wearables.js";
 import { z } from "zod";
 
 const router = Router();
@@ -326,6 +327,11 @@ router.post("/:itemId/buy", requireAuth, async (req: any, res) => {
       .where(eq(usersTable.id, userId)).limit(1);
     if (!user) return res.status(404).json({ error: "User not found" });
 
+    const prestigeReq = WARDROBE_PRESTIGE_MAP.get(itemId) ?? 0;
+    if (prestigeReq > 0 && (user.prestigeTier ?? 0) < prestigeReq) {
+      return res.status(403).json({ error: `This item requires Prestige ${prestigeReq}.`, prestigeRequired: prestigeReq });
+    }
+
     const devMode = req.query.devMode === "true" && process.env.NODE_ENV !== "production";
     if (!devMode && user.coinBalance < item.cost) {
       trackEvent(Events.ITEM_PURCHASE_FAILED, userId, { itemId, reason: "insufficient_coins", cost: item.cost, balance: user.coinBalance, store: "marketplace" }).catch(() => {});
@@ -403,11 +409,15 @@ router.post("/:itemId/equip", requireAuth, async (req: any, res) => {
       return res.status(400).json({ error: "This item cannot be equipped" });
     }
 
-    // Phase 29 — Level lock enforcement for wearable items
-    if ((item.minLevel ?? 0) > 0) {
-      const [userRow] = await db.select({ level: usersTable.level }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    // Level + prestige lock enforcement for wearable items
+    const prestigeReq = WARDROBE_PRESTIGE_MAP.get(itemId) ?? 0;
+    if ((item.minLevel ?? 0) > 0 || prestigeReq > 0) {
+      const [userRow] = await db.select({ level: usersTable.level, prestigeTier: usersTable.prestigeTier }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
       if ((userRow?.level ?? 1) < (item.minLevel ?? 0)) {
         return res.status(403).json({ error: `This item requires level ${item.minLevel}.`, requiredLevel: item.minLevel });
+      }
+      if (prestigeReq > 0 && (userRow?.prestigeTier ?? 0) < prestigeReq) {
+        return res.status(403).json({ error: `This item requires Prestige ${prestigeReq}.`, prestigeRequired: prestigeReq });
       }
     }
 

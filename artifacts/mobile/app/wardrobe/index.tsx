@@ -307,7 +307,12 @@ export default function WardrobeScreen() {
           </View>
         </View>
         <View style={st.itemStatus}>
-          {item.isLocked ? (
+          {item.isPrestigeLocked ? (
+            <View style={[st.statusChip, { backgroundColor: colors.accent.premium + "18" }]}>
+              <Ionicons name="shield-outline" size={10} color={colors.accent.premium} />
+              <Text style={[st.statusText, { color: colors.accent.premium }]}>Prestige {item.prestigeRequired}</Text>
+            </View>
+          ) : item.isLocked ? (
             <View style={[st.statusChip, { backgroundColor: colors.accent.warning + "18" }]}>
               <Ionicons name="lock-closed-outline" size={10} color={colors.accent.warning} />
               <Text style={[st.statusText, { color: colors.accent.warning }]}>Lvl {item.minLevel}</Text>
