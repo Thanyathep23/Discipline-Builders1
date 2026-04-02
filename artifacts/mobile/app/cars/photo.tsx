@@ -81,7 +81,7 @@ const SCENE_META: Record<Scene, {
     label: "Showroom",
     mood: "Luxury. Clean. Minimal.",
     icon: "diamond-outline",
-    bg1: "#E8E8E8", bg2: "#D0D0D0", ground: "#C8C8C8", accent: "#888888",
+    bg1: "#B8B8B8", bg2: "#D0D0D0", bg3: "#E8E8E8", ground: "#C0C0C0", accent: "#888888",
   },
   track: {
     label: "Track",
@@ -288,12 +288,10 @@ function PhotoScene({
             Unlocked by: {username}
           </Text>
           <View style={psc.statsRow}>
-            {car.prestigeValue > 0 && (
-              <Text style={psc.prestigeStat}>
-                {"\u2605"} Prestige +{car.prestigeValue}
-              </Text>
-            )}
-            {car.prestigeValue > 0 && userLevel != null && (
+            <Text style={psc.prestigeStat}>
+              {"\u2605"} Prestige +{car.prestigeValue}
+            </Text>
+            {userLevel != null && (
               <Text style={psc.statDot}>{"\u2022"}</Text>
             )}
             {userLevel != null && (
