@@ -1,0 +1,49 @@
+You are working on a React Native / Expo app called "Life RPG" (TypeScript + Convex backend).
+
+I have uploaded 3 files to this project:
+- GLBViewer.tsx → move to components/GLBViewer.tsx
+- CustomizeScreenV3.tsx → replace screens/CustomizeScreen.tsx
+- optimized-glb.zip → extract all .glb files to assets/models/
+
+TASKS — complete all in order:
+
+1. INSTALL PACKAGES
+   Run: npx expo install expo-gl expo-three
+   Run: npm install three@0.167.1 meshoptimizer
+
+2. EXTRACT GLB ASSETS
+   Unzip optimized-glb.zip → place every .glb file inside assets/models/
+   Make sure the folder exists, create it if not.
+
+3. PLACE COMPONENTS
+   - Copy GLBViewer.tsx → components/GLBViewer.tsx
+   - Copy CustomizeScreenV3.tsx → screens/CustomizeScreen.tsx (overwrite)
+
+4. FIX ALL IMPORT PATHS in CustomizeScreenV3 / CustomizeScreen.tsx
+   - Fix: ../components/GLBViewer → correct relative path
+   - Fix: ../assets/models/xxx.glb → correct relative path for every require()
+   - Fix: ../convex/_generated/api → correct path
+   - Fix: convex/react useMutation / useQuery imports
+
+5. ADD METRO BUNDLER SUPPORT FOR GLB
+   In metro.config.js, add 'glb' to assetExts so Metro bundles the files:
+   const { getDefaultConfig } = require('expo/metro-config');
+   const config = getDefaultConfig(__dirname);
+   config.resolver.assetExts.push('glb');
+   module.exports = config;
+   If metro.config.js does not exist, create it with the above content.
+
+6. ADD CONVEX MUTATIONS in convex/character.ts
+   Add two mutations (if not present):
+   - equipWatch(watchKey: string) → patch character document field watchKey
+   - equipVehicle(carKey: string)  → patch character document field carKey
+   Add watchKey and carKey fields (v.optional(v.string())) to the characters table in convex/schema.ts
+
+7. VERIFY AND FIX ERRORS
+   Run the project. Fix any TypeScript or import errors.
+   - If expo-three types are missing, add: npm install --save-dev @types/three
+   - If OrbitControls import fails from expo-three, import from: three/examples/jsm/controls/OrbitControls
+   - If MeshoptDecoder import fails, import from: three/examples/jsm/libs/meshopt_decoder.module
+
+8. CONFIRM
+   After all tasks done, print a summary of every file changed and any remaining warnings.
