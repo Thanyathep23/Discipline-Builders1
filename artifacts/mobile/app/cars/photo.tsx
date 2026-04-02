@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View, Text, ScrollView, Pressable, StyleSheet,
   ActivityIndicator, Platform, Dimensions, Alert,
@@ -122,6 +122,8 @@ function PhotoScene({
   hairColor?: string;
 }) {
   const [glbFailed, setGlbFailed] = useState(false);
+  const glbFile = CAR_GLB_MAP[car.name];
+  useEffect(() => { setGlbFailed(false); }, [car.id, glbFile]);
   const sm = SCENE_META[scene];
   const rarityColor = RARITY_COLORS[car.rarity] ?? "#9CA3AF";
   const bodyColor = getBodyColor(car);
@@ -129,7 +131,6 @@ function PhotoScene({
   const vb = `0 0 380 ${Math.round(380 * ASPECT_RATIOS[aspectRatio])}`;
   const vbH = Math.round(380 * ASPECT_RATIOS[aspectRatio]);
   const groundY = vbH - 60;
-  const glbFile = CAR_GLB_MAP[car.name];
   const use3D = !!glbFile && !glbFailed;
 
   return (
