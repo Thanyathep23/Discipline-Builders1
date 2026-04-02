@@ -332,13 +332,19 @@ router.post("/:itemId/buy", requireAuth, async (req: any, res) => {
       return res.status(403).json({ error: `This item requires Prestige ${prestigeReq}.`, prestigeRequired: prestigeReq });
     }
 
+    if ((item.minLevel ?? 0) > 0 && (user.level ?? 1) < (item.minLevel ?? 0)) {
+      return res.status(403).json({ error: `This item requires Level ${item.minLevel}.`, minLevel: item.minLevel, userLevel: user.level ?? 1 });
+    }
+
     const devMode = req.query.devMode === "true" && process.env.NODE_ENV !== "production";
     if (!devMode && user.coinBalance < item.cost) {
       trackEvent(Events.ITEM_PURCHASE_FAILED, userId, { itemId, reason: "insufficient_coins", cost: item.cost, balance: user.coinBalance, store: "marketplace" }).catch(() => {});
       return res.status(400).json({ error: "Insufficient coins", required: item.cost, balance: user.coinBalance });
     }
 
+    const beforeBalance = user.coinBalance;
     const newBalance = devMode ? user.coinBalance : (user.coinBalance - item.cost);
+    console.log(`[Purchase] item=${item.name} user=${userId} before=${beforeBalance} after=${newBalance} cost=${item.cost}`);
 
     await db.transaction(async (tx) => {
       await tx.update(usersTable)

@@ -245,12 +245,18 @@ export default function WardrobeScreen() {
   }, [allItems]);
 
   function handleBuy(itemId: string) {
+    const beforeCoins = coinBalance;
     buyMut.mutate({ itemId, devMode: isDevMode }, {
-      onSuccess: () => {
+      onSuccess: (data: any) => {
+        const afterCoins = data?.newBalance ?? "unknown";
+        console.log(`[Wardrobe] Purchase complete: itemId=${itemId} before=${beforeCoins} after=${afterCoins}`);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setSheetVisible(false);
       },
-      onError: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error),
+      onError: (err: any) => {
+        console.log(`[Wardrobe] Purchase failed: itemId=${itemId} balance=${beforeCoins} error=${err?.message ?? err}`);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      },
     });
   }
 
