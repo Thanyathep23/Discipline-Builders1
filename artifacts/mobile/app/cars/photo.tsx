@@ -7,16 +7,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown, FadeIn, FadeOut } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import Svg, {
-  Path, Circle, Rect, Ellipse, LinearGradient, Defs, Stop,
-  Line, G,
+  Rect, Ellipse, LinearGradient as SvgLinearGradient, RadialGradient,
+  Defs, Stop, Line, G,
 } from "react-native-svg";
 import ViewShot from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import * as MediaLibrary from "expo-media-library";
+import { BlurView } from "expo-blur";
 import { Colors, RARITY_COLORS } from "@/constants/colors";
-import { useCarPhotoMode, useCharacterStatus, useIdentity, useEndgame } from "@/hooks/useApi";
+import { useCarPhotoMode, useCharacterStatus } from "@/hooks/useApi";
 import { useAuth } from "@/context/AuthContext";
 import { CarVisual } from "@/app/cars/index";
 import { EvolvedCharacter, type VisualState, type EquippedWearableState } from "@/app/character/index";
@@ -57,36 +58,36 @@ type Car = {
   description?: string;
 };
 
-type Scene = "nightcity" | "coastal" | "minimal" | "track";
+type Scene = "nightcity" | "coastal" | "showroom" | "track";
 type AspectRatio = "4:5" | "1:1";
 
 const SCENE_META: Record<Scene, {
   label: string; mood: string; icon: string;
-  bg1: string; bg2: string; ground: string;
+  bg1: string; bg2: string; bg3?: string; ground: string; accent: string;
 }> = {
   nightcity: {
     label: "Night City",
     mood: "Dark urban. Neon undertow.",
     icon: "business-outline",
-    bg1: "#05080E", bg2: "#0A1628", ground: "#080E1A",
+    bg1: "#020818", bg2: "#0A0A2A", ground: "#060818", accent: "#7c5af5",
   },
   coastal: {
     label: "Coastal",
-    mood: "Horizon. Golden hour. Calm.",
-    icon: "water-outline",
-    bg1: "#0A0E18", bg2: "#10182A", ground: "#0D1220",
+    mood: "Golden hour. Warm glow.",
+    icon: "sunny-outline",
+    bg1: "#1A0F00", bg2: "#7A3400", bg3: "#C17F1E", ground: "#120A00", accent: "#F5C842",
   },
-  minimal: {
-    label: "Minimal",
-    mood: "Pure. Distilled. Elegant.",
-    icon: "remove-outline",
-    bg1: "#080808", bg2: "#111111", ground: "#0C0C0C",
+  showroom: {
+    label: "Showroom",
+    mood: "Luxury. Clean. Minimal.",
+    icon: "diamond-outline",
+    bg1: "#E8E8E8", bg2: "#D0D0D0", ground: "#C8C8C8", accent: "#888888",
   },
   track: {
     label: "Track",
     mood: "Speed. Precision. Racing.",
     icon: "speedometer-outline",
-    bg1: "#08060E", bg2: "#120E1E", ground: "#0E0B18",
+    bg1: "#08060E", bg2: "#120E1E", ground: "#0E0B18", accent: "#E53E3E",
   },
 };
 
@@ -103,17 +104,22 @@ function getBodyColor(car: Car): string {
   return RARITY_COLORS[car.rarity] ?? Colors.textMuted;
 }
 
+function getPrestigeTagline(pv: number): string {
+  if (pv >= 10) return "Elite. Undisputed.";
+  if (pv >= 6) return "Few make it this far.";
+  if (pv >= 3) return "Earned through discipline.";
+  return "The journey begins.";
+}
+
 const CANVAS_W = SCREEN_W - 32;
 const ASPECT_RATIOS: Record<AspectRatio, number> = { "4:5": 5 / 4, "1:1": 1 };
 
 function PhotoScene({
-  car, scene, showIdentity, showCarName, showWatermark,
-  username, statusTier, activeTitle, classLabel, aspectRatio,
+  car, username, classLabel, aspectRatio, scene, userLevel,
   visualState, equippedWearables, skinTone, bodyType, hairStyle, hairColor,
 }: {
-  car: Car; scene: Scene; showIdentity: boolean; showCarName: boolean; showWatermark: boolean;
-  username: string; statusTier: string | null; activeTitle: string | null; classLabel: string;
-  aspectRatio: AspectRatio;
+  car: Car; username: string; classLabel: string;
+  aspectRatio: AspectRatio; scene: Scene; userLevel: number | null;
   visualState?: VisualState | null;
   equippedWearables?: EquippedWearableState;
   skinTone?: string;
@@ -130,90 +136,113 @@ function PhotoScene({
   const canvasH = CANVAS_W * ASPECT_RATIOS[aspectRatio];
   const vb = `0 0 380 ${Math.round(380 * ASPECT_RATIOS[aspectRatio])}`;
   const vbH = Math.round(380 * ASPECT_RATIOS[aspectRatio]);
-  const groundY = vbH - 60;
+  const groundY = vbH - 90;
   const use3D = !!glbFile && !glbFailed;
+  const tagline = getPrestigeTagline(car.prestigeValue);
 
   return (
     <View style={[psc.outer, { height: canvasH }]}>
       <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} viewBox={vb}>
         <Defs>
-          <LinearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0%" stopColor={sm.bg1} stopOpacity={1} />
-            <Stop offset="100%" stopColor={sm.bg2} stopOpacity={1} />
-          </LinearGradient>
-          <LinearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+          <SvgLinearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0%" stopColor={sm.bg3 ?? sm.bg1} stopOpacity={1} />
+            <Stop offset="50%" stopColor={sm.bg2} stopOpacity={1} />
+            <Stop offset="100%" stopColor={sm.bg1} stopOpacity={1} />
+          </SvgLinearGradient>
+          <SvgLinearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0%" stopColor={sm.ground} stopOpacity={0.9} />
             <Stop offset="100%" stopColor={sm.bg1} stopOpacity={0} />
-          </LinearGradient>
-          <LinearGradient id="carGlow" x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0%" stopColor={rarityColor} stopOpacity={0} />
-            <Stop offset="50%" stopColor={rarityColor} stopOpacity={0.12} />
-            <Stop offset="100%" stopColor={rarityColor} stopOpacity={0} />
-          </LinearGradient>
+          </SvgLinearGradient>
+          <RadialGradient id="carShadow" cx="50%" cy="50%" rx="50%" ry="50%">
+            <Stop offset="0%" stopColor="#000000" stopOpacity={0.5} />
+            <Stop offset="70%" stopColor="#000000" stopOpacity={0.2} />
+            <Stop offset="100%" stopColor="#000000" stopOpacity={0} />
+          </RadialGradient>
+          <RadialGradient id="carHalo" cx="50%" cy="50%" rx="50%" ry="50%">
+            <Stop offset="0%" stopColor={sm.accent} stopOpacity={0.22} />
+            <Stop offset="60%" stopColor={sm.accent} stopOpacity={0.08} />
+            <Stop offset="100%" stopColor={sm.accent} stopOpacity={0} />
+          </RadialGradient>
+          <RadialGradient id="charAura" cx="50%" cy="50%" rx="50%" ry="50%">
+            <Stop offset="0%" stopColor={sm.accent} stopOpacity={0.12} />
+            <Stop offset="70%" stopColor={sm.accent} stopOpacity={0.04} />
+            <Stop offset="100%" stopColor={sm.accent} stopOpacity={0} />
+          </RadialGradient>
         </Defs>
 
         <Rect x={0} y={0} width={380} height={vbH} fill="url(#bg)" />
-        <Rect x={0} y={groundY - 30} width={380} height={90} fill="url(#carGlow)" />
-        <Rect x={0} y={groundY} width={380} height={60} fill="url(#ground)" />
+        <Rect x={0} y={groundY} width={380} height={vbH - groundY} fill="url(#ground)" />
+
+        <Ellipse cx={230} cy={groundY - 20} rx={100} ry={80} fill="url(#carHalo)" />
+
+        <Ellipse cx={230} cy={groundY + 8} rx={70} ry={6} fill="url(#carShadow)" />
+
+        <Ellipse cx={80} cy={groundY - 10} rx={55} ry={55} fill="url(#charAura)" />
 
         {scene === "nightcity" && (
           <G>
-            <Rect x={30} y={40} width={18} height={groundY - 60} rx={2} fill={rarityColor + "06"} stroke={rarityColor + "12"} strokeWidth={0.5} />
-            <Rect x={60} y={20} width={22} height={groundY - 40} rx={2} fill={rarityColor + "05"} stroke={rarityColor + "10"} strokeWidth={0.5} />
-            <Rect x={290} y={55} width={20} height={groundY - 75} rx={2} fill={rarityColor + "06"} stroke={rarityColor + "10"} strokeWidth={0.5} />
-            <Rect x={320} y={30} width={25} height={groundY - 50} rx={2} fill={rarityColor + "05"} stroke={rarityColor + "12"} strokeWidth={0.5} />
-            <Rect x={340} y={60} width={15} height={groundY - 80} rx={2} fill={rarityColor + "04"} stroke={rarityColor + "08"} strokeWidth={0.5} />
-            {[42, 52, 62, 72, 85].map((y, i) => (
-              <Rect key={i} x={33} y={y} width={12} height={5} rx={1} fill={rarityColor + "12"} />
+            <Rect x={25} y={30} width={16} height={groundY - 50} rx={2} fill="#7c5af506" stroke="#7c5af512" strokeWidth={0.5} />
+            <Rect x={55} y={15} width={20} height={groundY - 35} rx={2} fill="#7c5af505" stroke="#7c5af510" strokeWidth={0.5} />
+            <Rect x={295} y={45} width={18} height={groundY - 65} rx={2} fill="#7c5af506" stroke="#7c5af510" strokeWidth={0.5} />
+            <Rect x={325} y={25} width={22} height={groundY - 45} rx={2} fill="#7c5af505" stroke="#7c5af512" strokeWidth={0.5} />
+            <Rect x={350} y={50} width={14} height={groundY - 70} rx={2} fill="#7c5af504" stroke="#7c5af508" strokeWidth={0.5} />
+            {[38, 48, 58, 68, 80].map((y, i) => (
+              <Rect key={`wl${i}`} x={28} y={y} width={10} height={4} rx={1} fill="#7c5af515" />
             ))}
-            {[30, 45, 58, 75].map((y, i) => (
-              <Rect key={i} x={63} y={y} width={16} height={6} rx={1} fill={rarityColor + "10"} />
+            {[25, 40, 55, 70].map((y, i) => (
+              <Rect key={`wr${i}`} x={58} y={y} width={14} height={5} rx={1} fill="#7c5af512" />
             ))}
-            <Rect x={0} y={groundY} width={380} height={1} fill={rarityColor + "15"} />
-            <Ellipse cx={190} cy={groundY + 8} rx={80} ry={3} fill={rarityColor + "10"} />
+            {[0.15, 0.3, 0.45, 0.6, 0.75, 0.9].map((pct, i) => (
+              <Line key={`gl${i}`} x1={380 * pct} y1={groundY} x2={190} y2={groundY - 60} stroke="#7c5af508" strokeWidth={0.4} />
+            ))}
+            <Rect x={0} y={groundY} width={380} height={1} fill="#7c5af518" />
+            <Ellipse cx={40} cy={25} rx={5} ry={5} fill="#7c5af508" />
+            <Ellipse cx={340} cy={18} rx={7} ry={7} fill="#7c5af506" />
+            <Ellipse cx={15} cy={60} rx={4} ry={4} fill="#7c5af507" />
+            <Ellipse cx={365} cy={50} rx={3} ry={3} fill="#7c5af509" />
           </G>
         )}
 
         {scene === "coastal" && (
           <G>
-            <Line x1={0} y1={groundY - 40} x2={380} y2={groundY - 40} stroke="#F5C84220" strokeWidth={0.8} />
-            <Ellipse cx={320} cy={groundY - 70} rx={14} ry={14} fill="#F5C84208" stroke="#F5C84215" strokeWidth={0.5} />
-            <Rect x={0} y={groundY - 8} width={380} height={2} fill="#4488AA12" />
-            <Rect x={0} y={groundY - 2} width={380} height={1} fill="#4488AA08" />
-            {[60, 130, 210, 280, 340].map((x, i) => (
-              <Ellipse key={i} cx={x} cy={groundY + 15 + (i % 2) * 8} rx={30 + i * 3} ry={2} fill="#4488AA06" />
+            <Line x1={0} y1={groundY - 50} x2={380} y2={groundY - 50} stroke="#F5C84218" strokeWidth={0.8} />
+            <Ellipse cx={330} cy={groundY - 100} rx={22} ry={22} fill="#F5C84210" />
+            <Rect x={0} y={groundY - 6} width={380} height={2} fill="#88664415" />
+            <Rect x={0} y={groundY} width={380} height={1} fill="#88664410" />
+            {[50, 120, 200, 280, 350].map((x, i) => (
+              <Ellipse key={`wave${i}`} cx={x} cy={groundY + 12 + (i % 2) * 6} rx={25 + i * 3} ry={2} fill="#88664408" />
             ))}
           </G>
         )}
 
-        {scene === "minimal" && (
+        {scene === "showroom" && (
           <G>
-            <Line x1={190} y1={0} x2={190} y2={vbH} stroke={rarityColor + "05"} strokeWidth={0.5} />
-            <Line x1={0} y1={groundY} x2={380} y2={groundY} stroke={rarityColor + "08"} strokeWidth={0.5} />
-            <Rect x={185} y={groundY - 4} width={10} height={8} rx={1} fill={rarityColor + "06"} />
+            <Rect x={0} y={groundY} width={380} height={1} fill="#00000015" />
+            <Ellipse cx={230} cy={groundY + 14} rx={90} ry={5} fill="#00000008" />
+            <Ellipse cx={230} cy={groundY + 20} rx={60} ry={3} fill="#00000006" />
           </G>
         )}
 
         {scene === "track" && (
           <G>
-            <Rect x={0} y={groundY} width={380} height={2} fill={rarityColor + "25"} />
-            <Rect x={0} y={groundY + 12} width={380} height={1} fill={rarityColor + "12"} />
-            {[30, 80, 130, 180, 230, 280, 330].map((x, i) => (
-              <Rect key={i} x={x} y={groundY + 3} width={20} height={4} rx={1} fill={rarityColor + "10"} />
+            <Rect x={0} y={groundY} width={380} height={2} fill={rarityColor + "28"} />
+            <Rect x={0} y={groundY + 14} width={380} height={1} fill={rarityColor + "14"} />
+            {[25, 75, 125, 175, 225, 275, 325].map((x, i) => (
+              <Rect key={`dash${i}`} x={x} y={groundY + 4} width={22} height={4} rx={1} fill={rarityColor + "12"} />
             ))}
-            {[-30, -10, 20, 60, 110].map((y, i) => (
-              <Line key={`l${i}`} x1={0} y1={groundY + y} x2={60 - i * 6} y2={groundY + y * 0.5} stroke={rarityColor + "06"} strokeWidth={0.6} />
+            {[-35, -15, 15, 45, 80].map((y, i) => (
+              <Line key={`pl${i}`} x1={0} y1={groundY + y} x2={50 - i * 5} y2={groundY + y * 0.4} stroke={rarityColor + "08"} strokeWidth={0.5} />
             ))}
-            {[-30, -10, 20, 60, 110].map((y, i) => (
-              <Line key={`r${i}`} x1={380} y1={groundY + y} x2={320 + i * 6} y2={groundY + y * 0.5} stroke={rarityColor + "06"} strokeWidth={0.6} />
+            {[-35, -15, 15, 45, 80].map((y, i) => (
+              <Line key={`pr${i}`} x1={380} y1={groundY + y} x2={330 + i * 5} y2={groundY + y * 0.4} stroke={rarityColor + "08"} strokeWidth={0.5} />
             ))}
-            <Rect x={2} y={groundY - 20} width={3} height={20} rx={1} fill={rarityColor + "15"} />
-            <Rect x={375} y={groundY - 20} width={3} height={20} rx={1} fill={rarityColor + "15"} />
+            <Rect x={2} y={groundY - 22} width={3} height={22} rx={1} fill={rarityColor + "18"} />
+            <Rect x={375} y={groundY - 22} width={3} height={22} rx={1} fill={rarityColor + "18"} />
           </G>
         )}
       </Svg>
 
-      <View style={[psc.compositionWrap, { height: canvasH }]}>
+      <View style={[psc.compositionWrap, { height: canvasH - 90 }]}>
         <View style={psc.characterPos}>
           <EvolvedCharacter
             visualState={visualState ?? undefined}
@@ -222,7 +251,7 @@ function PhotoScene({
             bodyType={bodyType ?? "male"}
             hairStyle={hairStyle ?? "clean_cut"}
             hairColor={hairColor ?? "black"}
-            size={canvasH * 0.42}
+            size={canvasH * 0.36}
           />
         </View>
         <View style={psc.carPos}>
@@ -230,48 +259,55 @@ function PhotoScene({
             <GLBViewer
               modelFile={glbFile}
               width={CANVAS_W * 0.62}
-              height={canvasH * 0.5}
+              height={canvasH * 0.45}
               autoRotate
               autoRotateSpeed={0.4}
               onError={() => setGlbFailed(true)}
             />
           ) : (
-            <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={CANVAS_W * 0.62} />
+            <CarVisual carClass={car.carClass} bodyColor={bodyColor} size={CANVAS_W * 0.58} />
           )}
         </View>
       </View>
 
-      {showIdentity && (
-        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={psc.identityOverlay}>
-          <View style={[psc.identityCard, { borderColor: rarityColor + "50" }]}>
-            <View style={[psc.identityAccent, { backgroundColor: rarityColor }]} />
-            <Text style={[psc.identityName, { color: rarityColor }]}>{username}</Text>
-            {activeTitle && <Text style={psc.identityTitle}>{activeTitle}</Text>}
-            {statusTier && <Text style={psc.identityTier}>{statusTier}</Text>}
+      <View style={psc.achievementPanel}>
+        {Platform.OS !== "web" ? (
+          <BlurView intensity={40} tint="dark" style={psc.blurFill} />
+        ) : null}
+        <View style={[psc.panelBg, Platform.OS === "web" && { backgroundColor: "rgba(0,0,0,0.65)" }]} />
+        <View style={psc.panelContent}>
+          <View style={psc.panelTopRow}>
+            <Text style={psc.carName} numberOfLines={1}>{car.name}</Text>
+            {classLabel ? (
+              <View style={[psc.classBadge, { borderColor: rarityColor + "50" }]}>
+                <Text style={[psc.classText, { color: rarityColor }]}>{classLabel}</Text>
+              </View>
+            ) : null}
           </View>
-        </Animated.View>
-      )}
-
-      {showCarName && (
-        <View style={psc.carNameOverlay}>
-          <View style={[psc.carNameCard, { borderColor: rarityColor + "40" }]}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <View style={[psc.carNameDot, { backgroundColor: rarityColor }]} />
-              <Text style={[psc.carNameText, { color: rarityColor }]} numberOfLines={1}>{car.name}</Text>
-            </View>
-            {classLabel ? <Text style={[psc.carClassText, { color: rarityColor + "90" }]}>{classLabel}</Text> : null}
+          <Text style={psc.unlockedBy} numberOfLines={1}>
+            Unlocked by: {username}
+          </Text>
+          <View style={psc.statsRow}>
             {car.prestigeValue > 0 && (
-              <Text style={psc.carPrestigeText}>+{car.prestigeValue} Prestige</Text>
+              <Text style={psc.prestigeStat}>
+                {"\u2605"} Prestige +{car.prestigeValue}
+              </Text>
+            )}
+            {car.prestigeValue > 0 && userLevel != null && (
+              <Text style={psc.statDot}>{"\u2022"}</Text>
+            )}
+            {userLevel != null && (
+              <Text style={psc.levelStat}>
+                Lv {userLevel}
+              </Text>
             )}
           </View>
+          <Text style={psc.tagline} numberOfLines={1}>
+            {tagline}
+          </Text>
+          <Text style={psc.watermark}>@LifeRPG</Text>
         </View>
-      )}
-
-      {showWatermark && (
-        <View style={psc.watermarkWrap}>
-          <Text style={psc.watermarkText}>DisciplineOS</Text>
-        </View>
-      )}
+      </View>
     </View>
   );
 }
@@ -283,16 +319,11 @@ export default function PhotoModeScreen() {
 
   const { data: photoData, isLoading } = useCarPhotoMode();
   const { data: charData } = useCharacterStatus();
-  const { data: identityData } = useIdentity();
-  const { data: endgameData } = useEndgame();
 
   const ownedCars: Car[] = photoData?.ownedCars ?? [];
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
   const [scene, setScene] = useState<Scene>("nightcity");
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("4:5");
-  const [showIdentity, setShowIdentity] = useState(true);
-  const [showCarName, setShowCarName] = useState(true);
-  const [showWatermark, setShowWatermark] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
 
   const viewShotRef = useRef<ViewShot>(null);
@@ -303,10 +334,11 @@ export default function PhotoModeScreen() {
     ownedCars[0] ?? null;
 
   const username = user?.username ?? "Operator";
-  const statusTier = charData?.statusTier ?? endgameData?.prestige?.currentLabel ?? null;
-  const activeTitle = identityData?.activeTitle?.name ?? null;
   const classLabel = CLASS_LABELS[activeCar?.carClass ?? ""] ?? "";
   const rarityColor = activeCar ? (RARITY_COLORS[activeCar.rarity] ?? Colors.accent) : Colors.accent;
+  const userLevel = charData?.dimensionEngine?.avgLevel != null
+    ? Math.round(charData.dimensionEngine.avgLevel)
+    : null;
 
   const visualState = charData?.visualState ?? null;
   const equippedWearables = charData?.equippedWearables ?? null;
@@ -321,13 +353,13 @@ export default function PhotoModeScreen() {
       if (Platform.OS === "web") {
         const link = document.createElement("a");
         link.href = uri;
-        link.download = `disciplineos-${Date.now()}.png`;
+        link.download = `liferpg-${Date.now()}.png`;
         link.click();
         Alert.alert("Exported", "Image downloaded successfully.");
       } else {
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
-          await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Share your photo" });
+          await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Share your achievement" });
         } else {
           const { status } = await MediaLibrary.requestPermissionsAsync();
           if (status === "granted") {
@@ -412,14 +444,10 @@ export default function PhotoModeScreen() {
               <PhotoScene
                 car={activeCar}
                 scene={scene}
-                showIdentity={showIdentity}
-                showCarName={showCarName}
-                showWatermark={showWatermark}
                 username={username}
-                statusTier={statusTier}
-                activeTitle={activeTitle}
                 classLabel={classLabel}
                 aspectRatio={aspectRatio}
+                userLevel={userLevel}
                 visualState={visualState}
                 equippedWearables={equippedWearables}
                 skinTone={appearance?.skinTone}
@@ -448,33 +476,6 @@ export default function PhotoModeScreen() {
 
         <Animated.View entering={FadeInDown.delay(55).springify()} style={styles.sectionBlock}>
           <View style={styles.sectionLabelRow}>
-            <Ionicons name="options-outline" size={12} color={Colors.textMuted} />
-            <Text style={styles.sectionLabel}>OVERLAYS</Text>
-          </View>
-          <View style={styles.toggleRow}>
-            <OverlayToggle
-              label="Identity"
-              icon="person-outline"
-              active={showIdentity}
-              onToggle={() => { Haptics.selectionAsync().catch(() => {}); setShowIdentity(!showIdentity); }}
-            />
-            <OverlayToggle
-              label="Car Name"
-              icon="car-sport-outline"
-              active={showCarName}
-              onToggle={() => { Haptics.selectionAsync().catch(() => {}); setShowCarName(!showCarName); }}
-            />
-            <OverlayToggle
-              label="Watermark"
-              icon="water-outline"
-              active={showWatermark}
-              onToggle={() => { Haptics.selectionAsync().catch(() => {}); setShowWatermark(!showWatermark); }}
-            />
-          </View>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(65).springify()} style={styles.sectionBlock}>
-          <View style={styles.sectionLabelRow}>
             <Ionicons name="resize-outline" size={12} color={Colors.textMuted} />
             <Text style={styles.sectionLabel}>ASPECT RATIO</Text>
           </View>
@@ -495,13 +496,13 @@ export default function PhotoModeScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(75).springify()} style={styles.sectionBlock}>
+        <Animated.View entering={FadeInDown.delay(65).springify()} style={styles.sectionBlock}>
           <View style={styles.sectionLabelRow}>
             <Ionicons name="image-outline" size={12} color={Colors.textMuted} />
             <Text style={styles.sectionLabel}>SCENE</Text>
           </View>
           <View style={styles.sceneRow}>
-            {(["nightcity", "coastal", "minimal", "track"] as Scene[]).map((s) => {
+            {(["nightcity", "coastal", "showroom", "track"] as Scene[]).map((s) => {
               const meta = SCENE_META[s];
               const active = scene === s;
               return (
@@ -520,7 +521,7 @@ export default function PhotoModeScreen() {
         </Animated.View>
 
         {ownedCars.length > 1 && (
-          <Animated.View entering={FadeInDown.delay(85).springify()} style={styles.sectionBlock}>
+          <Animated.View entering={FadeInDown.delay(75).springify()} style={styles.sectionBlock}>
             <View style={styles.sectionLabelRow}>
               <Ionicons name="car-outline" size={12} color={Colors.textMuted} />
               <Text style={styles.sectionLabel}>VEHICLE</Text>
@@ -555,15 +556,6 @@ export default function PhotoModeScreen() {
   );
 }
 
-function OverlayToggle({ label, icon, active, onToggle }: { label: string; icon: string; active: boolean; onToggle: () => void }) {
-  return (
-    <Pressable style={[styles.overlayToggleBtn, active && { backgroundColor: Colors.accentDim, borderColor: Colors.accent + "50" }]} onPress={onToggle}>
-      <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={14} color={active ? Colors.accent : Colors.textMuted} />
-      <Text style={[styles.overlayToggleLabel, active && { color: Colors.accent }]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
   scroll: { paddingHorizontal: 16, paddingTop: 8, gap: 14 },
@@ -587,14 +579,6 @@ const styles = StyleSheet.create({
   sectionBlock: { gap: 10 },
   sectionLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   sectionLabel: { fontFamily: "Inter_700Bold", fontSize: 9, color: Colors.textMuted, letterSpacing: 1.5 },
-
-  toggleRow: { flexDirection: "row", gap: 8 },
-  overlayToggleBtn: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    paddingVertical: 11, borderRadius: 12,
-    backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border,
-  },
-  overlayToggleLabel: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.textMuted },
 
   ratioRow: { flexDirection: "row", gap: 8 },
   ratioTab: {
@@ -635,33 +619,61 @@ const styles = StyleSheet.create({
 const psc = StyleSheet.create({
   outer: { position: "relative", overflow: "hidden" },
   compositionWrap: {
-    position: "absolute", left: 0, right: 0, bottom: 0,
+    position: "absolute", left: 0, right: 0, bottom: 90,
     flexDirection: "row", alignItems: "flex-end",
-    paddingLeft: 16, paddingBottom: 20, paddingRight: 16,
+    paddingLeft: 14, paddingBottom: 10, paddingRight: 14,
   },
-  characterPos: { zIndex: 2, marginBottom: 0, marginRight: -16 },
+  characterPos: { zIndex: 2, marginBottom: 0, marginRight: -14 },
   carPos: { zIndex: 1, flex: 1, alignItems: "center" },
 
-  identityOverlay: { position: "absolute", top: 14, right: 14 },
-  identityCard: {
-    borderRadius: 12, padding: 10, borderWidth: 1,
-    backgroundColor: "#000000CC", gap: 2, minWidth: 100, maxWidth: 140, overflow: "hidden",
+  achievementPanel: {
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    borderTopLeftRadius: 16, borderTopRightRadius: 16,
+    overflow: "hidden", zIndex: 5, height: 90,
   },
-  identityAccent: { position: "absolute", top: 0, right: 0, width: 4, height: 36, borderBottomLeftRadius: 2 },
-  identityName: { fontFamily: "Inter_700Bold", fontSize: 13 },
-  identityTitle: { fontFamily: "Inter_500Medium", fontSize: 9, color: Colors.gold, opacity: 0.9 },
-  identityTier: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.textMuted, letterSpacing: 0.3 },
-
-  carNameOverlay: { position: "absolute", bottom: 14, right: 14, zIndex: 3 },
-  carNameCard: {
-    borderRadius: 10, padding: 8, borderWidth: 1,
-    backgroundColor: "#000000BB", gap: 2, minWidth: 90, maxWidth: 140, overflow: "hidden",
+  blurFill: {
+    ...StyleSheet.absoluteFillObject,
   },
-  carNameDot: { width: 5, height: 5, borderRadius: 3 },
-  carNameText: { fontFamily: "Inter_700Bold", fontSize: 11, flex: 1 },
-  carClassText: { fontFamily: "Inter_400Regular", fontSize: 8, letterSpacing: 0.3 },
-  carPrestigeText: { fontFamily: "Inter_600SemiBold", fontSize: 8, color: Colors.gold },
-
-  watermarkWrap: { position: "absolute", bottom: 14, left: 14, opacity: 0.35 },
-  watermarkText: { fontFamily: "Inter_700Bold", fontSize: 8, color: Colors.textMuted, letterSpacing: 1.5 },
+  panelBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  panelContent: {
+    paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8,
+  },
+  panelTopRow: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8,
+  },
+  carName: {
+    fontFamily: "Inter_700Bold", fontSize: 18, color: "#FFFFFF", flex: 1,
+  },
+  classBadge: {
+    borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2,
+  },
+  classText: {
+    fontFamily: "Inter_600SemiBold", fontSize: 10, letterSpacing: 0.5,
+  },
+  unlockedBy: {
+    fontFamily: "Inter_400Regular", fontSize: 11, color: "#FFFFFF90", marginTop: 3,
+  },
+  statsRow: {
+    flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4,
+  },
+  prestigeStat: {
+    fontFamily: "Inter_600SemiBold", fontSize: 11, color: "#FFD700",
+  },
+  statDot: {
+    fontFamily: "Inter_400Regular", fontSize: 10, color: "#FFFFFF50",
+  },
+  levelStat: {
+    fontFamily: "Inter_600SemiBold", fontSize: 11, color: "#FFFFFFBB",
+  },
+  tagline: {
+    fontFamily: "Inter_400Regular", fontSize: 10, color: "#FFFFFF70",
+    fontStyle: "italic", marginTop: 3,
+  },
+  watermark: {
+    fontFamily: "Inter_700Bold", fontSize: 8, color: "#FFFFFF66",
+    letterSpacing: 1.2, textAlign: "right", marginTop: 4,
+  },
 });
