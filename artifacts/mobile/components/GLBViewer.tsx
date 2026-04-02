@@ -231,12 +231,17 @@ export default GLBViewer;
 const modelPreloadCache = new Set<string>();
 
 export async function preloadGLBModels(modelFiles: string[]) {
-  for (const file of modelFiles) {
-    if (modelPreloadCache.has(file)) continue;
-    try {
-      const url = `${MODELS_BASE}/${file}`;
-      await fetch(url, { method: "HEAD" });
-      modelPreloadCache.add(file);
-    } catch {}
-  }
+  const promises = modelFiles
+    .filter((file) => !modelPreloadCache.has(file))
+    .map(async (file) => {
+      try {
+        const url = `${MODELS_BASE}/${file}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          await res.arrayBuffer();
+          modelPreloadCache.add(file);
+        }
+      } catch {}
+    });
+  await Promise.allSettled(promises);
 }
