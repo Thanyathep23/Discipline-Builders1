@@ -363,9 +363,13 @@ export default function RoomEditorScreen() {
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [hasChanges, setHasChanges] = useState(false);
   const [confirmItem, setConfirmItem] = useState<any>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const autoSaveRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: shopData } = useRoomShopItems(shopTab);
+
+  const shopItems = shopData?.items ?? [];
+  const coinBalance = shopData?.coinBalance ?? user?.coinBalance ?? 0;
 
   const slots = roomData?.slots ?? {};
   const roomState = roomData?.roomState;
@@ -453,36 +457,48 @@ export default function RoomEditorScreen() {
   }, [slots, eligibilityData]);
 
   const handleAssign = useCallback(async (zone: string, itemId: string) => {
+    setErrorMsg(null);
     try {
       await assignSlot.mutateAsync({ slot: zone, itemId });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       setHasChanges(true);
       setConfirmItem(null);
-    } catch {}
+    } catch (e: any) {
+      setErrorMsg(e.message ?? "Failed to place item");
+    }
   }, [assignSlot]);
 
   const handleClear = useCallback(async (zone: string) => {
+    setErrorMsg(null);
     try {
       await clearSlot.mutateAsync(zone);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
       setHasChanges(true);
       setActionMenu(null);
-    } catch {}
+    } catch (e: any) {
+      setErrorMsg(e.message ?? "Failed to remove item");
+    }
   }, [clearSlot]);
 
   const handleToggleCharacter = useCallback(async () => {
     if (toggleChar.isPending) return;
+    setErrorMsg(null);
     try {
       await toggleChar.mutateAsync(!isCharacterInRoom);
       Haptics.selectionAsync().catch(() => {});
       setHasChanges(true);
-    } catch {}
+    } catch (e: any) {
+      setErrorMsg(e.message ?? "Failed to toggle character");
+    }
   }, [toggleChar, isCharacterInRoom]);
 
   const handleBuyAndPlace = useCallback(async (item: any) => {
+    setErrorMsg(null);
     setBuyingId(item.id);
+    const beforeBalance = coinBalance;
+    console.log(`[Room Buy] BEFORE item=${item.name} id=${item.id} cost=${item.cost} balance=${beforeBalance}`);
     try {
-      await buyItem.mutateAsync(item.id);
+      const buyResult = await buyItem.mutateAsync({ itemId: item.id });
       if (item.roomZone) {
         await assignSlot.mutateAsync({ slot: item.roomZone, itemId: item.id });
       }
@@ -490,9 +506,14 @@ export default function RoomEditorScreen() {
       setHasChanges(true);
       setConfirmItem(null);
       await refetch();
-    } catch {}
+      const afterBalance = buyResult?.newBalance ?? (beforeBalance - item.cost);
+      console.log(`[Room Buy] AFTER item=${item.name} id=${item.id} cost=${item.cost} balanceBefore=${beforeBalance} balanceAfter=${afterBalance}`);
+    } catch (e: any) {
+      console.log(`[Room Buy] FAILED item=${item.name} id=${item.id} error=${e.message}`);
+      setErrorMsg(e.message ?? "Purchase failed");
+    }
     finally { setBuyingId(null); }
-  }, [buyItem, assignSlot, refetch]);
+  }, [buyItem, assignSlot, refetch, coinBalance]);
 
   const handlePlaceOwned = useCallback(async (item: any) => {
     if (item.roomZone) {
@@ -507,9 +528,6 @@ export default function RoomEditorScreen() {
       </View>
     );
   }
-
-  const shopItems = shopData?.items ?? [];
-  const coinBalance = shopData?.coinBalance ?? user?.coinBalance ?? 0;
 
   return (
     <View style={s.container}>
@@ -542,6 +560,14 @@ export default function RoomEditorScreen() {
           )}
         </Pressable>
       </View>
+
+      {errorMsg && (
+        <Pressable style={s.errorBanner} onPress={() => setErrorMsg(null)}>
+          <Ionicons name="warning-outline" size={13} color="#EF4444" />
+          <Text style={s.errorText}>{errorMsg}</Text>
+          <Ionicons name="close" size={13} color="#EF4444" />
+        </Pressable>
+      )}
 
       {/* ─── FULL SCREEN ROOM CANVAS ─── */}
       <View style={[s.canvasWrap, { height: canvasH }]}>
@@ -923,4 +949,13 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)",
   },
   confirmCancelText: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: "rgba(255,255,255,0.6)" },
+
+  errorBanner: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: "rgba(239,68,68,0.12)", paddingHorizontal: 14, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: "rgba(239,68,68,0.25)",
+  },
+  errorText: {
+    flex: 1, fontFamily: "Inter_500Medium", fontSize: 12, color: "#EF4444",
+  },
 });
