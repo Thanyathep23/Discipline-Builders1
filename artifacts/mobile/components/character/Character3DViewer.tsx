@@ -336,7 +336,11 @@ function SuperheroModel({
     s.position.x = -center.x;
     s.position.z = -center.z;
 
-    const meshNames: string[] = [];
+    // ROOT CAUSE: Head vertices are part of the body SkinnedMesh (e.g. Sphere.005_Retopology.004).
+    // After fixTPose applies bone transforms, head vertices move outside the geometry's original
+    // bounding sphere. Three.js frustum culling then clips the entire mesh when the camera frames
+    // only the upper body. Fix: disable frustumCulled on body mesh so the full skinned mesh always
+    // renders. DoubleSide ensures back-faces remain visible after bone rotations.
     s.traverse((child: any) => {
       if (child.isMesh) {
         child.castShadow = true;
@@ -344,10 +348,15 @@ function SuperheroModel({
         child.frustumCulled = false;
         const mats = Array.isArray(child.material) ? child.material : [child.material];
         mats.forEach((m: any) => { if (m) m.side = THREE.DoubleSide; });
-        meshNames.push(`${child.name} [mat=${child.material?.name || "?"}]`);
+        const mat = child.material;
+        const geo = child.geometry;
+        console.log("[CharViewer] Mesh:", child.name,
+          "| mat:", mat?.name || "?",
+          "| visible:", child.visible,
+          "| opacity:", mat?.opacity, "transparent:", mat?.transparent,
+          "| vertexColors:", !!(geo?.attributes?.color));
       }
     });
-    console.log("[CharViewer] Body meshes:", meshNames.join(", "));
 
     fixTPose(s);
     bodyRef.current = s;
