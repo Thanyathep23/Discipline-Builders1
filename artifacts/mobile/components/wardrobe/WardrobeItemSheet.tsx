@@ -4,6 +4,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import type { ComponentProps } from "react";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeIn, SlideInDown } from "react-native-reanimated";
 import { colors, typography, spacing, radius } from "@/design-system";
@@ -134,11 +135,11 @@ export function WardrobeItemSheet({
       const lockText = item!.isPrestigeLocked
         ? `Reach Prestige ${item!.prestigeRequired} to Unlock`
         : `Reach Level ${item!.minLevel} to Unlock`;
-      const lockIcon = item!.isPrestigeLocked ? "shield-outline" : "lock-closed-outline";
+      const lockIcon: ComponentProps<typeof Ionicons>["name"] = item!.isPrestigeLocked ? "shield-outline" : "lock-closed-outline";
       return (
         <View>
           <Pressable style={[st.ctaBtn, st.ctaDisabled]} disabled>
-            <Ionicons name={lockIcon as any} size={14} color={colors.text.tertiary} />
+            <Ionicons name={lockIcon} size={14} color={colors.text.tertiary} />
             <Text style={st.ctaDisabledText}>{lockText}</Text>
           </Pressable>
           {userXp != null && xpForNextLevel != null && (
