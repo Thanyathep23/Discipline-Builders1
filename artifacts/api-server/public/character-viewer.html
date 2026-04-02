@@ -175,15 +175,17 @@ async function loadBody(skinTextureName, gender) {
         } else if (child.material) {
           child.material.side = THREE.DoubleSide;
         }
-        const matNames = Array.isArray(child.material)
-          ? child.material.map((m) => m.name).join('+')
-          : (child.material?.name || '?');
-        const geo = child.geometry;
-        console.log('[CharViewer] Mesh:', child.name,
-          '| mat:', matNames,
-          '| visible:', child.visible,
-          '| opacity:', child.material?.opacity, 'transparent:', child.material?.transparent,
-          '| vertexColors:', !!(geo?.attributes?.color));
+        if (window.location.search.includes('debug')) {
+          const matNames = Array.isArray(child.material)
+            ? child.material.map((m) => m.name).join('+')
+            : (child.material?.name || '?');
+          const geo = child.geometry;
+          console.log('[CharViewer] Mesh:', child.name,
+            '| mat:', matNames,
+            '| visible:', child.visible,
+            '| opacity:', child.material?.opacity, 'transparent:', child.material?.transparent,
+            '| vertexColors:', !!(geo?.attributes?.color));
+        }
       }
     });
 
