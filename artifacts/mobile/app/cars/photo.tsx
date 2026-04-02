@@ -645,7 +645,7 @@ const psc = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8,
   },
   carName: {
-    fontFamily: "Inter_700Bold", fontSize: 18, color: "#FFFFFF", flex: 1,
+    fontFamily: "Inter_700Bold", fontSize: 20, color: "#FFFFFF", flex: 1,
   },
   classBadge: {
     borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2,
@@ -673,7 +673,8 @@ const psc = StyleSheet.create({
     fontStyle: "italic", marginTop: 3,
   },
   watermark: {
+    position: "absolute", bottom: 8, right: 16,
     fontFamily: "Inter_700Bold", fontSize: 8, color: "#FFFFFF66",
-    letterSpacing: 1.2, textAlign: "right", marginTop: 4,
+    letterSpacing: 1.2,
   },
 });
