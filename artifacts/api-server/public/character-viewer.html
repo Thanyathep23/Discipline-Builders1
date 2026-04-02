@@ -163,25 +163,18 @@ async function loadBody(skinTextureName, gender) {
     bodyOffsetY = -scaledBox.min.y;
     s.position.set(-center.x, bodyOffsetY, -center.z);
 
-    // ROOT CAUSE: Head vertices are part of the body SkinnedMesh (e.g. Sphere.005_Retopology.004).
-    // After fixTPose applies bone transforms, head vertices move outside the geometry's original
-    // bounding sphere. Three.js frustum culling then clips the entire mesh when the camera frames
-    // only the upper body. Fix: disable frustumCulled on body mesh so the full skinned mesh always
-    // renders. DoubleSide ensures back-faces remain visible after bone rotations.
+    // Fix: disable frustum culling on body skinned mesh — after fixTPose bone transforms,
+    // head vertices move outside the geometry bounding sphere causing Three.js to cull the mesh.
     s.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
         child.frustumCulled = false;
-        const mats = Array.isArray(child.material) ? child.material : [child.material];
-        mats.forEach((m) => { if (m) m.side = THREE.DoubleSide; });
-        const mat = child.material;
-        const geo = child.geometry;
-        console.log('[CharViewer] Mesh:', child.name,
-          '| mat:', mat?.name || '?',
-          '| visible:', child.visible,
-          '| opacity:', mat?.opacity, 'transparent:', mat?.transparent,
-          '| vertexColors:', !!(geo?.attributes?.color));
+        if (Array.isArray(child.material)) {
+          child.material.forEach((m) => { m.side = THREE.DoubleSide; });
+        } else if (child.material) {
+          child.material.side = THREE.DoubleSide;
+        }
       }
     });
 
@@ -234,13 +227,7 @@ async function loadHair(hairModelName, hairTextureName) {
     }
 
     s.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-        child.frustumCulled = false;
-        const mats = Array.isArray(child.material) ? child.material : [child.material];
-        mats.forEach((m) => { if (m) m.side = THREE.DoubleSide; });
-      }
+      if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
     });
 
     fixTPose(s);
@@ -292,13 +279,7 @@ async function loadOutfit(glbFile) {
     s.position.set(-center.x, -scaledBox.min.y + align.yOffset, -center.z);
 
     s.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-        child.frustumCulled = false;
-        const mats = Array.isArray(child.material) ? child.material : [child.material];
-        mats.forEach((m) => { if (m) m.side = THREE.DoubleSide; });
-      }
+      if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
     });
 
     fixTPose(s);
