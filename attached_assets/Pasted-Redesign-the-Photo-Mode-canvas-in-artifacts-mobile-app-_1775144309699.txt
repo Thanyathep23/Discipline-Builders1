@@ -1,0 +1,85 @@
+Redesign the Photo Mode canvas in artifacts/mobile/app/cars/photo.tsx to look like a premium achievement showcase card — something people want to post on Instagram/TikTok to flex their grind.
+
+GOAL: The exported image must feel like "I worked hard to unlock this, look what I achieved."
+
+═══════════════════════════════════
+CANVAS VISUAL REDESIGN
+═══════════════════════════════════
+
+1. GROUND SHADOW — fix the floating car
+   - Add a dark elliptical gradient shadow UNDER the car (CSS/SVG ellipse blur)
+   - The car must look grounded, not floating
+   - Shadow: ellipse roughly same width as car, ~10px below car base, dark semi-transparent
+
+2. BACKGROUND SCENES — make them cinematic
+   Current scenes are plain. Replace with proper gradient scenes:
+
+   "Night City" scene:
+   - Background: deep navy → black gradient (top to bottom)
+   - Subtle grid floor lines (perspective lines going to vanishing point) in dark purple/blue
+   - Ambient glow halo behind the car in electric blue/purple (#7c5af5 at 20% opacity)
+   - 2–4 tiny bokeh circles (blurred dots) top corners for depth
+
+   "Coastal" scene:
+   - Background: warm amber → deep orange → dark at bottom
+   - Golden hour mood — warm glow behind car
+   - Faint horizon line
+
+   "Showroom" scene (add new):
+   - Clean white/light grey gradient
+   - Subtle floor reflection below car (mirror effect, faded)
+   - Minimalist luxury feel
+
+   Implement as LinearGradient (expo-linear-gradient) layers behind the GLBViewer.
+
+3. ACHIEVEMENT CARD OVERLAY (always visible, part of export)
+   Bottom section of canvas — a frosted/semi-transparent panel with:
+
+   ┌─────────────────────────────────────┐
+   │  [CAR NAME LARGE]     [CAR CLASS]   │
+   │  Unlocked by: [USERNAME]            │
+   │  ★ Prestige +6   •  Lv 12          │
+   │  [TAGLINE based on prestige level]  │
+   └─────────────────────────────────────┘
+
+   - Car name: bold, white, 20px
+   - Username: muted, smaller
+   - Prestige badge: gold star + number
+   - Tagline logic:
+       prestige 0–2: "The journey begins."
+       prestige 3–5: "Earned through discipline."
+       prestige 6–9: "Few make it this far."
+       prestige 10+:  "Elite. Undisputed."
+   - Panel: rgba(0,0,0,0.55) with blur (BlurView from expo-blur)
+   - Bottom of canvas, full width, rounded top corners
+
+4. WATERMARK
+   - Small "@LifeRPG" text bottom-right of the achievement panel
+   - Always included in export (not toggleable)
+   - Subtle, white at 40% opacity
+
+5. CHARACTER PLACEMENT
+   - Character stays left side, slightly smaller than current
+   - Add a very faint aura/glow circle behind the character (matching scene color)
+
+═══════════════════════════════════
+EXPORT QUALITY
+═══════════════════════════════════
+- ViewShot capture must include ALL layers: background gradient, glow, car, ground shadow, achievement panel
+- Export resolution: use quality={1} on ViewShot (already done — keep it)
+- The exported image must look identical to what the user sees on screen
+
+═══════════════════════════════════
+PACKAGES
+═══════════════════════════════════
+Run if not already installed:
+  npx expo install expo-linear-gradient expo-blur
+
+═══════════════════════════════════
+CONSTRAINTS
+═══════════════════════════════════
+- Modify ONLY artifacts/mobile/app/cars/photo.tsx (and styles within)
+- Do NOT touch the GLBViewer, API, navigation, or other screens
+- Build must pass with zero new TypeScript errors
+- The Export & Share button must still work and capture the full redesigned canvas
+- All changes must work on both iOS and Android (use Platform.OS checks if needed for BlurView)
