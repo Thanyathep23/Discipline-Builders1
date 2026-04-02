@@ -142,6 +142,9 @@ function NativeHairModel({
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
+        child.frustumCulled = false;
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach((m: any) => { if (m) m.side = THREE.DoubleSide; });
       }
     });
 
@@ -219,6 +222,9 @@ function NativeOutfitModelInner({
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
+        child.frustumCulled = false;
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach((m: any) => { if (m) m.side = THREE.DoubleSide; });
       }
     });
 
@@ -275,6 +281,9 @@ function NativeWatchModelInner({
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
+        child.frustumCulled = false;
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach((m: any) => { if (m) m.side = THREE.DoubleSide; });
       }
     });
   }, [gltf, bodyRef]);
@@ -327,12 +336,18 @@ function SuperheroModel({
     s.position.x = -center.x;
     s.position.z = -center.z;
 
+    const meshNames: string[] = [];
     s.traverse((child: any) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
+        child.frustumCulled = false;
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach((m: any) => { if (m) m.side = THREE.DoubleSide; });
+        meshNames.push(`${child.name} [mat=${child.material?.name || "?"}]`);
       }
     });
+    console.log("[CharViewer] Body meshes:", meshNames.join(", "));
 
     fixTPose(s);
     bodyRef.current = s;
