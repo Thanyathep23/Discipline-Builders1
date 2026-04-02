@@ -69,6 +69,7 @@ function RootLayoutNav() {
         <Stack.Screen name="cars/showroom" options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="room/editor" options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="room/select" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="customize/index" options={{ animation: "slide_from_bottom" }} />
       </Stack>
     </AuthGuard>
   );

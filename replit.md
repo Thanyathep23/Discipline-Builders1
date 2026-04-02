@@ -56,6 +56,7 @@ Key architectural patterns include:
 - **Room Decoration**: 17 items across 9 zones, visual room canvas with dynamic lighting and theming, 6 room progression tiers.
 - **Car Collection**: 8 vehicles across 5 classes, showroom, and photo mode.
 - **Wearables**: 17 items across 5 slots with color variants and level-gating.
+- **Customize Screen**: Unified watch + car preview screen at `/customize`. Shows SVG character with 3D watch floating on wrist and 3D car beside it using GLBViewer component. Supports equipping watches and featuring cars from owned inventory. Uses R3F on native and model-viewer on web for 3D rendering.
 
 ## External Dependencies
 

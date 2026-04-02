@@ -1594,6 +1594,19 @@ export default function CharacterStatusScreen() {
                 </View>
                 <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
               </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.spaceChip, pressed && { opacity: 0.82 }]}
+                onPress={() => { Haptics.selectionAsync().catch(() => {}); router.push("/customize" as any); }}
+              >
+                <View style={styles.spaceChipIcon}>
+                  <Ionicons name="color-palette-outline" size={19} color={Colors.textSecondary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.spaceChipTitle}>Customize</Text>
+                  <Text style={styles.spaceChipSub}>Watch & car preview</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
+              </Pressable>
             </View>
           </Animated.View>
 
@@ -1604,6 +1617,7 @@ export default function CharacterStatusScreen() {
               { icon: "cart-outline",            label: "Store",     onPress: () => router.push("/(tabs)/rewards")  },
               { icon: "trophy-outline",          label: "Profile",   onPress: () => router.push("/(tabs)/profile")  },
               { icon: "shirt-outline",           label: "Wardrobe",  onPress: () => router.push("/wardrobe" as any) },
+              { icon: "color-palette-outline",   label: "Customize", onPress: () => router.push("/customize" as any) },
             ].map((action) => (
               <Pressable
                 key={action.label}
